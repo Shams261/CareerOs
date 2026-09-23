@@ -1,0 +1,9 @@
+node_modules
+.next
+src/generated
+pnpm-lock.yaml
+*.tsbuildinfo
+
+.pnpm-store
+
+next-env.d.ts

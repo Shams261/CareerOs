@@ -1,0 +1,344 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum GoalStatus {
+  ACTIVE
+  PAUSED
+  COMPLETED
+  ARCHIVED
+}
+
+enum BlockStatus {
+  PLANNED
+  IN_PROGRESS
+  COMPLETED
+  SKIPPED
+  CANCELLED
+}
+
+enum LearningStatus {
+  NOT_STARTED
+  LEARNING
+  NEEDS_REVISION
+  INTERVIEW_READY
+  COMPLETED
+}
+
+enum Confidence {
+  RED
+  YELLOW
+  GREEN
+}
+
+enum Difficulty {
+  EASY
+  MEDIUM
+  HARD
+}
+
+enum JobStage {
+  SAVED
+  APPLIED
+  RECRUITER_SCREEN
+  ASSESSMENT
+  TECHNICAL
+  SYSTEM_DESIGN
+  BEHAVIORAL
+  FINAL
+  OFFER
+  REJECTED
+  WITHDRAWN
+}
+
+enum ResourceType {
+  PROBLEM
+  ARTICLE
+  VIDEO
+  DOCUMENTATION
+  COURSE
+  JOB
+  REPOSITORY
+  OTHER
+}
+
+enum NotificationType {
+  DAILY_PROGRESS
+  MISSED_CHECK_IN
+  UPCOMING_BLOCK
+  OVERDUE_TASK
+  JOB_FOLLOW_UP
+  INTERVIEW
+  DSA_REVISION
+}
+
+model User {
+  id            String                   @id @default(cuid())
+  email         String                   @unique
+  name          String
+  timezone      String                   @default("America/Toronto")
+  createdAt     DateTime                 @default(now()) @db.Timestamptz(3)
+  updatedAt     DateTime                 @updatedAt @db.Timestamptz(3)
+  goals         Goal[]
+  plans         DailyPlan[]
+  sessions      ActualSession[]
+  problems      DsaProblem[]
+  topics        LearningTopic[]
+  jobs          JobApplication[]
+  resources     Resource[]
+  checkIns      DailyCheckIn[]
+  preferences   NotificationPreference[]
+  notifications NotificationLog[]
+  routines      RoutineBlock[]
+}
+
+model Goal {
+  id          String          @id @default(cuid())
+  userId      String
+  user        User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title       String
+  description String?
+  category    String
+  status      GoalStatus      @default(ACTIVE)
+  targetDate  DateTime?       @db.Date
+  priority    Int             @default(2)
+  createdAt   DateTime        @default(now()) @db.Timestamptz(3)
+  updatedAt   DateTime        @updatedAt @db.Timestamptz(3)
+  blocks      TimeBlock[]
+  sessions    ActualSession[]
+  topics      LearningTopic[]
+  resources   Resource[]
+  routines    RoutineBlock[]
+
+  @@index([userId, status])
+}
+
+model DailyPlan {
+  id          String        @id @default(cuid())
+  userId      String
+  user        User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  date        DateTime      @db.Date
+  notes       String?
+  generatedAt DateTime?     @db.Timestamptz(3)
+  reviewedAt  DateTime?     @db.Timestamptz(3)
+  createdAt   DateTime      @default(now()) @db.Timestamptz(3)
+  updatedAt   DateTime      @updatedAt @db.Timestamptz(3)
+  blocks      TimeBlock[]
+  checkIn     DailyCheckIn?
+
+  @@unique([userId, date])
+}
+
+model TimeBlock {
+  id                      String          @id @default(cuid())
+  dailyPlanId             String
+  dailyPlan               DailyPlan       @relation(fields: [dailyPlanId], references: [id], onDelete: Cascade)
+  goalId                  String?
+  goal                    Goal?           @relation(fields: [goalId], references: [id], onDelete: SetNull)
+  title                   String
+  description             String?
+  category                String
+  plannedStart            DateTime        @db.Timestamptz(3)
+  plannedEnd              DateTime        @db.Timestamptz(3)
+  status                  BlockStatus     @default(PLANNED)
+  priority                Int             @default(2)
+  completedAt             DateTime?       @db.Timestamptz(3)
+  externalCalendarEventId String?
+  externalCalendarId      String?
+  calendarSyncedAt        DateTime?       @db.Timestamptz(3)
+  occurrenceDate          DateTime?       @db.Date
+  isOverride              Boolean         @default(false)
+  skipReason              String?
+  routineKey              String?
+  createdAt               DateTime        @default(now()) @db.Timestamptz(3)
+  updatedAt               DateTime        @updatedAt @db.Timestamptz(3)
+  sessions                ActualSession[]
+
+  @@unique([routineKey, occurrenceDate])
+  @@index([category, plannedStart])
+}
+
+model ActualSession {
+  id        String     @id @default(cuid())
+  userId    String
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  taskId    String?
+  task      TimeBlock? @relation(fields: [taskId], references: [id], onDelete: SetNull)
+  goalId    String?
+  goal      Goal?      @relation(fields: [goalId], references: [id], onDelete: SetNull)
+  category  String
+  startedAt DateTime   @db.Timestamptz(3)
+  endedAt   DateTime?  @db.Timestamptz(3)
+  notes     String?
+  createdAt DateTime   @default(now()) @db.Timestamptz(3)
+
+  @@index([userId, startedAt])
+}
+
+model DsaTopic {
+  id          String         @id @default(cuid())
+  name        String         @unique
+  description String?
+  status      LearningStatus @default(NOT_STARTED)
+  ordering    Int            @default(0)
+  createdAt   DateTime       @default(now()) @db.Timestamptz(3)
+  updatedAt   DateTime       @updatedAt @db.Timestamptz(3)
+  problems    DsaProblem[]
+}
+
+model DsaProblem {
+  id              String     @id @default(cuid())
+  userId          String
+  user            User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title           String
+  platform        String
+  problemUrl      String
+  difficulty      Difficulty
+  topicId         String
+  topic           DsaTopic   @relation(fields: [topicId], references: [id])
+  confidence      Confidence @default(RED)
+  notes           String?
+  lastAttemptedAt DateTime?  @db.Timestamptz(3)
+  nextRevisionAt  DateTime?  @db.Timestamptz(3)
+  attemptsCount   Int        @default(0)
+  createdAt       DateTime   @default(now()) @db.Timestamptz(3)
+  updatedAt       DateTime   @updatedAt @db.Timestamptz(3)
+  resources       Resource[]
+
+  @@index([userId, nextRevisionAt])
+}
+
+model LearningTopic {
+  id        String          @id @default(cuid())
+  userId    String
+  user      User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title     String
+  notes     String?
+  status    LearningStatus  @default(NOT_STARTED)
+  goalId    String?
+  goal      Goal?           @relation(fields: [goalId], references: [id], onDelete: SetNull)
+  parentId  String?
+  parent    LearningTopic?  @relation("TopicTree", fields: [parentId], references: [id], onDelete: SetNull)
+  children  LearningTopic[] @relation("TopicTree")
+  createdAt DateTime        @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime        @updatedAt @db.Timestamptz(3)
+  resources Resource[]
+
+  @@index([userId, status])
+}
+
+model JobApplication {
+  id               String     @id @default(cuid())
+  userId           String
+  user             User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  company          String
+  role             String
+  jobUrl           String?
+  location         String?
+  source           String?
+  appliedAt        DateTime?  @db.Timestamptz(3)
+  stage            JobStage   @default(SAVED)
+  recruiterName    String?
+  recruiterContact String?
+  notes            String?
+  nextAction       String?
+  nextActionAt     DateTime?  @db.Timestamptz(3)
+  interviewAt      DateTime?  @db.Timestamptz(3)
+  createdAt        DateTime   @default(now()) @db.Timestamptz(3)
+  updatedAt        DateTime   @updatedAt @db.Timestamptz(3)
+  resources        Resource[]
+
+  @@index([userId, nextActionAt])
+}
+
+model Resource {
+  id               String          @id @default(cuid())
+  userId           String
+  user             User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title            String
+  url              String
+  type             ResourceType    @default(OTHER)
+  notes            String?
+  problemId        String?
+  problem          DsaProblem?     @relation(fields: [problemId], references: [id], onDelete: Cascade)
+  learningTopicId  String?
+  learningTopic    LearningTopic?  @relation(fields: [learningTopicId], references: [id], onDelete: Cascade)
+  goalId           String?
+  goal             Goal?           @relation(fields: [goalId], references: [id], onDelete: Cascade)
+  jobApplicationId String?
+  jobApplication   JobApplication? @relation(fields: [jobApplicationId], references: [id], onDelete: Cascade)
+  createdAt        DateTime        @default(now()) @db.Timestamptz(3)
+  updatedAt        DateTime        @updatedAt @db.Timestamptz(3)
+
+  @@index([userId])
+}
+
+model DailyCheckIn {
+  id           String    @id @default(cuid())
+  userId       String
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  dailyPlanId  String    @unique
+  dailyPlan    DailyPlan @relation(fields: [dailyPlanId], references: [id], onDelete: Cascade)
+  completedAt  DateTime  @db.Timestamptz(3)
+  rating       Int?
+  notes        String?
+  carryForward String?
+  blocker      String?
+  createdAt    DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt    DateTime  @updatedAt @db.Timestamptz(3)
+}
+
+model RoutineBlock {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  weekdays    Int[]
+  description String?
+  priority    Int      @default(2)
+  startLocal  String
+  endLocal    String
+  title       String
+  category    String
+  goalId      String?
+  goal        Goal?    @relation(fields: [goalId], references: [id], onDelete: SetNull)
+  enabled     Boolean  @default(true)
+  createdAt   DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt   DateTime @updatedAt @db.Timestamptz(3)
+
+  @@index([userId, enabled])
+}
+
+model NotificationPreference {
+  id            String           @id @default(cuid())
+  userId        String
+  user          User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type          NotificationType
+  enabled       Boolean          @default(true)
+  offsetMinutes Int              @default(15)
+  preferredTime String           @default("21:30")
+  timezone      String           @default("America/Toronto")
+
+  @@unique([userId, type])
+}
+
+model NotificationLog {
+  id           String           @id @default(cuid())
+  userId       String
+  user         User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type         NotificationType
+  title        String
+  body         String
+  scheduledFor DateTime         @db.Timestamptz(3)
+  sentAt       DateTime?        @db.Timestamptz(3)
+  readAt       DateTime?        @db.Timestamptz(3)
+  dedupeKey    String           @unique
+  metadata     Json?
+  createdAt    DateTime         @default(now()) @db.Timestamptz(3)
+
+  @@index([userId, readAt, scheduledFor])
+}
