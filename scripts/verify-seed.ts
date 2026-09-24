@@ -33,6 +33,8 @@ const tables = [
   'CalendarConnection',
   'CalendarWatchChannel',
   'CalendarSyncConflict',
+  'WeeklyReview',
+  'WeeklyPriority',
   'RoutineBlock',
   'DailyCheckIn',
   'NotificationPreference',
@@ -58,7 +60,7 @@ try {
   seed();
   if (first !== (await snapshot()))
     throw new Error('Second seed changed persisted records.');
-  console.log('Seed idempotency verified across all 23 domain tables.');
+  console.log('Seed idempotency verified across all 25 domain tables.');
 } finally {
   await client.$disconnect();
 }
