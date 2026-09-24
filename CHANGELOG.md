@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- WI-005: job pipeline with quick add, duplicate confirmation, append-only timeline/stage history, action owner (me vs waiting on company) and needs-attention ranking.
+- Interview rounds with original timezone, reschedule history, results/reflections, per-round prep and weak-area links to learning/DSA (read-only mentions).
+- `/jobs` dashboard and filters, application detail page, Today interview and job-search sections, factual weekly counts.
+- Deduplicated follow-up (per planned date) and interview (~24h + short window) reminders; legacy job data migrated without invented history; new-owner-only examples.
+
 - WI-004: custom technical subjects, primary focus, ordered topics, four-dimensional mastery and append-only learning activities.
 - Deterministic concept review policy, manual dates, subject/topic dashboards, notes/resources, Today suggestions and weekly measured summaries.
 - Owner-scoped transactional writes and idempotent activities; optional study-session linking and one daily preference-aware technical reminder.

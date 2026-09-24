@@ -39,4 +39,10 @@ DSA adds pure policy tests, real PostgreSQL atomicity/concurrency/ownership chec
 
 NFR-001/007/010/013/014: 94 domain/database tests pass, including partial mastery, regressions, date policy, idempotent concurrency, real transaction rollback, session linkage, daily notification deduplication and legacy upgrade. Clean migration and repeatable seed hash cover all 17 domain tables. Strict typecheck/lint/production build pass. Test files run sequentially to avoid cross-suite injected-clock interference in global notification processing; concurrency is still tested within service cases.
 
-NFR-009 WI-004 browser acceptance is pending: the automation browsers block the local preview with ERR_BLOCKED_BY_CLIENT. Authenticated HTTP smoke passes but is not desktop/mobile evidence. Existing accessibility/security/performance/recovery gates remain unchanged. See [WI-004 handoff](../WI-004-HANDOFF.md).
+NFR-009 WI-004 browser acceptance was completed after delivery with headless Chromium at 1440px and 390px (see the WI-004 handoff). Existing accessibility/security/performance/recovery gates remain unchanged. See [WI-004 handoff](../WI-004-HANDOFF.md).
+
+## WI-005 evidence (2026-09-24)
+
+NFR-001/007/010/013/014: 122 tests pass across 13 files (95 prior + 27 WI-005): pure attention/filter/time/reminder/weekly rules, owner scoping, idempotent concurrent retries, a real injected-failure rollback of stage + history, reschedule history, atomic result + stage move, prep link ownership, follow-up completion, Today queries, reminder deduplication/re-arming and the WI-004→WI-005 upgrade. Clean migration and repeatable seed hash cover all 20 domain tables.
+
+NFR-009: headless Chromium on the production build (1440px and 390px) covered quick add, duplicate warning, edit, stage history, safe links, rounds, reschedule, prep, result/reflection, weak-area mention, overdue attention, waiting/rejected filters, Today sections and reload persistence, with no console errors or horizontal overflow; DSA, learning and scheduling pages were re-exercised. Formal accessibility audit and Safari/Firefox remain open. Filtering is in-memory for a single owner. See [WI-005 handoff](../WI-005-HANDOFF.md).

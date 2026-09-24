@@ -65,3 +65,7 @@ Add new use cases to existing feature boundaries. Keep categories user-defined. 
 `src/features/learning/domain.ts` owns mastery/readiness, review policy, queue ranking and suggestions. `service.ts` owns subject/topic/resource/activity writes, owner locks, idempotency, session linkage and read summaries. `actions.ts` resolves the configured owner and revalidates Learning/Today. Server-rendered forms and subject/topic routes reuse existing ActionForm and ResourceLink.
 
 LearningSubject groups existing LearningTopic records. LearningActivity stores supplied scores and before/after statuses; the topic stores current mastery and next calendar review date. No timer mutation or DSA algorithm dependency is introduced. UI labels map legacy `NEEDS_REVISION` to “Needs review”; the shared enum remains compatible with DSA.
+
+## Job search boundary (WI-005)
+
+`src/features/jobs/domain.ts` owns stage groups, input schemas, follow-up state, attention ranking, filters, interview time display, reminder windows and weekly counts (pure, unit-tested). `service.ts` owns owner-locked writes, idempotent timeline events, link ownership checks and read models for `/jobs`, `/jobs/[id]` and Today. `actions.ts` resolves the owner and revalidates Jobs/Today/Learn/DSA. `summary.tsx` renders Today sections and the read-only Interview mentions shown on learning topic and DSA problem pages. Notification rules call the domain helpers from the existing processor. Jobs never write TimeBlocks, ActualSessions, learning assessments or DSA attempts.

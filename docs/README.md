@@ -1,6 +1,6 @@
 # Engineering handbook
 
-CareerOS is currently a single-owner personal application. WI-001 through WI-004 are implemented; production deployment readiness is tracked separately from feature completion. This handbook describes the code that exists, not a hypothetical future SaaS.
+CareerOS is currently a single-owner personal application. WI-001 through WI-005 are implemented; production deployment readiness is tracked separately from feature completion. This handbook describes the code that exists, not a hypothetical future SaaS.
 
 ## Start here
 
@@ -24,3 +24,5 @@ Status meanings: **Implemented** means behavior is present; **Partial** means a 
 [Changelog](../CHANGELOG.md) records product changes. [Security policy](../SECURITY.md) explains safe reporting. The PR and issue templates keep this workflow usable for future contributors.
 
 See the [WI-004 handoff](WI-004-HANDOFF.md) for technical learning and validation scope.
+
+See the [WI-005 handoff](WI-005-HANDOFF.md) for the job search and interview pipeline.
