@@ -126,6 +126,27 @@ export async function processNotifications(now = new Date()) {
               );
           }
         }
+        if (pref.type === 'TECHNICAL_REVIEW') {
+          const reviewDay = dayKey(now, user.timezone);
+          const due = await tx.learningTopic.count({
+            where: {
+              userId: user.id,
+              subject: { userId: user.id, status: 'ACTIVE' },
+              status: { in: ['LEARNING', 'NEEDS_REVISION', 'INTERVIEW_READY'] },
+              nextReviewDate: { lte: new Date(reviewDay) },
+            },
+          });
+          if (
+            due &&
+            now >= localInstant(reviewDay, pref.preferredTime, user.timezone)
+          )
+            await queue(
+              'day',
+              reviewDay,
+              `${due} technical topic${due === 1 ? '' : 's'} due for review today.`,
+              now,
+            );
+        }
         if (pref.type === 'DSA_REVISION') {
           // Revision dates and daily deduplication use the owner's calendar zone.
           const revisionDay = dayKey(now, user.timezone);
