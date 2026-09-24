@@ -2,13 +2,13 @@ import { seedLearning } from './seed-learning';
 import { seedJobs } from './seed-jobs';
 import 'dotenv/config';
 import { PrismaClient } from '../src/generated/prisma/client';
-import { PrismaPg } from '@prisma/adapter-pg';
+import { createPgAdapter } from '../src/lib/database';
 import { revision } from '../src/features/dsa/domain';
 import { dayKey, localInstant } from '../src/lib/time';
 import { resourceUrl } from '../src/lib/validation';
 import { routineOccurrence, shiftDay } from '../src/features/schedule/domain';
 const prisma = new PrismaClient({
-  adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL }),
+  adapter: createPgAdapter(process.env.DATABASE_URL!),
 });
 async function main() {
   const email = process.env.OWNER_EMAIL;

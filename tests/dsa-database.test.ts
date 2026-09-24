@@ -1,7 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { randomUUID } from 'node:crypto';
 import { PrismaClient } from '../src/generated/prisma/client';
-import { PrismaPg } from '@prisma/adapter-pg';
+import { createPgAdapter } from '../src/lib/database';
 vi.mock('server-only', () => ({}));
 const { client } = vi.hoisted(() => ({ client: { value: null as unknown } }));
 vi.mock('@/server/db', () => ({ db: () => client.value }));
@@ -17,7 +17,7 @@ import { revisionQueue, todayDsaSummary } from '../src/features/dsa/domain';
 const url = process.env.TEST_DATABASE_URL;
 describe.skipIf(!url)('DSA PostgreSQL integrity', () => {
   const prisma = new PrismaClient({
-    adapter: new PrismaPg({ connectionString: url }),
+    adapter: createPgAdapter(url!),
   });
   client.value = prisma;
   const user = { id: `dsa-${randomUUID()}`, timezone: 'America/Toronto' },
