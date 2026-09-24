@@ -69,6 +69,8 @@ pnpm format
 pnpm db:migrate --name describe_change
 pnpm db:deploy
 pnpm db:seed
+pnpm timestamps:audit    # read-only; see Legacy local database repair
+pnpm timestamps:repair   # dry-run unless --apply --confirm=<database>
 ```
 
 `pnpm build` generates the Prisma client; pages are dynamic, so build does not need a live database. Runtime does. Run migrations as a deployment step before switching application traffic. Commit the lockfile and migration files. Integration tests require `TEST_DATABASE_URL` pointing to a migrated disposable database and are skipped otherwise; they create and remove their own isolated test user.
@@ -116,7 +118,7 @@ Daily review supports short optional notes, blocker, carry-forward, and 1–5 ra
 
 Recurring end time at or before start means the following day; dated/manual forms have separate start/end dates and require end > start. A nonexistent spring-forward time is rejected with a visible error instead of silently moved. Generation rolls back that day until the routine is adjusted. Ambiguous Toronto fall-back times choose the earlier occurrence consistently with date-fns-tz, as tested. The UI does not yet offer a later-occurrence selector; avoid logging the second repeated hour through these forms until that UI is added. The timezone is shown beside scheduling forms. Changing a profile timezone does not reinterpret existing UTC blocks. Notification preferences retain their own timezone; DSA daily reminders specifically follow the owner timezone so their dates agree with the revision queue.
 
-**Local PostgreSQL server timezone.** `@prisma/adapter-pg` sends instants without an offset. When the PostgreSQL server/session `TimeZone` is not UTC (a local Homebrew install inherits the machine zone), app-written `timestamptz` values are stored shifted by that offset while the app still reads them back consistently; raw SQL (reports, migrations using `AT TIME ZONE`) sees the shifted values. CI and typical hosted PostgreSQL run in UTC and are unaffected. Run local databases with `TimeZone = 'UTC'` for new setups; correcting an existing non-UTC local dataset needs a planned one-time data fix (tracked before WI-006).
+See [Time storage policy](#time-storage-policy-wi-0051): every application database session is pinned to UTC, whatever the PostgreSQL server default is.
 
 ## Migration from WI-001
 
@@ -212,3 +214,27 @@ JobApplication → JobActivity (stage history + timeline) → InterviewRound →
 **Notifications** reuse inbox preferences: `JOB_FOLLOW_UP` creates one reminder per application per planned follow-up date at or after the preferred local time (overdue dates are not repeated daily); `INTERVIEW` creates a reminder about 24 hours before and another inside the configurable short window (default 60 minutes for new owners), keyed by round + start instant + window so retries never duplicate and reschedules re-arm. Closed applications and disabled preferences produce nothing. Prep items have no deadlines, so there is no separate prep-due reminder; the 24-hour reminder states open prep items. No closed-app push or email.
 
 Migration `20260924230000_job_pipeline` preserves all applications. Legacy applied/next-action instants become owner-calendar dates; a legacy `interviewAt` becomes one scheduled "Interview (imported)" round at the same instant. New columns default conservatively (action owner NONE, arrangement UNKNOWN, priority normal); no history is invented. New seed owners get fictional Amazon/Shopify/Company X/Northwind examples (example.com URLs); existing owners receive nothing new. See the [WI-005 handoff](docs/WI-005-HANDOFF.md) and [ADR-008](docs/architecture/decisions.md#adr-008--job-pipeline-timeline-rounds-and-action-ownership-wi-005).
+
+## Time storage policy (WI-005.1)
+
+CareerOS stores two kinds of time and never mixes them:
+
+- **Instants** (`timestamptz`), for example `ActualSession.startedAt/endedAt`, `TimeBlock.plannedStart/End`, `InterviewRound.scheduledStart/End`, `JobActivity.occurredAt`, notification times and every `createdAt`/`updatedAt`. These are real moments. They are processed in **UTC database sessions** and converted to the owner's IANA zone only at the display/domain boundary (`America/Toronto` by default).
+- **Owner-calendar dates** (`DATE`), for example `DailyPlan.date`, DSA `nextRevisionAt`, `LearningTopic.nextReviewDate`, `JobApplication.appliedAt/nextActionDate` and `Goal.targetDate`. These are calendar labels, not instants, and never become timestamps.
+
+**Why the server timezone must not matter.** `@prisma/adapter-pg` sends a `Date` as its UTC wall clock without an offset and, when reading, discards the offset PostgreSQL returns. Both steps are exact only in a UTC session. `src/lib/database.ts` therefore adds `-c TimeZone=UTC` to every connection's startup options. The app, Prisma migrations (`prisma.config.ts`), seed, scripts and tests all use it; existing URL options are kept and the pin wins. At server start, `src/instrumentation.ts` checks `SHOW TimeZone` for the app session: a non-UTC session stops the server (writes would be wrong), while a non-UTC _server default_ only logs an audit reminder unless a repair is recorded. If a transaction-mode connection pooler drops startup options, set the database default to UTC (`ALTER DATABASE … SET TimeZone = 'UTC'`); the startup check catches the mistake.
+
+**DST.** Instants are absolute, so daylight-saving changes affect only how times are shown. Wall-clock input is converted with the IANA rules for its own date (`localInstant`), and nonexistent spring-forward times are rejected. Migrations that turn instants into dates name the zone explicitly (`AT TIME ZONE u.timezone`) and never rely on the session zone.
+
+## Legacy local database repair
+
+**Who may be affected:** databases used by CareerOS **before WI-005.1** on a PostgreSQL server whose `TimeZone` was not UTC. Homebrew/local installs usually inherit the machine zone. Every app-written instant there is stored shifted by that zone's offset (DST-dependent), even though the old app displayed it correctly. **Not affected:** CI, databases created by WI-005.1 or later, and servers that always ran in UTC (typical hosted PostgreSQL).
+
+1. **Stop the app and back up the database** (`pg_dump --format=custom`), then check that the backup restores. A git tag is a source checkpoint, **not a database backup**.
+2. `pnpm timestamps:audit` (read-only) reports the server default and app session zones, whether a repair is already recorded, per-table counts of instant values, DST-ambiguous rows, ID/timestamp samples with their would-be repaired values, and evidence such as future `createdAt` values. It prints only host/database names, IDs and timestamps: no credentials, notes or contacts. A single value cannot prove it was shifted; rows written by SQL itself (for example migration backfills) were not.
+3. `LEGACY_TIMESTAMP_TIMEZONE=America/Toronto pnpm timestamps:repair` is a **dry run by default**. It performs the whole repair in one transaction, checks integrity, prints counts, then rolls back.
+4. `pnpm timestamps:repair --legacy-zone=America/Toronto --apply --confirm=<database name>` commits. For each instant it computes `(value AT TIME ZONE legacy_zone) AT TIME ZONE 'UTC'`, which applies that date's own offset (DST-safe), under an advisory lock. It refuses when the legacy zone differs from the server default (unless `--force-zone`), when the zone is UTC, or when the confirmation doesn't match. It rolls back if row counts change or any start/end pair would invert. The `MaintenanceRecord` ledger row is written in the same transaction, and **any later repair is refused** (`--allow-repeat` is a developer-only override).
+5. Run the repair **before** `pnpm db:deploy` for pending migrations, so that migrations converting instants to dates see correct values. The repair works on older schemas and creates the ledger table if needed.
+6. Afterwards (or for any database created after WI-005.1) you may run `ALTER DATABASE <name> SET TimeZone = 'UTC'`. It changes nothing for pinned sessions and stops the startup reminder. Do **not** change it before auditing a legacy database, because the audit uses the server default as evidence.
+
+Limits: a wall-clock value that fell in the zone's spring-forward gap cannot be told apart from the hour after it. Such rows are counted as ambiguous and kept at the later reading. Values that SQL wrote directly (`CURRENT_TIMESTAMP` backfills of `DailyPlan.generatedAt` and imported-row `updatedAt`) were never shifted and move by the offset. They are metadata or null-checks only. See [operations](docs/engineering/operations.md#legacy-timestamp-repair), [ADR-009](docs/architecture/decisions.md#adr-009--utc-database-sessions-and-guarded-legacy-timestamp-repair-wi-0051) and the [WI-005.1 handoff](docs/WI-005.1-HANDOFF.md).

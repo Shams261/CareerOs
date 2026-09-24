@@ -602,3 +602,11 @@ model DsaAttempt {
   @@index([userId, attemptedAt])
   @@index([problemId, attemptedAt])
 }
+
+/// Operational ledger for one-off data maintenance (e.g. the legacy timestamp repair). Written only by
+/// guarded scripts; a record's presence blocks accidental re-execution of the same operation.
+model MaintenanceRecord {
+  id          String   @id
+  performedAt DateTime @db.Timestamptz(3)
+  details     Json
+}

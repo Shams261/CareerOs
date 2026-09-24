@@ -2,7 +2,7 @@ import 'dotenv/config';
 import { spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { PrismaClient } from '../src/generated/prisma/client';
-import { PrismaPg } from '@prisma/adapter-pg';
+import { createPgAdapter } from '../src/lib/database';
 if (
   !process.env.TEST_DATABASE_URL ||
   process.env.TEST_DATABASE_URL !== process.env.DATABASE_URL
@@ -11,7 +11,7 @@ if (
     'Seed verification requires DATABASE_URL = TEST_DATABASE_URL on a disposable database.',
   );
 const client = new PrismaClient({
-  adapter: new PrismaPg({ connectionString: process.env.TEST_DATABASE_URL }),
+  adapter: createPgAdapter(process.env.TEST_DATABASE_URL),
 });
 const tables = [
   'User',

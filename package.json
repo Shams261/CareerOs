@@ -20,7 +20,9 @@
     "db:deploy": "prisma migrate deploy",
     "db:seed": "tsx prisma/seed.ts",
     "docs:check": "node scripts/check-docs.mjs",
-    "test:ci": "node scripts/test-ci.mjs"
+    "test:ci": "node scripts/test-ci.mjs",
+    "timestamps:audit": "tsx scripts/timestamps.ts audit",
+    "timestamps:repair": "tsx scripts/timestamps.ts repair"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.10.0",

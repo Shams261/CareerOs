@@ -37,6 +37,19 @@ pg_restore --no-owner --no-acl --dbname=careeros_restore_test careeros-backup.du
 
 Check migration history, owner/plan/session counts and representative timestamps, then start an isolated app against the restore. Record recovery duration and the age of recovered data. Restrict and securely dispose of rehearsal copies according to the chosen retention policy. Do not commit backups.
 
+## Legacy timestamp repair
+
+For a database used before WI-005.1 on a non-UTC PostgreSQL server (see the README time storage policy). Never rehearse on the only copy.
+
+1. Stop the app. Take a backup: `pg_dump --format=custom --file=careeros-pre-time-repair.dump`. Verify it by restoring into an isolated database.
+2. `psql -c 'SHOW TimeZone'` gives the server default that old sessions used.
+3. `pnpm timestamps:audit`. Record counts, ambiguous rows and samples.
+4. `LEGACY_TIMESTAMP_TIMEZONE=<zone> pnpm timestamps:repair`. Review the dry-run counts and integrity output; nothing is written.
+5. `pnpm timestamps:repair --legacy-zone=<zone> --apply --confirm=<database>`. This is transactional and writes a `MaintenanceRecord` ledger row.
+6. `pnpm db:deploy` for any pending migrations. Their date conversions now see corrected instants.
+7. Start the new app. Check that the audit shows the ledger, Today/calendar times match your routines, DSA attempts and interviews show expected local times, and the server log has no time warning.
+8. If anything is wrong, stop and restore the step-1 backup into a new database. Do not run the repair again: the ledger refuses, and a repeat would shift correct values.
+
 ## Common incidents
 
 | Symptom                                   | First checks                                                     | Safe response                                                                                       |

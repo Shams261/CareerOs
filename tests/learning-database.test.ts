@@ -1,7 +1,7 @@
 import { afterAll, beforeAll, describe, it, expect, vi } from 'vitest';
 import { randomUUID } from 'node:crypto';
 import { PrismaClient } from '../src/generated/prisma/client';
-import { PrismaPg } from '@prisma/adapter-pg';
+import { createPgAdapter } from '../src/lib/database';
 vi.mock('server-only', () => ({}));
 const { client } = vi.hoisted(() => ({ client: { value: null as unknown } }));
 vi.mock('@/server/db', () => ({ db: () => client.value }));
@@ -18,7 +18,7 @@ import { processNotifications } from '../src/features/notifications/service';
 const url = process.env.TEST_DATABASE_URL;
 describe.skipIf(!url)('technical learning PostgreSQL integrity', () => {
   const prisma = new PrismaClient({
-    adapter: new PrismaPg({ connectionString: url }),
+    adapter: createPgAdapter(url!),
   });
   client.value = prisma;
   const user = { id: `learn-${randomUUID()}`, timezone: 'America/Toronto' },
