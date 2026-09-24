@@ -6,6 +6,7 @@
 - Deterministic concept review policy, manual dates, subject/topic dashboards, notes/resources, Today suggestions and weekly measured summaries.
 - Owner-scoped transactional writes and idempotent activities; optional study-session linking and one daily preference-aware technical reminder.
 - Preserve legacy learning records in imported subjects; new-owner-only examples and 17-table repeatable seed verification.
+- Acceptance fixes: save confirmations persist on activity/attempt forms, legacy ready topics stay editable, free-text technical categories match.
 
 - WI-003: current DSA topic, editable problem library, append-only attempts, bounded spaced revision, manual due dates and local-day queues.
 - DSA details expose mistakes/history and optional actual-session context; Today shows due work and cron emits one daily revision reminder.

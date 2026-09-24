@@ -48,20 +48,37 @@ Only newly created seed owners receive TypeScript, Node.js, PostgreSQL and Syste
 | `pnpm exec prisma format` / `pnpm db:generate` | Passed.                                                                                                                                                                                                                                   |
 | `pnpm lint`                                    | Passed ESLint and Prettier.                                                                                                                                                                                                               |
 | `pnpm typecheck`                               | Passed Prisma generation, route types and strict TypeScript.                                                                                                                                                                              |
-| `pnpm test:ci`                                 | 94 passed, 10 files, zero skipped, real disposable PostgreSQL. Previous 75 tests retained.                                                                                                                                                |
+| `pnpm test:ci`                                 | 95 passed, 10 files, zero skipped, real disposable PostgreSQL. Previous 75 tests retained.                                                                                                                                                |
 | `pnpm build`                                   | Production webpack build and TypeScript passed; new subject/topic routes included.                                                                                                                                                        |
 | Clean migration                                | All four migrations applied to fresh `careeros_wi004`.                                                                                                                                                                                    |
 | Upgrade migration                              | Actual previous SQL + legacy fixtures preserve notes/status/tree/goals/resources and create no history.                                                                                                                                   |
 | Seed twice                                     | All 17 tables unchanged on second run.                                                                                                                                                                                                    |
 | Authenticated HTTP smoke                       | Learning/subject/topic, Today (technical summary), DSA/detail, calendar, review, jobs and settings return HTTP 200 on production preview; unauthenticated app/cron return 401; missing topic renders a data-free Next not-found response. |
 | `pnpm docs:check` / `git diff --check`         | Passed; 16 Markdown files checked, no whitespace errors.                                                                                                                                                                                  |
-| Browser desktop/mobile                         | Pending: Chrome and in-app browser report ERR_BLOCKED_BY_CLIENT for the local preview. No WI-004 interactive/browser success claimed.                                                                                                     |
+| Browser desktop/mobile                         | Passed on the production build with headless Chromium (1440px and 390px) against a fresh migrated/seeded database. See "Browser acceptance" below.                                                                                        |
 
 Added 19 meaningful tests cover mastery validation/partial updates, readiness transition/regression, interval rules, queue ranking, dates/DST, Today suggestions, custom subjects/focus/ownership, hierarchy, lifecycle, immutable history, retries/concurrency, actual rollback, manual scheduling, safe resources, category/goal session linking, measured weekly events, reminder preference/deduplication and legacy migration. Database suites run sequentially because global notification processing scans all owners; parallel suites with different injected dates otherwise interfere. Existing in-test concurrency checks remain enabled.
 
-## Browser verification remaining
+## Browser acceptance
 
-Complete create/edit subject and topic, add resource/safe external opening, partial → strong → weak assessment, readiness/history/reload, due/overdue/manual date, Today suggestions, filtering, focus/archive and reminder preferences. Check 1440px desktop and 390px mobile overflow and keyboard form flow. Repeat DSA and scheduling/execution browser regressions. Automated domain/database regression tests already pass; HTTP success is not a browser usability substitute.
+A scripted headless-Chromium run exercised the owner flow through HTTP Basic auth on `pnpm start`. It covered:
+
+- **Subjects:** create a custom subject, edit it, make it the primary focus, and archive it. Archiving is rejected while the subject is the focus, and an archived subject leaves the queue.
+- **Topics:** create two topics, edit notes, and filter by status and due.
+- **Resources:** `ftp://` is rejected on the server, and a saved `https://` link renders with `target="_blank" rel="noopener noreferrer"`.
+- **Assessments:** a partial assessment gives Learning (+2 days), then a strong one gives Interview ready (+14 days), then weak recall gives Needs review (+3 days). All three are recorded in place without reloading. History and state persist after reload.
+- **Manual review:** a manual date shows as "Manually scheduled" and lands in Due today.
+- **Today:** the Technical prep card shows focus, due count and the next topic.
+- **Regression:** `/dsa`, `/dsa/[id]` (an attempt was recorded), `/calendar`, `/review`, `/jobs` and `/settings` render without errors. No page errors or console errors occurred.
+- **Mobile:** `/learn`, the subject page, the topic page, `/today` and `/dsa` have no horizontal overflow at 390px.
+
+Acceptance fixes made during this pass:
+
+1. **Confirmation lost after saving an activity or DSA attempt.** A server-generated `key` remounted the form after revalidation, which discarded the "saved" message. The form now stays mounted. `ActionForm resetOnSuccess` clears the inputs, and the re-rendered page provides the next `requestId`. The DSA attempt form (WI-003) had the same defect and received the same fix.
+2. **Imported Interview-ready topics without scores could not be edited.** An unchanged legacy status is now accepted. Claiming readiness anew still requires four Strong scores. A regression test covers this.
+3. **Free-text block categories were not recognized.** Categories such as "System Design", "system-design" and "Technical" now count as technical for Today suggestions and session linking.
+
+Formal accessibility audit and cross-browser (Safari/Firefox) checks were not performed.
 
 ## Known limitations, debt and review before WI-005
 
@@ -69,8 +86,8 @@ Complete create/edit subject and topic, add resource/safe external opening, part
 - New hierarchy edits allow two levels. Legacy deeper trees remain preserved; restructuring must obey current constraints. Moving topics across subjects is intentionally rejected.
 - Interview prompts live in notes/resources. No giant question bank, rich text, AI, flashcards, case-study engine or external integration.
 - Lists/snapshots are appropriate to the current single-owner scope; pagination/query tuning and representative load tests remain future NFR work.
-- Browser verification remains a release gate until local preview access works. Formal accessibility, dependency audit remediation, backup/restore, HTTPS/rate limiting and operational monitoring remain existing production-readiness gaps.
-- Before WI-005: finish browser/reviewer acceptance, merge dependencies in order, choose any needed history correction/export design, and resolve production gates before handling real sensitive workloads.
+- Formal accessibility, dependency audit remediation, backup/restore, HTTPS/rate limiting and operational monitoring remain existing production-readiness gaps.
+- Before WI-005: reviewer acceptance, merge dependencies in order, choose any needed history correction/export design, and resolve production gates before handling real sensitive workloads.
 
 ## Git, review and rollback
 
@@ -82,6 +99,6 @@ Suggested commit structure (also used for delivery):
 2. `feat(learning): add dashboards and daily study workflows` — actions/forms/routes, Today, reminders and seed examples.
 3. `docs: document WI-004 architecture and verification` — stories, ADR/UFD/DFD, handoff, CI test-isolation rationale.
 
-Rollback is a reviewed forward fix or revert compatible with the migrated schema. Do not drop history tables on a live dataset or assume an old checkout is compatible: old seeds cannot create required-subject topics. Use a tested isolated backup restore if schema rollback is necessary. A verified tag should be created only once outstanding browser acceptance passes; do not label this checkpoint fully verified while that gate is open.
+Rollback is a reviewed forward fix or revert compatible with the migrated schema. Do not drop history tables on a live dataset or assume an old checkout is compatible: old seeds cannot create required-subject topics. Use a tested isolated backup restore if schema rollback is necessary.
 
 Final diff statistics and hosted CI evidence belong in the PR to avoid creating a new code run merely to rewrite timing measurements.

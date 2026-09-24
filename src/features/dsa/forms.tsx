@@ -167,10 +167,10 @@ export function AttemptForm({ problemId }: { problemId: string }) {
   const requestId = randomUUID();
   return (
     <ActionForm
-      key={requestId}
       action={attemptAction}
       label="Record attempt"
       className="dsa-form"
+      resetOnSuccess
     >
       <input type="hidden" name="problemId" value={problemId} />
       <input type="hidden" name="requestId" value={requestId} />

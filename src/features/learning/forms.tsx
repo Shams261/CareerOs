@@ -186,10 +186,10 @@ export function ActivityForm({ topicId }: { topicId: string }) {
   const nonce = randomUUID();
   return (
     <ActionForm
-      key={nonce}
       action={activityAction}
       label="Record activity"
       className="dsa-form"
+      resetOnSuccess
     >
       <input type="hidden" name="topicId" value={topicId} />
       <input type="hidden" name="requestId" value={nonce} />

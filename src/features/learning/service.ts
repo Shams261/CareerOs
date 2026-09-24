@@ -112,8 +112,10 @@ export async function saveLearningTopic(user: ScheduleUser, raw: unknown) {
       if (id && (await tx.learningTopic.count({ where: { parentId: id } })))
         throw new Error('A topic with children must remain top-level.');
     }
+    // An unchanged legacy status stays editable; claiming readiness anew requires assessment.
     if (
       fields.status === 'INTERVIEW_READY' &&
+      old?.status !== 'INTERVIEW_READY' &&
       (!old || readiness(old) !== 'INTERVIEW_READY')
     )
       throw new Error(

@@ -180,6 +180,26 @@ describe.skipIf(!url)('technical learning PostgreSQL integrity', () => {
       'NEEDS_REVISION',
     );
   });
+  it('keeps unassessed legacy interview-ready topics editable without re-claiming readiness', async () => {
+    const t = await fresh();
+    await prisma.learningTopic.update({
+      where: { id: t.id },
+      data: { status: 'INTERVIEW_READY' },
+    });
+    const raw = { ...t, parentId: '', description: '', notes: 'Legacy note' };
+    const saved = await saveLearningTopic(user, {
+      ...raw,
+      status: 'INTERVIEW_READY',
+    });
+    expect(saved).toMatchObject({
+      status: 'INTERVIEW_READY',
+      notes: 'Legacy note',
+    });
+    await recordActivity(user, activity(t.id, { interview: 1 }), now);
+    await expect(
+      saveLearningTopic(user, { ...raw, status: 'INTERVIEW_READY' }),
+    ).rejects.toThrow('four');
+  });
   it('deduplicates concurrent identical retries and rejects conflicting payload reuse', async () => {
     const t = await fresh(),
       input = activity(t.id, strong);

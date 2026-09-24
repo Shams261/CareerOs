@@ -125,6 +125,9 @@ describe('technical mastery and reviews', () => {
     expect(s.next?.id).toBe('next');
     expect(learningSuggestions(list, null, '2026-09-24').next).toBeUndefined();
     expect(isTechnical('SYSTEM_DESIGN')).toBe(true);
+    expect(isTechnical(' System Design ')).toBe(true);
+    expect(isTechnical('system-design')).toBe(true);
+    expect(isTechnical('Technical')).toBe(true);
     expect(isTechnical('DSA')).toBe(false);
   });
   it('uses owner dates across midnight/DST and Monday-local weekly bounds', () => {
