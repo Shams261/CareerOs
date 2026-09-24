@@ -2,6 +2,7 @@ import 'dotenv/config';
 import { PrismaClient } from '../src/generated/prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { addDays } from 'date-fns';
+import { revision } from '../src/features/dsa/domain';
 import { dayKey, localInstant } from '../src/lib/time';
 import { resourceUrl } from '../src/lib/validation';
 import { routineOccurrence, shiftDay } from '../src/features/schedule/domain';
@@ -33,32 +34,114 @@ async function main() {
           create: { id: `seed-${id}`, userId: user.id, title, category },
           update: {},
         });
-      const topic = await tx.dsaTopic.upsert({
-        where: { name: 'Sliding Window' },
-        create: { name: 'Sliding Window', status: 'LEARNING', ordering: 3 },
-        update: {},
-      });
-      await tx.dsaProblem.upsert({
-        where: { id: 'seed-problem' },
-        create: {
-          id: 'seed-problem',
-          userId: user.id,
-          title: 'Longest Substring Without Repeating Characters',
-          platform: 'LeetCode',
-          problemUrl: resourceUrl.parse(
-            'https://leetcode.com/problems/longest-substring-without-repeating-characters/',
-          ),
-          topicId: topic.id,
-          difficulty: 'MEDIUM',
-          confidence: 'YELLOW',
-          lastAttemptedAt: at('08:45'),
-          nextRevisionAt: addDays(at('07:30'), 2),
-          attemptsCount: 2,
-          notes:
-            'Practice moving the left boundary without revisiting characters.',
-        },
-        update: {},
-      });
+      // DSA examples are created only for a new owner. Never rewrite legacy summaries.
+      if (newOwner) {
+        const topic = await tx.dsaTopic.upsert({
+          where: { name: 'Sliding Window' },
+          create: { name: 'Sliding Window', status: 'LEARNING', ordering: 3 },
+          update: {},
+        });
+        await tx.user.update({
+          where: { id: user.id },
+          data: { currentDsaTopicId: topic.id },
+        });
+        const examples = [
+          {
+            id: 'seed-problem',
+            title: 'Longest Substring Without Repeating Characters',
+            slug: 'longest-substring-without-repeating-characters',
+            difficulty: 'MEDIUM',
+            history: [
+              [-5, 'RED'],
+              [-3, 'YELLOW'],
+            ],
+          },
+          {
+            id: 'seed-minimum-window',
+            title: 'Minimum Window Substring',
+            slug: 'minimum-window-substring',
+            difficulty: 'HARD',
+            history: [[-3, 'RED']],
+          },
+          {
+            id: 'seed-max-ones',
+            title: 'Max Consecutive Ones III',
+            slug: 'max-consecutive-ones-iii',
+            difficulty: 'MEDIUM',
+            history: [
+              [-4, 'YELLOW'],
+              [-1, 'GREEN'],
+            ],
+          },
+          {
+            id: 'seed-permutation',
+            title: 'Permutation in String',
+            slug: 'permutation-in-string',
+            difficulty: 'MEDIUM',
+            history: [],
+          },
+        ] as const;
+        for (const e of examples) {
+          await tx.dsaProblem.create({
+            data: {
+              id: e.id,
+              userId: user.id,
+              title: e.title,
+              platform: 'LeetCode',
+              problemUrl: resourceUrl.parse(
+                `https://leetcode.com/problems/${e.slug}/`,
+              ),
+              topicId: topic.id,
+              difficulty: e.difficulty,
+            },
+          });
+          let stage = 0;
+          let previous: 'RED' | 'YELLOW' | 'GREEN' | null = null;
+          for (const [offset, confidenceAfter] of e.history) {
+            const attemptedDay = shiftDay(day, offset);
+            const state = revision(confidenceAfter, stage, attemptedDay);
+            const attemptedAt = localInstant(attemptedDay, '08:30', zone);
+            await tx.dsaAttempt.create({
+              data: {
+                userId: user.id,
+                problemId: e.id,
+                requestId: `seed-${e.id}-${offset}`,
+                attemptedAt,
+                confidenceBefore: previous,
+                confidenceAfter,
+                solvedIndependently:
+                  confidenceAfter === 'GREEN'
+                    ? 'YES'
+                    : confidenceAfter === 'YELLOW'
+                      ? 'PARTIAL'
+                      : 'NO',
+                durationMinutes: 25,
+                mistake:
+                  confidenceAfter === 'GREEN'
+                    ? ''
+                    : confidenceAfter === 'YELLOW'
+                      ? 'Recognized the window; missed a shrinking edge case.'
+                      : 'Needed help identifying the variable-size window.',
+                notes:
+                  confidenceAfter === 'GREEN'
+                    ? 'Solved independently and explained time and space complexity.'
+                    : '',
+              },
+            });
+            await tx.dsaProblem.update({
+              where: { id: e.id },
+              data: {
+                ...state,
+                lastAttemptedAt: attemptedAt,
+                confidence: confidenceAfter,
+                attemptsCount: { increment: 1 },
+              },
+            });
+            stage = state.revisionStage;
+            previous = confidenceAfter;
+          }
+        }
+      }
       for (const [id, title, url] of [
         ['typescript', 'TypeScript', 'https://www.typescriptlang.org/docs/'],
         [
@@ -308,7 +391,12 @@ async function main() {
             userId: user.id,
             type,
             timezone: zone,
-            preferredTime: type === 'MISSED_CHECK_IN' ? '22:30' : '21:30',
+            preferredTime:
+              type === 'MISSED_CHECK_IN'
+                ? '22:30'
+                : type === 'DSA_REVISION'
+                  ? '07:00'
+                  : '21:30',
           },
           update: {},
         });
