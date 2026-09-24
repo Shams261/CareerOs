@@ -1,0 +1,22 @@
+# Engineering handbook
+
+CareerOS is currently a single-owner personal application. WI-001 and WI-002 are implemented; production deployment readiness is tracked separately from feature completion. This handbook describes the code that exists, not a hypothetical future SaaS.
+
+## Start here
+
+1. Follow [local setup](../README.md#local-setup) and run the validation commands.
+2. Read [product scope and stories](product/user-stories.md) for expected behavior and acceptance criteria.
+3. Follow the [user flow diagrams (UFD)](product/user-flows.md).
+4. Read [architecture](architecture/overview.md), [data flow diagrams (DFD) and data model](architecture/data-flows.md), and [decision records](architecture/decisions.md).
+5. Read [contribution workflow](../CONTRIBUTING.md), [NFR evidence and release gates](engineering/non-functional-requirements.md), and [operations](engineering/operations.md).
+6. Consult the historical [WI-002 handoff](WI-002-HANDOFF.md) for its implementation-time validation. Temporary screenshots referenced there are not durable repository artifacts.
+
+## Documentation ownership and change policy
+
+The repository maintainer owns the handbook until module owners are appointed. Every behavior change must update the affected story, acceptance criteria, diagrams/contracts, tests and NFR evidence in the same PR. A changed architecture decision gets a new ADR that supersedes the old record; do not rewrite history to make a previous decision look inevitable.
+
+Stable identifiers: `US-xxx` for stories, `NFR-xxx` for non-functional requirements, and `ADR-xxx` for decisions. Work items group stories; they do not replace acceptance criteria. New engineers should trace story → source → tests → NFR evidence before editing code.
+
+Status meanings: **Implemented** means behavior is present; **Partial** means a foundation exists with stated omissions; **Proposed** means no delivery promise. **Verified locally** is not the same as measured in production. Record command/environment/date or a CI run URL when updating evidence.
+
+[Changelog](../CHANGELOG.md) records product changes. [Security policy](../SECURITY.md) explains safe reporting. The PR and issue templates keep this workflow usable for future contributors.

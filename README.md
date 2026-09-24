@@ -2,6 +2,10 @@
 
 A private personal workspace for planning time, practicing interviews, tracking applications, and reviewing progress. WI-002 extends the foundation with editable weekly routines, daily overrides, and actual-session execution. It does not implement the entire product.
 
+## Engineering documentation
+
+Start with the [engineering handbook](docs/README.md) for architecture, UFD/DFD, decision records, user stories and acceptance criteria, NFR evidence, onboarding and operations. Follow [CONTRIBUTING](CONTRIBUTING.md) for future changes and [SECURITY](SECURITY.md) for safe disclosure. Feature delivery does not mean every production-readiness gate is satisfied.
+
 ## Stack and architecture
 
 Next.js 16 App Router, React, strict TypeScript, PostgreSQL, Prisma 7 with the native PostgreSQL adapter, Tailwind CSS 4, Zod, date-fns/date-fns-tz, pnpm, ESLint, Prettier, and Vitest. The project includes shadcn-compatible configuration and a small owned button primitive. Simple forms use Server Actions and native controls; React Hook Form is unnecessary at this scope.
@@ -56,6 +60,9 @@ pnpm dev
 pnpm lint
 pnpm typecheck
 pnpm test
+pnpm docs:check
+# With TEST_DATABASE_URL set to a disposable migrated database:
+pnpm test:ci
 pnpm build
 pnpm start
 pnpm format

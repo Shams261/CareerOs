@@ -8,3 +8,9 @@ coverage/
 .DS_Store
 
 .pnpm-store/
+
+# Local backups and browser-test artifacts
+*.dump
+*.sql.gz
+playwright-report/
+test-results/

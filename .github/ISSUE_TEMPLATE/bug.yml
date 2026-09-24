@@ -1,0 +1,25 @@
+name: Bug report
+description: Report an unexpected behavior using non-sensitive examples.
+title: '[Bug] '
+body:
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected versus actual behavior
+      description: Reference a story ID when possible. Never include credentials or real personal records.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Reproduction steps
+      description: Include route, local date/timezone and fictional example data where relevant.
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment and impact
+      description: Commit, browser, OS, app/database version, frequency and user impact. Use private reporting for sensitive security details.
+    validations:
+      required: true

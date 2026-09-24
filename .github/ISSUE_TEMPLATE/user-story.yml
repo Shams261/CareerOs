@@ -1,0 +1,38 @@
+name: User story
+description: Define an outcome and testable acceptance criteria before development.
+title: '[US-xxx] '
+body:
+  - type: textarea
+    id: outcome
+    attributes:
+      label: User and outcome
+      description: 'As a [persona], I want [capability], so that [outcome]. Allocate the next unused US identifier from the story ledger.'
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria
+      description: Use Given/When/Then; include errors, empty states, persistence and relevant concurrency/timezone cases.
+    validations:
+      required: true
+  - type: textarea
+    id: scope
+    attributes:
+      label: Scope and exclusions
+    validations:
+      required: true
+  - type: textarea
+    id: engineering
+    attributes:
+      label: Engineering impact
+      description: Related NFR/ADR IDs, data/migration effects, auth boundaries, dependencies and user flow changes.
+    validations:
+      required: true
+  - type: textarea
+    id: verification
+    attributes:
+      label: Verification plan
+      description: Domain/database/browser checks and measurable NFR evidence needed for acceptance.
+    validations:
+      required: true
