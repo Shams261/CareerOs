@@ -69,3 +69,7 @@ LearningSubject groups existing LearningTopic records. LearningActivity stores s
 ## Job search boundary (WI-005)
 
 `src/features/jobs/domain.ts` owns stage groups, input schemas, follow-up state, attention ranking, filters, interview time display, reminder windows and weekly counts (pure, unit-tested). `service.ts` owns owner-locked writes, idempotent timeline events, link ownership checks and read models for `/jobs`, `/jobs/[id]` and Today. `actions.ts` resolves the owner and revalidates Jobs/Today/Learn/DSA. `summary.tsx` renders Today sections and the read-only Interview mentions shown on learning topic and DSA problem pages. Notification rules call the domain helpers from the existing processor. Jobs never write TimeBlocks, ActualSessions, learning assessments or DSA attempts.
+
+## Database session boundary (WI-005.1)
+
+Only `src/lib/database.ts` creates PostgreSQL adapters/URLs (`createPgAdapter`, `utcConnectionString`). Code must not construct `PrismaPg` directly or issue `SET TIME ZONE`. Operational tooling lives in `scripts/timestamps.ts` and `scripts/lib/timestamp-integrity.ts` and never runs automatically.

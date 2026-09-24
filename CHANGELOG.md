@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- WI-005.1: every database session is pinned to UTC (app, migrations, seed, scripts, tests), with a startup check. Adds `timestamps:audit` and guarded `timestamps:repair` (dry-run default, DST-exact, integrity rollback, ledger prevents a second run) for legacy non-UTC local databases.
+- Removed the unusable `RoutineBlock.weekdays` default; Prisma schema and database have no drift.
+
 - WI-005: job pipeline with quick add, duplicate confirmation, append-only timeline/stage history, action owner (me vs waiting on company) and needs-attention ranking.
 - Interview rounds with original timezone, reschedule history, results/reflections, per-round prep and weak-area links to learning/DSA (read-only mentions).
 - `/jobs` dashboard and filters, application detail page, Today interview and job-search sections, factual weekly counts.
