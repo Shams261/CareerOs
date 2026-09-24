@@ -19,6 +19,7 @@ import {
   resultAction,
   roundAction,
   roundDetailsAction,
+  scheduleInterviewAction,
   stageAction,
 } from './actions';
 import {
@@ -730,6 +731,17 @@ export function JobReminderForm({
         closed-app push or email.
       </p>
       <button className="button">Save job reminders</button>
+    </ActionForm>
+  );
+}
+export function ScheduleInterviewForm({ roundId }: { roundId: string }) {
+  return (
+    <ActionForm
+      action={scheduleInterviewAction}
+      label="Add interview to schedule"
+    >
+      <input type="hidden" name="id" value={roundId} />
+      <button className="button secondary">Add interview to schedule</button>
     </ActionForm>
   );
 }

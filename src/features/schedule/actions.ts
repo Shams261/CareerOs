@@ -2,6 +2,7 @@
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { owner } from '@/server/db';
+import { syncSoon } from '@/features/calendar/background';
 import { saveBlock, saveRoutine, PreviewRequired } from './editing';
 import { dateInput, shiftDay } from './domain';
 import { generatePlan, locked } from './service';
@@ -24,6 +25,8 @@ async function perform(work: () => Promise<string>): Promise<ActionState> {
   try {
     const message = await work();
     refresh();
+    // Local change is committed; Google Calendar catches up after the response (ADR-010).
+    syncSoon(await owner());
     return { message, ok: true };
   } catch (error) {
     if (error instanceof PreviewRequired)

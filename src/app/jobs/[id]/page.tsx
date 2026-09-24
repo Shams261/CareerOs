@@ -25,6 +25,7 @@ import {
   ResultForm,
   RoundDetailsForm,
   RoundForm,
+  ScheduleInterviewForm,
   StageForm,
   ZoneOptions,
   type LinkOption,
@@ -191,6 +192,24 @@ export default async function Application({
                     {r.interviewers ? ` · With ${r.interviewers}` : ''}
                     {r.location ? ` · ${r.location}` : ''}
                   </p>
+                  {r.scheduleBlock ? (
+                    <p className="muted">
+                      On schedule ·{' '}
+                      <Link
+                        className="link"
+                        href={`/today?date=${dayKey(r.scheduleBlock.plannedStart, zone)}`}
+                      >
+                        {dayKey(r.scheduleBlock.plannedStart, zone)}
+                      </Link>
+                      {r.scheduleBlock.status === 'CANCELLED'
+                        ? ' (cancelled)'
+                        : ''}
+                    </p>
+                  ) : (
+                    r.status === 'SCHEDULED' && (
+                      <ScheduleInterviewForm roundId={r.id} />
+                    )
+                  )}
                   {r.meetingUrl && (
                     <p>
                       <ResourceLink url={r.meetingUrl}>

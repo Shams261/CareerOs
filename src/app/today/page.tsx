@@ -1,6 +1,7 @@
 import { TodayLearning } from '@/features/learning/summary';
 import { TodayDsa } from '@/features/dsa/summary';
 import { TodayInterview, TodayJobs } from '@/features/jobs/summary';
+import { CalendarAttention } from '@/features/calendar/panel';
 import { isDsa } from '@/features/dsa/domain';
 import Link from 'next/link';
 import { ActionForm } from '@/components/action-form';
@@ -133,6 +134,7 @@ export default async function Today({
           then generate again.
         </p>
       )}
+      <CalendarAttention user={user} />
       <TodayInterview user={user} day={day} />
       {running && (
         <section className="hero">
