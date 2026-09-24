@@ -148,3 +148,22 @@ erDiagram
 ```
 
 Applied/next-action dates are SQL DATEs in the owner's calendar; interview and activity times are UTC instants, with the interview's entry zone stored for display. Recruiter/hiring contacts, compensation notes and job-description snapshots are personal data in the same owner-scoped tables and are never sent to external services. No page scraping, email or calendar calls exist.
+
+## WI-006 — Google Calendar sync DFD
+
+```mermaid
+flowchart LR
+  Owner[Owner browser] -->|Basic auth| App[CareerOS server]
+  App -->|state+PKCE redirect| GAuth[Google OAuth]
+  GAuth -->|code| App
+  App -->|encrypted refresh token| DB[(PostgreSQL)]
+  Key[[CALENDAR_TOKEN_ENCRYPTION_KEY env]] --> App
+  Cron[Scheduler: Bearer CRON_SECRET] --> Sync[Sync engine + lease]
+  Hook[Google push: channel headers] -->|validated signal| Sync
+  App -->|after response| Sync
+  Sync -->|If-Match writes: title, start, end, private props| GCal[Dedicated CareerOS calendar]
+  GCal -->|syncToken pages| Sync
+  Sync -->|dated overrides, fingerprints, conflicts| DB
+```
+
+Trust boundaries: the browser never receives tokens. Google receives only titles, instants, the category label and private property IDs. The webhook is unauthenticated at HTTP level but validated by stored channel ID, resource ID, token hash and expiry, and returns no data. Logs carry IDs, codes and counts only.

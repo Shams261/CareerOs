@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- WI-006: Google Calendar sync of dated TimeBlocks to a dedicated CareerOS calendar (`calendar.app.created` scope). Adds OAuth with PKCE, AES-256-GCM-encrypted refresh tokens, incremental sync with 410 recovery, idempotent creates, If-Match pushes and durable conflicts (Keep CareerOS / Use Google).
+- Google edits become dated overrides (routines untouched) and deletions cancel or detach. Adds optional validated push channels, a cron sync endpoint, category selection, reauth/disconnect flows, and interviews on the schedule as linked blocks.
+
 - WI-005.1: every database session is pinned to UTC (app, migrations, seed, scripts, tests), with a startup check. Adds `timestamps:audit` and guarded `timestamps:repair` (dry-run default, DST-exact, integrity rollback, ledger prevents a second run) for legacy non-UTC local databases.
 - Removed the unusable `RoutineBlock.weekdays` default; Prisma schema and database have no drift.
 
