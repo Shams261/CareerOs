@@ -55,3 +55,7 @@ Database outages show route error states or action errors. Cron failures return 
 ## Extension rules
 
 Add new use cases to existing feature boundaries. Keep categories user-defined. Add an ADR before changing authentication tenancy, timezone ambiguity, execution concurrency, storage ownership, or introducing a background delivery system. Calendar sync must preserve CareerOS planned blocks as the source of truth; existing external identifiers are preparation, not implemented synchronization.
+
+## DSA feature boundary (WI-003)
+
+`src/features/dsa/domain.ts` owns confidence validation, date intervals and queue ranking. `service.ts` serializes topic/problem/attempt mutations through the existing owner lock; `actions.ts` resolves the owner and refreshes views. Server-rendered dashboard/detail pages and forms expose those services. Notifications reuse the problem summaries, not a second revision algorithm. See ADR-006 for legacy migration, dates and current-topic semantics.

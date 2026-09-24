@@ -49,3 +49,13 @@ All records below describe accepted implementation decisions as of WI-002. Add a
 **Decision:** Use configured owner Basic Auth plus a separate cron bearer secret, exclusively behind HTTPS in production. Keep credentials server-side and scope mutations to the owner.
 
 **Consequences:** No account onboarding, sessions, MFA, per-user audit trail or tenant boundaries. A public multi-user product requires an authentication/security design and migration before launch. The gate is not a claim of completed security assurance.
+
+## ADR-006 — Append-only DSA attempts and local revision dates (WI-003)
+
+**Context:** Overwriting confidence loses learning history; timestamp-based due queries can miss a user's calendar boundary. Existing WI-001 data includes summary-only attempts.
+
+**Decision:** Add DsaAttempt history and a bounded revisionStage summary. Under the existing owner-row lock, validate ownership/confidence, deduplicate by `(userId, requestId)`, insert an attempt and update its problem atomically. Only an active owned DSA session is linked. Use PostgreSQL DATE for revisions and owner-local day labels for comparisons; convert legacy instants with the owner's timezone in a new migration. Preserve legacy counts, confidence and last-attempt timestamps without fabricating history. Red/Yellow reset progression; Green intervals are 7/14/30 capped at 30. Manual dates carry a boolean marker until the next attempt.
+
+**Alternatives considered:** Deriving everything from history cannot faithfully reconstruct legacy attempts. Event sourcing and generic learning engines exceed WI-003. UTC-day due comparisons conflict with local scheduling.
+
+**Consequences:** The current-topic reference on User structurally permits at most one current topic. Existing shared DsaTopic catalog and status enum remain; PAUSED is added, NEEDS_REVISION is displayed as Revising. Topic tenancy must be redesigned for multiple real owners. App writes preserve history, but privileged database maintenance can still change it. Dates survive timezone changes as calendar labels; attempt timestamps remain instants. Rollback across the date-column conversion requires schema compatibility review, not simply checking out the old tag.

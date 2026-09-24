@@ -1,6 +1,6 @@
 # User flow diagrams (UFD)
 
-These describe implemented WI-001/WI-002 paths. UFD means user flow diagram here; data movement is documented separately in the DFD.
+These describe implemented WI-001/WI-002/WI-003 paths. UFD means user flow diagram here; data movement is documented separately in the DFD.
 
 ## UFD-01: plan a week and override a day
 
@@ -63,3 +63,23 @@ flowchart LR
 ```
 
 The cron can populate the inbox while the app is closed. It cannot deliver an OS push alert in the current implementation. Permission UI provides a test alert only. Daily review carry-forward text does not automatically move tasks.
+
+## UFD-04: DSA practice and revision (WI-003)
+
+```mermaid
+flowchart TD
+  A[Choose current topic] --> B[Add problem with stored URL]
+  B --> C[Open external problem in a new tab]
+  C --> D[Record independence and confidence]
+  D --> E{Consistent input?}
+  E -->|No| D
+  E -->|Yes| F[Save immutable attempt and revision summary atomically]
+  F --> G[Red 1 day / Yellow 3 / Green 7 then 14 then 30]
+  G --> H[Automatic overdue and due-today queue]
+  H --> C
+  H --> I[Optional manual revision date]
+  I --> H
+  J[Today has a DSA block] --> H
+```
+
+Logging an attempt takes two required selections; duration, mistake and notes are optional. A current active DSA session is associated automatically. Scheduling, timer completion and learning confidence are separate decisions.

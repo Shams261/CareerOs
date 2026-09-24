@@ -36,3 +36,9 @@ Check acceptance criteria, ownership/auth boundaries, validation, concurrency, D
 ## Repository settings
 
 The supplied workflow and CODEOWNERS file are repository content. The maintainer should configure a `main` ruleset requiring PRs, the `quality` check from the Quality workflow, a reviewer when another engineer is available, resolved conversations, and blocked force pushes/deletions. These settings are not automatically enabled by committing this document. Apply a solo-maintainer review policy that can actually be followed; revisit it when hiring. No open-source license has been selected by this change.
+
+## CI reuse and checkpoint tags
+
+The quality workflow generates Prisma once and uses Next's production build for the TypeScript check, covering the repository tsconfig. Dependency/compiler caches reuse work; a cache hit never skips tests or migrations. The two seed executions assert that records are unchanged on rerun. Feature branches run on pull requests, main runs after merge, and superseded runs are cancelled. Keep the required check named `quality`.
+
+Use an annotated pre-change tag for major migrations and a verified milestone tag after successful checks. Tags are source checkpoints, not database backups or a production readiness claim. Keep feature commits cohesive; if preserving individual commits matters, use a reviewed merge commit rather than a squash. Roll back shared history with reviewed revert commits. For schema changes, first verify old-code compatibility or plan a forward fix/isolated backup restoration; never assume reverting Git reverses PostgreSQL.
