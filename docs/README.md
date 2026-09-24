@@ -1,6 +1,6 @@
 # Engineering handbook
 
-CareerOS is currently a single-owner personal application. WI-001 through WI-005 are implemented; production deployment readiness is tracked separately from feature completion. This handbook describes the code that exists, not a hypothetical future SaaS.
+CareerOS is currently a single-owner personal application. WI-001 through WI-006 are implemented; production deployment readiness is tracked separately from feature completion. This handbook describes the code that exists, not a hypothetical future SaaS.
 
 ## Start here
 
@@ -28,3 +28,5 @@ See the [WI-004 handoff](WI-004-HANDOFF.md) for technical learning and validatio
 See the [WI-005 handoff](WI-005-HANDOFF.md) for the job search and interview pipeline.
 
 See the [WI-005.1 handoff](WI-005.1-HANDOFF.md) for UTC database sessions, legacy timestamp repair and schema drift.
+
+See the [WI-006 handoff](WI-006-HANDOFF.md) for Google Calendar sync.

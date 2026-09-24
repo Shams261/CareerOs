@@ -103,6 +103,8 @@ enum NotificationType {
 }
 
 model User {
+  calendarConnection CalendarConnection?
+  calendarConflicts  CalendarSyncConflict[]
   jobActivities      JobActivity[]
   interviewRounds    InterviewRound[]
   prepItems          InterviewPrepItem[]
@@ -171,28 +173,40 @@ model DailyPlan {
 }
 
 model TimeBlock {
-  id                      String          @id @default(cuid())
+  id                      String                 @id @default(cuid())
   dailyPlanId             String
-  dailyPlan               DailyPlan       @relation(fields: [dailyPlanId], references: [id], onDelete: Cascade)
+  dailyPlan               DailyPlan              @relation(fields: [dailyPlanId], references: [id], onDelete: Cascade)
   goalId                  String?
-  goal                    Goal?           @relation(fields: [goalId], references: [id], onDelete: SetNull)
+  goal                    Goal?                  @relation(fields: [goalId], references: [id], onDelete: SetNull)
   title                   String
   description             String?
   category                String
-  plannedStart            DateTime        @db.Timestamptz(3)
-  plannedEnd              DateTime        @db.Timestamptz(3)
-  status                  BlockStatus     @default(PLANNED)
-  priority                Int             @default(2)
-  completedAt             DateTime?       @db.Timestamptz(3)
+  plannedStart            DateTime               @db.Timestamptz(3)
+  plannedEnd              DateTime               @db.Timestamptz(3)
+  status                  BlockStatus            @default(PLANNED)
+  priority                Int                    @default(2)
+  completedAt             DateTime?              @db.Timestamptz(3)
   externalCalendarEventId String?
   externalCalendarId      String?
-  calendarSyncedAt        DateTime?       @db.Timestamptz(3)
-  occurrenceDate          DateTime?       @db.Date
-  isOverride              Boolean         @default(false)
+  calendarSyncedAt        DateTime?              @db.Timestamptz(3)
+  /// Google etag of the last event version CareerOS saw or wrote (If-Match on pushes).
+  calendarEtag            String?
+  /// Fingerprint of the last representation both sides agreed on (title/start/end/cancelled).
+  calendarSyncedHash      String?
+  calendarSyncStatus      CalendarSyncStatus     @default(NOT_SYNCED)
+  /// Sanitized error code only; never raw API output.
+  calendarSyncError       String?
+  calendarSyncAttempts    Int                    @default(0)
+  calendarRetryAt         DateTime?              @db.Timestamptz(3)
+  interviewRoundId        String?                @unique
+  interviewRound          InterviewRound?        @relation(fields: [interviewRoundId], references: [id], onDelete: SetNull)
+  calendarConflicts       CalendarSyncConflict[]
+  occurrenceDate          DateTime?              @db.Date
+  isOverride              Boolean                @default(false)
   skipReason              String?
   routineKey              String?
-  createdAt               DateTime        @default(now()) @db.Timestamptz(3)
-  updatedAt               DateTime        @updatedAt @db.Timestamptz(3)
+  createdAt               DateTime               @default(now()) @db.Timestamptz(3)
+  updatedAt               DateTime               @updatedAt @db.Timestamptz(3)
   sessions                ActualSession[]
 
   @@unique([routineKey, occurrenceDate])
@@ -438,6 +452,7 @@ model JobActivity {
 }
 
 model InterviewRound {
+  scheduleBlock  TimeBlock?
   id             String              @id @default(cuid())
   userId         String
   user           User                @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -609,4 +624,89 @@ model MaintenanceRecord {
   id          String   @id
   performedAt DateTime @db.Timestamptz(3)
   details     Json
+}
+
+enum CalendarConnectionStatus {
+  DISCONNECTED
+  CONNECTED
+  REAUTH_REQUIRED
+  ERROR
+}
+
+enum CalendarSyncStatus {
+  NOT_SYNCED
+  SYNCED
+  ERROR
+  CONFLICT
+  /// The Google event was deleted while the block was already done; never recreated.
+  DETACHED
+}
+
+enum CalendarConflictStatus {
+  OPEN
+  RESOLVED_LOCAL
+  RESOLVED_REMOTE
+}
+
+/// One Google connection per owner, including its incremental sync state.
+model CalendarConnection {
+  id                    String                   @id @default(cuid())
+  userId                String                   @unique
+  user                  User                     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  provider              String                   @default("google")
+  accountEmail          String?
+  /// AES-256-GCM envelope (v1:iv:tag:ciphertext); the key lives only in the environment.
+  encryptedRefreshToken String?
+  scope                 String?
+  calendarId            String?
+  calendarName          String?
+  status                CalendarConnectionStatus @default(DISCONNECTED)
+  excludedCategories    String[]                 @default([])
+  syncToken             String?
+  /// Lease that keeps overlapping sync runs (cron, webhook, Sync now) from interleaving.
+  syncLeaseUntil        DateTime?                @db.Timestamptz(3)
+  lastSyncAttemptAt     DateTime?                @db.Timestamptz(3)
+  lastSuccessfulSyncAt  DateTime?                @db.Timestamptz(3)
+  lastFullSyncAt        DateTime?                @db.Timestamptz(3)
+  lastIncrementalSyncAt DateTime?                @db.Timestamptz(3)
+  lastSyncError         String?
+  lastSyncSummary       Json?
+  connectedAt           DateTime?                @db.Timestamptz(3)
+  disconnectedAt        DateTime?                @db.Timestamptz(3)
+  createdAt             DateTime                 @default(now()) @db.Timestamptz(3)
+  updatedAt             DateTime                 @updatedAt @db.Timestamptz(3)
+  channels              CalendarWatchChannel[]
+}
+
+model CalendarWatchChannel {
+  id           String             @id @default(cuid())
+  connectionId String
+  connection   CalendarConnection @relation(fields: [connectionId], references: [id], onDelete: Cascade)
+  channelId    String             @unique
+  resourceId   String?
+  /// SHA-256 of the channel token; the token itself is never stored.
+  tokenHash    String
+  expiration   DateTime           @db.Timestamptz(3)
+  createdAt    DateTime           @default(now()) @db.Timestamptz(3)
+  stoppedAt    DateTime?          @db.Timestamptz(3)
+
+  @@index([connectionId, stoppedAt])
+}
+
+/// Both sides changed since the last agreed version. Snapshots hold title/start/end only.
+model CalendarSyncConflict {
+  id              String                 @id @default(cuid())
+  userId          String
+  user            User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  timeBlockId     String
+  timeBlock       TimeBlock              @relation(fields: [timeBlockId], references: [id], onDelete: Cascade)
+  providerEventId String
+  localSnapshot   Json
+  remoteSnapshot  Json
+  status          CalendarConflictStatus @default(OPEN)
+  detectedAt      DateTime               @db.Timestamptz(3)
+  resolvedAt      DateTime?              @db.Timestamptz(3)
+
+  @@index([userId, status])
+  @@index([timeBlockId, status])
 }

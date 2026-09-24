@@ -50,6 +50,15 @@ For a database used before WI-005.1 on a non-UTC PostgreSQL server (see the READ
 7. Start the new app. Check that the audit shows the ledger, Today/calendar times match your routines, DSA attempts and interviews show expected local times, and the server log has no time warning.
 8. If anything is wrong, stop and restore the step-1 backup into a new database. Do not run the repair again: the ledger refuses, and a repeat would shift correct values.
 
+## Google Calendar (WI-006)
+
+- **Configuration:** a Google Cloud OAuth _web application_ client whose authorized redirect URI is exactly `GOOGLE_OAUTH_REDIRECT_URI` (`https://<host>/api/calendar/oauth/callback`), with the Calendar API enabled. Put `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` and `CALENDAR_TOKEN_ENCRYPTION_KEY` (`openssl rand -base64 32`) in the deployment secret store; never commit them.
+- **Scheduler:** `POST /api/calendar/sync` with `Authorization: Bearer $CRON_SECRET` every 5–15 minutes. Overlapping or repeated runs are safe.
+- **Push (optional):** set `GOOGLE_CALENDAR_WEBHOOK_BASE_URL` to the public HTTPS origin. Channels renew during syncs, so the scheduler must keep running.
+- **Key rotation:** changing the key makes stored tokens undecryptable, and the connection shows _Reconnect required_. Rotate by setting the new key, then reconnecting. Keep the old key until then if you want to revoke old tokens.
+- **Incidents:** _Reconnect required_ means the token was revoked, permission removed or the key changed; reconnect. _Calendar missing_ means the CareerOS calendar was deleted in Google; reconnect creates a new one. Server logs record `[calendar]` events as IDs, codes and counts only.
+- **Local development:** without HTTPS, push is off and manual/cron sync is used. Automated browser checks use `tests/support/fake-google-server.ts` through loopback-only endpoint overrides; never a real account.
+
 ## Common incidents
 
 | Symptom                                   | First checks                                                     | Safe response                                                                                       |

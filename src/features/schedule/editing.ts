@@ -101,7 +101,41 @@ export async function saveBlock(
     if (existing) {
       await tx.timeBlock.update({ where: { id: existing.id }, data });
       await clearBlockReminders(tx, user.id, existing.id);
+      await followLinkedInterview(tx, user.id, existing, range);
     } else await tx.timeBlock.create({ data });
+  });
+}
+/** A block created from an interview round is that appointment: moving it moves the round. */
+async function followLinkedInterview(
+  tx: Prisma.TransactionClient,
+  userId: string,
+  block: { interviewRoundId: string | null; plannedStart: Date },
+  range: { plannedStart: Date; plannedEnd: Date },
+) {
+  if (!block.interviewRoundId || +block.plannedStart === +range.plannedStart)
+    return;
+  const round = await tx.interviewRound.findFirst({
+    where: { id: block.interviewRoundId, userId, status: 'SCHEDULED' },
+  });
+  if (!round) return;
+  await tx.interviewRound.update({
+    where: { id: round.id },
+    data: {
+      scheduledStart: range.plannedStart,
+      scheduledEnd: range.plannedEnd,
+    },
+  });
+  await tx.jobActivity.create({
+    data: {
+      userId,
+      applicationId: round.applicationId,
+      interviewRoundId: round.id,
+      type: 'INTERVIEW_RESCHEDULED',
+      occurredAt: new Date(),
+      previousStart: round.scheduledStart,
+      newStart: range.plannedStart,
+      note: `${round.title} — moved on the schedule`,
+    },
   });
 }
 type Proposal = {

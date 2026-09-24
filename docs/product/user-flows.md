@@ -129,3 +129,25 @@ flowchart TD
 ```
 
 Saves show confirmation or keep input with the error. Forms that record events carry a fresh request ID after each save. Closed applications stay reachable through the Rejected/Withdrawn/All views. Grouped lists replace drag-and-drop so the pipeline works by keyboard and on mobile.
+
+## UFD-007 — Google Calendar connection and sync (WI-006)
+
+```mermaid
+flowchart TD
+  Cal[Calendar page] --> Connect[Connect Google Calendar]
+  Connect --> Google[Google consent: CareerOS-created calendars + email]
+  Google --> Callback[Callback: verify state/PKCE, store encrypted token]
+  Callback --> Dedicated[Create or reuse the CareerOS calendar]
+  Dedicated --> Full[Background full sync]
+  Edit[Edit a block in CareerOS] --> Pending[Block pending] --> Push[Sync: push with If-Match]
+  GEdit[Move/rename/delete in Google] --> Pull[Sync: incremental list]
+  Pull --> Override[Dated override / cancel / detach]
+  Push --> Both{Both sides changed?}
+  Pull --> Both
+  Both -->|Yes| Conflict[Conflict card: Keep CareerOS or Use Google]
+  Cal --> SyncNow[Sync now]
+  Cal --> Disconnect[Disconnect: keep data; optional confirmed calendar removal]
+  Revoked[Revoked/rotated credentials] --> Reauth[Reconnect required + Today notice] --> Connect
+```
+
+Results that replace the form (connected, conflict resolved, disconnected) are confirmed with a notice at the top of the panel. Sync errors show sanitized messages only.

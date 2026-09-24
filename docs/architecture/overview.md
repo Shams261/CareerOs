@@ -73,3 +73,7 @@ LearningSubject groups existing LearningTopic records. LearningActivity stores s
 ## Database session boundary (WI-005.1)
 
 Only `src/lib/database.ts` creates PostgreSQL adapters/URLs (`createPgAdapter`, `utcConnectionString`). Code must not construct `PrismaPg` directly or issue `SET TIME ZONE`. Operational tooling lives in `scripts/timestamps.ts` and `scripts/lib/timestamp-integrity.ts` and never runs automatically.
+
+## Google Calendar boundary (WI-006)
+
+`src/features/calendar/google.ts` is a small fetch client (no SDK) with typed errors and bounded retry. `domain.ts` holds pure mapping, fingerprints, eligibility and the three-way decision. `service.ts` owns OAuth, token encryption use, the lease-guarded sync engine, conflicts, watch channels and disconnect; remote calls never run inside database transactions, and metadata-only writes skip `updatedAt`. `background.ts` schedules best-effort syncs with `after()`. Routes: OAuth callback, cron sync (Bearer) and webhook (validated, Basic-auth-exempt in the proxy). Only this module talks to Google.

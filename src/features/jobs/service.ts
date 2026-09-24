@@ -22,6 +22,7 @@ import {
   stageInput,
   weeklyJobSummary,
   isOpen,
+  roundEnd,
   attentionQueue,
   followUpState,
   needsAction,
@@ -368,9 +369,79 @@ export async function rescheduleRound(
         requestId: input.requestId,
       },
     });
-    return tx.interviewRound.update({
+    const updated = await tx.interviewRound.update({
       where: { id: round.id },
       data: { ...interval, timezone: input.timezone, status: 'SCHEDULED' },
+    });
+    await moveScheduleBlock(tx, user, round.id, interval);
+    return updated;
+  });
+}
+
+/** Keeps a round's schedule block on the same appointment (one calendar concept, WI-006). */
+async function moveScheduleBlock(
+  tx: Tx,
+  user: ScheduleUser,
+  roundId: string,
+  interval: { scheduledStart: Date; scheduledEnd: Date | null },
+) {
+  const block = await tx.timeBlock.findFirst({
+    where: { interviewRoundId: roundId, dailyPlan: { userId: user.id } },
+  });
+  if (!block || block.status === 'CANCELLED') return;
+  const day = dayKey(interval.scheduledStart, user.timezone);
+  const plan = await tx.dailyPlan.upsert({
+    where: { userId_date: { userId: user.id, date: new Date(day) } },
+    create: { userId: user.id, date: new Date(day) },
+    update: {},
+  });
+  await tx.timeBlock.update({
+    where: { id: block.id },
+    data: {
+      dailyPlanId: plan.id,
+      plannedStart: interval.scheduledStart,
+      plannedEnd:
+        interval.scheduledEnd ?? new Date(+interval.scheduledStart + 3600000),
+      isOverride: true,
+    },
+  });
+}
+
+/**
+ * Puts an interview on the dated schedule as one TimeBlock linked to the round; that block is
+ * what syncs to Google Calendar. Idempotent: an existing linked block is returned.
+ */
+export async function addInterviewToSchedule(
+  user: ScheduleUser,
+  roundId: string,
+) {
+  return locked(user.id, async (tx) => {
+    const round = await ownedRound(tx, user.id, roundId);
+    const existing = await tx.timeBlock.findFirst({
+      where: { interviewRoundId: round.id, dailyPlan: { userId: user.id } },
+    });
+    if (existing) return existing;
+    if (round.status !== 'SCHEDULED')
+      throw new Error(
+        'Only scheduled interviews can be added to the schedule.',
+      );
+    const day = dayKey(round.scheduledStart, user.timezone);
+    const plan = await tx.dailyPlan.upsert({
+      where: { userId_date: { userId: user.id, date: new Date(day) } },
+      create: { userId: user.id, date: new Date(day) },
+      update: {},
+    });
+    return tx.timeBlock.create({
+      data: {
+        dailyPlanId: plan.id,
+        title: `${round.application.company} — ${round.title}`,
+        category: 'INTERVIEW',
+        plannedStart: round.scheduledStart,
+        plannedEnd: roundEnd(round),
+        priority: 1,
+        isOverride: true,
+        interviewRoundId: round.id,
+      },
     });
   });
 }
@@ -633,6 +704,9 @@ export async function applicationDetail(user: ScheduleUser, id: string) {
         where: { userId: user.id },
         orderBy: roundOrder,
         include: {
+          scheduleBlock: {
+            select: { id: true, plannedStart: true, status: true },
+          },
           prepItems: {
             where: { userId: user.id },
             orderBy: [{ ordering: 'asc' }, { createdAt: 'asc' }],

@@ -1,4 +1,7 @@
 import Link from 'next/link';
+import { GoogleCalendarPanel } from '@/features/calendar/panel';
+import { getConnection } from '@/features/calendar/service';
+import { blockSyncView } from '@/features/calendar/domain';
 import { db, owner } from '@/server/db';
 import { dayKey, clock } from '@/lib/time';
 import { dateInput, weekDays, shiftDay } from '@/features/schedule/domain';
@@ -10,7 +13,7 @@ import {
 export default async function Calendar({
   searchParams,
 }: {
-  searchParams: Promise<{ date?: string }>;
+  searchParams: Promise<{ date?: string; google?: string; reason?: string }>;
 }) {
   const user = await owner(),
     query = await searchParams,
@@ -18,7 +21,7 @@ export default async function Calendar({
       ? query.date!
       : dayKey(new Date(), user.timezone),
     days = weekDays(selected);
-  const [routines, plans, goals] = await Promise.all([
+  const [routines, plans, goals, connection] = await Promise.all([
     db().routineBlock.findMany({
       where: { userId: user.id },
       orderBy: { createdAt: 'asc' },
@@ -34,7 +37,9 @@ export default async function Calendar({
       where: { userId: user.id },
       select: { id: true, title: true },
     }),
+    getConnection(user.id),
   ]);
+  const syncing = connection && connection.status !== 'DISCONNECTED';
   return (
     <>
       <CategoryOptions />
@@ -44,6 +49,7 @@ export default async function Calendar({
         Edit any day for a one-off change, or update your recurring routine
         below. No code changes needed.
       </p>
+      <GoogleCalendarPanel user={user} flash={query} />
       <div className="row flex-wrap mb-5">
         <Link
           className="button secondary"
@@ -92,6 +98,9 @@ export default async function Calendar({
                     <strong>{b.title}</strong>
                     <span className="muted">
                       {b.status.replaceAll('_', ' ')}
+                      {syncing
+                        ? ` · Google: ${blockSyncView(b, connection.calendarId, connection.excludedCategories)}`
+                        : ''}
                     </span>
                   </Link>
                 ))

@@ -8,7 +8,14 @@ function equal(a: string, b: string) {
 }
 export function proxy(request: NextRequest) {
   const config = env();
-  if (request.nextUrl.pathname === '/api/notifications/process') {
+  // Google push notifications cannot send Basic auth; the route validates channel credentials.
+  if (request.nextUrl.pathname === '/api/calendar/webhook')
+    return NextResponse.next();
+  if (
+    ['/api/notifications/process', '/api/calendar/sync'].includes(
+      request.nextUrl.pathname,
+    )
+  ) {
     if (
       equal(
         request.headers.get('authorization') ?? '',

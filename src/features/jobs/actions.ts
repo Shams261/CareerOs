@@ -2,10 +2,12 @@
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { owner } from '@/server/db';
+import { syncSoon } from '@/features/calendar/background';
 import type { ActionState } from '@/features/schedule/actions';
 import { PreviewRequired } from '@/features/schedule/editing';
 import {
   addJobNote,
+  addInterviewToSchedule,
   addPrepItem,
   changeStage,
   completeFollowUp,
@@ -25,7 +27,9 @@ async function perform(
 ): Promise<ActionState> {
   try {
     await work();
+    syncSoon(await owner());
     revalidatePath('/jobs', 'layout');
+    revalidatePath('/calendar');
     revalidatePath('/today');
     revalidatePath('/learn', 'layout');
     revalidatePath('/dsa', 'layout');
@@ -136,5 +140,12 @@ export async function jobReminderAction(_s: ActionState, f: FormData) {
         interviewEnabled: f.get('interviewEnabled') === 'on',
       }),
     'Job reminders saved.',
+  );
+}
+export async function scheduleInterviewAction(_s: ActionState, f: FormData) {
+  return perform(
+    async () =>
+      addInterviewToSchedule(await owner(), String(f.get('id') ?? '')),
+    'Interview added to your schedule. It syncs to Google Calendar when connected.',
   );
 }
