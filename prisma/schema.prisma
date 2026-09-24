@@ -22,7 +22,14 @@ enum BlockStatus {
   CANCELLED
 }
 
+enum Independence {
+  YES
+  PARTIAL
+  NO
+}
+
 enum LearningStatus {
+  PAUSED
   NOT_STARTED
   LEARNING
   NEEDS_REVISION
@@ -78,23 +85,26 @@ enum NotificationType {
 }
 
 model User {
-  id            String                   @id @default(cuid())
-  email         String                   @unique
-  name          String
-  timezone      String                   @default("America/Toronto")
-  createdAt     DateTime                 @default(now()) @db.Timestamptz(3)
-  updatedAt     DateTime                 @updatedAt @db.Timestamptz(3)
-  goals         Goal[]
-  plans         DailyPlan[]
-  sessions      ActualSession[]
-  problems      DsaProblem[]
-  topics        LearningTopic[]
-  jobs          JobApplication[]
-  resources     Resource[]
-  checkIns      DailyCheckIn[]
-  preferences   NotificationPreference[]
-  notifications NotificationLog[]
-  routines      RoutineBlock[]
+  id                String                   @id @default(cuid())
+  email             String                   @unique
+  name              String
+  timezone          String                   @default("America/Toronto")
+  createdAt         DateTime                 @default(now()) @db.Timestamptz(3)
+  updatedAt         DateTime                 @updatedAt @db.Timestamptz(3)
+  goals             Goal[]
+  plans             DailyPlan[]
+  sessions          ActualSession[]
+  problems          DsaProblem[]
+  topics            LearningTopic[]
+  jobs              JobApplication[]
+  resources         Resource[]
+  checkIns          DailyCheckIn[]
+  preferences       NotificationPreference[]
+  notifications     NotificationLog[]
+  dsaAttempts       DsaAttempt[]
+  currentDsaTopicId String?
+  currentDsaTopic   DsaTopic?                @relation(fields: [currentDsaTopicId], references: [id], onDelete: SetNull)
+  routines          RoutineBlock[]
 }
 
 model Goal {
@@ -164,23 +174,25 @@ model TimeBlock {
 }
 
 model ActualSession {
-  id        String     @id @default(cuid())
-  userId    String
-  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
-  taskId    String?
-  task      TimeBlock? @relation(fields: [taskId], references: [id], onDelete: SetNull)
-  goalId    String?
-  goal      Goal?      @relation(fields: [goalId], references: [id], onDelete: SetNull)
-  category  String
-  startedAt DateTime   @db.Timestamptz(3)
-  endedAt   DateTime?  @db.Timestamptz(3)
-  notes     String?
-  createdAt DateTime   @default(now()) @db.Timestamptz(3)
+  dsaAttempts DsaAttempt[]
+  id          String       @id @default(cuid())
+  userId      String
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  taskId      String?
+  task        TimeBlock?   @relation(fields: [taskId], references: [id], onDelete: SetNull)
+  goalId      String?
+  goal        Goal?        @relation(fields: [goalId], references: [id], onDelete: SetNull)
+  category    String
+  startedAt   DateTime     @db.Timestamptz(3)
+  endedAt     DateTime?    @db.Timestamptz(3)
+  notes       String?
+  createdAt   DateTime     @default(now()) @db.Timestamptz(3)
 
   @@index([userId, startedAt])
 }
 
 model DsaTopic {
+  currentFor  User[]
   id          String         @id @default(cuid())
   name        String         @unique
   description String?
@@ -192,22 +204,25 @@ model DsaTopic {
 }
 
 model DsaProblem {
-  id              String     @id @default(cuid())
+  attempts        DsaAttempt[]
+  revisionStage   Int          @default(0)
+  revisionManual  Boolean      @default(false)
+  id              String       @id @default(cuid())
   userId          String
-  user            User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user            User         @relation(fields: [userId], references: [id], onDelete: Cascade)
   title           String
   platform        String
   problemUrl      String
   difficulty      Difficulty
   topicId         String
-  topic           DsaTopic   @relation(fields: [topicId], references: [id])
-  confidence      Confidence @default(RED)
+  topic           DsaTopic     @relation(fields: [topicId], references: [id])
+  confidence      Confidence   @default(RED)
   notes           String?
-  lastAttemptedAt DateTime?  @db.Timestamptz(3)
-  nextRevisionAt  DateTime?  @db.Timestamptz(3)
-  attemptsCount   Int        @default(0)
-  createdAt       DateTime   @default(now()) @db.Timestamptz(3)
-  updatedAt       DateTime   @updatedAt @db.Timestamptz(3)
+  lastAttemptedAt DateTime?    @db.Timestamptz(3)
+  nextRevisionAt  DateTime?    @db.Date
+  attemptsCount   Int          @default(0)
+  createdAt       DateTime     @default(now()) @db.Timestamptz(3)
+  updatedAt       DateTime     @updatedAt @db.Timestamptz(3)
   resources       Resource[]
 
   @@index([userId, nextRevisionAt])
@@ -341,4 +356,27 @@ model NotificationLog {
   createdAt    DateTime         @default(now()) @db.Timestamptz(3)
 
   @@index([userId, readAt, scheduledFor])
+}
+
+model DsaAttempt {
+  id                  String         @id @default(cuid())
+  userId              String
+  user                User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  problemId           String
+  problem             DsaProblem     @relation(fields: [problemId], references: [id], onDelete: Cascade)
+  requestId           String
+  attemptedAt         DateTime       @db.Timestamptz(3)
+  confidenceBefore    Confidence?
+  confidenceAfter     Confidence
+  solvedIndependently Independence
+  durationMinutes     Int?
+  notes               String?
+  mistake             String?
+  actualSessionId     String?
+  actualSession       ActualSession? @relation(fields: [actualSessionId], references: [id], onDelete: SetNull)
+  createdAt           DateTime       @default(now()) @db.Timestamptz(3)
+
+  @@unique([userId, requestId])
+  @@index([userId, attemptedAt])
+  @@index([problemId, attemptedAt])
 }

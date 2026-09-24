@@ -1,6 +1,6 @@
 # Engineering handbook
 
-CareerOS is currently a single-owner personal application. WI-001 and WI-002 are implemented; production deployment readiness is tracked separately from feature completion. This handbook describes the code that exists, not a hypothetical future SaaS.
+CareerOS is currently a single-owner personal application. WI-001, WI-002 and WI-003 are implemented; production deployment readiness is tracked separately from feature completion. This handbook describes the code that exists, not a hypothetical future SaaS.
 
 ## Start here
 
@@ -10,6 +10,8 @@ CareerOS is currently a single-owner personal application. WI-001 and WI-002 are
 4. Read [architecture](architecture/overview.md), [data flow diagrams (DFD) and data model](architecture/data-flows.md), and [decision records](architecture/decisions.md).
 5. Read [contribution workflow](../CONTRIBUTING.md), [NFR evidence and release gates](engineering/non-functional-requirements.md), and [operations](engineering/operations.md).
 6. Consult the historical [WI-002 handoff](WI-002-HANDOFF.md) for its implementation-time validation. Temporary screenshots referenced there are not durable repository artifacts.
+
+See the [WI-003 handoff](WI-003-HANDOFF.md) for the DSA learning/revision engine and CI changes.
 
 ## Documentation ownership and change policy
 

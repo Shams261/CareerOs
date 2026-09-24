@@ -529,3 +529,35 @@ details[open] > summary {
     min-width: 130px;
   }
 }
+
+.dsa-item {
+  padding: 1rem 0;
+  border-bottom: 1px solid var(--border, #e3e6e4);
+  overflow-wrap: anywhere;
+}
+.dsa-filters {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 1rem;
+  align-items: end;
+}
+.dsa-list {
+  list-style: decimal;
+  padding-left: 1.25rem;
+  margin: 1rem 0;
+}
+
+.dsa-form fieldset {
+  display: grid;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+.dsa-form label {
+  display: block;
+}
+.dsa-form label.check {
+  display: flex;
+}
+.dsa-form .button {
+  justify-self: start;
+}

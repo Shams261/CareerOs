@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- WI-003: current DSA topic, editable problem library, append-only attempts, bounded spaced revision, manual due dates and local-day queues.
+- DSA details expose mistakes/history and optional actual-session context; Today shows due work and cron emits one daily revision reminder.
+- Preserve legacy counts and convert revision instants to owner-calendar dates; add clean/upgrade migration and seed-idempotency coverage.
+- Cache dependency/compiler work in CI; generate Prisma once and use the production build's TypeScript check.
+
 - Engineering handbook: architecture, ADRs, UFD/DFD, user stories and NFR evidence.
 - Contribution, security and operational runbooks; GitHub story/bug/PR templates.
 - CI workflow with PostgreSQL, frozen install, migrations, seed repeat, lint, type checks, all tests, documentation links and build.

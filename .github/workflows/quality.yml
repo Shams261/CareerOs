@@ -11,7 +11,7 @@ concurrency:
   cancel-in-progress: true
 jobs:
   quality:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
     services:
       postgres:
@@ -33,30 +33,43 @@ jobs:
       CRON_SECRET: ci-only-scheduler-secret-not-for-deployment
       NEXT_TELEMETRY_DISABLED: '1'
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
           persist-credentials: false
-      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
         with:
           node-version-file: .node-version
       - name: Install pinned package manager
         run: npm install --global pnpm@11.19.0
+      - name: Locate pnpm store
+        id: store
+        run: echo "path=$(pnpm store path --silent)" >> "$GITHUB_OUTPUT"
+      - name: Restore dependency cache
+        uses: actions/cache@caa296126883cff596d87d8935842f9db880ef25 # v5
+        with:
+          path: ${{ steps.store.outputs.path }}
+          key: ${{ runner.os }}-node24-pnpm11-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: ${{ runner.os }}-node24-pnpm11-
+      - name: Restore Next compiler cache
+        uses: actions/cache@caa296126883cff596d87d8935842f9db880ef25 # v5
+        with:
+          path: .next/cache
+          key: ${{ runner.os }}-next-${{ hashFiles('pnpm-lock.yaml') }}-${{ github.sha }}
+          restore-keys: ${{ runner.os }}-next-${{ hashFiles('pnpm-lock.yaml') }}-
       - name: Install locked dependencies
         run: pnpm install --frozen-lockfile
       - name: Generate database client
         run: pnpm db:generate
       - name: Lint and formatting
         run: pnpm lint
-      - name: Type checks
-        run: pnpm typecheck
       - name: Documentation links
         run: pnpm docs:check
       - name: Apply migrations and verify repeatable seed
         run: |
           pnpm db:deploy
-          pnpm db:seed
-          pnpm db:seed
+          pnpm exec tsx scripts/verify-seed.ts
       - name: All tests (database required)
         run: pnpm test:ci
-      - name: Production build
-        run: pnpm build
+      # Next build runs the TypeScript check. The Prisma client was generated above.
+      - name: Production build and type checks
+        run: pnpm exec next build --webpack

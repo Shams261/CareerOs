@@ -127,15 +127,24 @@ export async function processNotifications(now = new Date()) {
           }
         }
         if (pref.type === 'DSA_REVISION') {
-          const problems = await tx.dsaProblem.findMany({
-            where: { userId: user.id, nextRevisionAt: { lte: now } },
+          // Revision dates and daily deduplication use the owner's calendar zone.
+          const revisionDay = dayKey(now, user.timezone);
+          const due = await tx.dsaProblem.count({
+            where: {
+              userId: user.id,
+              attemptsCount: { gt: 0 },
+              nextRevisionAt: { lte: new Date(revisionDay) },
+            },
           });
-          for (const p of problems)
+          if (
+            due &&
+            now >= localInstant(revisionDay, pref.preferredTime, user.timezone)
+          )
             await queue(
-              p.id,
-              p.nextRevisionAt!.toISOString(),
-              `Revision due: ${p.title}`,
-              p.nextRevisionAt!,
+              'day',
+              revisionDay,
+              `${due} DSA problem${due === 1 ? '' : 's'} due for revision today.`,
+              now,
             );
         }
       }

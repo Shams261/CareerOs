@@ -22,6 +22,10 @@ flowchart TB
   Auth --> Edit[Validate and edit routine or dated block]
   Auth --> Execute[Start / stop / manual actual entry]
   Auth --> Review[Save daily review]
+  Auth --> Practice[Validate DSA attempt under owner lock]
+  Practice -->|Atomic history and summary| DSA[(Problems and attempts)]
+  DSA --> Read
+  DSA --> N
   Edit <-->|Templates, snapshots, override markers| S[(Schedule records)]
   Execute <-->|Sessions and block status| A[(Execution records)]
   Review --> R[(Check-in and reviewedAt)]
@@ -56,6 +60,11 @@ erDiagram
   User ||--o{ NotificationLog : receives
   User ||--o{ JobApplication : tracks
   DsaTopic ||--o{ DsaProblem : groups
+  DsaTopic o|--o{ User : currentFocus
+  User ||--o{ DsaProblem : owns
+  User ||--o{ DsaAttempt : records
+  DsaProblem ||--o{ DsaAttempt : history
+  ActualSession o|--o{ DsaAttempt : contextualizes
   User ||--o{ LearningTopic : learns
   User ||--o{ Resource : saves
 ```

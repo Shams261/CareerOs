@@ -1,6 +1,6 @@
-# CareerOS · WI-002
+# CareerOS · WI-003
 
-A private personal workspace for planning time, practicing interviews, tracking applications, and reviewing progress. WI-002 extends the foundation with editable weekly routines, daily overrides, and actual-session execution. It does not implement the entire product.
+A private personal workspace for planning time, practicing interviews, tracking applications, and reviewing progress. WI-002 adds editable weekly routines, daily overrides, and actual-session execution. WI-003 adds DSA topic/problem management, attempt history and spaced revision. It does not implement the entire product.
 
 ## Engineering documentation
 
@@ -75,7 +75,7 @@ pnpm db:seed
 
 ## Data storage
 
-PostgreSQL is the durable source of truth for users, timezone, goals, daily plans, time blocks, actual sessions, DSA topics/problems/revision fields, learning topics, resources, jobs/interview dates, check-ins, weekly routines, notification preferences, and notification history. External calendar IDs and last-sync timestamps are reserved on blocks; there is no calendar integration.
+PostgreSQL is the durable source of truth for users, timezone, goals, daily plans, time blocks, actual sessions, DSA topics/problems/attempts/revision fields, learning topics, resources, jobs/interview dates, check-ins, weekly routines, notification preferences, and notification history. External calendar IDs and last-sync timestamps are reserved on blocks; there is no calendar integration.
 
 React state holds only transient form/permission feedback; unsaved form edits are not persistent. No important data is stored in localStorage, browser caches, or server memory. The singleton database client is a connection pool, not data storage. **Restarting the web server does not lose application data.** Docker stores the database in the named `careeros_data` volume; `docker compose down` preserves it, while `down -v` deletes it.
 
@@ -114,7 +114,7 @@ Daily review supports short optional notes, blocker, carry-forward, and 1–5 ra
 
 `DailyPlan.date`, occurrence dates, and goal target dates are SQL dates, not UTC instants. Execution timestamps use PostgreSQL `timestamptz` and render in the stored IANA zone (`America/Toronto` by default). Local date arithmetic uses UTC calendar fields rather than the host machine's timezone. Independently calculated day boundaries correctly produce 23-hour and 25-hour DST days.
 
-Recurring end time at or before start means the following day; dated/manual forms have separate start/end dates and require end > start. A nonexistent spring-forward time is rejected with a visible error instead of silently moved. Generation rolls back that day until the routine is adjusted. Ambiguous Toronto fall-back times choose the earlier occurrence consistently with date-fns-tz, as tested. The UI does not yet offer a later-occurrence selector; avoid logging the second repeated hour through these forms until that UI is added. The timezone is shown beside scheduling forms. Changing a profile timezone does not reinterpret existing UTC blocks. Notification preferences retain their own timezone.
+Recurring end time at or before start means the following day; dated/manual forms have separate start/end dates and require end > start. A nonexistent spring-forward time is rejected with a visible error instead of silently moved. Generation rolls back that day until the routine is adjusted. Ambiguous Toronto fall-back times choose the earlier occurrence consistently with date-fns-tz, as tested. The UI does not yet offer a later-occurrence selector; avoid logging the second repeated hour through these forms until that UI is added. The timezone is shown beside scheduling forms. Changing a profile timezone does not reinterpret existing UTC blocks. Notification preferences retain their own timezone; DSA daily reminders specifically follow the owner timezone so their dates agree with the revision queue.
 
 ## Migration from WI-001
 
@@ -131,14 +131,44 @@ curl --fail -X POST https://your-private-host/api/notifications/process \
 
 The server checks enabled preferences for daily progress, missed check-in, upcoming block, overdue task, job follow-up, interview, and DSA revision. It creates persistent NotificationLog records; Today displays due unread records. An absent plan also qualifies for daily progress/check-in reminders. Reviewing progress and completing the daily check-in are distinct concepts; checking in also marks progress reviewed.
 
-A unique occurrence key prevents duplicate records across retries or overlapping scheduler calls. Review reminders use user + type + local date; blocks/jobs/problems also include the scheduled occurrence. Read state persists. `sentAt` remains null because no external delivery has happened. Scheduler retries are safe; failures return HTTP 500, and logs remain durable. Reminder processing shares the per-user transaction lock with daily review and execution. Start, progress recording, status changes, and rescheduling dismiss stale unread block reminders; review dismisses that day’s unread review reminders. New upcoming/overdue alerts only target planned blocks with no actual sessions.
+A unique occurrence key prevents duplicate records across retries or overlapping scheduler calls. Review and DSA reminders use user + type + local date; blocks/jobs include the scheduled occurrence. Read state persists. `sentAt` remains null because no external delivery has happened. Scheduler retries are safe; failures return HTTP 500, and logs remain durable. Reminder processing shares the per-user transaction lock with daily review and execution. Start, progress recording, status changes, and rescheduling dismiss stale unread block reminders; review dismisses that day’s unread review reminders. New upcoming/overdue alerts only target planned blocks with no actual sessions.
 
 **Closed-app delivery is not implemented.** Cron runs independently of browser tabs and creates the inbox records while the application is closed, but it does not send an OS alert. WI-001 has a user-triggered permission UI, a service worker that opens Today on notification click, and a test notification. There is no subscription storage, VAPID credential, Web Push sender, or misleading background-delivery claim. The next transport step is a push-subscription model, authenticated subscription endpoints, a push event handler, and a retryable per-subscription delivery outbox. Unique reminder creation alone would not guarantee exactly-once push delivery.
 
 Browser notifications require user permission and a secure context (HTTPS or localhost). Support differs across browsers; iOS web push generally requires an installed Home Screen web app. Permission can be denied or revoked, OS focus modes can suppress alerts, and background delivery is never an exact-time guarantee. The service worker intentionally caches no personal pages. There is no installable PWA manifest/offline mode yet.
 
-Block reminder processing uses timestamp windows across local midnight: upcoming reminders target the configured lead window and overdue reminders cover the preceding 24 hours. Missed upcoming windows are not replayed as upcoming alerts. The scheduler processes dated blocks only; generate the next seven days if reminders are needed before opening each day. Job follow-ups/interview windows expire after 24 hours. Due DSA revisions remain eligible, deduped per revision instant. A larger retrospective catch-up policy, stale-reminder cleanup, transport retries, and preference editing for every type remain future work.
+Block reminder processing uses timestamp windows across local midnight: upcoming reminders target the configured lead window and overdue reminders cover the preceding 24 hours. Missed upcoming windows are not replayed as upcoming alerts. The scheduler processes dated blocks only; generate the next seven days if reminders are needed before opening each day. Job follow-ups/interview windows expire after 24 hours. Due DSA revisions remain eligible and produce one daily aggregate reminder per owner-local date. A larger retrospective catch-up policy, stale-reminder cleanup, transport retries, and preference editing for every type remain future work.
 
-## Before WI-003
+## Before WI-004
 
 Review authentication/session UX, closed-session correction/deletion, a later-occurrence DST selector, configurable focus categories, actual-session overlap policy, large schedule propagation performance, and background Web Push delivery requirements. Templates do not have an effective-from date: the default scope means ungenerated days, including a historical day explicitly generated later. No drag-and-drop or complex recurrence engine is included. Decide on database hosting, HTTPS ingress and rate limits, backup/restore operations, and an authenticated minute-level scheduler before production deployment. Google Calendar OAuth/sync, automatic applications, AI planning, and advanced analytics are explicitly not implemented.
+
+## DSA learning model
+
+`DsaTopic → DsaProblem → DsaAttempt → Confidence → Revision Engine`
+
+Choose a current topic in `/dsa`, add problems from any HTTP(S) website, solve externally, then record an attempt on the problem detail page. Topics support ordering, Learning, Revising (`NEEDS_REVISION`), Interview ready, Completed and Paused; the existing status vocabulary is retained. Only one topic can be current per owner. Paused/completed/not-started topics cannot be current. The topic catalog remains shared in this single-owner architecture; multi-tenant topic ownership is outside WI-003.
+
+- **RED:** could not independently derive a correct approach. Review in **1 day**, reset progression.
+- **YELLOW:** understand the pattern, but need help or are unreliable. Review in **3 days**, reset progression so the next Green starts at 7.
+- **GREEN:** independently solve and explain the approach, implementation and complexity. Consecutive Green attempts schedule **7 → 14 → 30 → 30 days**.
+
+Independence and confidence must agree: `NO/PARTIAL → RED/YELLOW`, `YES → YELLOW/GREEN`. Completing a scheduled block never awards confidence. The pure policy lives in `src/features/dsa/domain.ts`.
+
+Revision dates are PostgreSQL `DATE` calendar labels. Toronto is the default timezone; due status changes at the owner's local midnight, not UTC midnight. New dates are calculated from the date of the actual attempt, including when the previous revision is overdue. Overnight/DST days do not change the interval in calendar days. Queue priority is overdue Red/Yellow/Green, then today's Red/Yellow/Green; oldest date first within each group.
+
+| State             | Meaning                                                                                           |
+| ----------------- | ------------------------------------------------------------------------------------------------- |
+| New / unattempted | No recorded attempts; not included in the revision queue                                          |
+| Due today         | Revision date equals the owner's current local date                                               |
+| Overdue           | Revision date is before that date; stays unchanged until an attempt or explicit adjustment        |
+| Upcoming          | A practiced problem has a future revision date                                                    |
+| Unscheduled       | Legacy practiced summary has no revision date; the next attempt or manual adjustment schedules it |
+
+A manual revision date is marked explicitly and preserves progression/history. The next attempt resumes automatic scheduling. Attempts are append-only through the application; there is no edit/delete/backdate UI. Existing summary-only counts are preserved and disclosed as legacy history, never reconstructed into invented attempts. A new unique problem is counted once regardless of revision count.
+
+A **DSA TimeBlock** defines planned time; an **ActualSession** records actual work; a **DsaAttempt** records a problem learning outcome. Recording an attempt links an active owned session with category `DSA` when available, but never requires or creates a timer. Optional attempt duration is self-reported and does not create actual tracked time. On Today, a scheduled non-cancelled DSA block shows the automatic queue without rewriting the schedule.
+
+One daily inbox reminder is created per owner/local date at or after the DSA reminder's preferred time, only when enabled and practiced problems are due. New owners default to 07:00; existing preferences are preserved. The count is a snapshot when created. External cron is still required; closed-app Web Push remains unsupported.
+
+See [WI-003 handoff](docs/WI-003-HANDOFF.md) for migration, checks, limits and rollback considerations.
