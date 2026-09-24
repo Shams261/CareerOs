@@ -5,7 +5,6 @@ import { Prisma } from '@/generated/prisma/client';
 import type { CalendarConnection, TimeBlock } from '@/generated/prisma/client';
 import { calendarConfig, type CalendarConfig } from '@/lib/env';
 import { dayKey } from '@/lib/time';
-import { shiftDay } from '@/features/schedule/domain';
 import {
   clearBlockReminders,
   generatePlan,
@@ -32,7 +31,7 @@ import {
 } from './google';
 import {
   CALENDAR_NAME,
-  GENERATE_AHEAD_DAYS,
+  syncGenerationDays,
   SYNC_WINDOW,
   UNSUPPORTED_REMOTE,
   decide,
@@ -398,8 +397,8 @@ export async function syncCalendar(
       summary,
     };
     const today = dayKey(now, user.timezone);
-    for (let i = 0; i < GENERATE_AHEAD_DAYS; i++)
-      await generatePlan(user, shiftDay(today, i)).catch(() => {
+    for (const day of syncGenerationDays(today))
+      await generatePlan(user, day).catch(() => {
         // A routine hitting a DST gap already reports on Today; sync continues.
       });
     let token: string;
