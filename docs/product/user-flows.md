@@ -151,3 +151,19 @@ flowchart TD
 ```
 
 Results that replace the form (connected, conflict resolved, disconnected) are confirmed with a notice at the top of the panel. Sync errors show sanitized messages only.
+
+## UFD-008 — Weekly review and preparation (WI-007)
+
+```mermaid
+flowchart TD
+  Sunday[Sunday: Today prompt / inbox reminder] --> Review[Review page: this week]
+  Review --> Facts[Execution · Progress · Carry forward (live)]
+  Facts --> Reflect[Reflection: save draft or complete]
+  Reflect --> Priorities[Choose up to 5 priorities for next week]
+  Priorities --> Context[Next week: routine preview, interviews, dues]
+  Context --> Routines{Change routines?}
+  Routines -->|Yes| Calendar[Edit routines on Calendar] --> Context
+  Routines -->|No| Prepare[Prepare next week: generate 7 days once]
+  Prepare --> Sync[Calendar sync publishes after the response]
+  Review --> History[Previous weeks: stored text, live facts]
+```

@@ -167,3 +167,19 @@ flowchart LR
 ```
 
 Trust boundaries: the browser never receives tokens. Google receives only titles, instants, the category label and private property IDs. The webhook is unauthenticated at HTTP level but validated by stored channel ID, resource ID, token hash and expiry, and returns no data. Logs carry IDs, codes and counts only.
+
+## WI-007 — Weekly review DFD
+
+```mermaid
+flowchart LR
+  Sources[(TimeBlock, ActualSession, DsaAttempt, LearningActivity, Job tables)] --> Agg[Pure weekly aggregation]
+  Agg --> Page[/review render]
+  Owner[Owner] -->|reflection, priorities| Locked[Owner-locked writes]
+  Locked --> WR[(WeeklyReview / WeeklyPriority)]
+  Owner -->|Prepare next week| Gen[Existing generatePlan x7]
+  Gen --> Plans[(DailyPlan / TimeBlock)]
+  Plans -. after response .-> Sync[Calendar sync] --> Google[Dedicated calendar]
+  Cron[Notification cron] --> Remind[WEEKLY_REVIEW once per week]
+```
+
+Metrics are never copied into `WeeklyReview`. Preparation writes only CareerOS rows; any Google call happens later, outside that work.
