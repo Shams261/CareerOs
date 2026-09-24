@@ -561,3 +561,26 @@ details[open] > summary {
 .dsa-form .button {
   justify-self: start;
 }
+
+.learning-notes {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.learning-mastery {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 1rem;
+  margin: 1rem 0;
+}
+.learning-mastery dt {
+  text-transform: capitalize;
+  color: var(--muted);
+}
+.learning-mastery dd {
+  margin: 0.35rem 0;
+  font-weight: 600;
+}
+.learning-history {
+  border-bottom: 1px solid var(--border);
+  padding: 1rem 0;
+}
