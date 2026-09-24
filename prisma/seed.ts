@@ -1,8 +1,8 @@
 import { seedLearning } from './seed-learning';
+import { seedJobs } from './seed-jobs';
 import 'dotenv/config';
 import { PrismaClient } from '../src/generated/prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
-import { addDays } from 'date-fns';
 import { revision } from '../src/features/dsa/domain';
 import { dayKey, localInstant } from '../src/lib/time';
 import { resourceUrl } from '../src/lib/validation';
@@ -14,8 +14,7 @@ async function main() {
   const email = process.env.OWNER_EMAIL;
   if (!email) throw new Error('OWNER_EMAIL is required');
   const zone = 'America/Toronto',
-    day = dayKey(new Date(), zone),
-    at = (time: string) => localInstant(day, time, zone);
+    day = dayKey(new Date(), zone);
   await prisma.$transaction(
     async (tx) => {
       const newOwner = !(await tx.user.findUnique({ where: { email } }));
@@ -154,13 +153,15 @@ async function main() {
           jobUrl: 'https://example.com/careers',
           location: 'Toronto / Remote',
           stage: 'APPLIED',
-          appliedAt: at('12:00'),
+          appliedAt: new Date(day),
           nextAction: 'Check application status',
-          nextActionAt: addDays(at('12:00'), 5),
+          nextActionDate: new Date(shiftDay(day, 5)),
+          actionOwner: 'COMPANY',
           notes: 'Fictional application; example.com is a seed placeholder.',
         },
         update: {},
       });
+      if (newOwner) await seedJobs(tx, user.id, zone, day);
       const weekly: Array<
         [string, number[], string, string, string, string, string | null]
       > = [
@@ -366,7 +367,10 @@ async function main() {
                 ? '22:30'
                 : type === 'DSA_REVISION'
                   ? '07:00'
-                  : '21:30',
+                  : type === 'JOB_FOLLOW_UP'
+                    ? '09:00'
+                    : '21:30',
+            ...(type === 'INTERVIEW' ? { offsetMinutes: 60 } : {}),
           },
           update: {},
         });

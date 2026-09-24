@@ -78,9 +78,9 @@ export default async function Jobs() {
                     <td>
                       {j.nextAction ?? 'None'}
                       <p className="muted">
-                        {j.nextActionAt
+                        {j.nextActionDate
                           ? formatInTimeZone(
-                              j.nextActionAt,
+                              j.nextActionDate,
                               user.timezone,
                               'MMM d, h:mm a',
                             )
