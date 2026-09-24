@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation';
 import { formatInTimeZone } from 'date-fns-tz';
 import { db, owner } from '@/server/db';
 import { ResourceLink } from '@/components/resource-link';
+import { InterviewMentions } from '@/features/jobs/summary';
 import { AttemptForm, ProblemForm, RevisionForm } from '@/features/dsa/forms';
 import { revisionDay } from '@/features/dsa/domain';
 export default async function Problem({
@@ -102,6 +103,7 @@ export default async function Problem({
           </article>
         ))}
       </section>
+      <InterviewMentions userId={user.id} dsaProblemId={p.id} />
       {p.attemptsCount > 0 && (
         <section className="card">
           <details>

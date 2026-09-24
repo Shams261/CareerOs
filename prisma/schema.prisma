@@ -103,6 +103,9 @@ enum NotificationType {
 }
 
 model User {
+  jobActivities      JobActivity[]
+  interviewRounds    InterviewRound[]
+  prepItems          InterviewPrepItem[]
   subjects           LearningSubject[]        @relation("OwnedSubjects")
   learningActivities LearningActivity[]
   currentSubjectId   String?
@@ -216,37 +219,39 @@ model ActualSession {
 }
 
 model DsaTopic {
+  prepItems   InterviewPrepItem[]
   currentFor  User[]
-  id          String         @id @default(cuid())
-  name        String         @unique
+  id          String              @id @default(cuid())
+  name        String              @unique
   description String?
-  status      LearningStatus @default(NOT_STARTED)
-  ordering    Int            @default(0)
-  createdAt   DateTime       @default(now()) @db.Timestamptz(3)
-  updatedAt   DateTime       @updatedAt @db.Timestamptz(3)
+  status      LearningStatus      @default(NOT_STARTED)
+  ordering    Int                 @default(0)
+  createdAt   DateTime            @default(now()) @db.Timestamptz(3)
+  updatedAt   DateTime            @updatedAt @db.Timestamptz(3)
   problems    DsaProblem[]
 }
 
 model DsaProblem {
+  prepItems       InterviewPrepItem[]
   attempts        DsaAttempt[]
-  revisionStage   Int          @default(0)
-  revisionManual  Boolean      @default(false)
-  id              String       @id @default(cuid())
+  revisionStage   Int                 @default(0)
+  revisionManual  Boolean             @default(false)
+  id              String              @id @default(cuid())
   userId          String
-  user            User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user            User                @relation(fields: [userId], references: [id], onDelete: Cascade)
   title           String
   platform        String
   problemUrl      String
   difficulty      Difficulty
   topicId         String
-  topic           DsaTopic     @relation(fields: [topicId], references: [id])
-  confidence      Confidence   @default(RED)
+  topic           DsaTopic            @relation(fields: [topicId], references: [id])
+  confidence      Confidence          @default(RED)
   notes           String?
-  lastAttemptedAt DateTime?    @db.Timestamptz(3)
-  nextRevisionAt  DateTime?    @db.Date
-  attemptsCount   Int          @default(0)
-  createdAt       DateTime     @default(now()) @db.Timestamptz(3)
-  updatedAt       DateTime     @updatedAt @db.Timestamptz(3)
+  lastAttemptedAt DateTime?           @db.Timestamptz(3)
+  nextRevisionAt  DateTime?           @db.Date
+  attemptsCount   Int                 @default(0)
+  createdAt       DateTime            @default(now()) @db.Timestamptz(3)
+  updatedAt       DateTime            @updatedAt @db.Timestamptz(3)
   resources       Resource[]
 
   @@index([userId, nextRevisionAt])
@@ -298,58 +303,194 @@ model LearningActivity {
 }
 
 model LearningTopic {
+  prepItems      InterviewPrepItem[]
   subjectId      String
-  subject        LearningSubject    @relation(fields: [subjectId], references: [id], onDelete: Restrict)
+  subject        LearningSubject     @relation(fields: [subjectId], references: [id], onDelete: Restrict)
   description    String?
-  ordering       Int                @default(0)
-  understanding  Int                @default(0)
-  recall         Int                @default(0)
-  application    Int                @default(0)
-  interview      Int                @default(0)
-  lastReviewedAt DateTime?          @db.Timestamptz(3)
-  nextReviewDate DateTime?          @db.Date
-  reviewManual   Boolean            @default(false)
+  ordering       Int                 @default(0)
+  understanding  Int                 @default(0)
+  recall         Int                 @default(0)
+  application    Int                 @default(0)
+  interview      Int                 @default(0)
+  lastReviewedAt DateTime?           @db.Timestamptz(3)
+  nextReviewDate DateTime?           @db.Date
+  reviewManual   Boolean             @default(false)
   activities     LearningActivity[]
-  id             String             @id @default(cuid())
+  id             String              @id @default(cuid())
   userId         String
-  user           User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user           User                @relation(fields: [userId], references: [id], onDelete: Cascade)
   title          String
   notes          String?
-  status         LearningStatus     @default(NOT_STARTED)
+  status         LearningStatus      @default(NOT_STARTED)
   goalId         String?
-  goal           Goal?              @relation(fields: [goalId], references: [id], onDelete: SetNull)
+  goal           Goal?               @relation(fields: [goalId], references: [id], onDelete: SetNull)
   parentId       String?
-  parent         LearningTopic?     @relation("TopicTree", fields: [parentId], references: [id], onDelete: SetNull)
-  children       LearningTopic[]    @relation("TopicTree")
-  createdAt      DateTime           @default(now()) @db.Timestamptz(3)
-  updatedAt      DateTime           @updatedAt @db.Timestamptz(3)
+  parent         LearningTopic?      @relation("TopicTree", fields: [parentId], references: [id], onDelete: SetNull)
+  children       LearningTopic[]     @relation("TopicTree")
+  createdAt      DateTime            @default(now()) @db.Timestamptz(3)
+  updatedAt      DateTime            @updatedAt @db.Timestamptz(3)
   resources      Resource[]
 
   @@index([userId, status])
 }
 
 model JobApplication {
-  id               String     @id @default(cuid())
-  userId           String
-  user             User       @relation(fields: [userId], references: [id], onDelete: Cascade)
-  company          String
-  role             String
-  jobUrl           String?
-  location         String?
-  source           String?
-  appliedAt        DateTime?  @db.Timestamptz(3)
-  stage            JobStage   @default(SAVED)
-  recruiterName    String?
-  recruiterContact String?
-  notes            String?
-  nextAction       String?
-  nextActionAt     DateTime?  @db.Timestamptz(3)
-  interviewAt      DateTime?  @db.Timestamptz(3)
-  createdAt        DateTime   @default(now()) @db.Timestamptz(3)
-  updatedAt        DateTime   @updatedAt @db.Timestamptz(3)
-  resources        Resource[]
+  id                String           @id @default(cuid())
+  userId            String
+  user              User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  company           String
+  role              String
+  jobUrl            String?
+  location          String?
+  workArrangement   WorkArrangement  @default(UNKNOWN)
+  employmentType    String?
+  source            String?
+  appliedAt         DateTime?        @db.Date
+  stage             JobStage         @default(SAVED)
+  priority          Int              @default(2)
+  recruiterName     String?
+  recruiterContact  String?
+  hiringContact     String?
+  notes             String?
+  compensationNotes String?
+  jobDescription    String?
+  nextAction        String?
+  nextActionDate    DateTime?        @db.Date
+  actionOwner       ActionOwner      @default(NONE)
+  createdAt         DateTime         @default(now()) @db.Timestamptz(3)
+  updatedAt         DateTime         @updatedAt @db.Timestamptz(3)
+  resources         Resource[]
+  activities        JobActivity[]
+  rounds            InterviewRound[]
 
-  @@index([userId, nextActionAt])
+  @@index([userId, nextActionDate])
+  @@index([userId, stage])
+}
+
+enum WorkArrangement {
+  REMOTE
+  HYBRID
+  ONSITE
+  UNKNOWN
+}
+
+enum ActionOwner {
+  ME
+  COMPANY
+  NONE
+}
+
+enum JobActivityType {
+  CREATED
+  STAGE_CHANGED
+  INTERVIEW_SCHEDULED
+  INTERVIEW_RESCHEDULED
+  INTERVIEW_RESULT
+  FOLLOW_UP_SET
+  FOLLOW_UP_DONE
+  NOTE
+}
+
+enum InterviewType {
+  RECRUITER
+  ASSESSMENT
+  CODING
+  SYSTEM_DESIGN
+  BEHAVIORAL
+  HIRING_MANAGER
+  FINAL
+  OTHER
+}
+
+enum InterviewStatus {
+  SCHEDULED
+  COMPLETED
+  CANCELLED
+  NO_SHOW
+}
+
+enum PrepKind {
+  PREP
+  GAP
+}
+
+model JobActivity {
+  id               String          @id @default(cuid())
+  userId           String
+  user             User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  applicationId    String
+  application      JobApplication  @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  type             JobActivityType
+  occurredAt       DateTime        @db.Timestamptz(3)
+  fromStage        JobStage?
+  toStage          JobStage?
+  interviewRoundId String?
+  interviewRound   InterviewRound? @relation(fields: [interviewRoundId], references: [id], onDelete: SetNull)
+  previousStart    DateTime?       @db.Timestamptz(3)
+  newStart         DateTime?       @db.Timestamptz(3)
+  note             String?
+  requestId        String?
+  createdAt        DateTime        @default(now()) @db.Timestamptz(3)
+
+  @@unique([userId, requestId])
+  @@index([applicationId, occurredAt])
+  @@index([userId, occurredAt])
+}
+
+model InterviewRound {
+  id             String              @id @default(cuid())
+  userId         String
+  user           User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  applicationId  String
+  application    JobApplication      @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  title          String
+  type           InterviewType       @default(OTHER)
+  scheduledStart DateTime            @db.Timestamptz(3)
+  scheduledEnd   DateTime?           @db.Timestamptz(3)
+  timezone       String
+  status         InterviewStatus     @default(SCHEDULED)
+  interviewers   String?
+  meetingUrl     String?
+  location       String?
+  notes          String?
+  topicsAsked    String?
+  wentWell       String?
+  toImprove      String?
+  outcomeNotes   String?
+  completedAt    DateTime?           @db.Timestamptz(3)
+  createdAt      DateTime            @default(now()) @db.Timestamptz(3)
+  updatedAt      DateTime            @updatedAt @db.Timestamptz(3)
+  prepItems      InterviewPrepItem[]
+  activities     JobActivity[]
+
+  @@index([userId, scheduledStart])
+  @@index([applicationId, scheduledStart])
+}
+
+model InterviewPrepItem {
+  id              String         @id @default(cuid())
+  userId          String
+  user            User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  roundId         String
+  round           InterviewRound @relation(fields: [roundId], references: [id], onDelete: Cascade)
+  kind            PrepKind       @default(PREP)
+  title           String
+  notes           String?
+  completed       Boolean        @default(false)
+  completedAt     DateTime?      @db.Timestamptz(3)
+  ordering        Int            @default(0)
+  learningTopicId String?
+  learningTopic   LearningTopic? @relation(fields: [learningTopicId], references: [id], onDelete: SetNull)
+  dsaProblemId    String?
+  dsaProblem      DsaProblem?    @relation(fields: [dsaProblemId], references: [id], onDelete: SetNull)
+  dsaTopicId      String?
+  dsaTopic        DsaTopic?      @relation(fields: [dsaTopicId], references: [id], onDelete: SetNull)
+  createdAt       DateTime       @default(now()) @db.Timestamptz(3)
+  updatedAt       DateTime       @updatedAt @db.Timestamptz(3)
+
+  @@index([roundId, ordering])
+  @@index([learningTopicId])
+  @@index([dsaProblemId])
 }
 
 model Resource {

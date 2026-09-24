@@ -1,5 +1,6 @@
 import { TodayLearning } from '@/features/learning/summary';
 import { TodayDsa } from '@/features/dsa/summary';
+import { TodayInterview, TodayJobs } from '@/features/jobs/summary';
 import { isDsa } from '@/features/dsa/domain';
 import Link from 'next/link';
 import { ActionForm } from '@/components/action-form';
@@ -79,7 +80,7 @@ export default async function Today({
       db().jobApplication.count({
         where: {
           userId: user.id,
-          appliedAt: { gte: bounds.start, lt: bounds.end },
+          appliedAt: new Date(day),
         },
       }),
     ]);
@@ -132,6 +133,7 @@ export default async function Today({
           then generate again.
         </p>
       )}
+      <TodayInterview user={user} day={day} />
       {running && (
         <section className="hero">
           <div>
@@ -312,6 +314,7 @@ export default async function Today({
           </section>
         </section>
         <aside>
+          {day === today && <TodayJobs user={user} now={now} />}
           {day === today && (
             <TodayLearning user={user} now={now} blocks={blocks} />
           )}

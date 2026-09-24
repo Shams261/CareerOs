@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation';
 import { db, owner } from '@/server/db';
 import { dayKey } from '@/lib/time';
 import { ResourceLink } from '@/components/resource-link';
+import { InterviewMentions } from '@/features/jobs/summary';
 import {
   ActivityForm,
   LearningTopicForm,
@@ -105,6 +106,7 @@ export default async function Topic({
           <LearningResourceForm topicId={id} />
         </details>
       </section>
+      <InterviewMentions userId={user.id} learningTopicId={topic.id} />
       <section className="card">
         <h2>Activity history</h2>
         <p className="muted">Latest 100 activities. History is append-only.</p>

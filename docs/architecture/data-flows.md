@@ -116,3 +116,35 @@ erDiagram
 ```
 
 Technical review dates use existing owner-local day labels and SQL DATE. Activity/session times remain UTC instants. Subject/topic/resource writes validate ownership under the same owner lock. Topic history has no edit/delete mutation. Retry payload mismatches are rejected rather than overwriting the prior activity.
+
+## WI-005 — Job pipeline DFD
+
+```mermaid
+flowchart LR
+  Owner[Owner: application / stage / round / prep / follow-up] --> Action[Jobs Server Action]
+  Action --> Validate[Zod allowlist; HTTP(S) URLs; owner resolved server-side]
+  Validate --> Lock[User row lock]
+  Lock --> Ownership[Application / round / linked learning+DSA ownership]
+  Ownership --> Retry{Request ID seen?}
+  Retry -->|Yes| Prior[Return prior result]
+  Retry -->|No| Write[Summary change + JobActivity in one transaction]
+  Write --> DB[(PostgreSQL)]
+  DB --> Views[Jobs, Today, Learn, DSA revalidation]
+  Cron[Authenticated cron] --> Eligible[Open apps: follow-up dates; scheduled rounds within 24h]
+  Eligible --> Inbox[Deduplicated inbox reminders]
+```
+
+```mermaid
+erDiagram
+  User ||--o{ JobApplication : owns
+  JobApplication ||--o{ JobActivity : timeline
+  JobApplication ||--o{ InterviewRound : rounds
+  InterviewRound o|--o{ JobActivity : referenced_by
+  InterviewRound ||--o{ InterviewPrepItem : prep
+  LearningTopic o|--o{ InterviewPrepItem : referenced_by
+  DsaProblem o|--o{ InterviewPrepItem : referenced_by
+  DsaTopic o|--o{ InterviewPrepItem : referenced_by
+  JobApplication ||--o{ Resource : references
+```
+
+Applied/next-action dates are SQL DATEs in the owner's calendar; interview and activity times are UTC instants, with the interview's entry zone stored for display. Recruiter/hiring contacts, compensation notes and job-description snapshots are personal data in the same owner-scoped tables and are never sent to external services. No page scraping, email or calendar calls exist.

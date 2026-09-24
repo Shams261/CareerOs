@@ -103,3 +103,29 @@ flowchart TD
 ```
 
 A successful form displays confirmation; validation failures preserve input and explain the issue. A new record-activity request ID is issued after revalidation. Pause/archive keeps history but removes active recommendations. Resources use validated HTTP(S) links with safe new-tab attributes. Editing a subject can clear/change primary focus; multiple subjects can remain active.
+
+## UFD-006 — Job pipeline, interviews and follow-ups (WI-005)
+
+```mermaid
+flowchart TD
+  Jobs[Open Jobs] --> Attention[Needs attention / upcoming interviews]
+  Jobs --> Quick[Quick add: company, role, URL, source, date, stage]
+  Quick --> Dup{Exact duplicate?}
+  Dup -->|Yes| Confirm[Confirm or cancel]
+  Dup -->|No| App[Application detail]
+  Confirm --> App
+  Attention --> App
+  App --> Stage[Change stage + note → timeline]
+  App --> Next[Set next action, date, who acts next]
+  Next --> Done[Mark done → set following step]
+  App --> Round[Add interview round: type, local time, zone, link]
+  Round --> Prep[Prep checklist / link learning or DSA]
+  Round --> Resched[Reschedule → previous time kept]
+  Round --> Result[Log result + reflection, optional stage move]
+  Result --> Gap[Add weak area → learning/DSA mention]
+  Today[Today] --> Interview[Today's interview: open application / prep / meeting]
+  Today --> Summary[Job search summary]
+  Summary --> App
+```
+
+Saves show confirmation or keep input with the error. Forms that record events carry a fresh request ID after each save. Closed applications stay reachable through the Rejected/Withdrawn/All views. Grouped lists replace drag-and-drop so the pipeline works by keyboard and on mobile.
