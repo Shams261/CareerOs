@@ -59,3 +59,17 @@ All records below describe accepted implementation decisions as of WI-002. Add a
 **Alternatives considered:** Deriving everything from history cannot faithfully reconstruct legacy attempts. Event sourcing and generic learning engines exceed WI-003. UTC-day due comparisons conflict with local scheduling.
 
 **Consequences:** The current-topic reference on User structurally permits at most one current topic. Existing shared DsaTopic catalog and status enum remain; PAUSED is added, NEEDS_REVISION is displayed as Revising. Topic tenancy must be redesigned for multiple real owners. App writes preserve history, but privileged database maintenance can still change it. Dates survive timezone changes as calendar labels; attempt timestamps remain instants. Rollback across the date-column conversion requires schema compatibility review, not simply checking out the old tag.
+
+## ADR-007 — Concept mastery is distinct from DSA confidence (WI-004)
+
+**Context:** Understanding a technical topic does not demonstrate later recall, practical application or interview explanation. WI-001 already stores LearningTopic trees and Resource links.
+
+**Decision:** Reuse LearningTopic/Resource; add owner-scoped LearningSubject and append-only LearningActivity. Reuse LearningStatus (`NEEDS_REVISION` is displayed as “Needs review”), owner-row locks, request IDs and SQL calendar dates. A subject has an independent lifecycle; multiple subjects may be active, with one primary focus. New hierarchy edits allow only a parent and one child level within the same subject.
+
+Mastery uses four integer dimensions: understanding, recall, application and interview. Zero is unassessed; 1 weak, 2 partial, 3 strong. Omitted fields preserve previous ratings; explicit zero clears one. All four strong means Interview Ready. Any weak rating, or partial recall/application/interview, means Needs Review. Otherwise the topic is Learning. This intentionally avoids asserting interview readiness from incomplete evidence. Pause/completion exclude a topic; a later assessment can regress active readiness.
+
+Assessment scheduling is Learning +2 days, Needs Review +3, newly Interview Ready +14. An already-ready topic with a fresh strong recall/application/interview rating gets +30; re-rating understanding alone gets +14. Notes never change ratings/dates. Unassessed activities start a new topic with +2, but do not postpone an existing review. A manual date lasts until the next assessment. Queues group overdue/today/upcoming, then Needs Review/Learning/Interview Ready, then oldest date and stable ID.
+
+**Migration:** `20260924190000_technical_learning` assigns existing topics to one “Imported learning” subject per owner. It preserves IDs, hierarchy, statuses, timestamps, notes, goal links and resources; it creates no assessments or inferred mastery. Legacy readiness is displayed as legacy until reassessed. Existing subject-like topics are not silently reinterpreted. No prior migration changes.
+
+**Consequences:** Four scores remain visible and understandable; no weighted knowledge percentage, flashcards or question-bank entities. Notes hold interview prompts. TimeBlocks determine when; activities determine learning evidence; optional ActualSession links provide timing context without altering timers. Status transitions are captured in activities for accurate weekly counts. Lifecycle edits themselves are not a general audit log. Existing deep legacy trees remain preserved; new/reparented structures obey the two-level limit.

@@ -59,3 +59,9 @@ Add new use cases to existing feature boundaries. Keep categories user-defined. 
 ## DSA feature boundary (WI-003)
 
 `src/features/dsa/domain.ts` owns confidence validation, date intervals and queue ranking. `service.ts` serializes topic/problem/attempt mutations through the existing owner lock; `actions.ts` resolves the owner and refreshes views. Server-rendered dashboard/detail pages and forms expose those services. Notifications reuse the problem summaries, not a second revision algorithm. See ADR-006 for legacy migration, dates and current-topic semantics.
+
+## Technical learning boundary (WI-004)
+
+`src/features/learning/domain.ts` owns mastery/readiness, review policy, queue ranking and suggestions. `service.ts` owns subject/topic/resource/activity writes, owner locks, idempotency, session linkage and read summaries. `actions.ts` resolves the configured owner and revalidates Learning/Today. Server-rendered forms and subject/topic routes reuse existing ActionForm and ResourceLink.
+
+LearningSubject groups existing LearningTopic records. LearningActivity stores supplied scores and before/after statuses; the topic stores current mastery and next calendar review date. No timer mutation or DSA algorithm dependency is introduced. UI labels map legacy `NEEDS_REVISION` to “Needs review”; the shared enum remains compatible with DSA.

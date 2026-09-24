@@ -83,3 +83,23 @@ flowchart TD
 ```
 
 Logging an attempt takes two required selections; duration, mistake and notes are optional. A current active DSA session is associated automatically. Scheduling, timer completion and learning confidence are separate decisions.
+
+## UFD-005 — Technical learning, recall and review (WI-004)
+
+```mermaid
+flowchart TD
+  Learn[Open Learning] --> Focus[Choose active subject / primary focus]
+  Focus --> Subject[Topics in learning order]
+  Subject --> Topic[Topic detail: mastery, notes, resources, history]
+  Topic --> Log[Record Learn / Review / Practice / Recall / Mock]
+  Log --> Scores[Supply only assessed dimensions]
+  Scores --> Save[Atomic activity + readiness + review date]
+  Save --> Queue[Overdue / today / upcoming reviews]
+  Topic --> Note[Append note without moving review date]
+  Topic --> Manual[Manually schedule review]
+  Topic --> Edit[Edit notes, parent, order; pause or complete]
+  Queue --> Today[Technical/System Design or linked-goal Today block]
+  Today --> Topic
+```
+
+A successful form displays confirmation; validation failures preserve input and explain the issue. A new record-activity request ID is issued after revalidation. Pause/archive keeps history but removes active recommendations. Resources use validated HTTP(S) links with safe new-tab attributes. Editing a subject can clear/change primary focus; multiple subjects can remain active.
