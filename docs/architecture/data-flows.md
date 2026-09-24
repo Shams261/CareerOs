@@ -84,3 +84,35 @@ The [Prisma schema](../../prisma/schema.prisma) is authoritative for every field
 | PostgreSQL backups                                          | Operator-controlled backup storage  | Encryption, retention, access and restore testing required before production |
 
 Job applications are independent of job-search blocks; multiple applications may occur during one session. Cancelling a block preserves its actual sessions. SQL delete semantics differ by relation, so consult migrations before adding a destructive feature. There is no complete user-facing export/erasure/retention workflow yet.
+
+## WI-004 — Technical learning assessment DFD
+
+```mermaid
+flowchart LR
+  Owner[Owner: partial mastery + activity] --> Action[Learning Server Action]
+  Action --> Validate[Allowlist input and resolve owner]
+  Validate --> Lock[User row lock]
+  Lock --> Ownership[Topic / subject / session ownership]
+  Ownership --> Retry{Request ID exists?}
+  Retry -->|Same payload| Prior[Return original activity]
+  Retry -->|New| Domain[Merge supplied scores; derive readiness/date]
+  Domain --> Transaction[Append activity + update topic summary]
+  Transaction --> DB[(PostgreSQL transaction)]
+  DB --> Views[Learning + Today revalidation]
+  Cron[Authenticated cron] --> Due[Active subject/topic due query]
+  Due --> Inbox[One preference-aware reminder per owner date]
+```
+
+```mermaid
+erDiagram
+  User ||--o{ LearningSubject : owns
+  User o|--o| LearningSubject : current_focus
+  Goal o|--o{ LearningSubject : supports
+  LearningSubject ||--o{ LearningTopic : contains
+  LearningTopic o|--o{ LearningTopic : parent
+  LearningTopic ||--o{ LearningActivity : history
+  ActualSession o|--o{ LearningActivity : contextualizes
+  LearningTopic ||--o{ Resource : references
+```
+
+Technical review dates use existing owner-local day labels and SQL DATE. Activity/session times remain UTC instants. Subject/topic/resource writes validate ownership under the same owner lock. Topic history has no edit/delete mutation. Retry payload mismatches are rejected rather than overwriting the prior activity.

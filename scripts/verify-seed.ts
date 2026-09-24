@@ -23,6 +23,8 @@ const tables = [
   'DsaProblem',
   'DsaAttempt',
   'LearningTopic',
+  'LearningSubject',
+  'LearningActivity',
   'Resource',
   'JobApplication',
   'RoutineBlock',
@@ -50,7 +52,7 @@ try {
   seed();
   if (first !== (await snapshot()))
     throw new Error('Second seed changed persisted records.');
-  console.log('Seed idempotency verified across all 15 domain tables.');
+  console.log('Seed idempotency verified across all 17 domain tables.');
 } finally {
   await client.$disconnect();
 }

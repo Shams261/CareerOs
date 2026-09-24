@@ -1,3 +1,4 @@
+import { seedLearning } from './seed-learning';
 import 'dotenv/config';
 import { PrismaClient } from '../src/generated/prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
@@ -142,38 +143,7 @@ async function main() {
           }
         }
       }
-      for (const [id, title, url] of [
-        ['typescript', 'TypeScript', 'https://www.typescriptlang.org/docs/'],
-        [
-          'system-design',
-          'System Design',
-          'https://www.hellointerview.com/learn/system-design/in-a-hurry/introduction',
-        ],
-        ['postgres', 'PostgreSQL', 'https://www.postgresql.org/docs/'],
-      ]) {
-        await tx.learningTopic.upsert({
-          where: { id: `seed-${id}` },
-          create: {
-            id: `seed-${id}`,
-            userId: user.id,
-            title,
-            status: 'LEARNING',
-          },
-          update: {},
-        });
-        await tx.resource.upsert({
-          where: { id: `seed-resource-${id}` },
-          create: {
-            id: `seed-resource-${id}`,
-            userId: user.id,
-            title: `${title} reference`,
-            url: resourceUrl.parse(url),
-            type: 'DOCUMENTATION',
-            learningTopicId: `seed-${id}`,
-          },
-          update: {},
-        });
-      }
+      if (newOwner) await seedLearning(tx, user.id, zone, day);
       await tx.jobApplication.upsert({
         where: { id: 'seed-job-application' },
         create: {

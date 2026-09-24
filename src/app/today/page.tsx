@@ -1,3 +1,4 @@
+import { TodayLearning } from '@/features/learning/summary';
 import { TodayDsa } from '@/features/dsa/summary';
 import { isDsa } from '@/features/dsa/domain';
 import Link from 'next/link';
@@ -311,6 +312,9 @@ export default async function Today({
           </section>
         </section>
         <aside>
+          {day === today && (
+            <TodayLearning user={user} now={now} blocks={blocks} />
+          )}
           {day === today &&
             blocks.some(
               (b) => isDsa(b.category) && b.status !== 'CANCELLED',

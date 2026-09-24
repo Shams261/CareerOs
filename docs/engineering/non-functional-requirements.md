@@ -34,3 +34,9 @@ US-027 must capture the complete audit report, assess reachability, select compa
 ## WI-003 evidence update
 
 DSA adds pure policy tests, real PostgreSQL atomicity/concurrency/ownership checks and a legacy-schema migration fixture. The migration test verifies timezone conversion, original attempt counts, unchanged topic state and resource links. Seed verification hashes every domain table before/after rerun; browser checks cover topic/problem entry, safe external links, confidence progression and Today/mobile views. The date conversion needs maintenance/backup planning (ADR-006). Existing security/deployment gates, including the dependency audit, remain open. Hosted CI evidence is in the WI-003 handoff.
+
+## WI-004 evidence (2026-09-24)
+
+NFR-001/007/010/013/014: 94 domain/database tests pass, including partial mastery, regressions, date policy, idempotent concurrency, real transaction rollback, session linkage, daily notification deduplication and legacy upgrade. Clean migration and repeatable seed hash cover all 17 domain tables. Strict typecheck/lint/production build pass. Test files run sequentially to avoid cross-suite injected-clock interference in global notification processing; concurrency is still tested within service cases.
+
+NFR-009 WI-004 browser acceptance is pending: the automation browsers block the local preview with ERR_BLOCKED_BY_CLIENT. Authenticated HTTP smoke passes but is not desktop/mobile evidence. Existing accessibility/security/performance/recovery gates remain unchanged. See [WI-004 handoff](../WI-004-HANDOFF.md).

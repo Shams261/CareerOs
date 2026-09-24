@@ -1,20 +1,29 @@
 'use client';
-import { useActionState, startTransition } from 'react';
+import { useActionState, startTransition, useEffect, useRef } from 'react';
 import type { ActionState } from '@/features/schedule/actions';
 export function ActionForm({
   action,
   children,
   className = '',
   label,
+  resetOnSuccess = false,
 }: {
   action: (state: ActionState, form: FormData) => Promise<ActionState>;
   children: React.ReactNode;
   className?: string;
   label?: string;
+  resetOnSuccess?: boolean;
 }) {
   const [state, dispatch, pending] = useActionState(action, { message: '' });
+  const formRef = useRef<HTMLFormElement>(null);
+  // Clear inputs after a save while keeping the form mounted so its confirmation stays visible.
+  // Hidden inputs keep the fresh values rendered by the revalidated page (for example requestId).
+  useEffect(() => {
+    if (resetOnSuccess && state.ok) formRef.current?.reset();
+  }, [state, resetOnSuccess]);
   return (
     <form
+      ref={formRef}
       aria-label={label}
       className={className}
       onSubmit={(event) => {

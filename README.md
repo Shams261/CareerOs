@@ -1,6 +1,6 @@
-# CareerOS · WI-003
+# CareerOS · WI-004
 
-A private personal workspace for planning time, practicing interviews, tracking applications, and reviewing progress. WI-002 adds editable weekly routines, daily overrides, and actual-session execution. WI-003 adds DSA topic/problem management, attempt history and spaced revision. It does not implement the entire product.
+A private personal workspace for planning time, practicing interviews, tracking applications, and reviewing progress. WI-002 adds editable weekly routines, daily overrides, and actual-session execution. WI-003 adds DSA topic/problem management, attempt history and spaced revision. WI-004 adds technical subjects, four-dimensional mastery, learning history and review queues. It does not implement the entire product.
 
 ## Engineering documentation
 
@@ -172,3 +172,19 @@ A **DSA TimeBlock** defines planned time; an **ActualSession** records actual wo
 One daily inbox reminder is created per owner/local date at or after the DSA reminder's preferred time, only when enabled and practiced problems are due. New owners default to 07:00; existing preferences are preserved. The count is a snapshot when created. External cron is still required; closed-app Web Push remains unsupported.
 
 See [WI-003 handoff](docs/WI-003-HANDOFF.md) for migration, checks, limits and rollback considerations.
+
+## Technical learning model (WI-004)
+
+LearningSubject → LearningTopic → LearningActivity → Mastery → Review Scheduling.
+
+Subjects are custom data, not enums. Multiple subjects can be active; one is the primary focus. Topics retain notes/resources and simple parent-child organization. Four mastery dimensions describe **understanding**, **recall**, **application** and **interview**: 0 unassessed, 1 weak, 2 partial, 3 strong. Blank assessment fields preserve previous values; explicit unassessed clears a rating.
+
+Readiness is deterministic: all four strong → Interview Ready; any weak score or partial recall/application/interview → Needs Review; otherwise Learning. Not Started, Paused and Completed are lifecycle controls. Legacy statuses remain until reassessment. Interview readiness can regress.
+
+An assessment schedules Learning in 2 days, Needs Review in 3, newly Interview Ready in 14; a ready topic freshly confirmed strong in recall/application/interview gets 30. This differs from DSA's independence/confidence progression. Notes and unassessed reviews do not postpone an existing date. Manual dates are marked and replaced by the next assessment. Only active subjects and eligible topics enter overdue/today/upcoming queues.
+
+TimeBlock determines **when**. LearningActivity records **what happened**. An owned active TECHNICAL/SYSTEM_DESIGN session (or session matching the subject's goal) may be linked; logging remains possible without a timer and never changes session timestamps. Weekly time uses actual session intervals, never planned time or duplicated activity-duration totals.
+
+`/learn` contains subject management, review queues, focus, recent activities and reminder preferences. Subject/topic pages provide ordering, filters, mastery, plain-text notes, safe resource links, fast activity logging and manual reviews. Today shows suggestions for appropriate scheduled blocks. Notifications are daily deduplicated inbox records, not closed-app push.
+
+The new migration preserves existing topics in an “Imported learning” subject per owner without inventing history. New-owner seeds add TypeScript, Node.js, PostgreSQL and System Design examples; existing owners receive no new learning examples on seed reruns. See [WI-004 handoff](docs/WI-004-HANDOFF.md) and [ADR-007](docs/architecture/decisions.md#adr-007--concept-mastery-is-distinct-from-dsa-confidence-wi-004).
