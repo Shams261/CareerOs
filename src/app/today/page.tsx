@@ -1,3 +1,5 @@
+import { TodayDsa } from '@/features/dsa/summary';
+import { isDsa } from '@/features/dsa/domain';
 import Link from 'next/link';
 import { ActionForm } from '@/components/action-form';
 import { stopUnlinkedAction } from '@/features/schedule/actions';
@@ -309,6 +311,10 @@ export default async function Today({
           </section>
         </section>
         <aside>
+          {day === today &&
+            blocks.some(
+              (b) => isDsa(b.category) && b.status !== 'CANCELLED',
+            ) && <TodayDsa user={user} now={now} />}
           <section className="card">
             <h2>Daily review</h2>
             <p className="muted">
