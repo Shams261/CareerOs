@@ -34,7 +34,7 @@ The calendar-date label is represented by UTC midnight in Prisma's Date object b
 
 ## Validation evidence
 
-Local verification uses a disposable PostgreSQL database, `careeros_wi003`, never the existing owner database. Full test suite: **75 tests across 7 files**, including all prior WI-001/WI-002 tests.
+Local verification uses a disposable PostgreSQL database, `careeros_wi003` for browser work and `careeros_wi003_final` for the finalized migration, never the existing owner database. Full test suite: **75 tests across 7 files**, including all prior WI-001/WI-002 tests.
 
 Commands used:
 
@@ -56,7 +56,7 @@ Set DATABASE_URL and TEST_DATABASE_URL to the same disposable database for seed 
 - Clean migration deployment passes. Upgrade fixture applies actual WI-001/WI-002 SQL, inserts legacy Toronto/Tokyo data, applies WI-003, and verifies local dates, count preservation and unchanged resource links.
 - Seed runs twice and compares hashes of every row in all 15 domain tables. It also passes after UI-created topics/attempts, confirming existing data is preserved.
 - New seed owner receives Sliding Window, four problems, Red→Yellow and Yellow→Green examples, overdue/due/upcoming/unattempted states. Existing owners receive no new DSA examples and no fabricated history.
-- Browser verification uses headless Chromium at 1440px and 390px: topic/current selection, problem creation, safe external tab (intercepted fixture), RED +1 / YELLOW +3 / GREEN 7/14/30, history, manual date, reload, filter and Today summary. All existing main routes load without horizontal overflow or browser runtime errors. Existing execution/schedule browser regression is checked separately.
+- Browser verification uses headless Chromium at 1440px and 390px: topic/current selection, problem creation, safe external tab (intercepted fixture), RED +1 / YELLOW +3 / GREEN 7/14/30, history, manual date, reload, filter and Today summary. All existing main routes load without horizontal overflow or browser runtime errors. Existing execution/schedule browser regression also passes: start/reload/complete, skip/reason, cross-date reschedule with history, manual actual time, review/rating, multi-weekday generation and propagation protecting overrides.
 - Screenshots and browser scripts are temporary local artifacts under `/private/tmp/careeros-wi003-*`; they are not durable CI screenshots. Browser flow coverage is not yet part of CI.
 
 ## CI efficiency and release workflow
@@ -65,7 +65,7 @@ Baseline hosted quality job: **1m19s**, run [35995288599](https://github.com/Sha
 
 CI now pins Node-24-compatible official actions by SHA and Ubuntu 24.04, restores pnpm's content-addressable store and Next's compiler cache, generates Prisma once, and relies on the production build's TypeScript check. Standalone local typecheck/build commands stay self-contained. The seed is intentionally run twice to verify idempotency; this is validation, not redundant work. Frozen lockfile installation, lint, docs, migrations and the full database suite remain required. New commits cancel obsolete runs on the same PR; feature pushes do not also trigger a duplicate PR build. Main still builds after merge because the merged tree is a separate integration point.
 
-Hosted WI-003 measurements are recorded after the branch's checks finish. A cache reduces reusable work; it does not guarantee every run is faster because runner startup, cache upload and network vary. Tests are never skipped on a cache hit.
+The first WI-003 hosted run [35997820231](https://github.com/Shams261/CareerOs/actions/runs/35997820231) passed in **1m32s** with cold caches, 75 tests and seed/upgrade checks. This is 13 seconds longer than the smaller WI-002 baseline; no cold-run speedup is claimed. The verification-notes commit exercises warm-cache reuse; its final timing is recorded on PR #1. A cache reduces reusable work; it does not guarantee every run is faster because runner startup, cache upload and network vary. Tests are never skipped on a cache hit.
 
 Branch: `feat/wi-003-dsa-revision`. Pre-change annotated tag: `baseline/wi-002` at `d14ecd0`. Feature commits use Conventional Commit subjects separating the domain/data layer, UI/integrations, and CI/docs. The final verified feature commit receives an annotated `wi-003-verified` tag after checks; this is a development checkpoint, not a production release.
 
@@ -80,3 +80,20 @@ Rollback: use reviewed revert commits for changes on main, not force pushes. The
 - Reminder counts are creation-time snapshots and do not continuously update/read-clear as problems are practiced. Timezone changes preserve revision calendar labels.
 - Existing dependency audit/security/backup/monitoring/accessibility release gates remain open; WI-003 does not certify production readiness.
 - Before WI-004, review feature acceptance, migration/backups, PR/ruleset policy, browser-test automation and US-027 security remediation. Do not extend to a generic revision engine without a separate story/ADR.
+
+## Check results and commit map
+
+| Check                                                     | Result                  |
+| --------------------------------------------------------- | ----------------------- |
+| Prisma format/generate, clean deploy, legacy upgrade      | Pass                    |
+| Lint / formatting                                         | Pass                    |
+| Standalone typecheck                                      | Pass                    |
+| Full tests with PostgreSQL                                | 75 passed, zero skipped |
+| Production build                                          | Pass                    |
+| Seed twice with row-hash comparison                       | Pass                    |
+| Desktop/mobile DSA and execution regression               | Pass                    |
+| Documentation links / diff whitespace / local secret scan | Pass                    |
+
+Feature commits: `dd19d43` (data/domain/tests), `a789c6f` (UI/Today), `452695b` (CI/docs). Suggested merge subject: `feat(dsa): deliver WI-003 learning and revision engine`. Prefer a merge commit if retaining these focused commits on main is desired. PR: [#1](https://github.com/Shams261/CareerOs/pull/1).
+
+Diff snapshot at `452695b` against baseline: **29 files changed, 2,083 insertions, 142 deletions**. Subsequent verification notes change documentation only. Run `git diff --stat baseline/wi-002...HEAD` for the complete current report.
