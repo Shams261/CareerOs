@@ -1,15 +1,25 @@
 import 'server-only';
+import { redirect } from 'next/navigation';
 import { PrismaClient } from '@/generated/prisma/client';
 import { createPgAdapter } from '@/lib/database';
 import { env } from '@/lib/env';
 const globalDb = globalThis as unknown as { db?: PrismaClient };
 export function db() {
   return (globalDb.db ??= new PrismaClient({
-    adapter: createPgAdapter(env().DATABASE_URL),
+    adapter: createPgAdapter(env().DATABASE_URL, {
+      max: env().DATABASE_POOL_MAX,
+    }),
   }));
 }
+/**
+ * The signed-in owner. Every page and server action calls this; without a valid session it
+ * redirects to sign-in, so no private data is ever read for an anonymous request.
+ */
 export async function owner() {
-  return db().user.findUniqueOrThrow({ where: { email: env().OWNER_EMAIL } });
+  const { currentSession } = await import('./session');
+  const session = await currentSession();
+  if (!session) redirect('/login');
+  return session.user;
 }
 /** The application session's TimeZone; must be UTC (see instrumentation). */
 export async function sessionTimeZone() {

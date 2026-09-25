@@ -333,7 +333,6 @@ describe.skipIf(!url)('database time integrity (ADR-009)', () => {
     Object.assign(process.env, {
       DATABASE_URL: db,
       OWNER_EMAIL: 'owner@example.com',
-      APP_PASSWORD: 'x'.repeat(16),
       CRON_SECRET: 'y'.repeat(32),
     });
     const {

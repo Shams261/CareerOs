@@ -104,6 +104,8 @@ enum NotificationType {
 }
 
 model User {
+  authSessions       Session[]
+  pushSubscriptions  PushSubscription[]
   weeklyReviews      WeeklyReview[]
   weeklyPriorities   WeeklyPriority[]
   calendarConnection CalendarConnection?
@@ -590,7 +592,9 @@ model NotificationLog {
   title        String
   body         String
   scheduledFor DateTime         @db.Timestamptz(3)
+  /// Set when at least one device accepted the Web Push delivery.
   sentAt       DateTime?        @db.Timestamptz(3)
+  pushAttempts Int              @default(0)
   readAt       DateTime?        @db.Timestamptz(3)
   dedupeKey    String           @unique
   metadata     Json?
@@ -754,4 +758,48 @@ model WeeklyPriority {
   updatedAt   DateTime     @updatedAt @db.Timestamptz(3)
 
   @@index([reviewId, ordering])
+}
+
+/// Server-side owner session. Only a SHA-256 hash of the cookie token is stored.
+model Session {
+  id         String    @id @default(cuid())
+  userId     String
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash  String    @unique
+  userAgent  String?
+  createdAt  DateTime  @default(now()) @db.Timestamptz(3)
+  expiresAt  DateTime  @db.Timestamptz(3)
+  lastSeenAt DateTime  @db.Timestamptz(3)
+  revokedAt  DateTime? @db.Timestamptz(3)
+
+  @@index([userId, expiresAt])
+}
+
+/// A browser/device Web Push subscription (Push API + VAPID). Delivery requires the server's
+/// VAPID private key, which lives only in the environment.
+model PushSubscription {
+  id            String    @id @default(cuid())
+  userId        String
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  endpoint      String    @unique
+  p256dh        String
+  auth          String
+  label         String?
+  createdAt     DateTime  @default(now()) @db.Timestamptz(3)
+  lastSuccessAt DateTime? @db.Timestamptz(3)
+  lastFailureAt DateTime? @db.Timestamptz(3)
+  failureCount  Int       @default(0)
+  revokedAt     DateTime? @db.Timestamptz(3)
+
+  @@index([userId, revokedAt])
+}
+
+/// Last run of each scheduled job, for the Settings status panel.
+model JobRun {
+  name            String    @id
+  lastStartedAt   DateTime? @db.Timestamptz(3)
+  lastSucceededAt DateTime? @db.Timestamptz(3)
+  lastFailedAt    DateTime? @db.Timestamptz(3)
+  lastError       String?
+  lastSummary     Json?
 }
