@@ -1,6 +1,6 @@
 # Engineering handbook
 
-CareerOS is currently a single-owner personal application. WI-001 through WI-007 are implemented; production deployment readiness is tracked separately from feature completion. This handbook describes the code that exists, not a hypothetical future SaaS.
+CareerOS is a single-owner personal application. WI-001 through WI-008 are implemented. WI-008 adds the production launch path; the go-live evidence that only a real deployment can produce is tracked separately in the NFR register. This handbook describes the code that exists, not a hypothetical future SaaS.
 
 ## Start here
 
@@ -9,7 +9,8 @@ CareerOS is currently a single-owner personal application. WI-001 through WI-007
 3. Follow the [user flow diagrams (UFD)](product/user-flows.md).
 4. Read [architecture](architecture/overview.md), [data flow diagrams (DFD) and data model](architecture/data-flows.md), and [decision records](architecture/decisions.md).
 5. Read [contribution workflow](../CONTRIBUTING.md), [NFR evidence and release gates](engineering/non-functional-requirements.md), and [operations](engineering/operations.md).
-6. Consult the historical [WI-002 handoff](WI-002-HANDOFF.md) for its implementation-time validation. Temporary screenshots referenced there are not durable repository artifacts.
+6. Deploying or operating: [deployment guide](engineering/deployment.md), [environment reference](engineering/environment.md), [security](engineering/security.md), [backup and restore](engineering/backup-restore.md), [notifications and PWA](engineering/notifications-pwa.md), [Google production checklist](engineering/google-production.md) and the owner's [onboarding checklist](product/onboarding.md).
+7. Consult the historical [WI-002 handoff](WI-002-HANDOFF.md) for its implementation-time validation. Temporary screenshots referenced there are not durable repository artifacts.
 
 See the [WI-003 handoff](WI-003-HANDOFF.md) for the DSA learning/revision engine and CI changes.
 
@@ -32,3 +33,5 @@ See the [WI-005.1 handoff](WI-005.1-HANDOFF.md) for UTC database sessions, legac
 See the [WI-006 handoff](WI-006-HANDOFF.md) for Google Calendar sync.
 
 See the [WI-007 handoff](WI-007-HANDOFF.md) for the weekly review and planning loop.
+
+See the [WI-008 handoff](WI-008-HANDOFF.md) for the production launch and hardening.

@@ -167,3 +167,28 @@ flowchart TD
   Prepare --> Sync[Calendar sync publishes after the response]
   Review --> History[Previous weeks: stored text, live facts]
 ```
+
+## UFD-009 — Sign-in, device notifications and data (WI-008)
+
+```mermaid
+flowchart TD
+  Visit[Open any CareerOS page] --> Signed{Valid session?}
+  Signed -->|No| Login["/login: Sign in with Google"]
+  Login --> Google[Google account chooser]
+  Google --> Owner{Verified email = OWNER_EMAIL?}
+  Owner -->|No| Refused[Private workspace message]
+  Owner -->|Yes| Back[Return to the requested page]
+  Signed -->|Yes| Back
+  Back --> Settings[Settings]
+  Settings --> Enable[Enable notifications on this device]
+  Enable --> Permission{Browser permission}
+  Permission -->|Allowed| Test[Send test notification]
+  Permission -->|Blocked| Help[Explain how to allow it]
+  Settings --> IOS{iPhone in Safari tab?}
+  IOS -->|Yes| Install[Add to Home Screen first]
+  Settings --> Export[Download data export]
+  Settings --> SignOut[Sign out: session revoked]
+  Push[Closed app: reminder push] --> Click[Tap] --> Page[Opens the reminder's page]
+```
+
+Sign-in errors return to the login card with a plain message. The checklist on Settings links to each onboarding step.

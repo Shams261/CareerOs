@@ -1,6 +1,6 @@
 # Security policy
 
-CareerOS currently serves one configured owner. It is not a multi-tenant authentication system. HTTPS, private ingress/rate limits, least-privilege PostgreSQL credentials, secret storage and tested backups are required for a real deployment.
+CareerOS serves one allowlisted Google account (`OWNER_EMAIL`). It is not a multi-tenant authentication system. The controls and their limits are described in [security architecture](docs/engineering/security.md). HTTPS, least-privilege PostgreSQL credentials, a secret store and tested backups are required for a real deployment ([deployment guide](docs/engineering/deployment.md)).
 
 Do not publish credentials, database dumps, exploit details containing private data, or personal records in public GitHub issues. Contact repository owner `@Shams261` privately through an agreed secure channel to arrange disclosure. A private reporting endpoint and response SLA have not yet been established; do not assume GitHub private vulnerability reporting is enabled.
 
@@ -17,3 +17,11 @@ Google refresh tokens are stored only as AES-256-GCM ciphertext. The key (`CALEN
 3. Reconnect.
 
 Tokens are never sent to the browser or written to logs. The push webhook accepts only registered channel IDs with a matching hashed token, and returns no data.
+
+## Sign-in, sessions and push keys (WI-008)
+
+- **Lost device or suspected session theft:** sign out on that device if possible. Otherwise revoke all sessions: `UPDATE "Session" SET "revokedAt" = now() WHERE "revokedAt" IS NULL;` then sign in again.
+- **`AUTH_SECRET` exposed:** rotate it; only sign-ins in progress are affected.
+- **Google client secret exposed:** rotate it in Google Cloud, deploy, then reconnect Calendar.
+- **VAPID private key exposed:** generate a new pair, deploy, and re-enable notifications on each device (old subscriptions stop working).
+- **`CRON_SECRET` exposed:** rotate it in both the app and the scheduler.

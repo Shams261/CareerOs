@@ -27,7 +27,7 @@ pnpm test:ci
 pnpm build
 ```
 
-`pnpm test` can skip database suites when `TEST_DATABASE_URL` is absent. It is useful locally but is not sufficient release evidence by itself. `pnpm test:ci` requires a PostgreSQL test URL and runs the full suite. Browser smoke coverage was performed for WI-002 but is not yet committed as portable automated CI coverage; do not imply that the CI workflow verifies visual or end-to-end behavior.
+`pnpm test` can skip database suites when `TEST_DATABASE_URL` is absent. It is useful locally but is not sufficient release evidence by itself. `pnpm test:ci` requires a PostgreSQL test URL and runs the full suite. Browser acceptance (Chromium, Firefox and WebKit through the production build and `pnpm google:fake`) is run per work item and recorded in its handoff; it is not yet committed as portable automated CI coverage, so do not imply that the CI workflow verifies visual or end-to-end behavior. Never point browser tests at a real Google account or a personal database.
 
 ## Review checklist
 

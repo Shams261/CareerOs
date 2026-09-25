@@ -4,7 +4,7 @@
 
 ```mermaid
 flowchart LR
-  U[Owner: untrusted browser inputs] -->|Credentials, form values, commands| P[CareerOS]
+  U[Owner: untrusted browser inputs] -->|Session cookie, form values, commands| P[CareerOS]
   P -->|Plans, progress, errors, inbox| U
   C[External scheduler] -->|Bearer secret and processing request| P
   P -->|Result or retryable error| C
@@ -73,17 +73,22 @@ The [Prisma schema](../../prisma/schema.prisma) is authoritative for every field
 
 ## Data classification and lifecycle
 
-| Data                                                        | Durable location                    | Exposure / lifecycle                                                         |
-| ----------------------------------------------------------- | ----------------------------------- | ---------------------------------------------------------------------------- |
-| Profile, plans, actual sessions, reviews, jobs, study notes | PostgreSQL                          | Private owner views; retained until explicitly changed/deleted               |
-| Resource URLs                                               | PostgreSQL                          | Validated HTTP(S), clickable; external hosts have their own privacy policies |
-| Preferences and reminder history                            | PostgreSQL                          | Owner inbox; read status persists; retention cleanup not implemented         |
-| Database credentials, app password, cron secret             | Deployment secrets / ignored `.env` | Server only; rotate if disclosed; never commit                               |
-| Unsaved form data and feedback                              | Browser memory                      | Lost on navigation/reload; not claimed durable                               |
-| Generated Prisma client / build output                      | Generated files                     | Recreated from source; excluded from Git                                     |
-| PostgreSQL backups                                          | Operator-controlled backup storage  | Encryption, retention, access and restore testing required before production |
+| Data                                                                                                      | Durable location                    | Exposure / lifecycle                                                                          |
+| --------------------------------------------------------------------------------------------------------- | ----------------------------------- | --------------------------------------------------------------------------------------------- |
+| Profile, plans, actual sessions, reviews, jobs, study notes                                               | PostgreSQL                          | Private owner views; retained until explicitly changed/deleted                                |
+| Resource URLs                                                                                             | PostgreSQL                          | Validated HTTP(S), clickable; external hosts have their own privacy policies                  |
+| Preferences and reminder history                                                                          | PostgreSQL                          | Owner inbox; read status persists; retention cleanup not implemented                          |
+| Database credentials, cron secret, `AUTH_SECRET`, Google client secret, encryption and VAPID private keys | Deployment secrets / ignored `.env` | Server only; rotate if disclosed; never commit                                                |
+| Sessions (token hash, user agent, times)                                                                  | PostgreSQL `Session`                | Cookie holds the token; DB holds only its SHA-256; revoked on sign-out, expires after 30 days |
+| Push subscriptions (endpoint, keys)                                                                       | PostgreSQL `PushSubscription`       | Owner-scoped; revoked on 404/410, repeated failure or Disable; excluded from export           |
+| Scheduler outcomes                                                                                        | PostgreSQL `JobRun`                 | Timestamps, counts and error class names only                                                 |
+| Data export                                                                                               | Owner's download                    | JSON of domain records; no credentials, tokens, sessions or push keys                         |
+| Per-device "push enabled" hint                                                                            | Browser `localStorage`              | A single flag so push APIs are not touched before opt-in; no personal data                    |
+| Unsaved form data and feedback                                                                            | Browser memory                      | Lost on navigation/reload; not claimed durable                                                |
+| Generated Prisma client / build output                                                                    | Generated files                     | Recreated from source; excluded from Git                                                      |
+| PostgreSQL backups                                                                                        | Operator-controlled backup storage  | Encryption, retention, access and restore testing required before production                  |
 
-Job applications are independent of job-search blocks; multiple applications may occur during one session. Cancelling a block preserves its actual sessions. SQL delete semantics differ by relation, so consult migrations before adding a destructive feature. There is no complete user-facing export/erasure/retention workflow yet.
+Job applications are independent of job-search blocks; multiple applications may occur during one session. Cancelling a block preserves its actual sessions. SQL delete semantics differ by relation, so consult migrations before adding a destructive feature. Settings offers a JSON export (WI-008). There is no in-app erasure or retention workflow; deleting data is a database operation.
 
 ## WI-004 — Technical learning assessment DFD
 
@@ -153,7 +158,7 @@ Applied/next-action dates are SQL DATEs in the owner's calendar; interview and a
 
 ```mermaid
 flowchart LR
-  Owner[Owner browser] -->|Basic auth| App[CareerOS server]
+  Owner[Owner browser] -->|session cookie| App[CareerOS server]
   App -->|state+PKCE redirect| GAuth[Google OAuth]
   GAuth -->|code| App
   App -->|encrypted refresh token| DB[(PostgreSQL)]
@@ -183,3 +188,26 @@ flowchart LR
 ```
 
 Metrics are never copied into `WeeklyReview`. Preparation writes only CareerOS rows; any Google call happens later, outside that work.
+
+## WI-008 — Sign-in, sessions and push DFD
+
+```mermaid
+flowchart LR
+  Browser[Owner browser] -->|Sign in: encrypted state cookie| Auth[Server Action]
+  Auth -->|redirect: state, nonce, PKCE| GOIDC[Google OIDC]
+  GOIDC -->|code| CB["/api/auth/callback"]
+  CB -->|code + verifier, server-to-server| GOIDC
+  CB -->|verify claims, OWNER_EMAIL| Sess[(Session: token hash)]
+  Browser -->|careeros_session cookie| Proxy[proxy: session / bearer / CSP]
+  Proxy --> Pages[Pages and actions: owner scoped]
+  Cron[Scheduler: Bearer CRON_SECRET] --> Proc[processNotifications]
+  Proc -->|unique occurrence| Inbox[(NotificationLog)]
+  Inbox --> Deliver[deliverPending: ≤3 attempts, ≤2h]
+  Subs[(PushSubscription)] --> Deliver
+  Deliver -->|aes128gcm payload + VAPID JWT| PushSvc[Push service]
+  PushSvc --> SW[Service worker] -->|same-origin path| Browser
+  Deliver -->|status: sent / failures / revoked| Subs
+  Cron --> Jobs[(JobRun)]
+```
+
+Trust boundaries: Google sees only the sign-in request and returns identity claims; no Google token is kept for sign-in. Push services see an encrypted payload they cannot read, the endpoint and a VAPID signature. The browser never receives other users' data (there are none) or server secrets; the VAPID public key is public by design. `/api/health` exposes status words only.

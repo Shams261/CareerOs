@@ -44,6 +44,8 @@ All records below describe accepted implementation decisions as of WI-002. Add a
 
 ## ADR-005 — Minimal private access gate, with explicit growth limits
 
+**Status:** Superseded by [ADR-012](#adr-012--single-owner-google-sign-in-server-sessions-and-web-push-wi-008) (WI-008). Kept for history.
+
 **Context:** The initial deployment is a private single-owner workspace.
 
 **Decision:** Use configured owner Basic Auth plus a separate cron bearer secret, exclusively behind HTTPS in production. Keep credentials server-side and scope mutations to the owner.
@@ -123,3 +125,21 @@ Attention is derived, not stored: overdue follow-up, result needed, interview be
 **Alternatives rejected:** snapshotting metrics into the review (copies that go stale and duplicate source facts); scores or streaks (not evidence); automatic priority scheduling (the owner decides where time goes); a second planning engine.
 
 **Consequences:** Past weeks change if late data arrives, which the page labels. Historical text is preserved. A week's priorities appear on the following week's review as commitments.
+
+## ADR-012 — Single-owner Google sign-in, server sessions and Web Push (WI-008)
+
+**Status:** Accepted. Supersedes ADR-005. Amends ADR-004 (reminder delivery).
+
+**Context:** Basic Auth sends a reusable password with every request, has no logout or expiry, and cannot be revoked per browser. Reminders reached only an open Today page. The owner wants to use CareerOS on a phone and a laptop over the internet, with reminders when the app is closed, without turning it into a multi-user product.
+
+**Decision:**
+
+- **Identity:** Google OpenID Connect, Authorization Code + PKCE, `state` and `nonce`, scopes `openid email` only, `prompt=select_account`. The ID token comes directly from Google's token endpoint over TLS and is validated by claims (issuer, audience, expiry, issued-at, nonce, `email_verified`) instead of fetching signing keys (OIDC Core §3.1.3.7). The single allowlisted identity is `OWNER_EMAIL`. Sign-in state lives in an AES-256-GCM encrypted 10-minute cookie keyed by `AUTH_SECRET`. The owner row is created on first sign-in only for an empty database; otherwise a mismatched email is refused, never a second workspace. Calendar consent stays separate (ADR-010).
+- **Sessions:** server-side `Session` rows storing the SHA-256 of a random 256-bit token; httpOnly, SameSite=Lax, Secure-over-HTTPS cookie; 30-day absolute expiry; revocation on sign-out; the allowlist re-checked on every request.
+- **Access control:** `src/proxy.ts` rejects anonymous page requests (redirect to `/login`) and API requests (401) before any data access, keeps the cron endpoints bearer-only, and sets a per-request nonce CSP. Pages and actions still resolve the owner themselves.
+- **Delivery:** Web Push (VAPID, RFC 8291) as an extra channel on top of the existing `NotificationLog` inbox, run by the same cron request. Rows are pushed at most 3 times within 2 hours of being due; `sentAt` means a push service accepted it. Subscriptions are owner-scoped and revoked on 404/410 or after 5 consecutive failures. The service worker shows notifications and opens same-origin paths only; it caches nothing.
+- **Operations:** fail-fast environment validation, a public status-only `/api/health`, a `JobRun` table for scheduler outcomes, in-process rate limits on public endpoints, JSON export without secrets, and `pg_dump`-based backup with scratch-database restore verification.
+
+**Alternatives rejected:** keeping Basic Auth (no revocation, password on every request); passkeys/WebAuthn or email magic links (more machinery, and magic links need a mail provider); NextAuth/Auth.js (a large dependency for one provider and one user); JWT-only stateless sessions (no server-side revocation); verifying the ID token with Google's JWKS (unneeded for a direct TLS token response, adds a key cache); a push provider SaaS or email (another vendor with personal data); Redis for rate limits or queues (explicitly out of scope; one process suffices); offline caching in the service worker (private data at rest in the browser).
+
+**Consequences:** No passwords are stored or transmitted. Losing access to the Google account locks the owner out, so recovery means changing `OWNER_EMAIL`/`User.email` via the database. Rate limits are per process. Push reliability depends on each platform (iOS requires a Home Screen install) and is not verified by automated browsers. Multi-user support would need tenancy, roles and per-user allowlists: a new ADR (US-026).
