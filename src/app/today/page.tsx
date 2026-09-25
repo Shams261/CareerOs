@@ -2,6 +2,7 @@ import { TodayLearning } from '@/features/learning/summary';
 import { TodayDsa } from '@/features/dsa/summary';
 import { TodayInterview, TodayJobs } from '@/features/jobs/summary';
 import { CalendarAttention } from '@/features/calendar/panel';
+import { WeeklyReviewPrompt } from '@/features/review/summary';
 import { isDsa } from '@/features/dsa/domain';
 import Link from 'next/link';
 import { ActionForm } from '@/components/action-form';
@@ -316,6 +317,7 @@ export default async function Today({
           </section>
         </section>
         <aside>
+          {day === today && <WeeklyReviewPrompt user={user} now={now} />}
           {day === today && <TodayJobs user={user} now={now} />}
           {day === today && (
             <TodayLearning user={user} now={now} blocks={blocks} />

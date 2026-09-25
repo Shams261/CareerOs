@@ -111,3 +111,15 @@ Attention is derived, not stored: overdue follow-up, result needed, interview be
 **Alternatives rejected:** a full `calendar` scope (unnecessary access to personal calendars); writing into the primary calendar (ambiguous ownership and dangerous deletes); a generic outbox table (fingerprints plus per-block retry fields give durable, retry-safe state with less machinery); last-writer-wins (silently loses edits); importing arbitrary events or conflicts from other calendars (needs broader scopes; deferred); syncing InterviewRound separately (two calendars for one appointment); Redis or queues (the existing cron, lease and `after()` suffice for a single owner).
 
 **Consequences:** Google outages never block CareerOS writes. Events outside the 30/90-day window stay as they were. Revocation or key rotation requires a reconnect. The webhook route is public but carries no data and only triggers a lease-guarded sync.
+
+## ADR-011 — Weekly review: live metrics, stored reflection (WI-007)
+
+**Context:** The owner needs a weekly loop across schedule, DSA, learning and jobs without a BI dashboard or duplicated data.
+
+**Decision:** Weeks are owner-local Monday–Sunday, built from the existing `weekDays` and `localInstant` helpers. Weekly facts are **derived live** by pure aggregation functions from the source tables. The only new stored data is `WeeklyReview` (unique per owner and `weekStart` DATE, with a CHECK that it is a Monday) and `WeeklyPriority` (at most five, dense ordering, optional positive target). Planned-vs-actual reuses `dayProgress` and the exported `isFocusCategory` rule. "Prepare next week" reuses `generatePlan` for seven days; it is idempotent and never calls Google. Calendar sync publishes afterwards through the existing after-response mechanism. The Sunday prompt and a new `WEEKLY_REVIEW` inbox reminder use the existing notification processor, deduplicated per owner-week.
+
+**Amends ADR-010:** Calendar sync used to generate plans 14 days ahead. That pre-empted the explicit weekly preparation, so sync now completes only the current week (today → Sunday).
+
+**Alternatives rejected:** snapshotting metrics into the review (copies that go stale and duplicate source facts); scores or streaks (not evidence); automatic priority scheduling (the owner decides where time goes); a second planning engine.
+
+**Consequences:** Past weeks change if late data arrives, which the page labels. Historical text is preserved. A week's priorities appear on the following week's review as commitments.

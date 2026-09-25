@@ -77,3 +77,7 @@ Only `src/lib/database.ts` creates PostgreSQL adapters/URLs (`createPgAdapter`, 
 ## Google Calendar boundary (WI-006)
 
 `src/features/calendar/google.ts` is a small fetch client (no SDK) with typed errors and bounded retry. `domain.ts` holds pure mapping, fingerprints, eligibility and the three-way decision. `service.ts` owns OAuth, token encryption use, the lease-guarded sync engine, conflicts, watch channels and disconnect; remote calls never run inside database transactions, and metadata-only writes skip `updatedAt`. `background.ts` schedules best-effort syncs with `after()`. Routes: OAuth callback, cron sync (Bearer) and webhook (validated, Basic-auth-exempt in the proxy). Only this module talks to Google.
+
+## Weekly review boundary (WI-007)
+
+`src/features/review/domain.ts` holds week bounds, pure aggregations (schedule, DSA, learning, jobs), the routine preview and prompt/reminder rules. `service.ts` loads source rows, builds next-week context, and owns review/priority writes and `prepareNextWeek` (which delegates to `generatePlan`). `actions.ts` queues a Calendar sync after preparation. The review module never imports Google code.

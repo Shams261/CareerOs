@@ -102,6 +102,9 @@ export function executionLabel(
   if (block.plannedStart <= now) return 'Current';
   return 'Upcoming';
 }
+/** Focus time excludes Work, Gym and Personal; every other (custom) category counts. */
+export const isFocusCategory = (category: string) =>
+  !['WORK', 'GYM', 'PERSONAL'].includes(category);
 export function dayProgress(
   blocks: {
     status: string;
@@ -115,8 +118,7 @@ export function dayProgress(
   now: Date,
 ) {
   const active = blocks.filter((b) => b.status !== 'CANCELLED');
-  const focus = (category: string) =>
-    !['WORK', 'GYM', 'PERSONAL'].includes(category);
+  const focus = isFocusCategory;
   return {
     planned: active.length,
     completed: active.filter((b) => b.status === 'COMPLETED').length,

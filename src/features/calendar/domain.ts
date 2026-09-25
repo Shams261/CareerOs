@@ -1,6 +1,7 @@
 import { createHash, randomBytes } from 'node:crypto';
 import { formatInTimeZone } from 'date-fns-tz';
 import type { EventWrite, GoogleEvent } from './google';
+import { weekDays } from '../schedule/domain';
 
 /** Private extended property keys that prove CareerOS created an event (ADR-010). */
 export const PROP = {
@@ -11,8 +12,13 @@ export const PROP = {
 export const SCHEMA_VERSION = '1';
 /** Outbound window: recent history plus the planning horizon, never a lifetime backfill. */
 export const SYNC_WINDOW = { pastDays: 30, futureDays: 90 };
-/** Routine occurrences generated ahead of each sync so the coming weeks appear in Google. */
-export const GENERATE_AHEAD_DAYS = 14;
+/**
+ * Sync completes the current owner week from routines (today → Sunday). Later weeks are generated
+ * deliberately with "Prepare next week" in the weekly review (WI-007), so the review can show them
+ * as a routine preview first.
+ */
+export const syncGenerationDays = (today: string) =>
+  weekDays(today).filter((day) => day >= today);
 export const CALENDAR_NAME = 'CareerOS';
 
 /** The only fields CareerOS and Google exchange. Notes, sessions and status never leave. */

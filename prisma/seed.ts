@@ -1,5 +1,6 @@
 import { seedLearning } from './seed-learning';
 import { seedJobs } from './seed-jobs';
+import { seedReview } from './seed-review';
 import 'dotenv/config';
 import { PrismaClient } from '../src/generated/prisma/client';
 import { createPgAdapter } from '../src/lib/database';
@@ -162,6 +163,18 @@ async function main() {
         update: {},
       });
       if (newOwner) await seedJobs(tx, user.id, zone, day);
+      if (newOwner) {
+        await seedReview(tx, user.id, day);
+        // Existing owners opt in on the Review page; the seed never adds preferences to them.
+        await tx.notificationPreference.create({
+          data: {
+            userId: user.id,
+            type: 'WEEKLY_REVIEW',
+            timezone: zone,
+            preferredTime: '18:00',
+          },
+        });
+      }
       const weekly: Array<
         [string, number[], string, string, string, string, string | null]
       > = [

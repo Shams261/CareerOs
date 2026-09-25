@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- WI-007: weekly review at `/review` for owner-local weeks: planned vs actual, day-by-day execution, routine counts, DSA/learning/job facts, interview reflections and carry-forward, all derived live. Stores only the reflection and up to five ordered priorities.
+- Next-week context (routine preview, interviews with prep, dues) and an idempotent **Prepare next week** that reuses the plan generator; Google publishing stays downstream. Adds a Sunday Today prompt and a once-per-week `WEEKLY_REVIEW` reminder. Calendar sync now generates only the current week.
+
 - WI-006: Google Calendar sync of dated TimeBlocks to a dedicated CareerOS calendar (`calendar.app.created` scope). Adds OAuth with PKCE, AES-256-GCM-encrypted refresh tokens, incremental sync with 410 recovery, idempotent creates, If-Match pushes and durable conflicts (Keep CareerOS / Use Google).
 - Google edits become dated overrides (routines untouched) and deletions cancel or detach. Adds optional validated push channels, a cron sync endpoint, category selection, reauth/disconnect flows, and interviews on the schedule as linked blocks.
 

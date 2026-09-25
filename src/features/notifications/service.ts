@@ -5,6 +5,7 @@ import { reminderKey, reviewReminderDue } from './domain';
 import { locked } from '@/features/schedule/service';
 import { blockReminderDue } from './domain';
 import { followUpReminderDue, interviewWindow } from '@/features/jobs/domain';
+import { weekOf, weeklyReminderDue } from '@/features/review/domain';
 import { clock } from '@/lib/time';
 export async function processNotifications(now = new Date()) {
   const users = await db().user.findMany({
@@ -165,6 +166,29 @@ export async function processNotifications(now = new Date()) {
               now,
             );
           }
+        }
+        if (pref.type === 'WEEKLY_REVIEW') {
+          const week = weekOf(dayKey(now, user.timezone));
+          const review = await tx.weeklyReview.findUnique({
+            where: {
+              userId_weekStart: { userId: user.id, weekStart: new Date(week) },
+            },
+            select: { completedAt: true },
+          });
+          // Sunday at/after the preferred time, once per owner-week, never after completion.
+          const due = weeklyReminderDue(
+            now,
+            user.timezone,
+            pref.preferredTime,
+            !!review?.completedAt,
+          );
+          if (due)
+            await queue(
+              'week',
+              due,
+              'Your weekly CareerOS review is ready.',
+              now,
+            );
         }
         if (pref.type === 'TECHNICAL_REVIEW') {
           const reviewDay = dayKey(now, user.timezone);

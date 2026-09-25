@@ -92,6 +92,7 @@ enum LearningActivityType {
 }
 
 enum NotificationType {
+  WEEKLY_REVIEW
   TECHNICAL_REVIEW
   DAILY_PROGRESS
   MISSED_CHECK_IN
@@ -103,6 +104,8 @@ enum NotificationType {
 }
 
 model User {
+  weeklyReviews      WeeklyReview[]
+  weeklyPriorities   WeeklyPriority[]
   calendarConnection CalendarConnection?
   calendarConflicts  CalendarSyncConflict[]
   jobActivities      JobActivity[]
@@ -135,23 +138,24 @@ model User {
 }
 
 model Goal {
-  subjects    LearningSubject[]
-  id          String            @id @default(cuid())
-  userId      String
-  user        User              @relation(fields: [userId], references: [id], onDelete: Cascade)
-  title       String
-  description String?
-  category    String
-  status      GoalStatus        @default(ACTIVE)
-  targetDate  DateTime?         @db.Date
-  priority    Int               @default(2)
-  createdAt   DateTime          @default(now()) @db.Timestamptz(3)
-  updatedAt   DateTime          @updatedAt @db.Timestamptz(3)
-  blocks      TimeBlock[]
-  sessions    ActualSession[]
-  topics      LearningTopic[]
-  resources   Resource[]
-  routines    RoutineBlock[]
+  weeklyPriorities WeeklyPriority[]
+  subjects         LearningSubject[]
+  id               String            @id @default(cuid())
+  userId           String
+  user             User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title            String
+  description      String?
+  category         String
+  status           GoalStatus        @default(ACTIVE)
+  targetDate       DateTime?         @db.Date
+  priority         Int               @default(2)
+  createdAt        DateTime          @default(now()) @db.Timestamptz(3)
+  updatedAt        DateTime          @updatedAt @db.Timestamptz(3)
+  blocks           TimeBlock[]
+  sessions         ActualSession[]
+  topics           LearningTopic[]
+  resources        Resource[]
+  routines         RoutineBlock[]
 
   @@index([userId, status])
 }
@@ -709,4 +713,45 @@ model CalendarSyncConflict {
 
   @@index([userId, status])
   @@index([timeBlockId, status])
+}
+
+/// The owner's written weekly review. Metrics are derived live from source data, never copied here.
+model WeeklyReview {
+  id             String           @id @default(cuid())
+  userId         String
+  user           User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  /// Owner-local Monday of the reviewed week.
+  weekStart      DateTime         @db.Date
+  biggestWin     String?
+  biggestBlocker String?
+  lessons        String?
+  nextWeekChange String?
+  carryForward   String?
+  completedAt    DateTime?        @db.Timestamptz(3)
+  createdAt      DateTime         @default(now()) @db.Timestamptz(3)
+  updatedAt      DateTime         @updatedAt @db.Timestamptz(3)
+  priorities     WeeklyPriority[]
+
+  @@unique([userId, weekStart])
+}
+
+/// Up to five priorities chosen during a review for the following week.
+model WeeklyPriority {
+  id          String       @id @default(cuid())
+  userId      String
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  reviewId    String
+  review      WeeklyReview @relation(fields: [reviewId], references: [id], onDelete: Cascade)
+  title       String
+  category    String?
+  goalId      String?
+  goal        Goal?        @relation(fields: [goalId], references: [id], onDelete: SetNull)
+  target      Int?
+  targetUnit  String?
+  ordering    Int
+  completedAt DateTime?    @db.Timestamptz(3)
+  createdAt   DateTime     @default(now()) @db.Timestamptz(3)
+  updatedAt   DateTime     @updatedAt @db.Timestamptz(3)
+
+  @@index([reviewId, ordering])
 }

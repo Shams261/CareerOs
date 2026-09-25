@@ -251,7 +251,7 @@ RoutineBlock → TimeBlock ↔ Google event. A **dated TimeBlock** is the only t
 
 **Mapping and ownership.** Each event carries private extended properties `careerosManaged=1`, `careerosTimeBlockId=<id>` and `careerosSchemaVersion=1`. Only events with these properties, in the stored CareerOS calendar, are ever changed. An event titled "DSA" without them is ignored. Event bodies contain only the title, exact start/end instants (UTC, with the owner's zone) and "Managed by CareerOS / Category: …". No notes, reflections, contacts or compensation are sent. `TimeBlock` keeps the event ID, calendar ID, etag, the fingerprint of the last agreed version and a stored outcome (`NOT_SYNCED`, `SYNCED`, `ERROR`, `CONFLICT`, `DETACHED`). **Pending** is derived: the block's current fingerprint differs from the agreed one.
 
-**What syncs.** Blocks from the last 30 and next 90 days whose category is not excluded (Calendar → Categories to sync). Each sync also generates routine occurrences for the next 14 days. Cancelling a block deletes its event. Completing or skipping keeps it, because the calendar records planned time. An interview joins the schedule through **Add interview to schedule**, which creates one linked `INTERVIEW` block. Moving either the round or its block moves the other, with a timeline entry.
+**What syncs.** Blocks from the last 30 and next 90 days whose category is not excluded (Calendar → Categories to sync). Each sync also generates routine occurrences for the rest of the current week (today → Sunday). Later weeks are generated deliberately with **Prepare next week** on the weekly review (WI-007), and then published. Cancelling a block deletes its event. Completing or skipping keeps it, because the calendar records planned time. An interview joins the schedule through **Add interview to schedule**, which creates one linked `INTERVIEW` block. Moving either the round or its block moves the other, with a timeline entry.
 
 **Google → CareerOS.** A move or rename in Google changes only that dated block, as a one-off override (the same semantics as editing a day). A move to another date moves the block to that day's plan but keeps its routine identity, so generation never recreates the original. Deleting the event cancels a planned block, or detaches a completed/skipped one (history kept, never republished). All-day or untitled edits are reverted to the CareerOS version. A block with a running session is never moved by Google.
 
@@ -264,3 +264,26 @@ RoutineBlock → TimeBlock ↔ Google event. A **dated TimeBlock** is the only t
 **Disconnect.** Stops watch channels, revokes and forgets the refresh token, and keeps every CareerOS block. Events stay in the CareerOS Google calendar unless you also choose to delete that calendar, which requires typing its name and deletes only the stored CareerOS calendar ID, never your primary or other calendars. Reconnecting reuses the calendar and reconciles.
 
 Google reminders and CareerOS notifications are separate and are not synchronised. Environment variables are listed in `.env.example`. See [ADR-010](docs/architecture/decisions.md#adr-010--google-calendar-sync-for-dated-timeblocks-wi-006) and the [WI-006 handoff](docs/WI-006-HANDOFF.md).
+
+## Weekly operating loop (WI-007)
+
+Plan → Execute → Record → Review → Prioritize → Prepare next week → Execute.
+
+`/review` is one weekly page for an owner-local Monday–Sunday week (America/Toronto by default; DST weeks are 167 or 169 hours). You can move between past and upcoming weeks with `?week=`.
+
+- **Execution:** planned vs actual reuses Today's focus rule (Work, Gym and Personal are not focus), plus a Monday–Sunday list with text states (✓ completed, – skipped, × cancelled, ! not recorded, ○ planned) and routine execution counts such as "Gym: 3 / 4 completed".
+- **Progress:** DSA attempts, new vs revision attempts, Red→Yellow and Yellow→Green, and current levels; learning activities, reviews, topics that became ready or went back to needs review; job applications, interview types, follow-ups, offers, rejections and the current waiting/action counts; and your own interview reflections.
+- **Carry forward** (as of today): overdue DSA revisions, technical reviews and job follow-ups, and unrecorded blocks, each linking to its module.
+- **Reflection and priorities:** the week's reflection, up to five priorities for next week, and the context for planning it. There are no scores, streaks or percentages.
+
+**Live metrics, stored writing.** Weekly facts are recalculated from source history on every read, so a session logged later updates that past week. That is labelled on the page. Only your writing is stored: `WeeklyReview` (one per owner-week; biggest win, blocker, lessons, change for next week, carry forward, `completedAt`) and `WeeklyPriority` (up to five ordered items, each with an optional numeric target, category or goal). Completed reviews stay editable. A week's priorities show on the following week's review as that week's commitments.
+
+**Weekly review vs daily check-in.** `DailyCheckIn` on Today is a one-minute daily reflection. The weekly review is the planning loop. Neither replaces the other.
+
+**Priorities vs scheduled blocks.** Priorities are intentions and never create schedule entries. The next-week view shows the context (the routine preview, generated days, DSA/learning/job items due, and interviews with prep progress) so you can decide. You add blocks yourself on Today.
+
+**Weekly planning vs routines.** Routines stay the template, edited on Calendar. **Prepare next week** runs the existing plan generator for next week's seven days. Days that are already generated, including one-off edits, are left alone, so running it twice changes nothing. Opening the review never generates anything.
+
+**Google Calendar stays downstream.** Preparing a week only writes CareerOS data. If Calendar is connected, a sync is queued after the response and publishes the new blocks. Calendar sync itself now fills only the rest of the current week (today → Sunday), so next week appears in Google after you prepare it.
+
+**Prompt and reminder.** On Sunday, Today shows a small "Weekly review" prompt until the week's review is completed. The optional `WEEKLY_REVIEW` inbox reminder (Review → Weekly review reminder, default 18:00; enabled for new seed owners) fires once per week on Sunday after that time, and never once the review is complete. See [ADR-011](docs/architecture/decisions.md#adr-011--weekly-review-live-metrics-stored-reflection-wi-007) and the [WI-007 handoff](docs/WI-007-HANDOFF.md).

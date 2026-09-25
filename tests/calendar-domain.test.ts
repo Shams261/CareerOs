@@ -6,6 +6,7 @@ import {
   eventBody,
   fingerprint,
   inWindow,
+  syncGenerationDays,
   localSnapshot,
   managedBlockId,
   newEventId,
@@ -145,6 +146,16 @@ describe('eligibility and state', () => {
     expect(inWindow(at(-29), now)).toBe(true);
     expect(inWindow(at(89), now)).toBe(true);
     expect(inWindow(at(91), now)).toBe(false);
+  });
+  it('generates only the rest of the current week; next week is prepared in the weekly review', () => {
+    expect(syncGenerationDays('2026-09-24')).toEqual([
+      '2026-09-24',
+      '2026-09-25',
+      '2026-09-26',
+      '2026-09-27',
+    ]);
+    expect(syncGenerationDays('2026-09-27')).toEqual(['2026-09-27']);
+    expect(syncGenerationDays('2026-09-21')).toHaveLength(7);
   });
   it('decides with a three-way comparison and never last-writer-wins', () => {
     expect(decide('a', 'a', 'a')).toBe('noop');

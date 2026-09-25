@@ -612,3 +612,53 @@ details[open] > summary {
   margin: 2px 0 0;
   font-weight: 600;
 }
+
+/* WI-007 weekly review */
+.week-bar {
+  margin: 0.6rem 0;
+}
+.week-bar .row {
+  flex-wrap: wrap;
+  gap: 4px 12px;
+}
+.week-bar-track {
+  position: relative;
+  height: 14px;
+  background: #edf2e7;
+  border-radius: 4px;
+  margin-top: 4px;
+}
+.week-bar-planned,
+.week-bar-actual {
+  position: absolute;
+  left: 0;
+  border-radius: 4px;
+}
+.week-bar-planned {
+  top: 0;
+  height: 14px;
+  border: 1px solid #9bb393;
+  background: transparent;
+}
+.week-bar-actual {
+  top: 3px;
+  height: 8px;
+  background: #244e3b;
+}
+.week-days {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 12px 16px;
+  margin: 0.5rem 0;
+  overflow-wrap: anywhere;
+}
+.mr-2 {
+  margin-right: 0.5rem;
+}
+.prep-item {
+  flex-wrap: wrap;
+}
+.prep-item > .actions {
+  flex-wrap: wrap;
+  margin: 0;
+}
