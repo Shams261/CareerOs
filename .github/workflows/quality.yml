@@ -29,7 +29,6 @@ jobs:
       DATABASE_URL: postgresql://careeros:ci-only-password@localhost:5432/careeros_test
       TEST_DATABASE_URL: postgresql://careeros:ci-only-password@localhost:5432/careeros_test
       OWNER_EMAIL: ci-owner@example.com
-      APP_PASSWORD: ci-only-app-password-not-for-deployment
       CRON_SECRET: ci-only-scheduler-secret-not-for-deployment
       NEXT_TELEMETRY_DISABLED: '1'
     steps:

@@ -25,8 +25,16 @@ export function utcConnectionString(connectionString: string) {
   return url.toString();
 }
 
-export const createPgAdapter = (connectionString: string) =>
-  new PrismaPg({ connectionString: utcConnectionString(connectionString) });
+/** One bounded pool per process; `max` keeps hosted PostgreSQL connection limits safe. */
+export const createPgAdapter = (
+  connectionString: string,
+  pool: { max?: number } = {},
+) =>
+  new PrismaPg({
+    connectionString: utcConnectionString(connectionString),
+    max: pool.max ?? 5,
+    idleTimeoutMillis: 30000,
+  });
 
 /** Host/port/database only, for logs. Never includes credentials. */
 export function describeDatabase(connectionString: string) {

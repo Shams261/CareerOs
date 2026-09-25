@@ -1,6 +1,6 @@
-# CareerOS · WI-004
+# CareerOS
 
-A private personal workspace for planning time, practicing interviews, tracking applications, and reviewing progress. WI-002 adds editable weekly routines, daily overrides, and actual-session execution. WI-003 adds DSA topic/problem management, attempt history and spaced revision. WI-004 adds technical subjects, four-dimensional mastery, learning history and review queues. It does not implement the entire product.
+A private personal workspace for planning time, practicing interviews, tracking applications, and reviewing progress. WI-002 adds editable weekly routines, daily overrides, and actual-session execution. WI-003 adds DSA topic/problem management, attempt history and spaced revision. WI-004 adds technical subjects, four-dimensional mastery, learning history and review queues. WI-005 adds the job pipeline, WI-006 Google Calendar sync, WI-007 the weekly review, and WI-008 the production launch: Google sign-in for one owner, closed-app Web Push, an installable app, and operations tooling. It does not implement the entire product.
 
 ## Engineering documentation
 
@@ -13,15 +13,16 @@ Next.js 16 App Router, React, strict TypeScript, PostgreSQL, Prisma 7 with the n
 - `src/app`: server-rendered routes, loading/error boundaries, protected notification endpoint.
 - `src/components`: responsive shell, safe resource links, UI primitives.
 - `src/features/schedule`: weekly recurrence domain rules and transactional generation.
-- `src/features/notifications`: eligibility, durable scheduling, permission UI.
-- `src/server`: database client, owner lookup, validated mutations.
+- `src/features/notifications`: eligibility and durable reminder scheduling.
+- `src/features/auth`, `src/features/push`: owner sign-in (Google OIDC) and Web Push devices/delivery.
+- `src/server`: database client, sessions and owner lookup, validated mutations, health, job runs, export, security headers, rate limits.
 - `src/lib`: environment, URL, local-time validation and time calculations.
 - `prisma`: schema, versioned SQL migrations, repeatable example seed.
 - `tests`: domain tests and opt-in real PostgreSQL integration tests.
 
 The build uses Next.js’s supported webpack builder because Turbopack worker sockets were blocked in the implementation environment. TypeScript 6 and ESLint 9 are pinned to the versions supported by the current Next.js lint plugins; revisit these pins when plugin support catches up.
 
-Server Components are the default. Client code handles active navigation, interactive form feedback, browser notification permission, display refresh, and error recovery. There are no client data stores, vendor services, timers pretending to be schedulers, or SaaS features.
+Server Components are the default. Client code handles active navigation, interactive form feedback, per-device push controls, display refresh, and error recovery. There are no client data stores, vendor services, timers pretending to be schedulers, or SaaS features.
 
 ## Local setup
 
@@ -29,8 +30,10 @@ Requires Node.js 22.12+ (24 LTS recommended), pnpm 11, and PostgreSQL 17+ or Doc
 
 ```sh
 cp .env.example .env
-# Set APP_PASSWORD and CRON_SECRET to distinct random values.
-# Set OWNER_EMAIL to the single workspace owner's email.
+# Set CRON_SECRET and AUTH_SECRET (openssl rand -base64 32) to distinct random values.
+# Set OWNER_EMAIL to the Google account that may sign in.
+# Without a Google OAuth client, uncomment the fake-provider block in .env.example
+# and run `pnpm google:fake` in another terminal (loopback only).
 pnpm install
 # If PostgreSQL is not already available:
 docker compose up -d db
@@ -40,18 +43,11 @@ pnpm db:seed
 pnpm dev
 ```
 
-Open http://localhost:3000/today. Browser Basic Auth uses `OWNER_EMAIL` and `APP_PASSWORD`. The example seed creates Alex Morgan; edit the stored profile for your own name. The seed is explicitly development/example data, including a fictional job posting. Do not run it against a real personal dataset unless you want these examples. Repeating it preserves existing records, preferences, and progress; the next seven days are generated once from the saved routine. Default routines are inserted only when creating the seed owner for the first time. Existing owners keep their existing routines; rerunning seed never resurrects a deleted routine. This seed assumes one owner and is not a multi-user provisioning tool.
+Open http://localhost:3000/today and **Sign in with Google** (with `pnpm google:fake`, the fake provider signs in as `FAKE_LOGIN_EMAIL`, default `owner@example.com`). The example seed creates Alex Morgan; edit the stored profile for your own name. The seed is explicitly development/example data, including a fictional job posting. Do not run it against a real personal dataset unless you want these examples. Repeating it preserves existing records, preferences, and progress; the next seven days are generated once from the saved routine. Default routines are inserted only when creating the seed owner for the first time. Existing owners keep their existing routines; rerunning seed never resurrects a deleted routine. This seed assumes one owner and is not a multi-user provisioning tool.
 
-Environment variables (validated on protected requests and database access):
+Environment variables are listed in the [environment reference](docs/engineering/environment.md) and [`.env.example`](.env.example). In production the server refuses to start with missing or invalid configuration, naming the variables but never printing values. No variables are exposed with `NEXT_PUBLIC_`, and no secrets belong in source control.
 
-| Variable       | Use                                                            |
-| -------------- | -------------------------------------------------------------- |
-| `DATABASE_URL` | PostgreSQL connection, use provider-required TLS in production |
-| `OWNER_EMAIL`  | Existing single owner's email and Basic Auth username          |
-| `APP_PASSWORD` | Private workspace access, minimum 16 characters                |
-| `CRON_SECRET`  | Scheduler bearer secret, minimum 32 characters                 |
-
-No secrets belong in source control. No variables are exposed with `NEXT_PUBLIC_`. Production **requires HTTPS**; Basic Auth must not be used over plaintext internet connections. This is a minimal private deployment gate, not a full account/session system. Use ingress rate limiting or private network access for production. The proxy protects pages, Server Actions, service worker, and API; static build assets contain no personal data. The cron route accepts its separate bearer credential only. Mutations always scope data to the configured owner, and Next.js Server Actions retain their same-origin checks.
+**Access.** Only the Google account in `OWNER_EMAIL` can sign in (OIDC with PKCE, `openid email`). Sessions are server-side (a hashed token, httpOnly cookie, 30 days, revoked on sign-out). Every private page redirects to `/login` and every private API returns 401 without a session. The two scheduler endpoints accept only `Authorization: Bearer $CRON_SECRET`. Production requires HTTPS and sends HSTS, a nonce-based CSP and other security headers; public endpoints are rate-limited. Mutations always scope data to the signed-in owner, and Server Actions keep Next.js' same-origin checks. See [security](docs/engineering/security.md) and [ADR-012](docs/architecture/decisions.md#adr-012--single-owner-google-sign-in-server-sessions-and-web-push-wi-008).
 
 ## Commands
 
@@ -71,19 +67,21 @@ pnpm db:deploy
 pnpm db:seed
 pnpm timestamps:audit    # read-only; see Legacy local database repair
 pnpm timestamps:repair   # dry-run unless --apply --confirm=<database>
-# Browser tests against a local fake Google (never a real account):
-pnpm exec tsx tests/support/fake-google-server.ts
+pnpm db:backup           # custom-format dump into ./backups (git-ignored)
+pnpm db:restore:verify <file>  # restores into a new scratch database, checks, drops it
+# Local sign-in / browser tests against a fake Google (never a real account):
+pnpm google:fake
 ```
 
 `pnpm build` generates the Prisma client; pages are dynamic, so build does not need a live database. Runtime does. Run migrations as a deployment step before switching application traffic. Commit the lockfile and migration files. Integration tests require `TEST_DATABASE_URL` pointing to a migrated disposable database and are skipped otherwise; they create and remove their own isolated test user.
 
 ## Data storage
 
-PostgreSQL is the durable source of truth for users, timezone, goals, daily plans, time blocks, actual sessions, DSA topics/problems/attempts/revision fields, learning topics, resources, jobs/interview dates, check-ins, weekly routines, notification preferences, and notification history. External calendar IDs and last-sync timestamps are reserved on blocks; there is no calendar integration.
+PostgreSQL is the durable source of truth for users, timezone, goals, daily plans, time blocks, actual sessions, DSA topics/problems/attempts/revision fields, learning topics, resources, jobs/interview dates, check-ins, weekly routines, notification preferences, and notification history. Google Calendar mapping fields live on blocks (WI-006). Sessions, push devices and scheduler run status are stored too (WI-008).
 
-React state holds only transient form/permission feedback; unsaved form edits are not persistent. No important data is stored in localStorage, browser caches, or server memory. The singleton database client is a connection pool, not data storage. **Restarting the web server does not lose application data.** Docker stores the database in the named `careeros_data` volume; `docker compose down` preserves it, while `down -v` deletes it.
+React state holds only transient form/permission feedback; unsaved form edits are not persistent. No important data is stored in localStorage, browser caches, or server memory (localStorage holds only a per-device "push enabled" hint). The singleton database client is a connection pool, not data storage. **Restarting the web server does not lose application data.** Docker stores the database in the named `careeros_data` volume; `docker compose down` preserves it, while `down -v` deletes it.
 
-Production can use any compatible managed PostgreSQL provider. Use connection pooling within your provider's limits, encrypted connections, least-privilege credentials, automatic backups and point-in-time recovery where available. Test restoration periodically. A database is durable but not a backup: web redeployment does not replace a backup strategy. Store `pg_dump` exports securely and avoid copying production data into developer logs.
+Production can use any compatible managed PostgreSQL provider. Use connection pooling within your provider's limits, encrypted connections, least-privilege credentials, automatic backups and point-in-time recovery where available. Test restoration periodically with `pnpm db:restore:verify`. A database is durable but not a backup. See [backup and restore](docs/engineering/backup-restore.md) and the [deployment guide](docs/engineering/deployment.md).
 
 Schema changes use checked-in SQL migrations (`prisma migrate dev` locally, `prisma migrate deploy` in production). The initial migration includes foreign keys, uniqueness, indexes, timestamp/date types, and additional SQL checks for durations, times, ratings, URL schemes, and resource attachment cardinality. Do not replace migrations with `db push` in production. Prisma does not express all SQL checks, so preserve them during future migrations.
 
@@ -137,17 +135,15 @@ curl --fail -X POST https://your-private-host/api/notifications/process \
 
 The server checks enabled preferences for daily progress, missed check-in, upcoming block, overdue task, job follow-up, interview, and DSA revision. It creates persistent NotificationLog records; Today displays due unread records. An absent plan also qualifies for daily progress/check-in reminders. Reviewing progress and completing the daily check-in are distinct concepts; checking in also marks progress reviewed.
 
-A unique occurrence key prevents duplicate records across retries or overlapping scheduler calls. Review and DSA reminders use user + type + local date; blocks/jobs include the scheduled occurrence. Read state persists. `sentAt` remains null because no external delivery has happened. Scheduler retries are safe; failures return HTTP 500, and logs remain durable. Reminder processing shares the per-user transaction lock with daily review and execution. Start, progress recording, status changes, and rescheduling dismiss stale unread block reminders; review dismisses that day’s unread review reminders. New upcoming/overdue alerts only target planned blocks with no actual sessions.
+A unique occurrence key prevents duplicate records across retries or overlapping scheduler calls. Review and DSA reminders use user + type + local date; blocks/jobs include the scheduled occurrence. Read state persists. `sentAt` records when a push service accepted the reminder (WI-008). Scheduler retries are safe; failures return HTTP 500, and logs remain durable. Reminder processing shares the per-user transaction lock with daily review and execution. Start, progress recording, status changes, and rescheduling dismiss stale unread block reminders; review dismisses that day’s unread review reminders. New upcoming/overdue alerts only target planned blocks with no actual sessions.
 
-**Closed-app delivery is not implemented.** Cron runs independently of browser tabs and creates the inbox records while the application is closed, but it does not send an OS alert. WI-001 has a user-triggered permission UI, a service worker that opens Today on notification click, and a test notification. There is no subscription storage, VAPID credential, Web Push sender, or misleading background-delivery claim. The next transport step is a push-subscription model, authenticated subscription endpoints, a push event handler, and a retryable per-subscription delivery outbox. Unique reminder creation alone would not guarantee exactly-once push delivery.
+**Closed-app delivery (WI-008).** The same cron request pushes each new reminder to the owner's enabled devices with Web Push (VAPID, encrypted payload), at most 3 attempts within 2 hours, removing dead devices. Devices opt in from Settings (the permission prompt appears only on click), and a test notification is available. The inbox stays the source of truth. Delivery depends on the platform: iPhone/iPad need iOS 16.4+ and the Home Screen app; focus modes and battery savers can delay or silence alerts; nothing guarantees an exact minute. Real-device delivery has not been verified by automated tests. CareerOS installs as a PWA (manifest and icons) but has no offline mode; the service worker caches nothing. See [notifications and PWA](docs/engineering/notifications-pwa.md).
 
-Browser notifications require user permission and a secure context (HTTPS or localhost). Support differs across browsers; iOS web push generally requires an installed Home Screen web app. Permission can be denied or revoked, OS focus modes can suppress alerts, and background delivery is never an exact-time guarantee. The service worker intentionally caches no personal pages. There is no installable PWA manifest/offline mode yet.
+Block reminder processing uses timestamp windows across local midnight: upcoming reminders target the configured lead window and overdue reminders cover the preceding 24 hours. Missed upcoming windows are not replayed as upcoming alerts. The scheduler processes dated blocks only; generate the next seven days if reminders are needed before opening each day. Job follow-ups produce one reminder per application per planned date (not repeated while overdue); interviews produce a ~24-hour reminder and a configurable short reminder, keyed by start time so a reschedule re-arms them (see the job search model below). Due DSA revisions remain eligible and produce one daily aggregate reminder per owner-local date. A larger retrospective catch-up policy, stale-reminder cleanup and preference editing for every type remain future work.
 
-Block reminder processing uses timestamp windows across local midnight: upcoming reminders target the configured lead window and overdue reminders cover the preceding 24 hours. Missed upcoming windows are not replayed as upcoming alerts. The scheduler processes dated blocks only; generate the next seven days if reminders are needed before opening each day. Job follow-ups produce one reminder per application per planned date (not repeated while overdue); interviews produce a ~24-hour reminder and a configurable short reminder, keyed by start time so a reschedule re-arms them (see the job search model below). Due DSA revisions remain eligible and produce one daily aggregate reminder per owner-local date. A larger retrospective catch-up policy, stale-reminder cleanup, transport retries, and preference editing for every type remain future work.
+## Open items carried from WI-002
 
-## Before WI-004
-
-Review authentication/session UX, closed-session correction/deletion, a later-occurrence DST selector, configurable focus categories, actual-session overlap policy, large schedule propagation performance, and background Web Push delivery requirements. Templates do not have an effective-from date: the default scope means ungenerated days, including a historical day explicitly generated later. No drag-and-drop or complex recurrence engine is included. Decide on database hosting, HTTPS ingress and rate limits, backup/restore operations, and an authenticated minute-level scheduler before production deployment. Google Calendar OAuth/sync, automatic applications, AI planning, and advanced analytics are explicitly not implemented.
+Review authentication/session UX, closed-session correction/deletion, a later-occurrence DST selector, configurable focus categories, actual-session overlap policy, large schedule propagation performance, and Templates do not have an effective-from date: the default scope means ungenerated days, including a historical day explicitly generated later. No drag-and-drop or complex recurrence engine is included. Hosting, HTTPS, backups and the scheduler are covered by the [deployment guide](docs/engineering/deployment.md) (WI-008). Automatic applications, AI planning and advanced analytics are not implemented.
 
 ## DSA learning model
 
@@ -175,7 +171,7 @@ A manual revision date is marked explicitly and preserves progression/history. T
 
 A **DSA TimeBlock** defines planned time; an **ActualSession** records actual work; a **DsaAttempt** records a problem learning outcome. Recording an attempt links an active owned session with category `DSA` when available, but never requires or creates a timer. Optional attempt duration is self-reported and does not create actual tracked time. On Today, a scheduled non-cancelled DSA block shows the automatic queue without rewriting the schedule.
 
-One daily inbox reminder is created per owner/local date at or after the DSA reminder's preferred time, only when enabled and practiced problems are due. New owners default to 07:00; existing preferences are preserved. The count is a snapshot when created. External cron is still required; closed-app Web Push remains unsupported.
+One daily inbox reminder is created per owner/local date at or after the DSA reminder's preferred time, only when enabled and practiced problems are due. New owners default to 07:00; existing preferences are preserved. The count is a snapshot when created. External cron is still required; closed-app Web Push is available from WI-008.
 
 See [WI-003 handoff](docs/WI-003-HANDOFF.md) for migration, checks, limits and rollback considerations.
 
@@ -191,7 +187,7 @@ An assessment schedules Learning in 2 days, Needs Review in 3, newly Interview R
 
 TimeBlock determines **when**. LearningActivity records **what happened**. An owned active TECHNICAL/SYSTEM_DESIGN session (or session matching the subject's goal) may be linked; logging remains possible without a timer and never changes session timestamps. Weekly time uses actual session intervals, never planned time or duplicated activity-duration totals.
 
-`/learn` contains subject management, review queues, focus, recent activities and reminder preferences. Subject/topic pages provide ordering, filters, mastery, plain-text notes, safe resource links, fast activity logging and manual reviews. Today shows suggestions for appropriate scheduled blocks. Notifications are daily deduplicated inbox records, not closed-app push.
+`/learn` contains subject management, review queues, focus, recent activities and reminder preferences. Subject/topic pages provide ordering, filters, mastery, plain-text notes, safe resource links, fast activity logging and manual reviews. Today shows suggestions for appropriate scheduled blocks. Notifications are daily deduplicated inbox records, also pushed to enabled devices (WI-008).
 
 The new migration preserves existing topics in an “Imported learning” subject per owner without inventing history. New-owner seeds add TypeScript, Node.js, PostgreSQL and System Design examples; existing owners receive no new learning examples on seed reruns. See [WI-004 handoff](docs/WI-004-HANDOFF.md) and [ADR-007](docs/architecture/decisions.md#adr-007--concept-mastery-is-distinct-from-dsa-confidence-wi-004).
 
@@ -213,7 +209,7 @@ JobApplication → JobActivity (stage history + timeline) → InterviewRound →
 
 `/jobs` shows needs attention, upcoming interviews, a stage-grouped pipeline with search/view/stage/focus/source filters, quick add, the next job-search block, factual week-to-date counts (no scores) and reminder preferences. `/jobs/[id]` holds next action, interviews with prep and reflections, the timeline, stage changes, contacts, notes and offer notes. Today shows a prominent Today's interview section (application, prep and meeting links) and a compact Job search summary.
 
-**Notifications** reuse inbox preferences: `JOB_FOLLOW_UP` creates one reminder per application per planned follow-up date at or after the preferred local time (overdue dates are not repeated daily); `INTERVIEW` creates a reminder about 24 hours before and another inside the configurable short window (default 60 minutes for new owners), keyed by round + start instant + window so retries never duplicate and reschedules re-arm. Closed applications and disabled preferences produce nothing. Prep items have no deadlines, so there is no separate prep-due reminder; the 24-hour reminder states open prep items. No closed-app push or email.
+**Notifications** reuse inbox preferences: `JOB_FOLLOW_UP` creates one reminder per application per planned follow-up date at or after the preferred local time (overdue dates are not repeated daily); `INTERVIEW` creates a reminder about 24 hours before and another inside the configurable short window (default 60 minutes for new owners), keyed by round + start instant + window so retries never duplicate and reschedules re-arm. Closed applications and disabled preferences produce nothing. Prep items have no deadlines, so there is no separate prep-due reminder; the 24-hour reminder states open prep items. No email; closed-app push arrived in WI-008.
 
 Migration `20260924230000_job_pipeline` preserves all applications. Legacy applied/next-action instants become owner-calendar dates; a legacy `interviewAt` becomes one scheduled "Interview (imported)" round at the same instant. New columns default conservatively (action owner NONE, arrangement UNKNOWN, priority normal); no history is invented. New seed owners get fictional Amazon/Shopify/Company X/Northwind examples (example.com URLs); existing owners receive nothing new. See the [WI-005 handoff](docs/WI-005-HANDOFF.md) and [ADR-008](docs/architecture/decisions.md#adr-008--job-pipeline-timeline-rounds-and-action-ownership-wi-005).
 
@@ -259,7 +255,7 @@ RoutineBlock → TimeBlock ↔ Google event. A **dated TimeBlock** is the only t
 
 **Conflicts.** A three-way comparison against the last agreed fingerprint: only CareerOS changed → push; only Google changed → pull; both changed differently → a durable conflict (title/start/end snapshots only) shown on Calendar with **Keep CareerOS** / **Use Google Calendar**. No field merge and no last-writer-wins.
 
-**Triggers.** Schedule and job actions queue a best-effort sync after the response; the page never waits on Google. Configure the scheduler to `POST /api/calendar/sync` with `Authorization: Bearer $CRON_SECRET` (every 5–15 minutes). **Sync now** is on Calendar. Push (optional) requires `GOOGLE_CALENDAR_WEBHOOK_BASE_URL`, a public HTTPS origin with a valid certificate. Then each sync keeps a watch channel (7-day TTL, replaced a day before expiry) pointing at `/api/calendar/webhook`. That endpoint is excluded from Basic auth and checks channel ID, resource ID, token hash, expiry and connection status. A notification only triggers an incremental sync after the response; it carries no event data. Without HTTPS (local development) push is off and Calendar says so; manual and cron sync still work.
+**Triggers.** Schedule and job actions queue a best-effort sync after the response; the page never waits on Google. Configure the scheduler to `POST /api/calendar/sync` with `Authorization: Bearer $CRON_SECRET` (every 5–15 minutes). **Sync now** is on Calendar. Push (optional) requires `GOOGLE_CALENDAR_WEBHOOK_BASE_URL`, a public HTTPS origin with a valid certificate. Then each sync keeps a watch channel (7-day TTL, replaced a day before expiry) pointing at `/api/calendar/webhook`. That endpoint needs no session and checks channel ID, resource ID, token hash, expiry and connection status. A notification only triggers an incremental sync after the response; it carries no event data. Without HTTPS (local development) push is off and Calendar says so; manual and cron sync still work.
 
 **Disconnect.** Stops watch channels, revokes and forgets the refresh token, and keeps every CareerOS block. Events stay in the CareerOS Google calendar unless you also choose to delete that calendar, which requires typing its name and deletes only the stored CareerOS calendar ID, never your primary or other calendars. Reconnecting reuses the calendar and reconciles.
 
@@ -287,3 +283,10 @@ Plan → Execute → Record → Review → Prioritize → Prepare next week → 
 **Google Calendar stays downstream.** Preparing a week only writes CareerOS data. If Calendar is connected, a sync is queued after the response and publishes the new blocks. Calendar sync itself now fills only the rest of the current week (today → Sunday), so next week appears in Google after you prepare it.
 
 **Prompt and reminder.** On Sunday, Today shows a small "Weekly review" prompt until the week's review is completed. The optional `WEEKLY_REVIEW` inbox reminder (Review → Weekly review reminder, default 18:00; enabled for new seed owners) fires once per week on Sunday after that time, and never once the review is complete. See [ADR-011](docs/architecture/decisions.md#adr-011--weekly-review-live-metrics-stored-reflection-wi-007) and the [WI-007 handoff](docs/WI-007-HANDOFF.md).
+
+## Production launch (WI-008)
+
+- **Sign-in and sessions:** Google sign-in for the single `OWNER_EMAIL` account, hashed server-side sessions, sign-out that revokes the session. A database that already has an owner never gets a second, empty workspace (`owner_mismatch`).
+- **Push and PWA:** per-device Web Push on top of the reminder inbox, including the daily progress reminder when the app is closed. Installable manifest and icons, with platform limits stated in Settings.
+- **Operations:** `/api/health` (status only), scheduler run status and a system status panel in Settings, sanitized logs, fail-fast configuration, `pnpm db:backup` / `pnpm db:restore:verify`, and a JSON export without secrets.
+- **Guides:** [deployment](docs/engineering/deployment.md), [environment](docs/engineering/environment.md), [security](docs/engineering/security.md), [backup and restore](docs/engineering/backup-restore.md) (including the personal database migration checklist), [notifications and PWA](docs/engineering/notifications-pwa.md), [Google production checklist](docs/engineering/google-production.md), [onboarding](docs/product/onboarding.md), and the [WI-008 handoff](docs/WI-008-HANDOFF.md).

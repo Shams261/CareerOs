@@ -22,7 +22,10 @@
     "docs:check": "node scripts/check-docs.mjs",
     "test:ci": "node scripts/test-ci.mjs",
     "timestamps:audit": "tsx scripts/timestamps.ts audit",
-    "timestamps:repair": "tsx scripts/timestamps.ts repair"
+    "timestamps:repair": "tsx scripts/timestamps.ts repair",
+    "db:backup": "tsx scripts/db-backup.ts",
+    "db:restore:verify": "tsx scripts/db-restore-verify.ts",
+    "google:fake": "tsx tests/support/fake-google-server.ts"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.10.0",
@@ -38,6 +41,7 @@
     "react-dom": "^19.3.0",
     "server-only": "^0.0.1",
     "tailwind-merge": "^3.7.0",
+    "web-push": "^3.6.7",
     "zod": "^4.6.5"
   },
   "devDependencies": {
@@ -46,6 +50,7 @@
     "@types/pg": "^8.23.1",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
+    "@types/web-push": "^3.6.4",
     "eslint": "^9.39.5",
     "eslint-config-next": "16.3.6",
     "prettier": "^3.9.8",

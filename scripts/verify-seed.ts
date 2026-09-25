@@ -35,6 +35,9 @@ const tables = [
   'CalendarSyncConflict',
   'WeeklyReview',
   'WeeklyPriority',
+  'Session',
+  'PushSubscription',
+  'JobRun',
   'RoutineBlock',
   'DailyCheckIn',
   'NotificationPreference',
@@ -45,7 +48,7 @@ async function snapshot() {
   for (const table of tables)
     rows.push(
       await client.$queryRawUnsafe(
-        `SELECT jsonb_agg(to_jsonb(t) ORDER BY t.id) AS data FROM "${table}" t`,
+        `SELECT jsonb_agg(to_jsonb(t) ORDER BY to_jsonb(t)::text) AS data FROM "${table}" t`,
       ),
     );
   return createHash('sha256').update(JSON.stringify(rows)).digest('hex');
@@ -60,7 +63,7 @@ try {
   seed();
   if (first !== (await snapshot()))
     throw new Error('Second seed changed persisted records.');
-  console.log('Seed idempotency verified across all 25 domain tables.');
+  console.log('Seed idempotency verified across all 28 domain tables.');
 } finally {
   await client.$disconnect();
 }

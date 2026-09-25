@@ -2,40 +2,35 @@
 
 ## Environments
 
-Development uses `.env` (ignored) and a persistent Docker PostgreSQL volume or a configured local instance. CI uses a fresh PostgreSQL service with fictional seed data. Production must use independently durable PostgreSQL, TLS, least-privilege credentials and a deployment secret store. The temporary `/private/tmp` database used during WI verification is not the production/development storage recommendation.
+Development uses `.env` (ignored) and a persistent Docker PostgreSQL volume or a configured local instance; `pnpm google:fake` provides sign-in without a Google client. CI uses a fresh PostgreSQL service with fictional seed data. Production follows the [deployment guide](deployment.md): one Node.js process behind HTTPS, managed PostgreSQL with TLS and backups, least-privilege credentials, a secret store and an external scheduler. Variables are listed in the [environment reference](environment.md); controls in [security](security.md).
 
 A fresh local install follows the [README](../../README.md). An existing owner should run migrations and restart the app, not reseed to obtain feature changes. The seed inserts defaults only for a new owner and preserves existing routines.
 
 ## Release checklist
 
 1. Link delivered stories and changed ADR/NFR entries in the release PR; verify CI and relevant browser evidence.
-2. Confirm backup freshness and a recent restore rehearsal. Record the current app commit and migration status.
+2. Take a backup and verify it (`pnpm db:backup`, then `pnpm db:restore:verify <file>`), see [backup and restore](backup-restore.md). Record the current app commit and migration status.
 3. Build from the lockfile with validated environment configuration. Do not use example passwords in production.
 4. Review migration SQL for compatibility with the currently running app. These early migrations may require a maintenance window; no zero-downtime guarantee is made.
 5. Run `pnpm db:deploy` against the intended database, then start the matching app build (`pnpm start`). Never use `db push` as the production migration strategy.
-6. Smoke-test authentication, Today, Calendar, a non-destructive saved edit and scheduler authorization using controlled data.
-7. Configure the external scheduler to POST `/api/notifications/process` every minute with the cron bearer secret from secure configuration. Alert on repeated failures or missing runs.
+6. Smoke-test: `/api/health` is `ok`/`UTC`/`current`; anonymous pages redirect to `/login` and APIs return 401; owner sign-in works; Today, Calendar and a non-destructive saved edit work; the scheduler endpoints reject a missing bearer.
+7. Confirm the [scheduled jobs](#scheduled-jobs) run (Settings → System status shows recent successes). Alert on repeated failures or missing runs.
 8. Record commit, migrations, operator, time, environment and results. Observe errors and latency before closing the release.
 
 `prisma migrate deploy` does not make a backup. Destructive schema changes need a separate reviewed data migration and rollback plan.
 
+## Scheduled jobs
+
+| Job              | Endpoint (POST, `Authorization: Bearer $CRON_SECRET`) | Cadence        | Runtime (typical)            | On failure                                                                                                                     |
+| ---------------- | ----------------------------------------------------- | -------------- | ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| Reminders + push | `/api/notifications/process`                          | every minute   | < 1 s; bounded by 100 pushes | 500 and `JobRun.lastError` (error class only). Safe to retry or overlap: inbox rows are unique, push attempts are capped at 3. |
+| Calendar sync    | `/api/calendar/sync`                                  | every 5–15 min | seconds; per-owner lease     | Per-owner errors are recorded on the connection and retried with backoff; a busy lease is skipped, not queued.                 |
+
+Any other caller gets 401. Each run records `lastStartedAt`, `lastSucceededAt`/`lastFailedAt` and a count summary in `JobRun`; Settings → System status shows "last success". If a job has not succeeded for longer than three of its intervals, check the scheduler's own log first (401 means a wrong secret, connection errors mean the app or TLS), then the app log. Missed minutes are not replayed as alerts, but inbox reminders still appear once processing resumes.
+
 ## Backups and restoration
 
-Configure automated encrypted backups and retention with the selected provider. Initial proposed RPO/RTO are in the NFR register, not achieved promises. Use operator-configured `PGHOST`, `PGPORT`, `PGUSER`, `PGDATABASE`, TLS options and a secure password mechanism; do not put production passwords into shared shell history.
-
-Example manual backup (choose an approved secure destination):
-
-```sh
-pg_dump --format=custom --file=careeros-backup.dump
-```
-
-Restore **only into a new isolated empty database**, never over the live database for a rehearsal:
-
-```sh
-pg_restore --no-owner --no-acl --dbname=careeros_restore_test careeros-backup.dump
-```
-
-Check migration history, owner/plan/session counts and representative timestamps, then start an isolated app against the restore. Record recovery duration and the age of recovered data. Restrict and securely dispose of rehearsal copies according to the chosen retention policy. Do not commit backups.
+See [backup and restore](backup-restore.md) for `pnpm db:backup`, `pnpm db:restore:verify`, the schedule, recovery and the personal database migration checklist. Proposed RPO/RTO are in the NFR register. Restore rehearsals always go into a new scratch database, never over a live one. Do not commit backups.
 
 ## Legacy timestamp repair
 
@@ -61,15 +56,19 @@ For a database used before WI-005.1 on a non-UTC PostgreSQL server (see the READ
 
 ## Common incidents
 
-| Symptom                                   | First checks                                                     | Safe response                                                                                       |
-| ----------------------------------------- | ---------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
-| Database unavailable                      | Host/port, credentials, TLS, service health                      | Restore connectivity; do not reseed/reset a real database.                                          |
-| Migration rejects duplicate open sessions | Query open sessions per owner; inspect actual history            | Reconcile with the owner; do not arbitrarily delete sessions to satisfy the index.                  |
-| Session already running                   | Active-session banner on any day                                 | Stop/complete that session before starting another.                                                 |
-| Routine generation DST error              | Local date/time and zone                                         | Adjust nonexistent local time or add a deliberate dated block; retry generation safely.             |
-| Preview stale                             | Another tab changed routine/blocks                               | Reload and preview again; never bypass version checks.                                              |
-| Reminders missing                         | Preferences, generated plans, cron auth/run history, eligibility | Run protected processing with secure credentials; inspect inbox. Closed-app OS push is unavailable. |
-| Secret leaked                             | Credential scope and exposure                                    | Rotate immediately, contain access, review logs, follow security policy.                            |
+| Symptom                                   | First checks                                                                         | Safe response                                                                                                                    |
+| ----------------------------------------- | ------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------- |
+| Database unavailable                      | Host/port, credentials, TLS, service health                                          | Restore connectivity; do not reseed/reset a real database.                                                                       |
+| Migration rejects duplicate open sessions | Query open sessions per owner; inspect actual history                                | Reconcile with the owner; do not arbitrarily delete sessions to satisfy the index.                                               |
+| Session already running                   | Active-session banner on any day                                                     | Stop/complete that session before starting another.                                                                              |
+| Routine generation DST error              | Local date/time and zone                                                             | Adjust nonexistent local time or add a deliberate dated block; retry generation safely.                                          |
+| Preview stale                             | Another tab changed routine/blocks                                                   | Reload and preview again; never bypass version checks.                                                                           |
+| Reminders missing                         | Preferences, generated plans, cron auth/run history, eligibility                     | Run protected processing with secure credentials; inspect inbox. Push is best-effort; see below.                                 |
+| Push not arriving on a device             | Settings device count, `[notifications] processed` counts, OS focus/battery settings | Disable and re-enable that device in Settings; send a test. iOS needs the Home Screen app.                                       |
+| Cannot sign in                            | `/login?error=` code; `[auth] sign-in rejected <code>` log                           | `not_owner`: wrong account. `owner_mismatch`: fix `OWNER_EMAIL`/stored email. `redirect_uri_mismatch` at Google: fix the client. |
+| Server exits at start (code 1)            | Log `CareerOS configuration invalid:` then `- NAME: reason` lines                    | Fix the named variables; values are never printed.                                                                               |
+| Health `degraded`                         | `/api/health` fields                                                                 | `database` down: provider status; `sessionTimeZone` not UTC: set database default; `schema` behind: `pnpm db:deploy`.            |
+| Secret leaked                             | Credential scope and exposure                                                        | Rotate immediately, contain access, review logs, follow security policy.                                                         |
 
 ## Rollback
 
@@ -77,4 +76,4 @@ Stop writes if integrity is at risk. Roll back the app only if the prior build s
 
 ## Evidence still needed
 
-Hosted environment selection, backup retention/restore timing, TLS/ingress checks, monitoring/log redaction, cron freshness alerting, load measurements and formal accessibility assessment are open. This runbook provides procedures; it does not establish that those controls have been deployed.
+WI-008 provides the procedures and tooling (health, job runs, backups with restore verification, security headers, sanitized logs, local accessibility and timing checks). The hosted environment itself, real backup retention and timed restores, TLS/ingress checks on the real host, external uptime/cron-freshness alerting, real-device push checks and load measurements remain to be recorded after deployment. This runbook does not establish that those controls have been deployed.

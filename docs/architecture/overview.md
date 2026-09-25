@@ -2,36 +2,41 @@
 
 ## Scope and runtime
 
-CareerOS is a modular monolith: one Next.js application, one PostgreSQL database, and an external scheduler calling a protected endpoint. The current trust model is one configured owner, not tenant isolation. No queue, Redis, microservice, external calendar connector or AI service exists.
+CareerOS is a modular monolith: one Next.js application, one PostgreSQL database, and an external scheduler calling protected endpoints. The trust model is one allowlisted Google account, not tenant isolation. No queue, Redis, microservice or AI service exists. Google (sign-in, optional Calendar) and browser push services are the only external systems.
 
 ```mermaid
 flowchart LR
-  Owner[Owner browser] -->|HTTPS and Basic Auth| App[Next.js App Router]
+  Owner[Owner browser / installed PWA] -->|HTTPS, session cookie| App[Next.js App Router + proxy]
+  Owner -->|Sign in with Google| Google[Google OIDC]
+  Google -->|code| App
   Cron[Deployment scheduler] -->|POST and bearer secret| App
-  App -->|Prisma with PostgreSQL adapter| DB[(PostgreSQL)]
+  App -->|Prisma with PostgreSQL adapter, UTC sessions| DB[(PostgreSQL)]
   App -->|Server-rendered data and action results| Owner
-  Owner -->|Optional permission and test alert| SW[Service worker]
+  App -->|Encrypted Web Push, VAPID| PushSvc[Browser push service]
+  PushSvc --> SW[Service worker: show + open]
 ```
 
-The scheduler is a deployment requirement, not an in-process timer. The service worker does not implement push subscription or closed-app delivery. HTTP is acceptable only for local development; production requires HTTPS.
+The scheduler is a deployment requirement, not an in-process timer. HTTP is acceptable only for local development; production requires HTTPS ([deployment guide](../engineering/deployment.md), [security](../engineering/security.md)).
 
 ## Code boundaries
 
-| Boundary               | Responsibility                                                  | Entry points                                                 |
-| ---------------------- | --------------------------------------------------------------- | ------------------------------------------------------------ |
-| Request authentication | Owner gate and separate cron authorization                      | `src/proxy.ts`, `src/lib/env.ts`                             |
-| Server-rendered views  | Scoped queries, rendering, route loading/error states           | `src/app/**/page.tsx`                                        |
-| Interactive forms      | Pending/error/preview feedback; unsaved inputs only             | `src/components/action-form.tsx`, schedule forms             |
-| Mutation adapters      | Resolve owner, validate inputs, call services, revalidate views | `src/features/schedule/actions.ts`, `src/server/actions.ts`  |
-| Pure domain functions  | Dates, recurrences, overlaps, progress, eligibility             | schedule/notification `domain.ts`, `src/lib/time.ts`         |
-| Transaction services   | Ownership, locks, generation, edits and execution               | schedule `service.ts` / `editing.ts`, execution `service.ts` |
-| Storage                | Prisma client and schema; database constraints                  | `src/server/db.ts`, `prisma/`                                |
+| Boundary               | Responsibility                                                  | Entry points                                                      |
+| ---------------------- | --------------------------------------------------------------- | ----------------------------------------------------------------- |
+| Request authentication | Session gate, cron bearer, CSP nonce, rate limits               | `src/proxy.ts`, `src/server/session.ts`, `src/server/security.ts` |
+| Owner sign-in          | Google OIDC, sign-in state cookie, sign-out                     | `src/features/auth/`, `src/app/api/auth/callback`, `/login`       |
+| Configuration          | Validated environment, fail-fast at start                       | `src/lib/env.ts`, `src/instrumentation.ts`                        |
+| Server-rendered views  | Scoped queries, rendering, route loading/error states           | `src/app/**/page.tsx`                                             |
+| Interactive forms      | Pending/error/preview feedback; unsaved inputs only             | `src/components/action-form.tsx`, schedule forms                  |
+| Mutation adapters      | Resolve owner, validate inputs, call services, revalidate views | `src/features/schedule/actions.ts`, `src/server/actions.ts`       |
+| Pure domain functions  | Dates, recurrences, overlaps, progress, eligibility             | schedule/notification `domain.ts`, `src/lib/time.ts`              |
+| Transaction services   | Ownership, locks, generation, edits and execution               | schedule `service.ts` / `editing.ts`, execution `service.ts`      |
+| Storage                | Prisma client and schema; database constraints                  | `src/server/db.ts`, `prisma/`                                     |
 
 Server Components are the default. Small Client Components provide form interaction, navigation, permission UI, error recovery and idle-page refresh. Durable state must never move into a browser store or server singleton. The database client singleton pools connections only.
 
 ## Read and write contracts
 
-A page resolves the configured owner before querying their data. A Server Action re-resolves the owner; it never accepts a trusted user ID from the client. Zod parses allowlisted fields. Goal references and block ownership are checked server-side. Domain services serialize schedule/session writes with a `User` row lock, then commit or roll back using Prisma transactions. Views are revalidated only after success.
+A page resolves the signed-in owner (`owner()` → session → user) before querying their data. A Server Action re-resolves the owner; it never accepts a trusted user ID from the client. Zod parses allowlisted fields. Goal references and block ownership are checked server-side. Domain services serialize schedule/session writes with a `User` row lock, then commit or roll back using Prisma transactions. Views are revalidated only after success.
 
 Routine and block edits carry `updatedAt` versions. Propagation requires a fresh server-computed preview fingerprint. These checks prevent silent overwrites from another tab. The single-open-session partial index independently guards concurrent session starts. Direct SQL writers must follow the locking/overlap contract too; the schema does not enforce full multi-owner relational isolation or closed-session exclusions.
 
@@ -44,7 +49,7 @@ Routine and block edits carry `updatedAt` versions. Propagation requires a fresh
 - Start/stop timestamps come from the server; manual actual time is separately validated.
 - Overdue is a derived display state, never automatic evidence that work was skipped.
 - UTC instants use `timestamptz`; local calendar dates use SQL `date`; weekly times use validated HH:mm and the owner's IANA zone.
-- Reminder identity is unique by owner/type/entity/occurrence; this dedupes inbox records, not hypothetical external push delivery.
+- Reminder identity is unique by owner/type/entity/occurrence. Push delivery is a bounded, at-most-3-attempt channel on top of that inbox record, never a replacement for it.
 
 ## Failure boundaries
 
@@ -54,7 +59,7 @@ Database outages show route error states or action errors. Cron failures return 
 
 ## Extension rules
 
-Add new use cases to existing feature boundaries. Keep categories user-defined. Add an ADR before changing authentication tenancy, timezone ambiguity, execution concurrency, storage ownership, or introducing a background delivery system. Calendar sync must preserve CareerOS planned blocks as the source of truth; existing external identifiers are preparation, not implemented synchronization.
+Add new use cases to existing feature boundaries. Keep categories user-defined. Add an ADR before changing authentication tenancy, timezone ambiguity, execution concurrency, storage ownership, or introducing another delivery channel. Calendar sync keeps CareerOS planned blocks as the source of truth (ADR-010).
 
 ## DSA feature boundary (WI-003)
 
@@ -76,8 +81,12 @@ Only `src/lib/database.ts` creates PostgreSQL adapters/URLs (`createPgAdapter`, 
 
 ## Google Calendar boundary (WI-006)
 
-`src/features/calendar/google.ts` is a small fetch client (no SDK) with typed errors and bounded retry. `domain.ts` holds pure mapping, fingerprints, eligibility and the three-way decision. `service.ts` owns OAuth, token encryption use, the lease-guarded sync engine, conflicts, watch channels and disconnect; remote calls never run inside database transactions, and metadata-only writes skip `updatedAt`. `background.ts` schedules best-effort syncs with `after()`. Routes: OAuth callback, cron sync (Bearer) and webhook (validated, Basic-auth-exempt in the proxy). Only this module talks to Google.
+`src/features/calendar/google.ts` is a small fetch client (no SDK) with typed errors and bounded retry. `domain.ts` holds pure mapping, fingerprints, eligibility and the three-way decision. `service.ts` owns OAuth, token encryption use, the lease-guarded sync engine, conflicts, watch channels and disconnect; remote calls never run inside database transactions, and metadata-only writes skip `updatedAt`. `background.ts` schedules best-effort syncs with `after()`. Routes: OAuth callback, cron sync (Bearer) and webhook (validated, session-exempt in the proxy). Only this module talks to Google.
 
 ## Weekly review boundary (WI-007)
 
 `src/features/review/domain.ts` holds week bounds, pure aggregations (schedule, DSA, learning, jobs), the routine preview and prompt/reminder rules. `service.ts` loads source rows, builds next-week context, and owns review/priority writes and `prepareNextWeek` (which delegates to `generatePlan`). `actions.ts` queues a Calendar sync after preparation. The review module never imports Google code.
+
+## Production boundary (WI-008)
+
+`src/features/auth` owns the OIDC flow (pure `oidc.ts`, `actions.ts` for sign-in/out); `src/server/session.ts` owns sessions and the owner-row guard. `src/features/push` owns subscription input, payloads and status classification (`domain.ts`), delivery and device management (`service.ts`), actions and the client `controls.tsx`; `public/sw.js` only displays and routes notifications. `src/server/health.ts`, `jobs.ts`, `export.ts`, `security.ts` and `rate-limit.ts` are small operational modules with no domain logic. See [ADR-012](decisions.md#adr-012--single-owner-google-sign-in-server-sessions-and-web-push-wi-008).

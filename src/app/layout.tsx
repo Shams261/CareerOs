@@ -1,17 +1,38 @@
 import type { Metadata } from 'next';
 import { Navigation } from '@/components/navigation';
 import './globals.css';
+import type { Viewport } from 'next';
+import { currentSession } from '@/server/session';
+import { signOutAction } from '@/features/auth/actions';
 export const metadata: Metadata = {
   title: { default: 'CareerOS', template: '%s · CareerOS' },
   description: 'Your personal space for focused work and steady progress',
   robots: { index: false, follow: false },
+  appleWebApp: { capable: true, title: 'CareerOS', statusBarStyle: 'default' },
+  icons: { icon: '/icons/icon-192.png', apple: '/apple-touch-icon.png' },
+};
+export const viewport: Viewport = {
+  themeColor: '#244e3b',
+  width: 'device-width',
+  initialScale: 1,
 };
 export const dynamic = 'force-dynamic';
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  // Signed-out pages (sign-in) render without navigation.
+  if (!(await currentSession()))
+    return (
+      <html lang="en">
+        <body>
+          <main id="main" className="login-shell">
+            {children}
+          </main>
+        </body>
+      </html>
+    );
   return (
     <html lang="en">
       <body>
@@ -29,8 +50,9 @@ export default function RootLayout({
             <Navigation />
             <footer className="muted mt-auto">
               Your space. Your pace.
-              <br />
-              Personal workspace · WI-002
+              <form action={signOutAction} className="mt-2">
+                <button className="link">Sign out</button>
+              </form>
             </footer>
           </aside>
           <main id="main" className="content">

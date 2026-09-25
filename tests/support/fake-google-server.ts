@@ -20,6 +20,12 @@ fake.pageSize = 50;
 const api = fake.api();
 const oauth = fake.oauth();
 const port = Number(process.env.PORT ?? 4455);
+const grants = new Map<
+  string,
+  { scope: string; nonce: string; clientId: string }
+>();
+let codes = 0;
+let loginEmail = process.env.FAKE_LOGIN_EMAIL ?? 'owner@example.com';
 
 async function body(req: IncomingMessage) {
   const chunks: Buffer[] = [];
@@ -47,13 +53,44 @@ createServer(async (req, res) => {
   try {
     if (p === '/o/oauth2/v2/auth') {
       const back = new URL(url.searchParams.get('redirect_uri')!);
-      back.searchParams.set('code', 'fake-code');
+      const code = `code-${++codes}`;
+      grants.set(code, {
+        scope: url.searchParams.get('scope') ?? '',
+        nonce: url.searchParams.get('nonce') ?? '',
+        clientId: url.searchParams.get('client_id') ?? '',
+      });
+      back.searchParams.set('code', code);
       back.searchParams.set('state', url.searchParams.get('state')!);
       res.writeHead(302, { location: back.toString() });
       return res.end();
     }
     if (p === '/token') {
       const form = new URLSearchParams(await body(req));
+      const grant = grants.get(form.get('code') ?? '');
+      if (
+        form.get('grant_type') === 'authorization_code' &&
+        grant &&
+        !grant.scope.includes('calendar')
+      ) {
+        // Sign-in (openid email): an ID token for the configured test identity.
+        grants.delete(form.get('code')!);
+        const now = Math.floor(Date.now() / 1000);
+        const claims = {
+          iss: 'https://accounts.google.com',
+          aud: grant.clientId,
+          sub: '1',
+          email: loginEmail,
+          email_verified: true,
+          nonce: grant.nonce,
+          iat: now,
+          exp: now + 600,
+        };
+        return send(res, 200, {
+          access_token: 'login-access',
+          id_token: `h.${Buffer.from(JSON.stringify(claims)).toString('base64url')}.s`,
+          scope: 'openid email',
+        });
+      }
       const t =
         form.get('grant_type') === 'authorization_code'
           ? await oauth.exchangeCode(
@@ -83,6 +120,10 @@ createServer(async (req, res) => {
       const { calendarId, eventId, patch } = JSON.parse(await body(req));
       if (p === '/__edit') fake.userEdit(calendarId, eventId, patch);
       else fake.userDelete(calendarId, eventId);
+      return send(res, 200, {});
+    }
+    if (p === '/__login-email') {
+      loginEmail = JSON.parse(await body(req)).email;
       return send(res, 200, {});
     }
     if (p === '/__revoke') {

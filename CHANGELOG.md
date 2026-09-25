@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- WI-008: personal production launch. Google sign-in (OIDC, PKCE, state, nonce, `openid email`) restricted to `OWNER_EMAIL`, hashed server-side sessions with sign-out and 30-day expiry, and a proxy gate for every private page and API. Replaces Basic Auth; `APP_PASSWORD` is no longer used.
+- Closed-app Web Push (VAPID) on top of the reminder inbox: per-device opt-in, test notification, bounded retries, dead-device clean-up, and a daily progress reminder that reaches a closed app. Installable PWA manifest and icons; no offline mode.
+- Hardening: nonce CSP and security headers, HSTS in production, rate limits on public endpoints, fail-fast environment validation, `/api/health`, scheduler run status in Settings, sanitized logs, JSON data export, `db:backup` and scratch-only `db:restore:verify`, contrast and focus fixes (axe clean), and a getting-started checklist.
+
 - WI-007: weekly review at `/review` for owner-local weeks: planned vs actual, day-by-day execution, routine counts, DSA/learning/job facts, interview reflections and carry-forward, all derived live. Stores only the reflection and up to five ordered priorities.
 - Next-week context (routine preview, interviews with prep, dues) and an idempotent **Prepare next week** that reuses the plan generator; Google publishing stays downstream. Adds a Sunday Today prompt and a once-per-week `WEEKLY_REVIEW` reminder. Calendar sync now generates only the current week.
 
