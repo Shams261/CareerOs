@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   createPgAdapter,
+  isUtcZone,
   parseDatabaseSsl,
   pgSslOption,
   prismaCliConnectionString,
@@ -120,5 +121,14 @@ describe('configProblems with DATABASE_SSL', () => {
         DATABASE_SSL_CA: '/ca.pem',
       }),
     ).toEqual([expect.stringMatching(/^DATABASE_SSL_CA: /)]);
+  });
+});
+
+describe('isUtcZone', () => {
+  it('accepts the PostgreSQL spellings of UTC and rejects real zones', () => {
+    for (const z of ['UTC', 'Etc/UTC', 'Universal', 'Etc/Universal', 'Zulu'])
+      expect(isUtcZone(z)).toBe(true);
+    for (const z of ['America/Toronto', 'GMT', 'Etc/GMT+1', 'localtime', ''])
+      expect(isUtcZone(z)).toBe(false);
   });
 });

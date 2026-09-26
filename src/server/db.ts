@@ -1,7 +1,7 @@
 import 'server-only';
 import { redirect } from 'next/navigation';
 import { PrismaClient } from '@/generated/prisma/client';
-import { createPgAdapter, pgSslOption } from '@/lib/database';
+import { createPgAdapter, isUtcZone, pgSslOption } from '@/lib/database';
 import { databaseSsl, env } from '@/lib/env';
 const globalDb = globalThis as unknown as { db?: PrismaClient };
 export function db() {
@@ -47,7 +47,7 @@ export async function verifyDatabaseTime() {
     await raw.connect();
     const server = (await raw.query<{ TimeZone: string }>('SHOW TimeZone'))
       .rows[0].TimeZone;
-    if (server === 'UTC') return;
+    if (isUtcZone(server)) return;
     const [ledger] = await db().$queryRaw<{ present: boolean }[]>`
       SELECT to_regclass('"MaintenanceRecord"') IS NOT NULL AS present`;
     const repaired = ledger.present

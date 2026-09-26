@@ -66,6 +66,12 @@ export const createPgAdapter = (
     ssl: pgSslOption(pool.ssl ?? { mode: 'off' }),
   });
 
+/** PostgreSQL spellings of UTC (`SHOW TimeZone` on Docker/Debian images reports `Etc/UTC`). */
+export const isUtcZone = (zone: string) =>
+  ['UTC', 'Etc/UTC', 'Etc/Universal', 'Universal', 'Etc/Zulu', 'Zulu'].includes(
+    zone.trim(),
+  );
+
 /** Host/port/database only, for logs. Never includes credentials. */
 export function describeDatabase(connectionString: string) {
   const url = new URL(connectionString);
