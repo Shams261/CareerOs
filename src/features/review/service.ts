@@ -597,7 +597,7 @@ export async function removePriority(user: ScheduleUser, id: string) {
 
 /**
  * Generates next week's DailyPlans from routines using the existing generator (idempotent:
- * already-generated days are untouched). Persists CareerOS data only; Google Calendar publishing
+ * already-generated days are untouched). Persists Silsila data only; Google Calendar publishing
  * happens separately afterwards.
  */
 export async function prepareNextWeek(user: ScheduleUser, monday: string) {

@@ -126,7 +126,7 @@ export function PushControls({ publicKey }: { publicKey: string }) {
     checking: 'Checking this browser…',
     unsupported: 'Not supported in this browser.',
     install:
-      'On iPhone/iPad, add CareerOS to the Home Screen (Share → Add to Home Screen), open it from there, then enable notifications.',
+      'On iPhone/iPad, add Silsila to the Home Screen (Share → Add to Home Screen), open it from there, then enable notifications.',
     denied:
       'Blocked for this site. Allow notifications in the browser or system settings, then reload.',
     off: 'Not enabled on this device.',

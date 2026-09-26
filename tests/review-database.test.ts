@@ -429,7 +429,7 @@ describe.skipIf(!url)('weekly review loop (PostgreSQL)', () => {
             where: { userId: u.id },
           })
         ).title,
-      ).toBe('Your weekly CareerOS review is ready.');
+      ).toBe('Your weekly Silsila review is ready.');
       await saveReview(
         u,
         { weekStart: '2026-09-28', intent: 'complete' },

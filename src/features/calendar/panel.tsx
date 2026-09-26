@@ -51,11 +51,11 @@ export async function GoogleCalendarPanel({
     flash?.google === 'connected'
       ? 'Google Calendar connected. The first sync is running in the background.'
       : flash?.google === 'disconnected'
-        ? 'Disconnected. Existing events stay in the CareerOS Google calendar; your CareerOS schedule is unchanged.'
+        ? 'Disconnected. Existing events stay in the Silsila Google calendar; your Silsila schedule is unchanged.'
         : flash?.google === 'removed'
-          ? 'Disconnected and removed the CareerOS Google calendar. Your CareerOS schedule is unchanged.'
+          ? 'Disconnected and removed the Silsila Google calendar. Your Silsila schedule is unchanged.'
           : flash?.google === 'resolved_local'
-            ? 'Kept the CareerOS version and updated Google Calendar.'
+            ? 'Kept the Silsila version and updated Google Calendar.'
             : flash?.google === 'resolved_remote'
               ? 'Applied the Google Calendar version to this dated block.'
               : flash?.google === 'error'
@@ -129,12 +129,12 @@ export async function GoogleCalendarPanel({
       {!connected ? (
         <>
           <p className="muted">
-            Publishes your planned CareerOS blocks to a dedicated{' '}
-            <strong>CareerOS</strong> Google calendar and brings back moves,
-            renames and deletions of those events as one-off changes. Routines,
-            completed work, notes and job/learning data never leave CareerOS.
-            CareerOS only asks to manage calendars it creates, plus your email
-            to show which account is connected.
+            Publishes your planned Silsila blocks to a dedicated{' '}
+            <strong>{conn?.calendarName ?? 'Silsila'}</strong> Google calendar
+            and brings back moves, renames and deletions of those events as
+            one-off changes. Routines, completed work, notes and job/learning
+            data never leave Silsila. Silsila only asks to manage calendars it
+            creates, plus your email to show which account is connected.
           </p>
           <form action={connectCalendarAction}>
             <Button>Connect Google Calendar</Button>
@@ -173,7 +173,7 @@ export async function GoogleCalendarPanel({
           )}
           <p className="muted">
             {calendarConfig()?.webhookBaseUrl
-              ? 'Push sync is active: Google notifies CareerOS of changes; scheduled sync remains as a fallback.'
+              ? 'Push sync is active: Google notifies Silsila of changes; scheduled sync remains as a fallback.'
               : 'Push sync unavailable in local development; manual/cron sync remains active.'}
           </p>
           <div className="actions">
@@ -192,14 +192,14 @@ export async function GoogleCalendarPanel({
             <div className="mt-4" aria-label="Sync conflicts">
               <h3>Sync conflicts · {conflicts.length}</h3>
               <p className="muted">
-                Both CareerOS and Google changed these blocks since the last
+                Both Silsila and Google changed these blocks since the last
                 sync. Choose one version; nothing is merged or lost silently.
               </p>
               {conflicts.map((c) => (
                 <article className="learning-history" key={c.id}>
                   <h4>{c.timeBlock.title}</h4>
                   <p>
-                    <strong>CareerOS:</strong>{' '}
+                    <strong>Silsila:</strong>{' '}
                     {snapshotLabel(c.localSnapshot as Snapshot, user.timezone)}
                   </p>
                   <p>
@@ -211,7 +211,7 @@ export async function GoogleCalendarPanel({
                       <ActionForm
                         key={choice}
                         action={resolveConflictAction}
-                        label={`${choice === 'local' ? 'Keep CareerOS' : 'Use Google Calendar'} for ${c.timeBlock.title}`}
+                        label={`${choice === 'local' ? 'Keep Silsila' : 'Use Google Calendar'} for ${c.timeBlock.title}`}
                       >
                         <input type="hidden" name="id" value={c.id} />
                         <input type="hidden" name="choice" value={choice} />
@@ -219,7 +219,7 @@ export async function GoogleCalendarPanel({
                           className={choice === 'remote' ? 'secondary' : ''}
                         >
                           {choice === 'local'
-                            ? 'Keep CareerOS'
+                            ? 'Keep Silsila'
                             : 'Use Google Calendar'}
                         </Button>
                       </ActionForm>
@@ -264,13 +264,13 @@ export async function GoogleCalendarPanel({
               className="dsa-form"
             >
               <p className="muted">
-                Disconnecting revokes CareerOS&apos;s Google access and stops
-                sync. Your CareerOS schedule is never changed. Events stay in
-                the CareerOS Google calendar unless you also remove it.
+                Disconnecting revokes Silsila&apos;s Google access and stops
+                sync. Your Silsila schedule is never changed. Events stay in the
+                Silsila Google calendar unless you also remove it.
               </p>
               <label className="check">
                 <input type="checkbox" name="remove" />
-                Also delete the “{conn.calendarName ?? 'CareerOS'}” Google
+                Also delete the “{conn.calendarName ?? 'Silsila'}” Google
                 calendar (only that calendar; never your other calendars)
               </label>
               <label>

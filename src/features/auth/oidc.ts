@@ -30,7 +30,7 @@ export const authErrorMessages: Record<AuthErrorCode, string> = {
   exchange_failed: 'Google sign-in failed. Please try again.',
   invalid_token: 'Google returned an unexpected sign-in response.',
   email_unverified: 'That Google account email is not verified.',
-  not_owner: 'This CareerOS workspace is private. That account is not allowed.',
+  not_owner: 'This Silsila workspace is private. That account is not allowed.',
   owner_mismatch:
     'This database already belongs to a different owner email. Set OWNER_EMAIL to it, or update the stored owner email (see the migration checklist).',
   rate_limited: 'Too many sign-in attempts. Wait a minute and try again.',

@@ -183,7 +183,7 @@ describe.skipIf(!url)(
       expect(conn).toMatchObject({
         status: 'CONNECTED',
         accountEmail: 'owner@example.com',
-        calendarName: 'CareerOS',
+        calendarName: 'Silsila',
         syncToken: null,
       });
       expect(conn.encryptedRefreshToken).not.toContain('refresh-secret');
@@ -194,7 +194,7 @@ describe.skipIf(!url)(
         ),
       ).toBe('refresh-secret-1');
       expect([...fake.calendars.values()].map((c) => c.summary)).toEqual([
-        'CareerOS',
+        'Silsila',
       ]);
       // Reconnect reuses the CareerOS calendar and forces a full reconciliation.
       await prisma.calendarConnection.update({

@@ -89,7 +89,7 @@ export async function categoriesAction(_s: ActionState, form: FormData) {
       await owner(),
       all.filter((c) => !synced.has(c)),
     );
-    return 'Sync categories saved. Excluded categories are removed from the CareerOS calendar on the next sync.';
+    return 'Sync categories saved. Excluded categories are removed from the Silsila calendar on the next sync.';
   });
 }
 
@@ -97,7 +97,7 @@ export async function disconnectAction(_s: ActionState, form: FormData) {
   const user = await owner();
   const conn = await getConnection(user.id);
   const remove = form.get('remove') === 'on';
-  const name = conn?.calendarName ?? 'CareerOS';
+  const name = conn?.calendarName ?? 'Silsila';
   if (remove && form.get('confirm') !== name)
     return {
       message: `Type the calendar name "${name}" exactly to confirm removing it.`,

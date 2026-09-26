@@ -26,7 +26,7 @@ export const pushPayload = (n: {
   dedupeKey: string;
 }) =>
   JSON.stringify({
-    title: 'CareerOS',
+    title: 'Silsila',
     body: n.title,
     tag: n.id,
     url: notificationPath(n.type, n.dedupeKey),

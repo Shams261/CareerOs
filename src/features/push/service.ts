@@ -181,7 +181,7 @@ export async function sendTest(
   const outcome = await sendTo(
     sub,
     JSON.stringify({
-      title: 'CareerOS',
+      title: 'Silsila',
       body: 'Test notification — this device will receive reminders.',
       tag: 'test',
       url: '/settings',

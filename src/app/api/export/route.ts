@@ -2,7 +2,7 @@ import { owner } from '@/server/db';
 import { exportOwnerData } from '@/server/export';
 export const runtime = 'nodejs';
 
-/** Authenticated JSON download of the owner's CareerOS data (see server/export.ts exclusions). */
+/** Authenticated JSON download of the owner's Silsila data (see server/export.ts exclusions). */
 export async function GET() {
   const user = await owner();
   const data = await exportOwnerData(user.id);

@@ -19,7 +19,7 @@ export const SYNC_WINDOW = { pastDays: 30, futureDays: 90 };
  */
 export const syncGenerationDays = (today: string) =>
   weekDays(today).filter((day) => day >= today);
-export const CALENDAR_NAME = 'CareerOS';
+export const CALENDAR_NAME = 'Silsila';
 
 /** The only fields CareerOS and Google exchange. Notes, sessions and status never leave. */
 export type Snapshot = {
@@ -102,7 +102,7 @@ export function managedBlockId(e: GoogleEvent) {
 export function eventBody(b: BlockLike, zone: string): EventWrite {
   return {
     summary: b.title,
-    description: `Managed by CareerOS\nCategory: ${b.category}`,
+    description: `Managed by Silsila\nCategory: ${b.category}`,
     start: { dateTime: b.plannedStart.toISOString(), timeZone: zone },
     end: { dateTime: b.plannedEnd.toISOString(), timeZone: zone },
     extendedProperties: {

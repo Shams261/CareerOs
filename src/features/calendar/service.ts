@@ -91,18 +91,18 @@ export const errorMessages: Record<CalendarErrorCode, string> = {
     'The Google sign-in could not be verified. Try connecting again.',
   state_expired: 'The Google sign-in took too long. Try connecting again.',
   missing_refresh_token:
-    'Google did not grant offline access. Remove CareerOS from your Google account permissions, then connect again.',
+    'Google did not grant offline access. Remove Silsila from your Google account permissions, then connect again.',
   scope_denied:
-    'CareerOS needs permission to manage its own calendar. Connect again and allow calendar access.',
+    'Silsila needs permission to manage its own calendar. Connect again and allow calendar access.',
   exchange_failed: 'Google sign-in failed. Try connecting again.',
   not_connected: 'Google Calendar is not connected.',
   busy: 'A sync is already running. Try again in a moment.',
   reauth_required:
     'Reconnect required: Google no longer accepts the saved permission.',
   calendar_missing:
-    'The CareerOS calendar no longer exists in Google. Reconnect to create a new one.',
+    'The Silsila calendar no longer exists in Google. Reconnect to create a new one.',
   remote_unsupported:
-    'The Google version is an all-day or untitled event that CareerOS cannot use. Keep the CareerOS version.',
+    'The Google version is an all-day or untitled event that Silsila cannot use. Keep the Silsila version.',
   google_unavailable:
     'Google Calendar is temporarily unavailable. Sync will retry.',
   unexpected: 'Sync failed unexpectedly. Details were logged on the server.',
@@ -189,7 +189,7 @@ export async function completeOAuth(
   if (!tokens.refreshToken) throw new CalendarError('missing_refresh_token');
   const api = deps.calendar(async () => tokens.accessToken);
   const existing = await getConnection(user.id);
-  // Reuse the calendar CareerOS created earlier; otherwise create the dedicated one.
+  // Reuse the calendar Silsila created earlier; otherwise create the dedicated one.
   let calendar = existing?.calendarId
     ? await api.getCalendar(existing.calendarId)
     : null;
@@ -498,7 +498,7 @@ const findBlock = (userId: string, id: string) =>
 async function reconcileEvent(ctx: Ctx, event: GoogleEvent) {
   const { summary, calendarId } = ctx;
   const blockId = managedBlockId(event);
-  // No CareerOS private properties: someone else's event. Never read into or mutate it.
+  // No Silsila private properties: someone else's event. Never read into or mutate it.
   if (!blockId) return void summary.foreignIgnored++;
   const block = await findBlock(ctx.user.id, blockId);
   if (!block) return void summary.orphans++;
@@ -506,7 +506,7 @@ async function reconcileEvent(ctx: Ctx, event: GoogleEvent) {
   const mapped =
     block.externalCalendarId === calendarId && !!block.externalCalendarEventId;
   if (mapped && block.externalCalendarEventId !== event.id) {
-    // A second CareerOS event for the same block (e.g. an earlier lost create): remove the copy.
+    // A second Silsila event for the same block (e.g. an earlier lost create): remove the copy.
     if (event.status !== 'cancelled') {
       await ctx.api.deleteEvent(calendarId, event.id);
       summary.duplicatesRemoved++;
@@ -540,7 +540,7 @@ async function reconcileEvent(ctx: Ctx, event: GoogleEvent) {
   }
   if (block.calendarSyncStatus === 'DETACHED') return;
   if (!remote) {
-    // All-day/untitled edits cannot represent a TimeBlock: keep CareerOS and restore on push.
+    // All-day/untitled edits cannot represent a TimeBlock: keep Silsila and restore on push.
     await setSyncMeta(block.id, {
       calendarSyncedHash: UNSUPPORTED_REMOTE,
       calendarEtag: event.etag ?? null,
@@ -591,7 +591,7 @@ async function applyRemote(
     });
     if (!b) return 'gone';
     const local = localSnapshot(b, eligible(b, ctx.conn.excludedCategories));
-    // Re-check inside the lock: a CareerOS edit since the read turns this into a conflict.
+    // Re-check inside the lock: a Silsila edit since the read turns this into a conflict.
     if (!force && fingerprint(local) !== b.calendarSyncedHash)
       return { conflict: local };
     if (b.sessions.some((s) => !s.endedAt)) return { conflict: local };
@@ -835,7 +835,7 @@ async function pushOne(ctx: Ctx, block: Block) {
     if (!(error instanceof GoogleApiError)) throw error;
     if (error.kind === 'notFound' || error.kind === 'gone') {
       if (local.cancelled) return setSyncMeta(block.id, mappingCleared);
-      // Deleted in Google while edited in CareerOS: both changed.
+      // Deleted in Google while edited in Silsila: both changed.
       return openConflict(
         ctx,
         block,
@@ -924,7 +924,7 @@ export async function resolveConflict(
         true,
       );
     } else if (!event || event.status === 'cancelled') {
-      // Google copy is gone: publish CareerOS as a new event (or nothing if cancelled locally).
+      // Google copy is gone: publish Silsila as a new event (or nothing if cancelled locally).
       await setSyncMeta(block.id, mappingCleared);
       await pushOne(ctx, (await findBlock(user.id, block.id))!);
     } else if (local.cancelled) {
@@ -1059,8 +1059,8 @@ export async function verifyWebhook(
 }
 
 /**
- * Forgets credentials and stops push; CareerOS data always stays. Events stay in the dedicated
- * calendar unless removal is explicitly confirmed, which deletes only the stored CareerOS calendar.
+ * Forgets credentials and stops push; Silsila data always stays. Events stay in the dedicated
+ * calendar unless removal is explicitly confirmed, which deletes only the stored Silsila calendar.
  */
 export async function disconnectCalendar(
   user: ScheduleUser,
