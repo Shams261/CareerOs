@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- WI-008.1: Heroku container deployment path. Multi-stage `Dockerfile`, `.dockerignore` and `heroku.yml`; a `docker compose --profile app` rehearsal with a configurable database port; `DATABASE_SSL` (`off`, `no-verify`, `verify-full` with optional `DATABASE_SSL_CA`) applied to the app pool, the start-up time-zone check, the Prisma CLI and the timestamp scripts; the Prisma CLI and `tsx` become runtime dependencies so migrations and audits run from the image; a CI job builds the image and checks fail-fast validation inside it; ADR-013 and the deployment, environment and operations guides describe the Heroku sequence.
+
 - Theme selection defaults to Light regardless of OS/browser appearance. Settings offers explicit Light/Dark choices persisted per browser, with server-rendered theme class and browser color to avoid an incorrect initial theme.
 
 - Silsila brand system: three-ring identity, horizontal and stacked lockups, locally hosted Inter/Cormorant typography, warm ivory/teal and system dark palettes, shared component polish, refreshed login/Today/Weekly Review, PWA icons and notification copy. Existing data, sessions and calendar ownership identifiers remain compatible.

@@ -45,6 +45,8 @@ pnpm db:seed
 pnpm dev
 ```
 
+To rehearse the production image locally (Docker Desktop required), copy `.env.docker.example` to `.env.docker`, set `AUTH_SECRET` and `CRON_SECRET`, then run `DB_PORT=5433 docker compose --profile app up --build` and `docker compose --profile app exec app pnpm db:deploy`. The [deployment guide](docs/engineering/deployment.md) covers the Heroku container path ([ADR-013](docs/architecture/decisions.md#adr-013--heroku-container-hosting-with-portable-12-factor-constraints)).
+
 Open http://localhost:3000/today and **Sign in with Google** (with `pnpm google:fake`, the fake provider signs in as `FAKE_LOGIN_EMAIL`, default `owner@example.com`). The example seed creates Alex Morgan; edit the stored profile for your own name. The seed is explicitly development/example data, including a fictional job posting. Do not run it against a real personal dataset unless you want these examples. Repeating it preserves existing records, preferences, and progress; the next seven days are generated once from the saved routine. Default routines are inserted only when creating the seed owner for the first time. Existing owners keep their existing routines; rerunning seed never resurrects a deleted routine. This seed assumes one owner and is not a multi-user provisioning tool.
 
 Environment variables are listed in the [environment reference](docs/engineering/environment.md) and [`.env.example`](.env.example). In production the server refuses to start with missing or invalid configuration, naming the variables but never printing values. No variables are exposed with `NEXT_PUBLIC_`, and no secrets belong in source control.

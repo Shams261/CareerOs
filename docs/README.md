@@ -37,3 +37,5 @@ See the [WI-006 handoff](WI-006-HANDOFF.md) for Google Calendar sync.
 See the [WI-007 handoff](WI-007-HANDOFF.md) for the weekly review and planning loop.
 
 See the [WI-008 handoff](WI-008-HANDOFF.md) for the production launch and hardening.
+
+See the [WI-008.1 handoff](WI-008.1-HANDOFF.md) for the Heroku container deployment path and database TLS setting.

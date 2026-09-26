@@ -108,7 +108,7 @@ pnpm db:backup
 pnpm db:restore:verify <file>          # restores into a new scratch DB, then drops it
 ```
 
-Local quirk: node and pnpm are installed via nvm (`~/.nvm/versions/node/v24.17.0/bin`). Prisma tests use Homebrew PostgreSQL on 5432; the personal database is the Docker Compose one on 55432.
+Local quirk: node and pnpm are installed via nvm (`~/.nvm/versions/node/v24.17.0/bin`). Disposable test databases go on the Homebrew PostgreSQL 16 at 5432. The `.env` database on 127.0.0.1:55432 is a second Homebrew instance with its data directory in `/private/tmp`; it holds only the example seed, never personal data. Production rehearsal: `DB_PORT=5433 docker compose --profile app up --build` (see README).
 
 ## Testing expectations
 
@@ -120,9 +120,9 @@ Local quirk: node and pnpm are installed via nvm (`~/.nvm/versions/node/v24.17.0
 
 ## Production and operations
 
-State as of 2026-09-26: code is deployable, but hosting is not chosen, the personal database is not migrated, and real Google and real-device push are unverified. Silsila currently requires one long-running Node process and should not be assumed serverless-compatible unless the architecture is deliberately changed and verified. Other requirements: managed PostgreSQL 17, HTTPS, external cron for two endpoints.
+State as of 2026-09-26: hosting is decided (ADR-013: Heroku container stack, Eco dyno + Postgres Essential-0, GitHub Student credit), the Dockerfile and `heroku.yml` exist, and the local database holds only seed data so production starts empty. Not yet done: the Heroku app itself, DNS, real Google client, real-device push. Silsila currently requires one long-running Node process and should not be assumed serverless-compatible unless the architecture is deliberately changed and verified. Other requirements: managed PostgreSQL 17, HTTPS, external cron for two endpoints.
 
-- Deployment: `docs/engineering/deployment.md`
+- Deployment (Heroku container path, local Docker rehearsal): `docs/engineering/deployment.md`
 - Environment variables: `docs/engineering/environment.md`, `.env.example`
 - Backup, restore and **personal database migration checklist**: `docs/engineering/backup-restore.md`
 - Google client and consent setup: `docs/engineering/google-production.md`
@@ -136,13 +136,11 @@ State as of 2026-09-26: code is deployable, but hosting is not chosen, the perso
 
 Feature development is intentionally paused. Priority order:
 
-1. Commit and merge the brand-system branch.
-2. Choose hosting and deploy.
-3. Migrate the personal database via the checklist.
-4. Configure the real Google client; verify sign-in and Calendar.
-5. Verify Web Push on real devices.
-6. Use Silsila daily for 7–14 days and collect friction.
-7. Only then define WI-009 from real usage.
+1. Merge WI-008.1 (Heroku container path), then follow the owner-run sequence in `docs/engineering/deployment.md`: Heroku app, config vars, first deploy on an empty database, domain and TLS, cron-job.org.
+2. Configure the real Google client; verify sign-in and Calendar.
+3. Verify Web Push on real devices.
+4. Use Silsila daily for 7–14 days and collect friction.
+5. Only then define WI-009 from real usage.
 
 Update this section when the phase changes.
 
