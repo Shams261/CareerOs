@@ -1,0 +1,24 @@
+# Keeps the build context small and secrets out of the image. Mirrors .gitignore where relevant.
+.git
+node_modules
+.next
+.pnpm-store
+src/generated
+*.tsbuildinfo
+coverage
+backups
+*.dump
+*.sql.gz
+playwright-report
+test-results
+.DS_Store
+# Never bake environment files into an image; runtime configuration comes from the host.
+.env*
+!.env.example
+# Not needed to build or run the application.
+.github
+docs
+tests
+*.md
+!README.md
+*.pdf

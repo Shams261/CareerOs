@@ -72,3 +72,23 @@ jobs:
       # Next build runs the TypeScript check. The Prisma client was generated above.
       - name: Production build and type checks
         run: pnpm exec next build --webpack
+  image:
+    # The production image must keep building (ADR-013). Runs alongside "quality"; nothing is pushed.
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - name: Build the runtime image
+        run: docker build --target runtime --tag silsila:ci .
+      - name: Image starts and validates configuration
+        # With no configuration the server must refuse to start (exit 1) and name variables only.
+        run: |
+          set +e
+          output=$(docker run --rm -e NODE_ENV=production silsila:ci 2>&1)
+          status=$?
+          set -e
+          echo "$output"
+          test "$status" -eq 1
+          echo "$output" | grep -q 'DATABASE_URL'

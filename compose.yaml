@@ -7,12 +7,29 @@ services:
       POSTGRES_PASSWORD: careeros
       POSTGRES_DB: careeros
     ports:
-      - '127.0.0.1:5432:5432'
+      # DB_PORT lets the container coexist with a local PostgreSQL on 5432 (e.g. DB_PORT=5433).
+      - '127.0.0.1:${DB_PORT:-5432}:5432'
     volumes:
       - careeros_data:/var/lib/postgresql/data
     healthcheck:
       test: ['CMD-SHELL', 'pg_isready -U careeros']
       interval: 5s
       retries: 10
+  # Local production rehearsal of the Dockerfile (ADR-013). Started only on request:
+  #   cp .env.docker.example .env.docker   # then set AUTH_SECRET and CRON_SECRET
+  #   DB_PORT=5433 docker compose --profile app up --build
+  #   docker compose --profile app exec app pnpm db:deploy
+  # `docker compose up -d db` alone is unchanged.
+  app:
+    profiles: [app]
+    build: .
+    env_file: .env.docker
+    environment:
+      DATABASE_URL: postgresql://careeros:careeros@db:5432/careeros
+    ports:
+      - '127.0.0.1:${APP_PORT:-3000}:3000'
+    depends_on:
+      db:
+        condition: service_healthy
 volumes:
   careeros_data:

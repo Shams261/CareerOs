@@ -1,5 +1,10 @@
 import { Client } from 'pg';
-import { describeDatabase, utcConnectionString } from '../../src/lib/database';
+import {
+  databaseSslFromEnv,
+  describeDatabase,
+  pgSslOption,
+  utcConnectionString,
+} from '../../src/lib/database';
 
 /**
  * Legacy timestamp audit/repair (ADR-009).
@@ -48,6 +53,7 @@ const ambiguous = (col: string) => {
 async function connect(url: string, pinned: boolean) {
   const client = new Client({
     connectionString: pinned ? utcConnectionString(url) : url,
+    ssl: pgSslOption(databaseSslFromEnv()),
   });
   await client.connect();
   return client;

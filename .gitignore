@@ -2,6 +2,7 @@ node_modules/
 .next/
 .env*
 !.env.example
+!.env.docker.example
 src/generated/
 *.tsbuildinfo
 coverage/

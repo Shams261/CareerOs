@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { DATABASE_SSL_MODES, parseDatabaseSsl } from './database-ssl';
 
 /**
  * Environment configuration (WI-008). Required groups throw with variable NAMES only — never
@@ -28,9 +29,28 @@ const core = z.object({
   CRON_SECRET: z.string().min(32),
   /** Connections per server process; keep small for hosted/serverless PostgreSQL. */
   DATABASE_POOL_MAX: z.coerce.number().int().min(1).max(50).default(5),
+  /** TLS towards PostgreSQL; see `parseDatabaseSsl` (ADR-013). */
+  DATABASE_SSL: z.enum(DATABASE_SSL_MODES).default('off'),
+  DATABASE_SSL_CA: z
+    .string()
+    .min(1)
+    .optional()
+    .or(z.literal('').transform(() => undefined)),
 });
+const coreSchema = core.refine(
+  (c) => !c.DATABASE_SSL_CA || c.DATABASE_SSL === 'verify-full',
+  {
+    message: 'DATABASE_SSL_CA is only used with DATABASE_SSL=verify-full',
+    path: ['DATABASE_SSL_CA'],
+  },
+);
 export function env() {
-  return core.parse(process.env);
+  return coreSchema.parse(process.env);
+}
+/** TLS settings for every PostgreSQL connection the server opens. */
+export function databaseSsl() {
+  const c = env();
+  return parseDatabaseSsl(c.DATABASE_SSL, c.DATABASE_SSL_CA);
 }
 
 /** Official Google endpoints. Overrides exist only for local fakes and must point at loopback. */

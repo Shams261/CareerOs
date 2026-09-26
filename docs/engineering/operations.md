@@ -26,11 +26,11 @@ A fresh local install follows the [README](../../README.md). An existing owner s
 | Reminders + push | `/api/notifications/process`                          | every minute   | < 1 s; bounded by 100 pushes | 500 and `JobRun.lastError` (error class only). Safe to retry or overlap: inbox rows are unique, push attempts are capped at 3. |
 | Calendar sync    | `/api/calendar/sync`                                  | every 5–15 min | seconds; per-owner lease     | Per-owner errors are recorded on the connection and retried with backoff; a busy lease is skipped, not queued.                 |
 
-Any other caller gets 401. Each run records `lastStartedAt`, `lastSucceededAt`/`lastFailedAt` and a count summary in `JobRun`; Settings → System status shows "last success". If a job has not succeeded for longer than three of its intervals, check the scheduler's own log first (401 means a wrong secret, connection errors mean the app or TLS), then the app log. Missed minutes are not replayed as alerts, but inbox reminders still appear once processing resumes.
+On Heroku (ADR-013) the caller is [cron-job.org](https://cron-job.org): free, per-minute schedules, custom request headers, a 30 s execution limit (both jobs finish in seconds) and failure notifications; the per-minute call also keeps the Eco dyno from sleeping. Heroku Scheduler is not used because its finest interval is 10 minutes. Any other caller gets 401. Each run records `lastStartedAt`, `lastSucceededAt`/`lastFailedAt` and a count summary in `JobRun`; Settings → System status shows "last success". If a job has not succeeded for longer than three of its intervals, check the scheduler's own log first (401 means a wrong secret, connection errors mean the app or TLS), then the app log. Missed minutes are not replayed as alerts, but inbox reminders still appear once processing resumes.
 
 ## Backups and restoration
 
-See [backup and restore](backup-restore.md) for `pnpm db:backup`, `pnpm db:restore:verify`, the schedule, recovery and the personal database migration checklist. Proposed RPO/RTO are in the NFR register. Restore rehearsals always go into a new scratch database, never over a live one. Do not commit backups.
+See [backup and restore](backup-restore.md) for `pnpm db:backup`, `pnpm db:restore:verify`, the schedule, recovery and the personal database migration checklist. On Heroku, `heroku pg:backups:capture` takes a provider-side snapshot before every migration (Essential plans allow manual captures only); `pnpm db:backup` against the Heroku URL from a workstation remains the independent copy. Proposed RPO/RTO are in the NFR register. Restore rehearsals always go into a new scratch database, never over a live one. Do not commit backups.
 
 ## Legacy timestamp repair
 
