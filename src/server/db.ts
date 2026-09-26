@@ -1,13 +1,14 @@
 import 'server-only';
 import { redirect } from 'next/navigation';
 import { PrismaClient } from '@/generated/prisma/client';
-import { createPgAdapter } from '@/lib/database';
-import { env } from '@/lib/env';
+import { createPgAdapter, pgSslOption } from '@/lib/database';
+import { databaseSsl, env } from '@/lib/env';
 const globalDb = globalThis as unknown as { db?: PrismaClient };
 export function db() {
   return (globalDb.db ??= new PrismaClient({
     adapter: createPgAdapter(env().DATABASE_URL, {
       max: env().DATABASE_POOL_MAX,
+      ssl: databaseSsl(),
     }),
   }));
 }
@@ -38,7 +39,10 @@ export async function verifyDatabaseTime() {
       `CareerOS database sessions must use UTC, but this session reports ${zone}. If a transaction-mode pooler drops startup options, set the database default TimeZone to UTC.`,
     );
   const { Client } = await import('pg');
-  const raw = new Client({ connectionString: env().DATABASE_URL });
+  const raw = new Client({
+    connectionString: env().DATABASE_URL,
+    ssl: pgSslOption(databaseSsl()),
+  });
   try {
     await raw.connect();
     const server = (await raw.query<{ TimeZone: string }>('SHOW TimeZone'))

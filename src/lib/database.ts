@@ -1,4 +1,14 @@
 import { PrismaPg } from '@prisma/adapter-pg';
+import { pgSslOption, type DatabaseSsl } from './database-ssl';
+
+export {
+  DATABASE_SSL_MODES,
+  databaseSslFromEnv,
+  parseDatabaseSsl,
+  pgSslOption,
+  type DatabaseSsl,
+  type DatabaseSslMode,
+} from './database-ssl';
 
 /**
  * Every CareerOS PostgreSQL session runs in UTC (ADR-009).
@@ -25,15 +35,35 @@ export function utcConnectionString(connectionString: string) {
   return url.toString();
 }
 
+/**
+ * The Prisma CLI (migrate, db seed) parses its own URL parameters and does not know
+ * node-postgres' `no-verify`; this builds the equivalent URL for `prisma.config.ts`.
+ */
+export function prismaCliConnectionString(
+  connectionString: string,
+  ssl: DatabaseSsl,
+) {
+  const url = new URL(utcConnectionString(connectionString));
+  if (ssl.mode === 'no-verify') {
+    url.searchParams.set('sslmode', 'require');
+    url.searchParams.set('sslaccept', 'accept_invalid_certs');
+  } else if (ssl.mode === 'verify-full') {
+    url.searchParams.set('sslmode', 'verify-full');
+    if (ssl.caFile) url.searchParams.set('sslcert', ssl.caFile);
+  }
+  return url.toString();
+}
+
 /** One bounded pool per process; `max` keeps hosted PostgreSQL connection limits safe. */
 export const createPgAdapter = (
   connectionString: string,
-  pool: { max?: number } = {},
+  pool: { max?: number; ssl?: DatabaseSsl } = {},
 ) =>
   new PrismaPg({
     connectionString: utcConnectionString(connectionString),
     max: pool.max ?? 5,
     idleTimeoutMillis: 30000,
+    ssl: pgSslOption(pool.ssl ?? { mode: 'off' }),
   });
 
 /** Host/port/database only, for logs. Never includes credentials. */
