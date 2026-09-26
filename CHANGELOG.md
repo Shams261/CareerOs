@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Theme selection defaults to Light regardless of OS/browser appearance. Settings offers explicit Light/Dark choices persisted per browser, with server-rendered theme class and browser color to avoid an incorrect initial theme.
+
+- Silsila brand system: three-ring identity, horizontal and stacked lockups, locally hosted Inter/Cormorant typography, warm ivory/teal and system dark palettes, shared component polish, refreshed login/Today/Weekly Review, PWA icons and notification copy. Existing data, sessions and calendar ownership identifiers remain compatible.
+
 - WI-008: personal production launch. Google sign-in (OIDC, PKCE, state, nonce, `openid email`) restricted to `OWNER_EMAIL`, hashed server-side sessions with sign-out and 30-day expiry, and a proxy gate for every private page and API. Replaces Basic Auth; `APP_PASSWORD` is no longer used.
 - Closed-app Web Push (VAPID) on top of the reminder inbox: per-device opt-in, test notification, bounded retries, dead-device clean-up, and a daily progress reminder that reaches a closed app. Installable PWA manifest and icons; no offline mode.
 - Hardening: nonce CSP and security headers, HSTS in production, rate limits on public endpoints, fail-fast environment validation, `/api/health`, scheduler run status in Settings, sanitized logs, JSON data export, `db:backup` and scratch-only `db:restore:verify`, contrast and focus fixes (axe clean), and a getting-started checklist.

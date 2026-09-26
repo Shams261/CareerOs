@@ -1,6 +1,8 @@
 # Engineering handbook
 
-CareerOS is a single-owner personal application. WI-001 through WI-008 are implemented. WI-008 adds the production launch path; the go-live evidence that only a real deployment can produce is tracked separately in the NFR register. This handbook describes the code that exists, not a hypothetical future SaaS.
+Silsila (formerly CareerOS) is a single-owner personal application. WI-001 through WI-008 are implemented. WI-008 adds the production launch path; the go-live evidence that only a real deployment can produce is tracked separately in the NFR register. This handbook describes the code that exists, not a hypothetical future SaaS.
+
+See the [Silsila brand system](product/brand-system.md) for visual identity, accessibility choices and compatibility boundaries.
 
 ## Start here
 
