@@ -46,7 +46,7 @@ describe('event mapping', () => {
       timeZone: 'America/Toronto',
     });
     expect(body.end?.dateTime).toBe('2026-11-01T07:00:00.000Z');
-    expect(body.description).toBe('Managed by CareerOS\nCategory: DSA');
+    expect(body.description).toBe('Managed by Silsila\nCategory: DSA');
     expect(body.extendedProperties?.private).toEqual({
       [PROP.managed]: '1',
       [PROP.block]: 'blk1',

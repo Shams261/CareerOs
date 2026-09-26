@@ -27,9 +27,11 @@ export function Navigation() {
         <Link
           key={href}
           href={href}
-          aria-current={path === href ? 'page' : undefined}
+          aria-current={
+            path === href || path.startsWith(`${href}/`) ? 'page' : undefined
+          }
         >
-          <Icon size={17} />
+          <Icon size={18} aria-hidden="true" />
           {title}
         </Link>
       ))}

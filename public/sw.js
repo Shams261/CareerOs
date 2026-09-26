@@ -1,4 +1,4 @@
-// CareerOS service worker: push display and click routing only.
+// Silsila service worker: push display and click routing only.
 // No application-data caching: PostgreSQL remains the source of truth.
 self.addEventListener('install', () => self.skipWaiting());
 self.addEventListener('activate', (event) =>
@@ -12,9 +12,9 @@ self.addEventListener('push', (event) => {
   } catch {
     data = {};
   }
-  const title = typeof data.title === 'string' ? data.title : 'CareerOS';
+  const title = typeof data.title === 'string' ? data.title : 'Silsila';
   const body =
-    typeof data.body === 'string' ? data.body : 'You have a CareerOS reminder.';
+    typeof data.body === 'string' ? data.body : 'You have a Silsila reminder.';
   // Only same-origin relative paths are opened.
   const url =
     typeof data.url === 'string' && /^\/(?![/\\])/.test(data.url)

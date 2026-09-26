@@ -1,6 +1,6 @@
 import type { CalendarConfig } from '../../lib/env';
 
-/** The subset of Google Calendar v3 used by CareerOS (ADR-010). */
+/** The subset of Google Calendar v3 used by Silsila (ADR-010). */
 export type GoogleDateTime = {
   dateTime?: string;
   date?: string;

@@ -127,7 +127,7 @@ describe.skipIf(!url)('production hardening (PostgreSQL)', () => {
     const r = await deliverPending(now, sender, cfg);
     expect(r).toMatchObject({ notifications: 1, delivered: 1, revoked: 1 });
     expect(JSON.parse(calls[0])).toEqual({
-      title: 'CareerOS',
+      title: 'Silsila',
       body: '2 DSA problems due',
       tag: log.id,
       url: '/dsa',

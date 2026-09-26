@@ -15,3 +15,6 @@ coverage/
 playwright-report/
 test-results/
 /backups/
+
+# Brand reference exports (flattened PDFs; authoritative SVGs go in public/brand/)
+/*.pdf

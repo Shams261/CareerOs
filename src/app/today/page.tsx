@@ -168,7 +168,7 @@ export default async function Today({
           </div>
         </section>
       )}
-      <section className="card">
+      <section className="card today-focus">
         <div className="form-grid">
           <div>
             <p className="eyebrow">Current planned block</p>

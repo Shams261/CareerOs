@@ -186,7 +186,7 @@ export async function processNotifications(now = new Date()) {
             await queue(
               'week',
               due,
-              'Your weekly CareerOS review is ready.',
+              'Your weekly Silsila review is ready.',
               now,
             );
         }

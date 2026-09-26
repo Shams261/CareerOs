@@ -97,7 +97,7 @@ describe('Web Push encryption and VAPID (RFC 8291 / 8292)', () => {
     const body = req.body as Buffer;
     expect(body.includes(Buffer.from('DSA'))).toBe(false);
     expect(JSON.parse(decrypt(body, receiver, auth))).toEqual({
-      title: 'CareerOS',
+      title: 'Silsila',
       body: '2 DSA problems due',
       tag: 'n1',
       url: '/dsa',

@@ -1,3 +1,5 @@
+import { savedTheme } from '@/server/theme';
+import { saveTheme } from '@/features/theme-actions';
 import Link from 'next/link';
 import { formatDistance } from 'date-fns';
 import { db, owner } from '@/server/db';
@@ -16,6 +18,7 @@ const ago = (d: Date | null | undefined, now: Date) =>
 
 export default async function Settings() {
   const user = await owner();
+  const theme = await savedTheme();
   const now = new Date();
   const push = (() => {
     try {
@@ -61,6 +64,20 @@ export default async function Settings() {
     <>
       <p className="eyebrow">Make it yours</p>
       <h1>Workspace settings</h1>
+      <section className="card mt-7" aria-labelledby="theme-heading">
+        <h2 id="theme-heading">Theme</h2>
+        <p className="muted">
+          Light by default. Your choice is saved in this browser.
+        </p>
+        <form action={saveTheme} className="mt-3">
+          <label htmlFor="theme">Appearance</label>
+          <select id="theme" name="theme" defaultValue={theme} key={theme}>
+            <option value="light">Light</option>
+            <option value="dark">Dark</option>
+          </select>
+          <Button>Save theme</Button>
+        </form>
+      </section>
       <section className="card mt-7" aria-labelledby="account-heading">
         <h2 id="account-heading">Account</h2>
         <p>{user.email}</p>
@@ -101,7 +118,7 @@ export default async function Settings() {
           Enabled on {devices} device{devices === 1 ? '' : 's'}. Reminders are
           always kept in the Today inbox; push is an extra delivery channel.
           Works in Chrome, Edge and Firefox on desktop and Android, and in
-          Safari on macOS. On iPhone/iPad it requires iOS 16.4+ with CareerOS
+          Safari on macOS. On iPhone/iPad it requires iOS 16.4+ with Silsila
           added to the Home Screen. Browsers and focus modes may delay or
           silence alerts.
         </p>
@@ -179,7 +196,7 @@ export default async function Settings() {
       <section className="card" aria-labelledby="data-heading">
         <h2 id="data-heading">Your data</h2>
         <p className="muted">
-          Download a JSON copy of your CareerOS records. It excludes Google
+          Download a JSON copy of your Silsila records. It excludes Google
           credentials, device notification keys and sessions. Database backups
           remain the way to recover a full workspace.
         </p>

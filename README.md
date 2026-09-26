@@ -1,4 +1,6 @@
-# CareerOS
+# Silsila
+
+**Plan once. Show up daily.** Formerly CareerOS; existing technical identifiers remain compatible. See the [brand system](docs/product/brand-system.md) for identity, tokens and maintenance.
 
 A private personal workspace for planning time, practicing interviews, tracking applications, and reviewing progress. WI-002 adds editable weekly routines, daily overrides, and actual-session execution. WI-003 adds DSA topic/problem management, attempt history and spaced revision. WI-004 adds technical subjects, four-dimensional mastery, learning history and review queues. WI-005 adds the job pipeline, WI-006 Google Calendar sync, WI-007 the weekly review, and WI-008 the production launch: Google sign-in for one owner, closed-app Web Push, an installable app, and operations tooling. It does not implement the entire product.
 

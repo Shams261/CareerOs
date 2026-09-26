@@ -1,3 +1,4 @@
+import { BrandLogo } from '@/components/brand';
 import { redirect } from 'next/navigation';
 import { currentSession } from '@/server/session';
 import { signInAction } from '@/features/auth/actions';
@@ -22,13 +23,16 @@ export default async function Login({
     : null;
   return (
     <section className="card login-card" aria-labelledby="login-heading">
-      <p className="eyebrow">Private workspace</p>
-      <h1 id="login-heading">
-        Career<span className="brand-accent">OS</span>
+      <div className="login-identity">
+        <BrandLogo stacked />
+      </div>
+      <h1 id="login-heading" className="login-heading">
+        Plan once.
+        <br />
+        Show up daily.
       </h1>
-      <p className="muted">
-        Sign in with the Google account configured as this workspace&apos;s
-        owner.
+      <p className="login-description">
+        A calm system for daily execution and steady progress.
       </p>
       {error && (
         <p role="alert" className="form-message">
@@ -42,12 +46,9 @@ export default async function Login({
       )}
       <form action={signInAction}>
         <input type="hidden" name="next" value={safeNext(q.next)} />
-        <Button>Sign in with Google</Button>
+        <Button>Continue with Google</Button>
       </form>
-      <p className="muted mt-4">
-        Sign-in shares only your email with CareerOS. Google Calendar access is
-        a separate, optional step in Calendar.
-      </p>
+      <p className="login-continuity">Keep the chain going.</p>
     </section>
   );
 }
