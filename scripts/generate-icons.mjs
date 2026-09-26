@@ -1,4 +1,4 @@
-// Generates CareerOS PWA icons (PNG) with no image dependencies: brand tile + white "C" ring.
+// Generates Silsila mark-only icons: three interlocking rings, matching BrandMark.
 // Run: node scripts/generate-icons.mjs
 import { deflateSync } from 'node:zlib';
 import { writeFileSync } from 'node:fs';
@@ -22,45 +22,39 @@ const chunk = (type, data) => {
   return Buffer.concat([len, body, sum]);
 };
 function png(size, { padding }) {
-  const bg = [0x24, 0x4e, 0x3b],
-    fg = [0xf6, 0xfa, 0xef],
-    accent = [0x9b, 0xc2, 0x6b];
+  const bg = [246, 243, 236],
+    ink = [27, 26, 22],
+    teal = [30, 107, 91];
   const rows = [];
-  const S = 4; // supersampling for smooth edges
-  const cx = size / 2,
-    cy = size / 2,
-    scale = (size / 2) * (1 - padding);
-  const outer = 0.62 * scale,
-    inner = 0.4 * scale,
-    dot = 0.1 * scale;
+  const S = 4;
+  // Reference geometry is 112 x 56. Keep every stroke within the maskable safe circle.
+  const scale = (size * (1 - padding)) / 112;
   for (let y = 0; y < size; y++) {
     const row = [0];
     for (let x = 0; x < size; x++) {
-      let a = 0,
-        d = 0;
+      const rgb = [0, 0, 0];
       for (let sy = 0; sy < S; sy++)
         for (let sx = 0; sx < S; sx++) {
-          const px = x + (sx + 0.5) / S - cx,
-            py = y + (sy + 0.5) / S - cy;
-          const r = Math.hypot(px, py);
-          const angle = Math.atan2(py, px);
-          // Ring with an opening on the right (|angle| < 40°) forms a "C".
+          const px = (x + (sx + 0.5) / S - size / 2) / scale + 56;
+          const py = (y + (sy + 0.5) / S - size / 2) / scale + 28;
+          let color = bg;
+          for (const [cx, stroke] of [
+            [29, ink],
+            [56, teal],
+            [83, ink],
+          ]) {
+            if (Math.abs(Math.hypot(px - cx, py - 28) - 22) <= 3)
+              color = stroke;
+          }
+          const angle = Math.atan2(py - 28, px - 29);
           if (
-            r <= outer &&
-            r >= inner &&
-            Math.abs(angle) > (40 * Math.PI) / 180
+            Math.abs(angle) <= 0.622 &&
+            Math.abs(Math.hypot(px - 29, py - 28) - 22) <= 3
           )
-            a++;
-          if (Math.hypot(px - outer * 0.78, py) <= dot) d++;
+            color = ink;
+          for (let i = 0; i < 3; i++) rgb[i] += color[i];
         }
-      const t = a / (S * S),
-        u = d / (S * S);
-      row.push(
-        ...[0, 1, 2].map((i) =>
-          Math.round(bg[i] * (1 - t - u) + fg[i] * t + accent[i] * u),
-        ),
-        255,
-      );
+      row.push(...rgb.map((v) => Math.round(v / (S * S))), 255);
     }
     rows.push(Buffer.from(row));
   }
@@ -81,4 +75,9 @@ writeFileSync('public/icons/icon-512.png', png(512, { padding: 0.1 }));
 // Maskable: keep the mark inside the 80% safe zone.
 writeFileSync('public/icons/icon-maskable-512.png', png(512, { padding: 0.3 }));
 writeFileSync('public/apple-touch-icon.png', png(180, { padding: 0.12 }));
-console.log('icons written');
+writeFileSync('public/icons/favicon-32.png', png(32, { padding: 0.05 }));
+writeFileSync(
+  'public/icons/favicon.svg',
+  `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 112 112"><style>:root{--ink:#1b1a16;--accent:#1e6b5b;--bg:#f6f3ec}</style><rect width="112" height="112" rx="22" fill="var(--bg)"/><g transform="translate(0 28)" fill="none" stroke-width="6"><circle cx="29" cy="28" r="22" stroke="var(--ink)"/><circle cx="56" cy="28" r="22" stroke="var(--accent)"/><circle cx="83" cy="28" r="22" stroke="var(--ink)"/><path d="M46.9 15.2 A22 22 0 0 1 46.9 40.8" stroke="var(--ink)"/></g></svg>`,
+);
+console.log('Silsila icons written');
