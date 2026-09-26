@@ -1,0 +1,6 @@
+# Heroku container stack (ADR-013): build the Dockerfile and run its CMD as the web process.
+# Requires `heroku stack:set container`. No release phase: migrations stay owner-run
+# (`heroku run pnpm db:deploy` after a backup), see docs/engineering/deployment.md.
+build:
+  docker:
+    web: Dockerfile
