@@ -9,11 +9,7 @@ One recommended path. Other hosts work if they meet the same four requirements.
 | HTTPS     | The platform's TLS termination, or Caddy/nginx with automatic certificates in front of `127.0.0.1:3000`                 | Required: `Secure` cookies, HSTS, Web Push and Google OAuth all need HTTPS. The proxy must set `X-Forwarded-For`.                                      |
 | Scheduler | The host's cron (or the platform's cron jobs) calling two `curl` commands                                               | Reminders and Calendar sync need a clock outside the browser. See the [cron table](operations.md#scheduled-jobs).                                      |
 
-## Chosen path: Heroku container stack (ADR-013)
-
-Decision record: [ADR-013](../architecture/decisions.md#adr-013--heroku-container-hosting-with-portable-12-factor-constraints). Heroku builds the repository's `Dockerfile` (declared in `heroku.yml`) and runs it as the `web` process on an **Eco** dyno with **Postgres Essential-0** (PostgreSQL 17, 1 GB, 20 connections). The GitHub Student Developer Pack credit covers both for 24 months. The sections after this one remain the host-independent reference; this section is the concrete sequence. Commands marked _(owner)_ need your account; nothing here is run for you.
-
-### Local rehearsal with Docker
+## Local rehearsal with Docker
 
 Install Docker Desktop (free for personal use). Then, from the repository:
 
@@ -28,6 +24,66 @@ docker compose --profile app down                       # keeps the careeros_dat
 ```
 
 `DB_PORT=5433` avoids a local PostgreSQL on 5432. Sign-in cannot complete in the rehearsal (no Google client and no HTTPS); it checks configuration, migrations, headers, redirects and the cron gate. To see fail-fast validation, run the image without variables: `docker run --rm -e NODE_ENV=production silsila` exits with code 1 and names the missing variables.
+
+## Chosen path: Render free web service + Supabase free PostgreSQL (ADR-014)
+
+Decision record: [ADR-014](../architecture/decisions.md#adr-014--render-and-supabase-free-tiers-while-the-heroku-credit-is-pending). The app runs as a **Render free web service** built from the repository `Dockerfile` ([`render.yaml`](../../render.yaml) declares it), and the database is a **Supabase free project** (PostgreSQL 17, 500 MB) reached through Supabase's IPv4 **session pooler**. Cost is $0 and no card is needed. Free instances have no shell, so migrations and backups run from a workstation against the Supabase URL. The per-minute reminder job is the inbound traffic that keeps the free instance from spinning down. Commands marked _(owner)_ need your accounts.
+
+### Prerequisites
+
+- The [local rehearsal](#local-rehearsal-with-docker) above has passed on the commit you deploy.
+- `pg_dump` 17 or newer for backups: `brew install libpq` and use `/opt/homebrew/opt/libpq/bin/pg_dump` (the Homebrew `postgresql@16` client cannot dump a 17 server).
+
+### 1. Supabase project _(owner)_
+
+1. Sign in at [supabase.com](https://supabase.com) with GitHub, create an organisation on the Free plan, then **New project**: name `silsila`, region **Canada (Central)**, a strong database password saved in your password manager (it is part of the connection URL).
+2. Project → **Connect** → choose **Session pooler** (not Direct, not Transaction): the URI looks like `postgresql://postgres.<ref>:<password>@aws-0-ca-central-1.pooler.supabase.com:5432/postgres`. Direct connections are IPv6-only and Render has no outbound IPv6; the transaction pooler (port 6543) breaks prepared statements and Prisma migrations.
+3. From the repository, migrate and verify the empty database (TLS is required by Supabase, and its pooler certificate is not in the system store):
+
+```sh
+export DATABASE_URL='postgresql://postgres.<ref>:<password>@aws-0-ca-central-1.pooler.supabase.com:5432/postgres'
+export DATABASE_SSL=no-verify
+pnpm db:deploy
+psql "$DATABASE_URL?sslmode=require" -c 'SHOW TimeZone'   # expect UTC
+```
+
+To verify certificates instead, download the CA from Project settings → Database → SSL, store it outside the repository, and use `DATABASE_SSL=verify-full DATABASE_SSL_CA=/path/to/prod-ca-2021.crt`.
+
+### 2. Render service _(owner)_
+
+1. Sign in at [render.com](https://render.com) with GitHub and allow access to `Shams261/CareerOs`.
+2. **Blueprints → New Blueprint Instance**, pick the repository and branch `main`. Render reads `render.yaml`, generates `CRON_SECRET`, `AUTH_SECRET` and `CALENDAR_TOKEN_ENCRYPTION_KEY`, and asks for the `sync: false` values: `DATABASE_URL` (the session-pooler URI above), `OWNER_EMAIL` (your Google account), `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` ([Google production checklist](google-production.md)), and the three VAPID values (`pnpm exec web-push generate-vapid-keys`; `VAPID_SUBJECT=mailto:<you>`). Leave the VAPID trio empty to start without push.
+3. Apply. The first Docker build takes several minutes. The service URL is `https://silsila.onrender.com` (or with a suffix if the name is taken; `APP_BASE_URL` stays the custom domain).
+4. Logs must show no configuration warning and no time-zone error. Then run the [smoke test](#6-smoke-test) against the `onrender.com` URL; sign-in works only once the custom domain and Google redirect URIs are in place.
+
+### 3. Domain and TLS _(owner)_
+
+Service → **Settings → Custom Domains**: add `usesilsila.me` and `www.usesilsila.me`. At Namecheap → Advanced DNS: an **A** record, host `@`, value `216.24.57.1`, and a **CNAME**, host `www`, value `silsila.onrender.com` (TTL automatic, no other A/CNAME for those hosts). Render verifies the records and issues certificates automatically; `www` redirects to the root. Then in the Google Cloud console add `https://usesilsila.me/api/auth/callback` and `https://usesilsila.me/api/calendar/oauth/callback` as redirect URIs and repeat the smoke test on the custom domain.
+
+### 4. Scheduler _(owner)_
+
+[cron-job.org](https://cron-job.org) (free, per-minute, custom headers): two jobs per the [cron table](operations.md#scheduled-jobs), method `POST`, header `Authorization: Bearer <CRON_SECRET from the Render environment>`, timeout 30 s, failure notifications on. Settings → System status must show a recent success for both. Expect the first call after a spin-down to take about a minute; the cron keeps the instance awake afterwards.
+
+### 5. Backups and updates _(owner)_
+
+Supabase Free has no automated backups. Weekly, and before every migration:
+
+```sh
+DATABASE_URL='<session-pooler URI>' PATH="/opt/homebrew/opt/libpq/bin:$PATH" pnpm db:backup
+pnpm db:restore:verify backups/<file>.dump   # into a scratch database on the local server
+```
+
+Updating is a push to `main`: Render deploys after the Quality workflow passes (`autoDeployTrigger: checksPass`). If the release contains migrations, run `pnpm db:deploy` from the workstation **before** the deploy finishes serving traffic (additive migrations are safe in either order; see [operations](operations.md#release-checklist)). Rollback: Render → Deploys → previous deploy → Rollback; migrations are forward-only.
+
+### 6. Limits to know
+
+750 free instance hours per workspace per month (a month of one always-on service is 744). 512 MB RAM and a fractional CPU: pages render in hundreds of milliseconds, not tens. Supabase pauses a free project after 7 days without activity (the cron prevents this) and the session pooler caps clients at the project's pool size (default 15; the app uses 5). If the GitHub Student Heroku credit is granted later, the [Heroku path](#alternative-path-heroku-container-stack-adr-013) remains valid with the same image.
+
+## Alternative path: Heroku container stack (ADR-013)
+
+Kept as the documented alternative; `heroku.yml` remains in the repository. The free-tier path above was chosen on 2026-10-02 because the student credit had not been granted after six days ([ADR-014](../architecture/decisions.md#adr-014--render-and-supabase-free-tiers-while-the-heroku-credit-is-pending)).
+
+Decision record: [ADR-013](../architecture/decisions.md#adr-013--heroku-container-hosting-with-portable-12-factor-constraints). Heroku builds the repository's `Dockerfile` (declared in `heroku.yml`) and runs it as the `web` process on an **Eco** dyno with **Postgres Essential-0** (PostgreSQL 17, 1 GB, 20 connections). The GitHub Student Developer Pack credit covers both for 24 months. The sections after this one remain the host-independent reference; this section is the concrete sequence. Commands marked _(owner)_ need your account; nothing here is run for you.
 
 ### Create the app _(owner)_
 
