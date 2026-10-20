@@ -68,6 +68,11 @@ COPY --chown=node:node next.config.ts prisma.config.ts tsconfig.json ./
 # Regenerate the Prisma client for the production node_modules (pure TypeScript output, fast).
 RUN pnpm db:generate && chown -R node:node /app/src/generated
 USER node
-# Heroku sets PORT; `next start` reads it and binds 0.0.0.0. 3000 is the default elsewhere.
+# Render and Heroku set PORT; `next start` reads it and binds 0.0.0.0. 3000 is the default elsewhere.
+# Next.js is started directly rather than through `pnpm start`: pnpm's verify-deps-before-run check
+# could otherwise decide the production node_modules are stale (file timestamps change when a host
+# re-layers the image), try `pnpm install --production` as the unprivileged user, fail with EACCES
+# and take the container down before the app starts. The check is also disabled in
+# pnpm-workspace.yaml for the one-off commands (`pnpm db:deploy`) that still go through pnpm.
 EXPOSE 3000
-CMD ["pnpm", "start"]
+CMD ["node", "node_modules/next/dist/bin/next", "start"]
