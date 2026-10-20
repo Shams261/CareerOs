@@ -1,0 +1,53 @@
+# Render Blueprint (ADR-014): one free web service built from the repository Dockerfile.
+# Create it once from the dashboard (Blueprints → New Blueprint Instance → this repo); Render
+# then asks for every `sync: false` value and generates the `generateValue: true` secrets
+# (256-bit, base64, which satisfies the 32-byte key rule in src/lib/env.ts).
+# PORT is injected by Render (default 10000); `next start` reads it and binds 0.0.0.0.
+# Migrations run from a workstation (free instances have no shell): see
+# docs/engineering/deployment.md → "Chosen path: Render + Supabase".
+services:
+  - type: web
+    name: silsila
+    runtime: docker
+    plan: free
+    region: ohio
+    branch: main
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /api/health
+    # Deploy a commit on main only after its GitHub checks (the Quality workflow) pass.
+    autoDeployTrigger: checksPass
+    envVars:
+      - key: APP_BASE_URL
+        value: https://usesilsila.me
+      # Supabase session-pooler URL (IPv4). Never the direct IPv6-only host; never port 6543.
+      - key: DATABASE_URL
+        sync: false
+      # Supabase requires TLS; its pooler certificate is not in the system store. Switch to
+      # verify-full with DATABASE_SSL_CA pointing at a Render secret file once the CA is uploaded.
+      - key: DATABASE_SSL
+        value: no-verify
+      - key: DATABASE_POOL_MAX
+        value: '5'
+      - key: OWNER_EMAIL
+        sync: false
+      - key: CRON_SECRET
+        generateValue: true
+      - key: AUTH_SECRET
+        generateValue: true
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false
+      # Setting this key enables Google Calendar sync; delete the variable to disable it.
+      - key: CALENDAR_TOKEN_ENCRYPTION_KEY
+        generateValue: true
+      - key: GOOGLE_CALENDAR_WEBHOOK_BASE_URL
+        value: https://usesilsila.me
+      # Web Push: generate once with `pnpm exec web-push generate-vapid-keys`. Leave all three
+      # unset to run without push.
+      - key: VAPID_PUBLIC_KEY
+        sync: false
+      - key: VAPID_PRIVATE_KEY
+        sync: false
+      - key: VAPID_SUBJECT
+        sync: false

@@ -146,7 +146,7 @@ Attention is derived, not stored: overdue follow-up, result needed, interview be
 
 ## ADR-013 — Heroku container hosting with portable 12-factor constraints
 
-**Status:** Accepted (2026-09-26). Complements ADR-009 (UTC sessions) and ADR-012 (operations).
+**Status:** Accepted (2026-09-26); the host choice is superseded by ADR-014 on 2026-10-02, the portability constraints and the `DATABASE_SSL` decision stand. Complements ADR-009 (UTC sessions) and ADR-012 (operations).
 
 **Context:** The product is feature-frozen until it has been used for real. Hosting had to satisfy the four requirements in the [deployment guide](../engineering/deployment.md): one long-running Node.js process (`after()` background syncs, the in-process rate limiter and the connection pool assume it), managed PostgreSQL 17 with TLS, HTTPS on `usesilsila.me`, and an external clock for the two scheduler endpoints. Budget is $0 today, and moving later must not require code changes. Free tiers were reviewed on 2026-09-26: Render's free web service sleeps after 15 minutes without traffic (the every-minute reminder job would keep it awake) but its free PostgreSQL expires after 30 days; Neon's free plan caps compute at 100 CU-hours per month and suspends the project past that, which a per-minute job exceeds; Koyeb's free PostgreSQL allows 5 hours per month; Fly.io and Railway no longer have free tiers; DigitalOcean's student credit ended in August 2026; AWS's free tier became six-month credits; Oracle's Always Free VM is capable but self-managed and reclaimable when idle.
 
@@ -162,3 +162,20 @@ Attention is derived, not stored: overdue follow-up, result needed, interview be
 **Alternatives rejected:** serverless or edge functions (no persistent process; per-instance rate limits; pool exhaustion); Render free plus Supabase free (works and costs nothing, but 0.1 vCPU and a second vendor with no managed backups); a self-managed VM (more capacity, but PostgreSQL, TLS, updates and backups become the owner's job before the product has proven itself); Heroku's Node buildpack instead of a Dockerfile (simpler on Heroku only, and no local production rehearsal); an automatic release-phase migration (deferred until a scheduled backup exists).
 
 **Consequences:** Cost rises to about $10 per month after the credit, at which point usage will justify staying, moving or stopping. The dyno restarts daily and on deploy, which resets in-memory rate limits (acceptable for one owner). Backups are taken with `heroku pg:backups:capture` or `pnpm db:backup` from a workstation; Essential-0 has no point-in-time recovery. Adding a Docker daemon to CI lengthens the pipeline by a parallel job. The Dockerfile must be kept in step with new runtime files that Next.js or Prisma read at start-up.
+
+## ADR-014 — Render and Supabase free tiers while the Heroku credit is pending
+
+**Status:** Accepted (2026-10-02). Supersedes the host choice in ADR-013; keeps its portability rules.
+
+**Context:** The GitHub Student Developer Pack credit that would have funded Heroku was still not granted six days after application, with no estimated date. Paying about $10 per month before the product has proven its daily value contradicts the $0 constraint, and waiting longer delays the usage phase that decides what to build next. ADR-013 chose a Dockerfile precisely so the host could change without code changes.
+
+**Decision:**
+
+- **Render free web service, Docker runtime, Ohio.** Built from the same `Dockerfile`, declared in `render.yaml` (health check `/api/health`, deploy only after GitHub checks pass). Render injects `PORT`; `next start` honours it. Free instances spin down after 15 idle minutes; the per-minute reminder job is inbound traffic and keeps the instance awake, consuming 744 of the 750 monthly free hours. Custom domain and managed TLS are included.
+- **Supabase free project, PostgreSQL 17, Canada (Central), reached through the session pooler.** Render has no outbound IPv6 and Supabase's direct host is IPv6-only, so the IPv4 session pooler (port 5432) is the connection for the app, migrations and backups. Transaction mode (6543) is never used: it breaks prepared statements and Prisma migrations. Supabase requires TLS; `DATABASE_SSL=no-verify` initially, `verify-full` with the downloadable CA as the upgrade.
+- **Migrations and backups run from a workstation.** Free instances have no shell or one-off jobs. `pnpm db:deploy` and `pnpm db:backup` (with `pg_dump` 17+) run locally against the Supabase URL; the Prisma CLI stays in the image so the Heroku path keeps working unchanged.
+- **Heroku remains the documented alternative.** `heroku.yml` stays. If the credit arrives, moving is a redeploy plus restore, per ADR-013.
+
+**Alternatives rejected:** Heroku on a personal card (recurring cost before value is proven); waiting indefinitely (blocks the usage phase); Neon instead of Supabase (its 100 CU-hour monthly cap suspends the project under a per-minute cron); keeping the instance awake with a separate pinger (the cron already provides the traffic); a `release`-style migration on container start (would run with no backup and on every spin-up).
+
+**Consequences:** No vendor backups: the owner's weekly `pnpm db:backup` is the only copy, verified with `pnpm db:restore:verify`. A fractional CPU makes server renders slower than on a paid dyno; acceptable for one owner and a reason to move once usage justifies spend. If cron-job.org fails, the instance sleeps and the first visit waits about a minute; Settings → System status reveals it. The Supabase session pooler caps clients at the project's pool size, so `DATABASE_POOL_MAX` stays small. Supabase pauses a free project after 7 idle days; the cron prevents this, and a paused project is resumed from the dashboard without data loss.

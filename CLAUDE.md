@@ -120,9 +120,9 @@ Local quirk: node and pnpm are installed via nvm (`~/.nvm/versions/node/v24.17.0
 
 ## Production and operations
 
-State as of 2026-09-26: hosting is decided (ADR-013: Heroku container stack, Eco dyno + Postgres Essential-0, GitHub Student credit), the Dockerfile and `heroku.yml` exist, and the local database holds only seed data so production starts empty. Not yet done: the Heroku app itself, DNS, real Google client, real-device push. Silsila currently requires one long-running Node process and should not be assumed serverless-compatible unless the architecture is deliberately changed and verified. Other requirements: managed PostgreSQL 17, HTTPS, external cron for two endpoints.
+State as of 2026-10-02: hosting is **Render free web service + Supabase free PostgreSQL via the session pooler** (ADR-014; `render.yaml`), chosen because the Heroku student credit (ADR-013, `heroku.yml`, kept as the alternative) was not granted. Same Dockerfile on either host. Free instances have no shell: migrations and backups run from a workstation against the Supabase URL. The local database holds only seed data, so production starts empty. Not yet done: the Render service and Supabase project themselves, DNS, real Google client, real-device push. Silsila currently requires one long-running Node process and should not be assumed serverless-compatible unless the architecture is deliberately changed and verified. Other requirements: managed PostgreSQL 17, HTTPS, external cron for two endpoints.
 
-- Deployment (Heroku container path, local Docker rehearsal): `docs/engineering/deployment.md`
+- Deployment (Render + Supabase path, Heroku alternative, local Docker rehearsal): `docs/engineering/deployment.md`
 - Environment variables: `docs/engineering/environment.md`, `.env.example`
 - Backup, restore and **personal database migration checklist**: `docs/engineering/backup-restore.md`
 - Google client and consent setup: `docs/engineering/google-production.md`
@@ -136,7 +136,7 @@ State as of 2026-09-26: hosting is decided (ADR-013: Heroku container stack, Eco
 
 Feature development is intentionally paused. Priority order:
 
-1. Merge WI-008.1 (Heroku container path), then follow the owner-run sequence in `docs/engineering/deployment.md`: Heroku app, config vars, first deploy on an empty database, domain and TLS, cron-job.org.
+1. Merge WI-008.2, then follow the owner-run sequence in `docs/engineering/deployment.md`: Supabase project and migration from the workstation, Render blueprint, first deploy on the empty database, domain and TLS, cron-job.org.
 2. Configure the real Google client; verify sign-in and Calendar.
 3. Verify Web Push on real devices.
 4. Use Silsila daily for 7–14 days and collect friction.
