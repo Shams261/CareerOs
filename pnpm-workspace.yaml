@@ -3,3 +3,6 @@ allowBuilds:
   esbuild: true
   prisma: true
   unrs-resolver: true
+# Never let a script run trigger an implicit install: production containers run as an unprivileged
+# user on a read-only install, and CI/local installs are explicit (`pnpm install --frozen-lockfile`).
+verifyDepsBeforeRun: false
