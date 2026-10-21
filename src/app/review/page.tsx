@@ -113,19 +113,26 @@ export default async function Review({
     : 'week';
   const nextMonday = shiftDay(monday, 7);
   const planning = monday >= thisWeek;
+  // Each step loads only what it shows; Details loads everything.
+  const details = step === 'details',
+    plan = step === 'plan' || details;
   const [w, carry, next, trend, history, goals, pref] = await Promise.all([
     weekReview(user, monday, now),
-    carryForward(user, now),
-    planning ? nextWeekContext(user, nextMonday, now) : null,
-    recentTrend(user, monday, now),
-    reviewHistory(user.id),
-    db().goal.findMany({
-      where: { userId: user.id },
-      select: { id: true, title: true },
-    }),
-    db().notificationPreference.findUnique({
-      where: { userId_type: { userId: user.id, type: 'WEEKLY_REVIEW' } },
-    }),
+    details ? carryForward(user, now) : { dsa: [], learning: [], jobs: [] },
+    plan && planning ? nextWeekContext(user, nextMonday, now) : null,
+    details ? recentTrend(user, monday, now) : [],
+    details ? reviewHistory(user.id) : [],
+    plan
+      ? db().goal.findMany({
+          where: { userId: user.id },
+          select: { id: true, title: true },
+        })
+      : [],
+    details
+      ? db().notificationPreference.findUnique({
+          where: { userId_type: { userId: user.id, type: 'WEEKLY_REVIEW' } },
+        })
+      : null,
   ]);
   const s = w.schedule;
   const max = Math.max(

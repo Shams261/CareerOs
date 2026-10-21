@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- WI-010 performance pass: the session is resolved once per request (React `cache`), the week fill-in skips its lock when every day through Sunday is already planned, the weekly review loads only what the open step shows, Today streams its aside cards behind Suspense so the hero and timeline paint first, sidebar links no longer prefetch (every page is dynamic, so a prefetch only cost a render), and the background refresh runs every five minutes instead of every minute. Measured on an isolated render: Today 73 → 43 statements, Weekly review 49 → 23, Plan 31 → 12.
 - WI-010: the week at a glance, light motion and notes to self. Weekly review step one shows planned versus recorded minutes per day as a small bar chart (per-day minutes added to the schedule summary). Cards and stats rise in on load, disclosure panels fade in, the live timer carries a breathing dot, buttons press; all of it is off under reduced motion. A **Note to self** field in the shell on every page saves to a `QuickNote` (migration `20261021162842_quick_notes`), which waits on Today under "Notes to self" until marked done or removed; notes are exported with the owner's data.
 
 - Fix: `pnpm db:backup` dumps only the `public` schema. On Supabase the full database also carries provider schemas and extensions (`vault`, `graphql`), which made `db:restore:verify` fail on any other server. Documented the client-tool pairing (libpq `pg_dump` 18, Docker PostgreSQL 17 for the restore check).

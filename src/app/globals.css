@@ -1582,3 +1582,32 @@ summary {
     align-items: center;
   }
 }
+
+/* Streaming placeholders. */
+.skeleton {
+  display: grid;
+  gap: 10px;
+  min-height: 96px;
+}
+.skeleton-line {
+  display: block;
+  height: 12px;
+  border-radius: 6px;
+  background: var(--surface-muted);
+}
+.skeleton-line.w-40 {
+  width: 40%;
+}
+.skeleton-line.w-60 {
+  width: 60%;
+}
+@media (prefers-reduced-motion: no-preference) {
+  @keyframes silsila-shimmer {
+    50% {
+      opacity: 0.55;
+    }
+  }
+  .skeleton-line {
+    animation: silsila-shimmer 1.6s ease-in-out infinite;
+  }
+}

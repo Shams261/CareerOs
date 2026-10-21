@@ -1,4 +1,5 @@
 import 'server-only';
+import { cache } from 'react';
 import { cookies } from 'next/headers';
 import { db } from './db';
 import { env } from '@/lib/env';
@@ -79,6 +80,7 @@ export async function revokeSession(
   });
 }
 
-export async function currentSession() {
-  return resolveSession((await cookies()).get(SESSION_COOKIE)?.value);
-}
+/** Resolved once per request: the layout, the page and the shell panels all share it. */
+export const currentSession = cache(async () =>
+  resolveSession((await cookies()).get(SESSION_COOKIE)?.value),
+);

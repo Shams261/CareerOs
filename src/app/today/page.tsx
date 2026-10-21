@@ -5,6 +5,7 @@ import { CalendarAttention } from '@/features/calendar/panel';
 import { WeeklyReviewPrompt } from '@/features/review/summary';
 import { isDsa } from '@/features/dsa/domain';
 import Link from 'next/link';
+import { Suspense } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { ActionForm } from '@/components/action-form';
 import { Disclosure, DisclosureTabs } from '@/components/disclosure';
@@ -36,6 +37,14 @@ import { openNotes } from '@/features/notes/service';
 import { NoteList } from '@/features/notes/forms';
 import { readNotification } from '@/server/actions';
 import { Button } from '@/components/ui/button';
+/** A quiet placeholder while an aside card is still loading. */
+const CardSkeleton = () => (
+  <section className="card skeleton" aria-hidden="true">
+    <span className="skeleton-line w-40" />
+    <span className="skeleton-line" />
+    <span className="skeleton-line w-60" />
+  </section>
+);
 export default async function Today({
   searchParams,
 }: {
@@ -156,15 +165,21 @@ export default async function Today({
           </span>
         </nav>
       </div>
-      {!firstRun && <Chain user={user} now={now} />}
+      {!firstRun && (
+        <Suspense fallback={null}>
+          <Chain user={user} now={now} />
+        </Suspense>
+      )}
       {generationError && (
         <p role="alert" className="form-message mb-5">
           This week could not be planned: {generationError}. Check your routines
           on Plan.
         </p>
       )}
-      <CalendarAttention user={user} />
-      <TodayInterview user={user} day={day} />
+      <Suspense fallback={null}>
+        <CalendarAttention user={user} />
+        <TodayInterview user={user} day={day} />
+      </Suspense>
       {running && (
         <section className="hero">
           <div>
@@ -391,16 +406,17 @@ export default async function Today({
                   <NoteList notes={notes} />
                 </section>
               )}
-              {day === today && <TodayGoals user={user} now={now} />}
-              {day === today && <WeeklyReviewPrompt user={user} now={now} />}
-              {day === today && <TodayJobs user={user} now={now} />}
               {day === today && (
-                <TodayLearning user={user} now={now} blocks={blocks} />
+                <Suspense fallback={<CardSkeleton />}>
+                  <TodayGoals user={user} now={now} />
+                  <WeeklyReviewPrompt user={user} now={now} />
+                  <TodayJobs user={user} now={now} />
+                  <TodayLearning user={user} now={now} blocks={blocks} />
+                  {blocks.some(
+                    (b) => isDsa(b.category) && b.status !== 'CANCELLED',
+                  ) && <TodayDsa user={user} now={now} />}
+                </Suspense>
               )}
-              {day === today &&
-                blocks.some(
-                  (b) => isDsa(b.category) && b.status !== 'CANCELLED',
-                ) && <TodayDsa user={user} now={now} />}
               {plan?.reviewedAt && plan.checkIn ? (
                 <section
                   className="card day-closed"

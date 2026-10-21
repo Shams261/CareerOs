@@ -68,6 +68,15 @@ export async function generatePlan(user: ScheduleUser, day: string) {
  */
 export async function generateThroughSunday(user: ScheduleUser, today: string) {
   const days = weekDays(today).filter((d) => d >= today);
+  // Usually everything is already planned: one count instead of a lock and five upserts.
+  const planned = await db().dailyPlan.count({
+    where: {
+      userId: user.id,
+      generatedAt: { not: null },
+      date: { gte: new Date(days[0]), lte: new Date(days[days.length - 1]) },
+    },
+  });
+  if (planned === days.length) return;
   return locked(user.id, async (tx) => {
     for (const day of days) await generateInTransaction(tx, user, day);
   });
