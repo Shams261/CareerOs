@@ -2,6 +2,8 @@ import Link from 'next/link';
 import { owner } from '@/server/db';
 import { dayKey } from '@/lib/time';
 import { Disclosure } from '@/components/disclosure';
+import { PageShortcuts } from '@/components/shortcuts';
+import { BrandMark } from '@/components/brand';
 import { GoalForm, RoadmapForm } from '@/features/roadmap/forms';
 import { goalsOverview, roadmapList } from '@/features/roadmap/service';
 import { targetLabel } from '@/features/roadmap/domain';
@@ -29,17 +31,21 @@ export default async function RoadmapPage() {
     archived = roadmaps.filter((r) => r.archivedAt);
   return (
     <>
+      <PageShortcuts
+        shortcuts={[{ key: 'n', label: 'Add goal', press: 'add-goal' }]}
+      />
       <p className="eyebrow">Goals and roadmaps</p>
       <div className="page-head">
         <h1>Roadmap</h1>
         {goals.length > 0 && (
-          <Disclosure label="Add goal" variant="primary">
+          <Disclosure label="Add goal" variant="primary" shortcut="add-goal">
             <GoalForm />
           </Disclosure>
         )}
       </div>
       {!goals.length ? (
         <section className="card setup-card" aria-labelledby="setup-heading">
+          <BrandMark className="setup-mark" />
           <p className="eyebrow">Start here</p>
           <h2 id="setup-heading">What are you aiming for?</h2>
           <p>

@@ -1611,3 +1611,263 @@ summary {
     animation: silsila-shimmer 1.6s ease-in-out infinite;
   }
 }
+
+/* WI-011: undo beside the message. */
+.undo-link {
+  margin-left: 10px;
+  padding: 0 2px;
+  font: inherit;
+  font-weight: 700;
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+.undo-link:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+.undo-result {
+  margin-left: 10px;
+  font-weight: 500;
+}
+
+/* WI-011: phone navigation is a bottom bar; the sidebar list is for wider screens. */
+.nav-bar,
+.nav-more {
+  display: none;
+}
+.summary-line {
+  font-size: 14px;
+  color: var(--foreground);
+}
+.summary-line .pill {
+  margin-right: 2px;
+}
+.hero-prep {
+  margin: 8px 0 4px;
+}
+.hero .prep-item {
+  padding: 4px 0;
+}
+.hero .prep-item .button {
+  min-height: 32px;
+  padding: 4px 10px;
+  font-size: 12px;
+}
+@media (max-width: 700px) {
+  .sidebar .nav {
+    display: none;
+  }
+  .content {
+    padding-bottom: 88px;
+  }
+  .nav-bar {
+    position: fixed;
+    inset: auto 0 0 0;
+    z-index: 20;
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    background: var(--surface);
+    border-top: 1px solid var(--border);
+    padding: 6px 4px calc(6px + env(safe-area-inset-bottom));
+  }
+  .nav-bar a,
+  .nav-bar button {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+    min-height: 48px;
+    padding: 6px 2px;
+    border-radius: var(--radius-sm);
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--muted);
+    cursor: pointer;
+  }
+  .nav-bar a[aria-current='page'],
+  .nav-bar button[aria-current='page'],
+  .nav-bar button[aria-expanded='true'] {
+    color: var(--primary);
+    background: var(--tint);
+    font-weight: 600;
+  }
+  .nav-more {
+    position: fixed;
+    inset: auto 0 calc(66px + env(safe-area-inset-bottom)) 0;
+    z-index: 19;
+    display: grid;
+    gap: 4px;
+    padding: 12px;
+    background: var(--surface);
+    border-top: 1px solid var(--border);
+    box-shadow: var(--shadow-md);
+  }
+  .nav-more a {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-height: 44px;
+    padding: 10px 14px;
+    border-radius: var(--radius-sm);
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--muted);
+  }
+  .nav-more a[aria-current='page'] {
+    color: var(--primary);
+    background: var(--tint);
+    font-weight: 600;
+  }
+  .running-now,
+  .capture {
+    margin-top: 10px;
+  }
+}
+@media (max-width: 700px) and (prefers-reduced-motion: no-preference) {
+  .nav-more {
+    animation: silsila-rise var(--motion-normal) var(--motion-easing) both;
+  }
+}
+
+/* WI-011: two surface levels. A flat section is a list on the canvas; a card acts. */
+.card.flat {
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  padding: 0;
+  margin: 8px 0 34px;
+  animation: none;
+}
+.card.flat > h2,
+.card.flat > .section-head {
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 6px;
+}
+.card.flat .dsa-item:last-child,
+.card.flat .roadmap-item:last-child,
+.card.flat .note-row:last-child {
+  border-bottom: 0;
+}
+/* Density: lists tighter than forms. */
+.dsa-item {
+  padding: 0.7rem 0;
+}
+.roadmap-item {
+  padding: 10px 0;
+}
+.execution-block {
+  padding: 18px 0;
+}
+.learning-history {
+  padding: 0.75rem 0;
+}
+/* Status tones: the label carries the meaning, the tone only helps scanning. */
+.pill.cancelled {
+  text-decoration: line-through;
+  opacity: 0.75;
+}
+.execution-block.is-cancelled h3,
+.week-block.is-cancelled strong {
+  text-decoration: line-through;
+  color: var(--muted);
+}
+.execution-block.is-green h3 {
+  color: var(--muted);
+}
+.week-block {
+  border-left: 3px solid transparent;
+}
+.week-block.is-green {
+  border-left-color: var(--success);
+}
+.week-block.is-yellow {
+  border-left-color: var(--warning);
+}
+.week-block.is-red {
+  border-left-color: var(--danger);
+}
+.week-block.is-info {
+  border-left-color: var(--primary);
+}
+
+/* WI-011: shortcuts overlay, category glyphs, empty-state mark, reminder lines. */
+.shortcuts-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  background: rgb(27 26 22 / 35%);
+  display: grid;
+  place-items: center;
+  padding: 24px;
+}
+.shortcuts {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+  padding: 22px 26px;
+  width: min(360px, 100%);
+}
+.shortcuts dl {
+  display: grid;
+  gap: 10px;
+  margin: 14px 0 0;
+}
+.shortcuts dl > div {
+  display: grid;
+  grid-template-columns: 64px 1fr;
+  gap: 12px;
+  align-items: center;
+}
+.shortcuts dt,
+.shortcuts dd {
+  margin: 0;
+}
+.shortcuts dd {
+  font-size: 14px;
+}
+kbd {
+  display: inline-block;
+  min-width: 26px;
+  padding: 3px 7px;
+  border: 1px solid var(--border-strong);
+  border-bottom-width: 2px;
+  border-radius: 6px;
+  background: var(--surface-muted);
+  font-family: var(--font-ui);
+  font-size: 12px;
+  font-weight: 600;
+  text-align: center;
+}
+.category-icon {
+  margin-right: 7px;
+  vertical-align: -2px;
+  color: var(--muted);
+}
+.setup-mark {
+  width: 48px;
+  height: 24px;
+  color: var(--border-strong);
+  margin-bottom: 14px;
+}
+.reminder-lines li {
+  display: grid;
+  gap: 2px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border-subtle);
+}
+.reminder-lines li:last-child {
+  border-bottom: 0;
+}
+.reminder-lines li.is-off strong {
+  color: var(--muted);
+  font-weight: 500;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .shortcuts {
+    animation: silsila-rise var(--motion-normal) var(--motion-easing) both;
+  }
+}

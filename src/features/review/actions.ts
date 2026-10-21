@@ -15,13 +15,16 @@ import {
   setPriorityDone,
 } from './service';
 
-async function perform(work: () => Promise<string>): Promise<ActionState> {
+type Done = string | { message: string; undo?: ActionState['undo'] };
+async function perform(work: () => Promise<Done>): Promise<ActionState> {
   try {
-    const message = await work();
+    const done = await work();
     forgetAll();
     revalidatePath('/review');
     revalidatePath('/today');
-    return { ok: true, message };
+    return typeof done === 'string'
+      ? { ok: true, message: done }
+      : { ok: true, message: done.message, undo: done.undo };
   } catch (error) {
     return {
       message:
@@ -55,8 +58,23 @@ export async function priorityChangeAction(_s: ActionState, f: FormData) {
     const user = await owner(),
       op = z.enum(['up', 'down', 'done', 'undo', 'remove']).parse(f.get('op'));
     if (op === 'up' || op === 'down') await movePriority(user, id(f), op);
-    else if (op === 'remove') await removePriority(user, id(f));
-    else await setPriorityDone(user, id(f), op === 'done');
+    else if (op === 'remove') {
+      const p = await removePriority(user, id(f));
+      return {
+        message: 'Removed.',
+        undo: {
+          kind: 'restore-priority',
+          payload: {
+            weekStart: p.weekStart,
+            title: p.title,
+            category: p.category,
+            goalId: p.goalId,
+            target: p.target,
+            targetUnit: p.targetUnit,
+          },
+        },
+      };
+    } else await setPriorityDone(user, id(f), op === 'done');
     return 'Priorities updated.';
   });
 }

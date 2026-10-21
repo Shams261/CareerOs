@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { BrandMark } from '@/components/brand';
 import { owner } from '@/server/db';
 import { dayKey } from '@/lib/time';
 import { learningSnapshot } from '@/features/learning/service';
@@ -37,6 +38,7 @@ export default async function Learn() {
       </div>
       {!data.subjects.length ? (
         <section className="card setup-card" aria-labelledby="setup-heading">
+          <BrandMark className="setup-mark" />
           <p className="eyebrow">Start here</p>
           <h2 id="setup-heading">Learning is organised by subject.</h2>
           <p>
@@ -148,7 +150,7 @@ export default async function Learn() {
               <p className="muted">Start with due reviews, then a new topic.</p>
             )}
           </section>
-          <section className="card" aria-labelledby="subjects-heading">
+          <section className="card flat" aria-labelledby="subjects-heading">
             <div className="section-head">
               <h2 id="subjects-heading">Subjects</h2>
             </div>
@@ -192,7 +194,7 @@ export default async function Learn() {
             )}
           </section>
           {data.recent.length > 0 && (
-            <section className="card" aria-labelledby="recent-heading">
+            <section className="card flat" aria-labelledby="recent-heading">
               <h2 id="recent-heading">Recent activity</h2>
               {data.recent.map((a) => (
                 <div className="dsa-item" key={a.id}>

@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { BrandMark } from '@/components/brand';
 import { formatInTimeZone } from 'date-fns-tz';
 import { owner } from '@/server/db';
 import { dayKey } from '@/lib/time';
@@ -95,6 +96,7 @@ export default async function Jobs({
       </div>
       {!apps.length ? (
         <section className="card setup-card" aria-labelledby="setup-heading">
+          <BrandMark className="setup-mark" />
           <p className="eyebrow">Start here</p>
           <h2 id="setup-heading">Track your first application.</h2>
           <p>
@@ -178,7 +180,7 @@ export default async function Jobs({
                   )}
                 </section>
               )}
-              <section className="card" aria-labelledby="pipeline-heading">
+              <section className="card flat" aria-labelledby="pipeline-heading">
                 <div className="section-head">
                   <h2 id="pipeline-heading">
                     Applications <span className="muted">· {apps.length}</span>

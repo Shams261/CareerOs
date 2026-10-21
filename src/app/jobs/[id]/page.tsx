@@ -12,6 +12,7 @@ import {
   interviewTime,
   isOpen,
   label,
+  nextRound,
   ownerLabel,
   roundEnd,
 } from '@/features/jobs/domain';
@@ -45,6 +46,7 @@ export default async function Application({
     zone = user.timezone,
     today = dayKey(now, zone),
     follow = followUpState(app, today),
+    upcoming = nextRound(app.rounds, now),
     at = (d: Date) => formatInTimeZone(d, zone, 'MMM d, h:mm a');
   const [topics, problems, dsaTopics] = await Promise.all([
     db().learningTopic.findMany({
@@ -111,17 +113,31 @@ export default async function Application({
           : ''}
       </p>
       <h1>{app.role}</h1>
-      <p className="muted mb-7">
-        Stage: <strong>{label(app.stage)}</strong> · Applied:{' '}
-        {app.appliedAt ? calendarDate(app.appliedAt) : 'not yet'}
-        {app.source ? ` · Source: ${app.source}` : ''}
-        {app.employmentType ? ` · ${app.employmentType}` : ''} · Priority:{' '}
-        {['High', 'Normal', 'Low'][app.priority - 1]}
+      <p className="status-line summary-line mb-7">
+        <span className="pill">{label(app.stage)}</span>
+        {(app.nextAction || app.nextActionDate) && (
+          <span>
+            <strong>{app.nextAction ?? 'Follow up'}</strong>
+            {follow.state === 'overdue'
+              ? ` · overdue by ${follow.days} day${follow.days === 1 ? '' : 's'}`
+              : follow.state === 'today'
+                ? ' · due today'
+                : follow.state === 'upcoming'
+                  ? ` · due ${follow.date}`
+                  : ''}
+          </span>
+        )}
+        {upcoming && (
+          <span>
+            Next interview: {upcoming.title} · {interviewTime(upcoming, zone)}
+          </span>
+        )}
+        <span>
+          Applied {app.appliedAt ? calendarDate(app.appliedAt) : 'not yet'}
+          {app.source ? ` via ${app.source}` : ''}
+        </span>
         {app.jobUrl && (
-          <>
-            {' · '}
-            <ResourceLink url={app.jobUrl}>Open job posting</ResourceLink>
-          </>
+          <ResourceLink url={app.jobUrl}>Job posting</ResourceLink>
         )}
       </p>
       <div className="grid-main">
@@ -343,7 +359,7 @@ export default async function Application({
             )}
           </section>
 
-          <section className="card" aria-labelledby="timeline-heading">
+          <section className="card flat" aria-labelledby="timeline-heading">
             <h2 id="timeline-heading">Timeline</h2>
             <ol className="plain-list">
               {app.activities.map((a) => (
@@ -372,7 +388,7 @@ export default async function Application({
             </p>
             <StageForm app={app} />
           </section>
-          <section className="card">
+          <section className="card flat">
             <h2>Contacts</h2>
             <p>Recruiter: {app.recruiterName ?? 'Not added'}</p>
             {app.recruiterContact && (
@@ -380,7 +396,7 @@ export default async function Application({
             )}
             <p>Hiring contact: {app.hiringContact ?? 'Not added'}</p>
           </section>
-          <section className="card">
+          <section className="card flat">
             <h2>Notes</h2>
             <p className="learning-notes">{app.notes ?? 'No notes yet.'}</p>
             {app.compensationNotes && (

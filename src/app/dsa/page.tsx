@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { BrandMark } from '@/components/brand';
 import { db, owner } from '@/server/db';
 import { dsaSnapshot } from '@/features/dsa/service';
 import {
@@ -84,6 +85,7 @@ export default async function Dsa({
       </div>
       {!topics.length ? (
         <section className="card setup-card" aria-labelledby="setup-heading">
+          <BrandMark className="setup-mark" />
           <p className="eyebrow">Start here</p>
           <h2 id="setup-heading">Practice is organised by topic.</h2>
           <p>
@@ -189,7 +191,7 @@ export default async function Dsa({
                 )}
               </section>
               <section
-                className="card"
+                className="card flat"
                 id="library"
                 aria-labelledby="library-heading"
               >
@@ -310,7 +312,7 @@ export default async function Dsa({
                 )}
               </section>
               {recent.length > 0 && (
-                <section className="card" aria-labelledby="recent-heading">
+                <section className="card flat" aria-labelledby="recent-heading">
                   <h2 id="recent-heading">Recent attempts</h2>
                   {recent.map((a) => (
                     <div className="dsa-item" key={a.id}>

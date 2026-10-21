@@ -4,6 +4,7 @@ import { db } from '@/server/db';
 import type { ScheduleUser } from '@/features/schedule/service';
 import { ResourceLink } from '@/components/resource-link';
 import { interviewTime, label } from './domain';
+import { PrepToggle } from './forms';
 import { jobTodaySummary, todaysInterviews } from './service';
 
 /** Interviews scheduled for this owner-calendar day. Never edits TimeBlocks. */
@@ -29,9 +30,20 @@ export async function TodayInterview({
               {r.application.company} — {r.title}
             </h2>
             <p className="muted">
-              {label(r.type)} · {interviewTime(r, user.timezone)} ·{' '}
-              {r.prepItems.filter((p) => !p.completed).length} prep item(s) open
+              {label(r.type)} · {interviewTime(r, user.timezone)}
             </p>
+            {r.prepItems.some((p) => p.kind === 'PREP' && !p.completed) && (
+              <ul className="plain-list hero-prep" aria-label="Open prep items">
+                {r.prepItems
+                  .filter((p) => p.kind === 'PREP' && !p.completed)
+                  .map((p) => (
+                    <li className="prep-item" key={p.id}>
+                      <span>○ {p.title}</span>
+                      <PrepToggle id={p.id} completed={false} title={p.title} />
+                    </li>
+                  ))}
+              </ul>
+            )}
             <div className="actions">
               <Link
                 className="button secondary"

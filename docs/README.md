@@ -47,3 +47,5 @@ See the [WI-008.3 handoff](WI-008.3-HANDOFF.md) for the post-launch polish from 
 See the [WI-009 handoff](WI-009-HANDOFF.md) for the UX simplification (first-run cards, visible actions, plain words, three-step weekly review) and the goals and roadmap layer.
 
 See the [WI-010 handoff](WI-010-HANDOFF.md) for the week chart, light motion and notes to self.
+
+See the [WI-011 handoff](WI-011-HANDOFF.md) for the UX pass: undo, summaries, phone navigation.

@@ -5,6 +5,7 @@ import { CalendarAttention } from '@/features/calendar/panel';
 import { WeeklyReviewPrompt } from '@/features/review/summary';
 import { isDsa } from '@/features/dsa/domain';
 import Link from 'next/link';
+import { BrandMark } from '@/components/brand';
 import { Suspense } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { ActionForm } from '@/components/action-form';
@@ -19,6 +20,7 @@ import {
   dateInput,
   dayProgress,
   executionLabel,
+  executionTone,
   shiftDay,
 } from '@/features/schedule/domain';
 import {
@@ -31,7 +33,8 @@ import {
 } from '@/features/schedule/forms';
 import { ExecutionRefresh } from '@/features/execution/refresh';
 import { LiveTimer } from '@/features/execution/live';
-import { TodayShortcuts } from '@/features/execution/shortcuts';
+import { PageShortcuts } from '@/components/shortcuts';
+import { CategoryIcon } from '@/components/category-icon';
 import { Chain, TodayGoals } from '@/features/roadmap/summary';
 import { openNotes } from '@/features/notes/service';
 import { NoteList } from '@/features/notes/forms';
@@ -128,7 +131,12 @@ export default async function Today({
   return (
     <>
       <ExecutionRefresh />
-      <TodayShortcuts
+      <PageShortcuts
+        shortcuts={[
+          { key: 'n', label: 'Add a block', press: 'add-block' },
+          { key: 's', label: 'Start the current block', press: 'start' },
+          { key: 't', label: 'Go to today', href: '/today' },
+        ]}
         prev={`/today?date=${shiftDay(day, -1)}`}
         next={`/today?date=${shiftDay(day, 1)}`}
       />
@@ -161,7 +169,7 @@ export default async function Today({
           </Link>
           <DateJump value={day} path="/today" label="Open a date" />
           <span className="kbd-hint muted" aria-hidden="true">
-            N add · S start · ← →
+            N add · S start · ? help
           </span>
         </nav>
       </div>
@@ -213,6 +221,7 @@ export default async function Today({
       )}
       {firstRun ? (
         <section className="card setup-card" aria-labelledby="setup-heading">
+          <BrandMark className="setup-mark" />
           <p className="eyebrow">Start here</p>
           <h2 id="setup-heading">Silsila works from a weekly routine.</h2>
           <p>
@@ -307,7 +316,10 @@ export default async function Today({
                   </p>
                 )}
                 {blocks.map((block) => (
-                  <article className="execution-block" key={block.id}>
+                  <article
+                    className={`execution-block is-${executionTone(executionLabel(block, now)) || 'planned'}`}
+                    key={block.id}
+                  >
                     <div className="block-time">
                       <strong>
                         {clock(block.plannedStart, user.timezone)}
@@ -325,12 +337,17 @@ export default async function Today({
                     <div className="block-body">
                       <div className="row flex-wrap">
                         <div>
-                          <h3>{block.title}</h3>
+                          <h3>
+                            <CategoryIcon category={block.category} />
+                            {block.title}
+                          </h3>
                           <p className="muted block-origin">
                             {block.category} · {origin(block)}
                           </p>
                         </div>
-                        <span className="pill">
+                        <span
+                          className={`pill ${executionTone(executionLabel(block, now))}`}
+                        >
                           {executionLabel(block, now)}
                         </span>
                       </div>

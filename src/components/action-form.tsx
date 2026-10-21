@@ -7,10 +7,14 @@ import {
   useState,
 } from 'react';
 import { Check } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 import type { ActionState } from '@/features/schedule/actions';
+import { undoAction } from '@/features/undo/actions';
 
 /** How long a success message stays beside the button before it clears. */
 const SUCCESS_VISIBLE_MS = 3000;
+/** A message that offers Undo stays longer, so the way back is never a race. */
+const UNDO_VISIBLE_MS = 8000;
 
 export function ActionForm({
   action,
@@ -38,7 +42,10 @@ export function ActionForm({
   // Success clears itself after a moment; problems and previews stay until the next attempt.
   useEffect(() => {
     if (!state.message || !state.ok || state.preview) return;
-    const timer = setTimeout(() => setFaded(state), SUCCESS_VISIBLE_MS);
+    const timer = setTimeout(
+      () => setFaded(state),
+      state.undo ? UNDO_VISIBLE_MS : SUCCESS_VISIBLE_MS,
+    );
     return () => clearTimeout(timer);
   }, [state]);
   const shown = state.message && faded !== state ? state : null;
@@ -94,8 +101,44 @@ export function ActionForm({
         >
           {shown.ok && <Check size={14} aria-hidden="true" />}
           {shown.message}
+          {shown.ok && shown.undo && (
+            <UndoButton undo={shown.undo} onDone={() => setFaded(shown)} />
+          )}
         </p>
       )}
     </form>
+  );
+}
+
+/** Reverses the action that produced the message; the page refreshes with the restored record. */
+function UndoButton({
+  undo,
+  onDone,
+}: {
+  undo: NonNullable<ActionState['undo']>;
+  onDone: () => void;
+}) {
+  const router = useRouter();
+  const [busy, setBusy] = useState(false);
+  const [result, setResult] = useState('');
+  if (result) return <span className="undo-result">{result}</span>;
+  return (
+    <button
+      type="button"
+      className="undo-link"
+      disabled={busy}
+      onClick={async () => {
+        setBusy(true);
+        const r = await undoAction(undo.kind, undo.payload);
+        setBusy(false);
+        setResult(r.message);
+        if (r.ok) {
+          router.refresh();
+          setTimeout(onDone, SUCCESS_VISIBLE_MS);
+        }
+      }}
+    >
+      {busy ? 'Undoing…' : (undo.label ?? 'Undo')}
+    </button>
   );
 }
