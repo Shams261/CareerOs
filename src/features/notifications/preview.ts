@@ -20,43 +20,52 @@ export async function remindersPreview(user: ScheduleUser, monday: string) {
   const sunday = shiftDay(monday, 6),
     start = dayBounds(monday, user.timezone).start,
     end = dayBounds(sunday, user.timezone).end;
-  const [prefs, dsaDue, reviewsDue, followUps, interviews] = await Promise.all([
-    db().notificationPreference.findMany({ where: { userId: user.id } }),
-    db().dsaProblem.count({
-      where: {
-        userId: user.id,
-        nextRevisionAt: { gte: new Date(monday), lte: new Date(sunday) },
-      },
-    }),
-    db().learningTopic.count({
-      where: {
-        userId: user.id,
-        nextReviewDate: { gte: new Date(monday), lte: new Date(sunday) },
-        status: { notIn: ['COMPLETED', 'PAUSED'] },
-      },
-    }),
-    db().jobApplication.findMany({
-      where: {
-        userId: user.id,
-        stage: { notIn: ['REJECTED', 'WITHDRAWN'] },
-        nextActionDate: { gte: new Date(monday), lte: new Date(sunday) },
-      },
-      select: { company: true, nextActionDate: true },
-      orderBy: { nextActionDate: 'asc' },
-    }),
-    db().interviewRound.findMany({
-      where: {
-        userId: user.id,
-        status: 'SCHEDULED',
-        scheduledStart: { gte: start, lt: end },
-      },
-      select: {
-        scheduledStart: true,
-        application: { select: { company: true } },
-      },
-      orderBy: { scheduledStart: 'asc' },
-    }),
-  ]);
+  const [prefs, dsaDue, reviewsDue, followUps, interviews, itemsDue] =
+    await Promise.all([
+      db().notificationPreference.findMany({ where: { userId: user.id } }),
+      db().dsaProblem.count({
+        where: {
+          userId: user.id,
+          nextRevisionAt: { gte: new Date(monday), lte: new Date(sunday) },
+        },
+      }),
+      db().learningTopic.count({
+        where: {
+          userId: user.id,
+          nextReviewDate: { gte: new Date(monday), lte: new Date(sunday) },
+          status: { notIn: ['COMPLETED', 'PAUSED'] },
+        },
+      }),
+      db().jobApplication.findMany({
+        where: {
+          userId: user.id,
+          stage: { notIn: ['REJECTED', 'WITHDRAWN'] },
+          nextActionDate: { gte: new Date(monday), lte: new Date(sunday) },
+        },
+        select: { company: true, nextActionDate: true },
+        orderBy: { nextActionDate: 'asc' },
+      }),
+      db().interviewRound.findMany({
+        where: {
+          userId: user.id,
+          status: 'SCHEDULED',
+          scheduledStart: { gte: start, lt: end },
+        },
+        select: {
+          scheduledStart: true,
+          application: { select: { company: true } },
+        },
+        orderBy: { scheduledStart: 'asc' },
+      }),
+      db().roadmapItem.count({
+        where: {
+          userId: user.id,
+          status: 'DONE',
+          roadmap: { archivedAt: null },
+          nextRevisionAt: { gte: new Date(monday), lte: new Date(sunday) },
+        },
+      }),
+    ]);
   const pref = (type: string) => prefs.find((p) => p.type === type);
   const on = (type: string, fallback: boolean) =>
     pref(type)?.enabled ?? fallback;
@@ -76,11 +85,12 @@ export async function remindersPreview(user: ScheduleUser, monday: string) {
         : `${time('DSA_REVISION', '18:00')} on days with something due · nothing due this week.`,
     },
     {
-      title: 'Technical reviews',
+      title: 'Roadmap and topic revisions',
       on: on('TECHNICAL_REVIEW', false),
-      detail: reviewsDue
-        ? `${time('TECHNICAL_REVIEW', '18:00')} on days with something due · ${reviewsDue} due this week.`
-        : `${time('TECHNICAL_REVIEW', '18:00')} on days with something due · nothing due this week.`,
+      detail:
+        reviewsDue + itemsDue
+          ? `${time('TECHNICAL_REVIEW', '18:00')} on days with something due · ${reviewsDue + itemsDue} due this week.`
+          : `${time('TECHNICAL_REVIEW', '18:00')} on days with something due · nothing due this week.`,
     },
     {
       title: 'Job follow-ups',

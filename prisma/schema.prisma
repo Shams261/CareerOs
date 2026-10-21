@@ -871,6 +871,10 @@ model RoadmapItem {
   url              String?
   status           RoadmapItemStatus @default(NOT_STARTED)
   completedAt      DateTime?         @db.Timestamptz(3)
+  /// Spaced revision after Done: stage 1 → 7 days, 2 → 14, 3 → 30, then 60. A calendar label.
+  nextRevisionAt   DateTime?         @db.Date
+  revisionStage    Int               @default(0)
+  lastRevisedAt    DateTime?         @db.Timestamptz(3)
   askedInInterview Boolean           @default(false)
   askedNote        String?
   ordering         Int               @default(0)
@@ -884,6 +888,7 @@ model RoadmapItem {
   updatedAt        DateTime          @updatedAt @db.Timestamptz(3)
 
   @@unique([roadmapId, slug])
+  @@index([userId, nextRevisionAt])
   @@index([roadmapId, section, ordering])
   @@index([userId, status])
   @@index([learningTopicId])

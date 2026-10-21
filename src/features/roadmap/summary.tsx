@@ -2,7 +2,7 @@ import Link from 'next/link';
 import type { ScheduleUser } from '@/features/schedule/service';
 import { dayKey } from '@/lib/time';
 import { formatInTimeZone } from 'date-fns-tz';
-import { chainDays, goalsOverview } from './service';
+import { chainDays, goalsOverview, revisionDue } from './service';
 import { targetLabel } from './domain';
 
 const hours = (minutes: number) =>
@@ -87,5 +87,44 @@ export async function Chain({ user, now }: { user: ScheduleUser; now: Date }) {
         </li>
       ))}
     </ol>
+  );
+}
+
+/** Roadmap items due for revision today or earlier; hidden when nothing is due. */
+export async function TodayRevision({
+  user,
+  now,
+}: {
+  user: ScheduleUser;
+  now: Date;
+}) {
+  const due = await revisionDue(user, now);
+  if (!due.length) return null;
+  return (
+    <section className="card" aria-labelledby="revision-heading">
+      <h2 id="revision-heading">Revise today</h2>
+      <p className="muted">
+        {due.length} item{due.length === 1 ? '' : 's'} from your roadmaps. Study
+        again, then press Revised.
+      </p>
+      <ol className="dsa-list">
+        {due.slice(0, 5).map((i) => (
+          <li key={i.id}>
+            <Link
+              className="link"
+              href={`/roadmap/${i.roadmap.id}#item-${i.id}`}
+            >
+              {i.title}
+            </Link>
+            <span className="muted"> · {i.roadmap.title}</span>
+          </li>
+        ))}
+      </ol>
+      {due.length > 5 && (
+        <Link className="link" href="/roadmap">
+          All roadmaps →
+        </Link>
+      )}
+    </section>
   );
 }

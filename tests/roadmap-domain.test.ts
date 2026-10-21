@@ -9,8 +9,11 @@ import {
   parseScenarioLines,
   referenceLines,
   renderPrompt,
+  revisionQueue,
+  revisionState,
   roadmapProgress,
   scenarioLines,
+  scheduleRevision,
   sectionSummary,
   targetLabel,
 } from '../src/features/roadmap/domain';
@@ -184,5 +187,51 @@ describe('WI-012 tracker helpers', () => {
     expect(fallback).toContain('Not written down; use the topic title.');
     expect(fallback).toContain(DEFAULT_SCENARIOS[0].intro);
     expect(fallback).not.toContain('{{');
+  });
+});
+
+describe('roadmap revision', () => {
+  it('schedules 7, 14, 30 then 60 days and caps the stage', () => {
+    expect(scheduleRevision(0, '2026-10-21')).toEqual({
+      revisionStage: 1,
+      nextRevisionAt: new Date('2026-10-28'),
+    });
+    expect(scheduleRevision(1, '2026-10-28')).toEqual({
+      revisionStage: 2,
+      nextRevisionAt: new Date('2026-11-11'),
+    });
+    expect(scheduleRevision(2, '2026-11-11').nextRevisionAt).toEqual(
+      new Date('2026-12-11'),
+    );
+    expect(scheduleRevision(3, '2026-12-11')).toEqual({
+      revisionStage: 4,
+      nextRevisionAt: new Date('2027-02-09'),
+    });
+    expect(scheduleRevision(9, '2026-12-11').revisionStage).toBe(4);
+  });
+  it('classifies due dates as labels and queues the most overdue first', () => {
+    const at = (d: string) => new Date(d);
+    const items = [
+      { id: 'a', status: 'DONE' as const, nextRevisionAt: at('2026-10-21') },
+      { id: 'b', status: 'DONE' as const, nextRevisionAt: at('2026-10-19') },
+      { id: 'c', status: 'DONE' as const, nextRevisionAt: at('2026-10-25') },
+      {
+        id: 'd',
+        status: 'IN_PROGRESS' as const,
+        nextRevisionAt: at('2026-10-19'),
+      },
+      { id: 'e', status: 'DONE' as const, nextRevisionAt: null },
+    ];
+    expect(items.map((i) => revisionState(i, '2026-10-21'))).toEqual([
+      'due',
+      'overdue',
+      'upcoming',
+      'none',
+      'none',
+    ]);
+    expect(revisionQueue(items, '2026-10-21').map((i) => i.id)).toEqual([
+      'b',
+      'a',
+    ]);
   });
 });

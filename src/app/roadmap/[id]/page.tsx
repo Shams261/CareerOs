@@ -14,9 +14,14 @@ import { StudyPrompt } from '@/features/roadmap/study-prompt';
 import { linkOptions, roadmapDetail } from '@/features/roadmap/service';
 import {
   DEFAULT_SCENARIOS,
+  revisionDay,
+  revisionQueue,
+  revisionState,
   type Reference,
   type Scenario,
 } from '@/features/roadmap/domain';
+import { dayKey } from '@/lib/time';
+import { formatInTimeZone } from 'date-fns-tz';
 
 const mark = { NOT_STARTED: '○', IN_PROGRESS: '◐', DONE: '✓' } as const;
 const markText = {
@@ -31,8 +36,11 @@ const statusFilters = {
   open: 'Not done',
   in_progress: 'In progress',
   done: 'Done',
+  revision: 'Due for revision',
   asked: 'Asked in interviews',
 } as const;
+const dateLabel = (d: Date) =>
+  formatInTimeZone(new Date(`${revisionDay(d)}T12:00:00Z`), 'UTC', 'MMM d');
 type StatusFilter = keyof typeof statusFilters;
 
 export default async function RoadmapDetail({
@@ -47,6 +55,8 @@ export default async function RoadmapDetail({
     query = await searchParams,
     roadmap = await roadmapDetail(user, id);
   if (!roadmap) notFound();
+  const today = dayKey(new Date(), user.timezone);
+  const due = revisionQueue(roadmap.items, today).length;
   const [links, goals] = await Promise.all([
     linkOptions(user.id),
     db().goal.findMany({
@@ -72,6 +82,8 @@ export default async function RoadmapDetail({
       (status === 'open' && item.status !== 'DONE') ||
       (status === 'in_progress' && item.status === 'IN_PROGRESS') ||
       (status === 'done' && item.status === 'DONE') ||
+      (status === 'revision' &&
+        ['due', 'overdue'].includes(revisionState(item, today))) ||
       (status === 'asked' && item.askedInInterview)) &&
     (!priority || item.priority === priority);
   const shown = roadmap.items.filter(keep).length;
@@ -106,6 +118,16 @@ export default async function RoadmapDetail({
         {roadmap.progress.asked > 0 && (
           <span>{roadmap.progress.asked} came up in interviews</span>
         )}
+        {due > 0 && (
+          <span>
+            <Link
+              className="link"
+              href={`/roadmap/${roadmap.id}?status=revision`}
+            >
+              {due} due for revision
+            </Link>
+          </span>
+        )}
         {roadmap.next && (
           <span>
             Continue:{' '}
@@ -114,6 +136,9 @@ export default async function RoadmapDetail({
             </a>
           </span>
         )}
+        <Disclosure variant="link" label="Edit roadmap">
+          <RoadmapForm roadmap={roadmap} goals={goals} />
+        </Disclosure>
       </p>
       {filtering && (
         <form className="dsa-filters mb-5" method="get" aria-label="Filters">
@@ -173,13 +198,6 @@ export default async function RoadmapDetail({
                   · {done} of {all.length}
                 </span>
               </h2>
-              <Disclosure variant="link" label="Add to this section">
-                <BulkItemsForm
-                  roadmapId={roadmap.id}
-                  sections={sections}
-                  section={section}
-                />
-              </Disclosure>
             </div>
             <ol className="plain-list">
               {items.map((item) => {
@@ -223,6 +241,19 @@ export default async function RoadmapDetail({
                         {item.estimateMinutes && (
                           <span className="muted roadmap-estimate">
                             {item.estimateMinutes} min
+                          </span>
+                        )}
+                        {revisionState(item, today) === 'upcoming' && (
+                          <span className="muted roadmap-estimate">
+                            Revise {dateLabel(item.nextRevisionAt!)}
+                          </span>
+                        )}
+                        {revisionState(item, today) === 'due' && (
+                          <span className="pill yellow">Revise today</span>
+                        )}
+                        {revisionState(item, today) === 'overdue' && (
+                          <span className="pill red">
+                            Revision overdue · {dateLabel(item.nextRevisionAt!)}
                           </span>
                         )}
                       </p>
@@ -348,11 +379,6 @@ export default async function RoadmapDetail({
           <p className="muted">Nothing matches these filters.</p>
         </section>
       )}
-      <Disclosure label="Edit roadmap">
-        <section className="card">
-          <RoadmapForm roadmap={roadmap} goals={goals} />
-        </section>
-      </Disclosure>
     </>
   );
 }

@@ -348,6 +348,14 @@ export function ItemForm({
             placeholder="Amazon phone screen"
           />
         </label>
+        <label>
+          Revise on (clear to stop)
+          <input
+            name="nextRevisionAt"
+            type="date"
+            defaultValue={item.nextRevisionAt?.toISOString().slice(0, 10) ?? ''}
+          />
+        </label>
       </div>
       <datalist id={`sections-edit-${item.roadmapId}`}>
         {sections.map((s) => (
@@ -404,7 +412,10 @@ export function ItemForm({
 export function ItemControls({
   item,
 }: {
-  item: Pick<RoadmapItem, 'id' | 'title' | 'status' | 'askedInInterview'>;
+  item: Pick<
+    RoadmapItem,
+    'id' | 'title' | 'status' | 'askedInInterview' | 'nextRevisionAt'
+  >;
 }) {
   return (
     <ActionForm action={itemOpAction} label={`Actions for ${item.title}`}>
@@ -420,9 +431,16 @@ export function ItemControls({
             Done
           </button>
         ) : (
-          <button className="button secondary" name="op" value="reopen">
-            Reopen
-          </button>
+          <>
+            {item.nextRevisionAt && (
+              <button className="button" name="op" value="revised">
+                Revised
+              </button>
+            )}
+            <button className="button secondary" name="op" value="reopen">
+              Reopen
+            </button>
+          </>
         )}
         <button
           className="button secondary"

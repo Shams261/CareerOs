@@ -344,7 +344,7 @@ export function LearningReminderForm({
           name="enabled"
           defaultChecked={pref?.enabled ?? false}
         />
-        Daily technical review reminder
+        Remind me when roadmap items or topics are due for revision
       </label>
       <label>
         Local reminder time

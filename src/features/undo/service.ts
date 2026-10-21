@@ -37,6 +37,8 @@ const kinds = {
     estimateMinutes: z.number().int().nullable().optional(),
     references: z.unknown().optional(),
     sourceRef: z.string().max(200).nullable().optional(),
+    nextRevisionAt: z.string().nullable().optional(),
+    revisionStage: z.number().int().optional(),
     status: z.enum(['NOT_STARTED', 'IN_PROGRESS', 'DONE']),
     askedInInterview: z.boolean(),
     askedNote: z.string().max(200).nullable().optional(),
@@ -119,6 +121,8 @@ export async function restore(
               ? Prisma.DbNull
               : (p.references as Prisma.InputJsonValue),
           sourceRef: p.sourceRef ?? null,
+          nextRevisionAt: p.nextRevisionAt ? new Date(p.nextRevisionAt) : null,
+          revisionStage: p.revisionStage ?? 0,
           status: p.status,
           completedAt: p.status === 'DONE' ? new Date() : null,
           askedInInterview: p.askedInInterview,

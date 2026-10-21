@@ -87,6 +87,9 @@ export async function itemOpAction(_s: ActionState, f: FormData) {
             estimateMinutes: item.estimateMinutes,
             references: item.references,
             sourceRef: item.sourceRef,
+            nextRevisionAt:
+              item.nextRevisionAt?.toISOString().slice(0, 10) ?? null,
+            revisionStage: item.revisionStage,
             status: item.status,
             askedInInterview: item.askedInInterview,
             askedNote: item.askedNote,
@@ -97,6 +100,12 @@ export async function itemOpAction(_s: ActionState, f: FormData) {
           },
         },
       };
-    return op === 'asked' ? 'Marked as asked in an interview.' : 'Saved.';
+    return op === 'asked'
+      ? 'Marked as asked in an interview.'
+      : op === 'revised'
+        ? 'Revision recorded; the next one is scheduled.'
+        : op === 'done'
+          ? 'Done. Revision in 7 days.'
+          : 'Saved.';
   });
 }

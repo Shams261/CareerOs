@@ -192,14 +192,28 @@ export async function processNotifications(now = new Date()) {
         }
         if (pref.type === 'TECHNICAL_REVIEW') {
           const reviewDay = dayKey(now, user.timezone);
-          const due = await tx.learningTopic.count({
-            where: {
-              userId: user.id,
-              subject: { userId: user.id, status: 'ACTIVE' },
-              status: { in: ['LEARNING', 'NEEDS_REVISION', 'INTERVIEW_READY'] },
-              nextReviewDate: { lte: new Date(reviewDay) },
-            },
-          });
+          // Roadmap items (WI-012) and Learn topics share one revision reminder.
+          const [items, topics] = await Promise.all([
+            tx.roadmapItem.count({
+              where: {
+                userId: user.id,
+                status: 'DONE',
+                nextRevisionAt: { lte: new Date(reviewDay) },
+                roadmap: { archivedAt: null },
+              },
+            }),
+            tx.learningTopic.count({
+              where: {
+                userId: user.id,
+                subject: { userId: user.id, status: 'ACTIVE' },
+                status: {
+                  in: ['LEARNING', 'NEEDS_REVISION', 'INTERVIEW_READY'],
+                },
+                nextReviewDate: { lte: new Date(reviewDay) },
+              },
+            }),
+          ]);
+          const due = items + topics;
           if (
             due &&
             now >= localInstant(reviewDay, pref.preferredTime, user.timezone)
@@ -207,7 +221,7 @@ export async function processNotifications(now = new Date()) {
             await queue(
               'day',
               reviewDay,
-              `${due} technical topic${due === 1 ? '' : 's'} due for review today.`,
+              `${due} item${due === 1 ? '' : 's'} due for revision today.`,
               now,
             );
         }

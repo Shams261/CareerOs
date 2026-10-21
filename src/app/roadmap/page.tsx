@@ -23,7 +23,7 @@ export default async function RoadmapPage() {
     today = dayKey(now, user.timezone);
   const [goals, roadmaps] = await Promise.all([
     goalsOverview(user, now),
-    roadmapList(user),
+    roadmapList(user, now),
   ]);
   const active = goals.filter((g) => g.status === 'ACTIVE'),
     rest = goals.filter((g) => g.status !== 'ACTIVE'),
@@ -149,6 +149,7 @@ export default async function RoadmapPage() {
                   ? ` · ${r.progress.inProgress} in progress`
                   : ''}
                 {r.progress.asked ? ` · ${r.progress.asked} asked` : ''}
+                {r.due ? ` · ${r.due} due for revision` : ''}
                 {r.goal ? ` · ${r.goal.title}` : ''}
               </p>
               {r.next && (

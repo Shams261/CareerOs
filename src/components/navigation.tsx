@@ -7,7 +7,6 @@ import {
   CalendarDays,
   Route,
   Code2,
-  BookOpen,
   Briefcase,
   ClipboardCheck,
   Settings,
@@ -15,13 +14,13 @@ import {
   X,
 } from 'lucide-react';
 // Labels say what you do there; routes are unchanged. The first four are the daily places and
-// form the phone bar; the rest sit behind More on a phone.
+// form the phone bar; the rest sit behind More on a phone. Learn (/learn) stays reachable by URL
+// and from item links but is off the menu since WI-012: the roadmap carries revision.
 const items = [
   ['/today', 'Today', Sun],
   ['/calendar', 'Plan', CalendarDays],
   ['/roadmap', 'Roadmap', Route],
   ['/dsa', 'Practice', Code2],
-  ['/learn', 'Learn', BookOpen],
   ['/jobs', 'Jobs', Briefcase],
   ['/review', 'Weekly review', ClipboardCheck],
   ['/settings', 'Settings', Settings],

@@ -13,8 +13,10 @@ import {
   nextStatus,
   nextItem,
   parseBulkLines,
+  revisionQueue,
   roadmapInput,
   roadmapProgress,
+  scheduleRevision,
   sectionSummary,
   type ItemOp,
 } from './domain';
@@ -160,19 +162,40 @@ export async function saveItem(user: ScheduleUser, raw: unknown) {
         notes: input.notes,
         url: input.url,
         askedNote: input.askedNote,
+        // A typed date overrides the schedule; clearing it stops revision for this item.
+        nextRevisionAt: input.nextRevisionAt
+          ? new Date(input.nextRevisionAt)
+          : null,
         ...links,
       },
     });
   });
 }
 
-/** Status and interview marks. Never touches Learn mastery or Practice attempts. */
-export async function applyItemOp(user: ScheduleUser, raw: unknown) {
+/** Status, revision and interview marks. Never touches Learn mastery or Practice attempts. */
+export async function applyItemOp(
+  user: ScheduleUser,
+  raw: unknown,
+  now = new Date(),
+) {
   const { id, op } = z
     .object({ id: z.string().min(1), op: z.enum(itemOps) })
     .parse(raw);
+  const today = dayKey(now, user.timezone);
   return locked(user.id, async (tx) => {
     const item = await ownedItem(tx, user.id, id);
+    if (op === 'revised') {
+      if (item.status !== 'DONE')
+        throw new Error('Mark the item done before recording a revision.');
+      await tx.roadmapItem.update({
+        where: { id: item.id },
+        data: {
+          ...scheduleRevision(item.revisionStage, today),
+          lastRevisedAt: now,
+        },
+      });
+      return { op, item };
+    }
     if (op === 'remove') {
       await tx.roadmapItem.delete({ where: { id: item.id } });
       return { op, item };
@@ -185,12 +208,19 @@ export async function applyItemOp(user: ScheduleUser, raw: unknown) {
       return { op, item };
     }
     const status = nextStatus(op as ItemOp, item.status);
+    // Done starts spaced revision (7 days); reopening stops it until the item is done again.
+    const revision =
+      status === 'DONE'
+        ? item.nextRevisionAt
+          ? {}
+          : scheduleRevision(0, today)
+        : { nextRevisionAt: null, revisionStage: 0 };
     await tx.roadmapItem.update({
       where: { id: item.id },
       data: {
         status,
-        completedAt:
-          status === 'DONE' ? (item.completedAt ?? new Date()) : null,
+        completedAt: status === 'DONE' ? (item.completedAt ?? now) : null,
+        ...revision,
       },
     });
     return { op, item };
@@ -292,9 +322,11 @@ const itemSummary = {
   priority: true,
   ordering: true,
   createdAt: true,
+  nextRevisionAt: true,
 } satisfies Prisma.RoadmapItemSelect;
 
-export async function roadmapList(user: ScheduleUser) {
+export async function roadmapList(user: ScheduleUser, now = new Date()) {
+  const today = dayKey(now, user.timezone);
   const roadmaps = await db().roadmap.findMany({
     where: { userId: user.id },
     include: {
@@ -308,8 +340,34 @@ export async function roadmapList(user: ScheduleUser) {
     progress: roadmapProgress(r.items),
     sections: sectionSummary(r.items),
     next: nextItem(r.items),
+    due: revisionQueue(r.items, today).length,
   }));
 }
+
+/** Items due or overdue for revision across the owner's live roadmaps, for Today. */
+async function loadRevisionDue(user: ScheduleUser, now = new Date()) {
+  const today = dayKey(now, user.timezone);
+  const items = await db().roadmapItem.findMany({
+    where: {
+      userId: user.id,
+      status: 'DONE',
+      nextRevisionAt: { lte: new Date(today) },
+      roadmap: { archivedAt: null },
+    },
+    select: {
+      id: true,
+      title: true,
+      section: true,
+      status: true,
+      nextRevisionAt: true,
+      roadmap: { select: { id: true, title: true } },
+    },
+    orderBy: { nextRevisionAt: 'asc' },
+  });
+  return revisionQueue(items, today);
+}
+export const revisionDue = (user: ScheduleUser, now = new Date()) =>
+  memo(user.id, 'roadmap-revision', () => loadRevisionDue(user, now));
 
 export async function roadmapDetail(user: ScheduleUser, id: string) {
   const roadmap = await db().roadmap.findFirst({

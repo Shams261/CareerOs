@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { dateInput } from '@/features/schedule/domain';
+import { dateInput, shiftDay } from '@/features/schedule/domain';
 
 const text = (max: number) =>
   z
@@ -209,6 +209,10 @@ export const itemInput = z.object({
     .optional()
     .transform((v) => v || null),
   askedNote: text(200),
+  nextRevisionAt: z
+    .union([z.literal(''), dateInput])
+    .optional()
+    .transform((v) => v || null),
   link: z
     .string()
     .regex(/^(|learning:[\w-]+|dsa-topic:[\w-]+|problem:[\w-]+)$/)
@@ -219,6 +223,7 @@ export const itemOps = [
   'start',
   'done',
   'reopen',
+  'revised',
   'asked',
   'unasked',
   'remove',
@@ -384,4 +389,37 @@ export function nextItem(items: SummaryItem[]) {
         status: pick.status,
       }
     : null;
+}
+
+/** Days until the next revision after each pass: Done → 7, then 14, 30, and 60 from there on. */
+export const REVISION_DAYS = [7, 14, 30, 60] as const;
+/**
+ * The next revision after a pass at `stage` (0 = just marked done). Dates are calendar labels
+ * in the owner's zone; `today` is a YYYY-MM-DD day key.
+ */
+export function scheduleRevision(stage: number, today: string) {
+  const index = Math.min(Math.max(stage, 0), REVISION_DAYS.length - 1);
+  return {
+    revisionStage: index + 1,
+    nextRevisionAt: new Date(shiftDay(today, REVISION_DAYS[index])),
+  };
+}
+export type RevisionItem = { nextRevisionAt: Date | null; status: ItemStatus };
+export const revisionDay = (d: Date) => d.toISOString().slice(0, 10);
+export function revisionState(item: RevisionItem, today: string) {
+  if (!item.nextRevisionAt || item.status !== 'DONE') return 'none';
+  const due = revisionDay(item.nextRevisionAt);
+  return due < today ? 'overdue' : due === today ? 'due' : 'upcoming';
+}
+/** Items due or overdue for revision, most overdue first. */
+export function revisionQueue<T extends RevisionItem & { id: string }>(
+  items: T[],
+  today: string,
+) {
+  return items
+    .filter((i) => ['due', 'overdue'].includes(revisionState(i, today)))
+    .sort(
+      (a, b) =>
+        +a.nextRevisionAt! - +b.nextRevisionAt! || a.id.localeCompare(b.id),
+    );
 }
