@@ -1,6 +1,6 @@
 # Design consistency plan: Roadmap and Practice first, then the rest
 
-Status: **proposal, waiting for approval.** Nothing in this document has been applied. Written 2026-10-21 on branch `feat/wi-012-roadmap-tracker` after the WI-012 review. Two fixes that were pure regressions from that branch were applied and pushed before this plan (a `<div>` inside a `<p>` that broke hydration, and the per-item edit form that made a 304-item roadmap a 19.5 MB page); everything else waits.
+Status: **sections 5 and 6 superseded by the approved mock and implemented on 2026-10-21** (roadmap page as section navigation with one open item, overview rows, Practice due-first with a quiet library, one-question attempt form). Sections 2–4 and the batches in section 7 (tokens, buttons, pills, list rows, page headers, icons across the rest of the app) still wait for approval. Written 2026-10-21 on branch `feat/wi-012-roadmap-tracker` after the WI-012 review. Two fixes that were pure regressions from that branch were applied and pushed before this plan (a `<div>` inside a `<p>` that broke hydration, and the per-item edit form that made a 304-item roadmap a 19.5 MB page); everything else waits.
 
 Scope of the changes proposed here: `/roadmap`, `/roadmap/[id]`, `/dsa`, `/dsa/[id]` for the visual and UX work; the whole frontend for the inventory and the token migration, styling and component usage only, no behaviour changes unless an item is marked **Needs approval**.
 

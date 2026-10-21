@@ -10,7 +10,11 @@ import {
   saveProblem,
   saveTopic,
   scheduleRevision,
+  setCurrentTopic,
 } from './service';
+import { db } from '@/server/db';
+import { revisionDay } from './domain';
+import { formatInTimeZone } from 'date-fns-tz';
 async function perform(work: () => Promise<string>): Promise<ActionState> {
   try {
     const message = await work();
@@ -46,8 +50,29 @@ export async function problemAction(_state: ActionState, form: FormData) {
 }
 export async function attemptAction(_state: ActionState, form: FormData) {
   return perform(async () => {
-    await recordAttempt(await owner(), Object.fromEntries(form));
-    return 'Attempt saved.';
+    const user = await owner();
+    const attempt = await recordAttempt(user, Object.fromEntries(form));
+    const problem = await db().dsaProblem.findFirst({
+      where: { id: attempt.problemId, userId: user.id },
+      select: { nextRevisionAt: true },
+    });
+    const next = problem?.nextRevisionAt
+      ? formatInTimeZone(
+          new Date(`${revisionDay(problem.nextRevisionAt)}T12:00:00Z`),
+          'UTC',
+          'MMM d',
+        )
+      : null;
+    return next ? `Attempt saved. Next revision ${next}.` : 'Attempt saved.';
+  });
+}
+export async function makeCurrentAction(_state: ActionState, form: FormData) {
+  return perform(async () => {
+    const topic = await setCurrentTopic(
+      await owner(),
+      String(form.get('id') ?? ''),
+    );
+    return `${topic.name} is the current topic.`;
   });
 }
 export async function revisionAction(_state: ActionState, form: FormData) {

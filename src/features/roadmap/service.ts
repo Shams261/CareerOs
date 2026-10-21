@@ -172,6 +172,20 @@ export async function saveItem(user: ScheduleUser, raw: unknown) {
   });
 }
 
+/** The one-field note from the Study panel; everything else on the item stays as it is. */
+export async function saveItemNotes(user: ScheduleUser, raw: unknown) {
+  const input = z
+    .object({ id: z.string().min(1), notes: z.string().max(20000) })
+    .parse(raw);
+  return locked(user.id, async (tx) => {
+    const item = await ownedItem(tx, user.id, input.id);
+    return tx.roadmapItem.update({
+      where: { id: item.id },
+      data: { notes: input.notes.trim() || null },
+    });
+  });
+}
+
 /** Status, revision and interview marks. Never touches Learn mastery or Practice attempts. */
 export async function applyItemOp(
   user: ScheduleUser,

@@ -1,16 +1,11 @@
 import { ActionForm } from '@/components/action-form';
-import type { Goal, Roadmap, RoadmapItem } from '@/generated/prisma/client';
+import type { Goal, Roadmap } from '@/generated/prisma/client';
 import {
   DEFAULT_PROMPT_TEMPLATE,
   scenarioLines,
   type Scenario,
 } from './domain';
-import {
-  bulkItemsAction,
-  goalAction,
-  itemOpAction,
-  roadmapAction,
-} from './actions';
+import { bulkItemsAction, goalAction, roadmapAction } from './actions';
 
 export type LinkOption = { value: string; label: string };
 const GOAL_CATEGORIES = [
@@ -249,61 +244,6 @@ export function BulkItemsForm({
       </label>
       <p className="muted">Start a line with ? to mark a question.</p>
       <button className="button">Add items</button>
-    </ActionForm>
-  );
-}
-
-/** Status and interview marks on one row. */
-export function ItemControls({
-  item,
-}: {
-  item: Pick<
-    RoadmapItem,
-    'id' | 'title' | 'status' | 'askedInInterview' | 'nextRevisionAt'
-  >;
-}) {
-  return (
-    <ActionForm action={itemOpAction} label={`Actions for ${item.title}`}>
-      <input type="hidden" name="id" value={item.id} />
-      <div className="actions item-actions">
-        {item.status === 'NOT_STARTED' && (
-          <button className="button secondary" name="op" value="start">
-            Start
-          </button>
-        )}
-        {item.status !== 'DONE' ? (
-          <button className="button" name="op" value="done">
-            Done
-          </button>
-        ) : (
-          <>
-            {item.nextRevisionAt && (
-              <button className="button" name="op" value="revised">
-                Revised
-              </button>
-            )}
-            <button className="button secondary" name="op" value="reopen">
-              Reopen
-            </button>
-          </>
-        )}
-        <button
-          className="button secondary"
-          name="op"
-          value={item.askedInInterview ? 'unasked' : 'asked'}
-          aria-pressed={item.askedInInterview}
-        >
-          {item.askedInInterview ? 'Asked ✓' : 'Asked in interview'}
-        </button>
-        <button
-          className="button secondary"
-          name="op"
-          value="remove"
-          aria-label={`Remove ${item.title}`}
-        >
-          Remove
-        </button>
-      </div>
     </ActionForm>
   );
 }
