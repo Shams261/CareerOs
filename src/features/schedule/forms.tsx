@@ -336,6 +336,13 @@ export function ExecutionControls({
             <button className="button secondary" name="action" value="cancel">
               Cancel block
             </button>
+            <input
+              className="reason"
+              name="reason"
+              maxLength={300}
+              aria-label="Skip reason (optional)"
+              placeholder="Skip reason (optional)"
+            />
           </>
         ) : (
           <button className="button secondary" name="action" value="reset">
@@ -343,16 +350,6 @@ export function ExecutionControls({
           </button>
         )}
       </div>
-      {['PLANNED', 'IN_PROGRESS'].includes(block.status) && (
-        <label className="muted">
-          Skip reason (optional)
-          <input
-            name="reason"
-            maxLength={300}
-            placeholder="e.g. Work ran late"
-          />
-        </label>
-      )}
     </ActionForm>
   );
 }

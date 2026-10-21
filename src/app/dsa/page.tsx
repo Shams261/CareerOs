@@ -122,200 +122,221 @@ export default async function Dsa({
               </div>
             </div>
           </section>
-          <section
-            className="card"
-            id="revision-queue"
-            aria-labelledby="queue-heading"
-          >
-            <h2 id="queue-heading">Due for revision</h2>
-            {!queue.length && <p className="muted">Nothing due.</p>}
-            {['overdue', 'due'].map((group) => (
-              <div key={group}>
-                {queue.some((p) => learningState(p, day) === group) && (
-                  <h3 className="mt-5">
-                    {group === 'overdue' ? 'Overdue' : 'Due today'}
-                  </h3>
+          {!problems.length ? (
+            <section className="card" aria-labelledby="problems-heading">
+              <h2 id="problems-heading">Problems</h2>
+              <p className="muted">
+                No problems yet. Add the first one with the button above; the
+                revision queue and your attempts appear here.
+              </p>
+            </section>
+          ) : (
+            <>
+              <section
+                className="card"
+                id="revision-queue"
+                aria-labelledby="queue-heading"
+              >
+                <h2 id="queue-heading">Due for revision</h2>
+                {!queue.length && <p className="muted">Nothing due.</p>}
+                {['overdue', 'due'].map((group) => (
+                  <div key={group}>
+                    {queue.some((p) => learningState(p, day) === group) && (
+                      <h3 className="mt-5">
+                        {group === 'overdue' ? 'Overdue' : 'Due today'}
+                      </h3>
+                    )}
+                    {queue
+                      .filter((p) => learningState(p, day) === group)
+                      .map((p) => (
+                        <div className="dsa-item" key={p.id}>
+                          <Link className="link" href={`/dsa/${p.id}`}>
+                            {p.title}
+                          </Link>{' '}
+                          <span
+                            className={`pill ${p.confidence.toLowerCase()}`}
+                          >
+                            {p.confidence}
+                          </span>
+                          <p className="muted">
+                            {group === 'overdue'
+                              ? `Overdue by ${Math.round((+new Date(day) - +p.nextRevisionAt!) / 86400000)} day(s)`
+                              : 'Due today'}{' '}
+                            · {revisionDay(p.nextRevisionAt!)}
+                          </p>
+                        </div>
+                      ))}
+                  </div>
+                ))}
+              </section>
+              <section className="card" aria-labelledby="next-heading">
+                <h2 id="next-heading">
+                  Next up{currentTopic ? ` in ${currentTopic.name}` : ''}
+                </h2>
+                {fresh.map((p) => (
+                  <p className="mt-3" key={p.id}>
+                    <Link className="link" href={`/dsa/${p.id}`}>
+                      {p.title} → Practice
+                    </Link>
+                  </p>
+                ))}
+                {!fresh.length && (
+                  <p className="muted">
+                    {currentTopic
+                      ? 'No new problems yet. Add one above.'
+                      : 'Mark a topic as current to see new problems here.'}
+                  </p>
                 )}
-                {queue
-                  .filter((p) => learningState(p, day) === group)
-                  .map((p) => (
-                    <div className="dsa-item" key={p.id}>
+              </section>
+              <section
+                className="card"
+                id="library"
+                aria-labelledby="library-heading"
+              >
+                <div className="section-head">
+                  <h2 id="library-heading">
+                    All problems{' '}
+                    <span className="muted">· {problems.length}</span>
+                  </h2>
+                </div>
+                {filtering && (
+                  <form className="dsa-filters mb-5" method="get">
+                    <label>
+                      Search
+                      <input name="q" defaultValue={query.q} />
+                    </label>
+                    <label>
+                      Topic
+                      <select name="topic" defaultValue={query.topic ?? ''}>
+                        <option value="">All topics</option>
+                        {topics.map((t) => (
+                          <option key={t.id} value={t.id}>
+                            {t.name}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <label>
+                      Confidence
+                      <select
+                        name="confidence"
+                        defaultValue={query.confidence ?? ''}
+                      >
+                        <option value="">Any</option>
+                        {['RED', 'YELLOW', 'GREEN'].map((v) => (
+                          <option key={v} value={v}>
+                            {v[0] + v.slice(1).toLowerCase()}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <label>
+                      Difficulty
+                      <select
+                        name="difficulty"
+                        defaultValue={query.difficulty ?? ''}
+                      >
+                        <option value="">Any</option>
+                        {['EASY', 'MEDIUM', 'HARD'].map((v) => (
+                          <option key={v} value={v}>
+                            {v[0] + v.slice(1).toLowerCase()}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <label>
+                      Revision
+                      <select name="state" defaultValue={query.state ?? ''}>
+                        <option value="">Any</option>
+                        {[
+                          'due',
+                          'overdue',
+                          'upcoming',
+                          'unattempted',
+                          'unscheduled',
+                        ].map((v) => (
+                          <option key={v}>{v}</option>
+                        ))}
+                      </select>
+                    </label>
+                    <div className="actions">
+                      <button className="button secondary">Filter</button>
+                      <Link className="link" href="/dsa#library">
+                        Clear
+                      </Link>
+                    </div>
+                  </form>
+                )}
+                {filtering && (
+                  <p className="muted">
+                    {filtered.length} of {problems.length}
+                  </p>
+                )}
+                {filtered.map((p) => (
+                  <article className="dsa-item" key={p.id}>
+                    <h3>
                       <Link className="link" href={`/dsa/${p.id}`}>
                         {p.title}
-                      </Link>{' '}
-                      <span className={`pill ${p.confidence.toLowerCase()}`}>
-                        {p.confidence}
+                      </Link>
+                    </h3>
+                    <p className="muted">
+                      {p.topic.name} · {p.platform} ·{' '}
+                      {p.difficulty.toLowerCase()}
+                    </p>
+                    <div className="row flex-wrap">
+                      <span
+                        className={`pill ${p.attemptsCount ? p.confidence.toLowerCase() : ''}`}
+                      >
+                        {p.attemptsCount ? p.confidence : 'Unattempted'}
                       </span>
+                      <span className="muted">
+                        {learningState(p, day)}
+                        {p.nextRevisionAt
+                          ? ` · ${revisionDay(p.nextRevisionAt)}`
+                          : ''}
+                      </span>
+                      <ResourceLink url={p.problemUrl}>
+                        Open problem
+                      </ResourceLink>
+                    </div>
+                  </article>
+                ))}
+                {!filtered.length && (
+                  <p className="muted">
+                    {problems.length
+                      ? 'No matching problems.'
+                      : 'No problems yet.'}
+                  </p>
+                )}
+              </section>
+              {recent.length > 0 && (
+                <section className="card" aria-labelledby="recent-heading">
+                  <h2 id="recent-heading">Recent attempts</h2>
+                  {recent.map((a) => (
+                    <div className="dsa-item" key={a.id}>
                       <p className="muted">
-                        {group === 'overdue'
-                          ? `Overdue by ${Math.round((+new Date(day) - +p.nextRevisionAt!) / 86400000)} day(s)`
-                          : 'Due today'}{' '}
-                        · {revisionDay(p.nextRevisionAt!)}
+                        {formatInTimeZone(
+                          a.attemptedAt,
+                          user.timezone,
+                          'MMM d, h:mm a',
+                        )}
                       </p>
+                      <Link className="link" href={`/dsa/${a.problemId}`}>
+                        {a.problem.title}
+                      </Link>
+                      <p>
+                        {a.confidenceBefore
+                          ? `${a.confidenceBefore} → `
+                          : 'First attempt → '}
+                        {a.confidenceAfter} ·{' '}
+                        {solvedText[a.solvedIndependently]}
+                      </p>
+                      {a.mistake && <p>{a.mistake}</p>}
                     </div>
                   ))}
-              </div>
-            ))}
-          </section>
-          <section className="card" aria-labelledby="next-heading">
-            <h2 id="next-heading">
-              Next up{currentTopic ? ` in ${currentTopic.name}` : ''}
-            </h2>
-            {fresh.map((p) => (
-              <p className="mt-3" key={p.id}>
-                <Link className="link" href={`/dsa/${p.id}`}>
-                  {p.title} → Practice
-                </Link>
-              </p>
-            ))}
-            {!fresh.length && (
-              <p className="muted">
-                {currentTopic
-                  ? 'No new problems yet. Add one above.'
-                  : 'Mark a topic as current to see new problems here.'}
-              </p>
-            )}
-          </section>
-          <section
-            className="card"
-            id="library"
-            aria-labelledby="library-heading"
-          >
-            <div className="section-head">
-              <h2 id="library-heading">
-                All problems <span className="muted">· {problems.length}</span>
-              </h2>
-            </div>
-            {filtering && (
-              <form className="dsa-filters mb-5" method="get">
-                <label>
-                  Search
-                  <input name="q" defaultValue={query.q} />
-                </label>
-                <label>
-                  Topic
-                  <select name="topic" defaultValue={query.topic ?? ''}>
-                    <option value="">All topics</option>
-                    {topics.map((t) => (
-                      <option key={t.id} value={t.id}>
-                        {t.name}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <label>
-                  Confidence
-                  <select
-                    name="confidence"
-                    defaultValue={query.confidence ?? ''}
-                  >
-                    <option value="">Any</option>
-                    {['RED', 'YELLOW', 'GREEN'].map((v) => (
-                      <option key={v} value={v}>
-                        {v[0] + v.slice(1).toLowerCase()}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <label>
-                  Difficulty
-                  <select
-                    name="difficulty"
-                    defaultValue={query.difficulty ?? ''}
-                  >
-                    <option value="">Any</option>
-                    {['EASY', 'MEDIUM', 'HARD'].map((v) => (
-                      <option key={v} value={v}>
-                        {v[0] + v.slice(1).toLowerCase()}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <label>
-                  Revision
-                  <select name="state" defaultValue={query.state ?? ''}>
-                    <option value="">Any</option>
-                    {[
-                      'due',
-                      'overdue',
-                      'upcoming',
-                      'unattempted',
-                      'unscheduled',
-                    ].map((v) => (
-                      <option key={v}>{v}</option>
-                    ))}
-                  </select>
-                </label>
-                <div className="actions">
-                  <button className="button secondary">Filter</button>
-                  <Link className="link" href="/dsa#library">
-                    Clear
-                  </Link>
-                </div>
-              </form>
-            )}
-            {filtering && (
-              <p className="muted">
-                {filtered.length} of {problems.length}
-              </p>
-            )}
-            {filtered.map((p) => (
-              <article className="dsa-item" key={p.id}>
-                <h3>
-                  <Link className="link" href={`/dsa/${p.id}`}>
-                    {p.title}
-                  </Link>
-                </h3>
-                <p className="muted">
-                  {p.topic.name} · {p.platform} · {p.difficulty.toLowerCase()}
-                </p>
-                <div className="row flex-wrap">
-                  <span
-                    className={`pill ${p.attemptsCount ? p.confidence.toLowerCase() : ''}`}
-                  >
-                    {p.attemptsCount ? p.confidence : 'Unattempted'}
-                  </span>
-                  <span className="muted">
-                    {learningState(p, day)}
-                    {p.nextRevisionAt
-                      ? ` · ${revisionDay(p.nextRevisionAt)}`
-                      : ''}
-                  </span>
-                  <ResourceLink url={p.problemUrl}>Open problem</ResourceLink>
-                </div>
-              </article>
-            ))}
-            {!filtered.length && (
-              <p className="muted">
-                {problems.length ? 'No matching problems.' : 'No problems yet.'}
-              </p>
-            )}
-          </section>
-          {recent.length > 0 && (
-            <section className="card" aria-labelledby="recent-heading">
-              <h2 id="recent-heading">Recent attempts</h2>
-              {recent.map((a) => (
-                <div className="dsa-item" key={a.id}>
-                  <p className="muted">
-                    {formatInTimeZone(
-                      a.attemptedAt,
-                      user.timezone,
-                      'MMM d, h:mm a',
-                    )}
-                  </p>
-                  <Link className="link" href={`/dsa/${a.problemId}`}>
-                    {a.problem.title}
-                  </Link>
-                  <p>
-                    {a.confidenceBefore
-                      ? `${a.confidenceBefore} → `
-                      : 'First attempt → '}
-                    {a.confidenceAfter} · {solvedText[a.solvedIndependently]}
-                  </p>
-                  {a.mistake && <p>{a.mistake}</p>}
-                </div>
-              ))}
-            </section>
+                </section>
+              )}
+            </>
           )}
           <section
             className="card"

@@ -143,7 +143,11 @@ export default async function Calendar({
             (p) => p.date.toISOString().slice(0, 10) === day,
           );
           return (
-            <article className="week-day" key={day}>
+            <article
+              className={`week-day${day === today ? ' is-today' : ''}`}
+              key={day}
+              aria-current={day === today ? 'date' : undefined}
+            >
               <Link className="link" href={`/today?date=${day}`}>
                 {WEEKDAY[(index + 1) % 7]} · {day.slice(5)}
               </Link>

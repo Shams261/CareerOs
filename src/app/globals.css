@@ -1162,3 +1162,90 @@ summary {
     padding: 18px;
   }
 }
+
+/* WI-009 polish: timeline rail, today's column, inline skip reason. */
+.execution-block {
+  display: grid;
+  grid-template-columns: 96px minmax(0, 1fr);
+  gap: 0 20px;
+}
+.block-time {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-variant-numeric: tabular-nums;
+  font-size: 14px;
+  line-height: 1.4;
+  padding-top: 2px;
+  border-right: 1px solid var(--border-subtle);
+}
+.block-time .muted {
+  font-size: 12px;
+  line-height: 1.4;
+}
+.block-body h3 {
+  margin: 0;
+}
+.week-day.is-today {
+  background: var(--tint);
+  box-shadow: inset 0 3px 0 var(--primary);
+}
+.week-day.is-today > .link {
+  color: var(--primary);
+}
+.actions > .reason {
+  flex: 1 1 180px;
+  max-width: 300px;
+  margin: 0;
+  min-height: 44px;
+  padding: 8px 12px;
+  font-size: 13px;
+}
+@media (max-width: 700px) {
+  .execution-block {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+  .block-time {
+    flex-direction: row;
+    align-items: baseline;
+    gap: 8px;
+    border-right: 0;
+    padding: 0;
+  }
+  .block-time .muted::before {
+    content: '– ';
+  }
+}
+
+/* A block that is happening now is the hero of the page. */
+.today-focus.is-live {
+  background: var(--primary);
+  color: var(--on-primary);
+  border-color: var(--primary);
+}
+.today-focus.is-live .eyebrow,
+.today-focus.is-live .muted {
+  color: inherit;
+  opacity: 0.85;
+}
+.today-focus.is-live .form-grid > div + div {
+  border-color: rgb(255 255 255 / 25%);
+}
+.week-block {
+  transition:
+    transform var(--motion-fast) var(--motion-easing),
+    box-shadow var(--motion-fast) var(--motion-easing);
+}
+.week-block:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
+}
+@media (prefers-reduced-motion: reduce) {
+  .week-block {
+    transition: none;
+  }
+  .week-block:hover {
+    transform: none;
+  }
+}

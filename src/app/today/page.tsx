@@ -198,7 +198,9 @@ export default async function Today({
       ) : (
         <>
           {blocks.length > 0 && (
-            <section className="card today-focus">
+            <section
+              className={`card today-focus${summary.current ? ' is-live' : ''}`}
+            >
               <div className="form-grid">
                 <div>
                   <p className="eyebrow">Now</p>
@@ -274,81 +276,92 @@ export default async function Today({
                 )}
                 {blocks.map((block) => (
                   <article className="execution-block" key={block.id}>
-                    <div className="row flex-wrap">
-                      <div>
-                        <p className="eyebrow">
-                          {clock(block.plannedStart, user.timezone)}–
-                          {formatInTimeZone(
-                            block.plannedEnd,
-                            user.timezone,
-                            dayKey(block.plannedEnd, user.timezone) === day
-                              ? 'h:mm a'
-                              : 'MMM d, h:mm a',
-                          )}
-                        </p>
-                        <h3 className="mt-2">{block.title}</h3>
-                        <p className="muted block-origin">
-                          {block.category} · {origin(block)}
-                        </p>
-                      </div>
-                      <span className="pill">{executionLabel(block, now)}</span>
-                    </div>
-                    {block.description && (
-                      <p className="muted">{block.description}</p>
-                    )}
-                    {block.skipReason && (
-                      <p className="muted">Skipped: {block.skipReason}</p>
-                    )}
-                    <ExecutionControls block={block} canStart={day <= today} />
-                    {block.sessions.map((s) => (
-                      <p className="recorded" key={s.id}>
-                        Recorded{' '}
+                    <div className="block-time">
+                      <strong>
+                        {clock(block.plannedStart, user.timezone)}
+                      </strong>
+                      <span className="muted">
                         {formatInTimeZone(
-                          s.startedAt,
+                          block.plannedEnd,
                           user.timezone,
-                          'MMM d, h:mm a',
+                          dayKey(block.plannedEnd, user.timezone) === day
+                            ? 'h:mm a'
+                            : 'MMM d, h:mm a',
                         )}
-                        –
-                        {s.endedAt
-                          ? formatInTimeZone(
-                              s.endedAt,
-                              user.timezone,
-                              'MMM d, h:mm a',
-                            )
-                          : 'running'}{' '}
-                        ·{' '}
-                        {sessionLength(
-                          minutes(s.startedAt, s.endedAt ?? now),
-                          !!s.endedAt,
-                        )}
-                        {s.notes ? ` · ${s.notes}` : ''}
-                      </p>
-                    ))}
-                    <DisclosureTabs
-                      items={[
-                        {
-                          label: 'Edit this day',
-                          content: (
-                            <BlockForm
-                              block={block}
-                              day={day}
-                              zone={user.timezone}
-                              goals={goals}
-                            />
-                          ),
-                        },
-                        {
-                          label: 'Log time',
-                          content: (
-                            <ManualSessionForm
-                              block={block}
-                              day={day}
-                              zone={user.timezone}
-                            />
-                          ),
-                        },
-                      ]}
-                    />
+                      </span>
+                    </div>
+                    <div className="block-body">
+                      <div className="row flex-wrap">
+                        <div>
+                          <h3>{block.title}</h3>
+                          <p className="muted block-origin">
+                            {block.category} · {origin(block)}
+                          </p>
+                        </div>
+                        <span className="pill">
+                          {executionLabel(block, now)}
+                        </span>
+                      </div>
+                      {block.description && (
+                        <p className="muted">{block.description}</p>
+                      )}
+                      {block.skipReason && (
+                        <p className="muted">Skipped: {block.skipReason}</p>
+                      )}
+                      <ExecutionControls
+                        block={block}
+                        canStart={day <= today}
+                      />
+                      {block.sessions.map((s) => (
+                        <p className="recorded" key={s.id}>
+                          Recorded{' '}
+                          {formatInTimeZone(
+                            s.startedAt,
+                            user.timezone,
+                            'MMM d, h:mm a',
+                          )}
+                          –
+                          {s.endedAt
+                            ? formatInTimeZone(
+                                s.endedAt,
+                                user.timezone,
+                                'MMM d, h:mm a',
+                              )
+                            : 'running'}{' '}
+                          ·{' '}
+                          {sessionLength(
+                            minutes(s.startedAt, s.endedAt ?? now),
+                            !!s.endedAt,
+                          )}
+                          {s.notes ? ` · ${s.notes}` : ''}
+                        </p>
+                      ))}
+                      <DisclosureTabs
+                        items={[
+                          {
+                            label: 'Edit this day',
+                            content: (
+                              <BlockForm
+                                block={block}
+                                day={day}
+                                zone={user.timezone}
+                                goals={goals}
+                              />
+                            ),
+                          },
+                          {
+                            label: 'Log time',
+                            content: (
+                              <ManualSessionForm
+                                block={block}
+                                day={day}
+                                zone={user.timezone}
+                              />
+                            ),
+                          },
+                        ]}
+                      />
+                    </div>
                   </article>
                 ))}
               </section>
