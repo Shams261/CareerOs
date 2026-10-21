@@ -34,6 +34,7 @@ export function SubjectForm({
       action={subjectAction}
       label={subject ? 'Edit subject' : 'Add subject'}
       className="dsa-form"
+      resetOnSuccess={!subject}
     >
       <input type="hidden" name="id" value={subject?.id ?? ''} />
       <label>
@@ -112,6 +113,7 @@ export function LearningTopicForm({
       action={learningTopicAction}
       label={topic ? 'Edit topic' : 'Add topic'}
       className="dsa-form"
+      resetOnSuccess={!topic}
     >
       <input type="hidden" name="id" value={topic?.id ?? ''} />
       <input type="hidden" name="subjectId" value={subjectId} />
@@ -332,8 +334,9 @@ export function LearningReminderForm({
         />
       </label>
       <p className="muted">
-        One inbox reminder per owner calendar day when reviews are due. Requires
-        the deployment scheduler; no closed-app push.
+        One inbox reminder per owner calendar day when reviews are due,
+        delivered to any device with push enabled. Requires the deployment
+        scheduler.
       </p>
       <button className="button">Save learning reminder</button>
     </ActionForm>

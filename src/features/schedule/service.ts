@@ -77,7 +77,10 @@ export async function ownedBlock(
 ) {
   const block = await tx.timeBlock.findFirst({
     where: { id, dailyPlan: { userId } },
-    include: { sessions: true, dailyPlan: true },
+    include: {
+      sessions: { orderBy: { startedAt: 'asc' } },
+      dailyPlan: true,
+    },
   });
   if (!block) throw new Error('This block no longer exists. Reload the page.');
   return block;

@@ -1,6 +1,7 @@
 'use server';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
+import { issueMessages } from '@/lib/validation';
 import { owner } from '@/server/db';
 import type { ActionState } from '@/features/schedule/actions';
 import {
@@ -19,9 +20,7 @@ async function perform(work: () => Promise<string>): Promise<ActionState> {
     return {
       message:
         error instanceof z.ZodError
-          ? error.issues
-              .map((i) => `${i.path.join('.')}: ${i.message}`)
-              .join('; ')
+          ? issueMessages(error.issues)
           : error instanceof Error && !('code' in error)
             ? error.message
             : 'Unable to save. Check for a duplicate topic name, then reload and try again.',

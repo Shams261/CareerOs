@@ -3,7 +3,8 @@ import { saveTheme } from '@/features/theme-actions';
 import Link from 'next/link';
 import { formatDistance } from 'date-fns';
 import { db, owner } from '@/server/db';
-import { saveReminder } from '@/server/actions';
+import { reminderAction } from '@/server/actions';
+import { ActionForm } from '@/components/action-form';
 import { Button } from '@/components/ui/button';
 import { pushConfig } from '@/lib/env';
 import { healthCheck } from '@/server/health';
@@ -123,7 +124,7 @@ export default async function Settings() {
           silence alerts.
         </p>
         <h3 className="mt-4">Daily progress reminder</h3>
-        <form action={saveReminder}>
+        <ActionForm action={reminderAction} label="Daily progress reminder">
           <label className="check">
             <input
               type="checkbox"
@@ -146,7 +147,7 @@ export default async function Settings() {
             scheduler.
           </p>
           <Button>Save preference</Button>
-        </form>
+        </ActionForm>
       </section>
 
       <section className="card" aria-labelledby="status-heading">

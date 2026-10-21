@@ -3,6 +3,26 @@ import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { db, owner } from './db';
 import { localTime } from '@/lib/validation';
+type ActionState = { message: string; ok?: boolean };
+/** Form-state wrapper so Settings can show "Preference saved." like every other form. */
+export async function reminderAction(
+  _state: ActionState,
+  form: FormData,
+): Promise<ActionState> {
+  try {
+    await saveReminder(form);
+    return { ok: true, message: 'Preference saved.' };
+  } catch (error) {
+    return {
+      message:
+        error instanceof z.ZodError
+          ? 'Enter the reminder time as HH:MM.'
+          : error instanceof Error
+            ? error.message
+            : 'Unable to save. Reload and try again.',
+    };
+  }
+}
 export async function saveReminder(form: FormData) {
   const user = await owner();
   const time = localTime.parse(form.get('preferredTime'));
