@@ -32,6 +32,8 @@ import { ExecutionRefresh } from '@/features/execution/refresh';
 import { LiveTimer } from '@/features/execution/live';
 import { TodayShortcuts } from '@/features/execution/shortcuts';
 import { Chain, TodayGoals } from '@/features/roadmap/summary';
+import { openNotes } from '@/features/notes/service';
+import { NoteList } from '@/features/notes/forms';
 import { readNotification } from '@/server/actions';
 import { Button } from '@/components/ui/button';
 export default async function Today({
@@ -61,6 +63,7 @@ export default async function Today({
     notifications,
     applications,
     routines,
+    notes,
   ] = await Promise.all([
     db().dailyPlan.findUnique({
       where: { userId_date: { userId: user.id, date: new Date(day) } },
@@ -96,6 +99,7 @@ export default async function Today({
       where: { userId: user.id, appliedAt: new Date(day) },
     }),
     db().routineBlock.count({ where: { userId: user.id } }),
+    openNotes(user.id),
   ]);
   const blocks = plan?.blocks ?? [],
     summary = blockSummary(blocks, now),
@@ -381,6 +385,12 @@ export default async function Today({
               </section>
             </section>
             <aside>
+              {notes.length > 0 && day === today && (
+                <section className="card" aria-labelledby="notes-heading">
+                  <h2 id="notes-heading">Notes to self</h2>
+                  <NoteList notes={notes} />
+                </section>
+              )}
               {day === today && <TodayGoals user={user} now={now} />}
               {day === today && <WeeklyReviewPrompt user={user} now={now} />}
               {day === today && <TodayJobs user={user} now={now} />}
