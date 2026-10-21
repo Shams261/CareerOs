@@ -4,7 +4,7 @@ Branch `feat/wi-011-ux-pass` on `main` after PR #16. Items 1 to 5 of the UX list
 
 ## 1. Outcome
 
-In progress. This file is updated per item.
+Eight of the thirteen items from the analysis: undo, application summary, interview-day prep, phone navigation, review step memory (verified, no change), surface levels, density and status tones. No schema change. The remaining five (shortcut overlay, reminders preview, category icons, dark-mode tuning, empty-state mark) wait for a week of real use.
 
 ## 2. Changes
 
@@ -26,4 +26,11 @@ Local fake-Google loop: Skip on Today showed "Skipped. Undo"; Undo returned the 
 
 ## 4. Commands and results
 
-Per item: `pnpm lint`, `pnpm typecheck`, the touched database tests on a disposable database. Full gate before the PR.
+Disposable local PostgreSQL, 2026-10-21:
+
+| Check                                                                                                    | Result                                                       |
+| -------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------ |
+| `pnpm lint` (eslint; prettier on tracked files), `pnpm typecheck`, `pnpm docs:check`, `git diff --check` | Passed                                                       |
+| Clean `db:deploy` (12 migrations)                                                                        | Applied                                                      |
+| `pnpm test:ci`                                                                                           | 244 passed in 35 files (+3 in `tests/undo-database.test.ts`) |
+| `pnpm build`                                                                                             | Passed                                                       |
