@@ -79,9 +79,6 @@ export default async function RootLayout({
             </footer>
           </aside>
           <main id="main" className="content">
-            <div className="topbar">
-              <span>PERSONAL WORKSPACE</span>
-            </div>
             {children}
           </main>
         </div>

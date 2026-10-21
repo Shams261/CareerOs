@@ -1,0 +1,117 @@
+'use client';
+import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
+import { ChevronDown } from 'lucide-react';
+
+type Variant = 'primary' | 'secondary' | 'link';
+
+/**
+ * A real button that opens content in place. Replaces `<details>` for forms so the
+ * primary action on a page is visible and keyboard users land on the first field.
+ */
+export function Disclosure({
+  label,
+  children,
+  variant = 'secondary',
+  defaultOpen = false,
+  className = '',
+}: {
+  label: string;
+  children: ReactNode;
+  variant?: Variant;
+  defaultOpen?: boolean;
+  className?: string;
+}) {
+  const [open, setOpen] = useState(defaultOpen);
+  const [userOpened, setUserOpened] = useState(false);
+  const id = useId();
+  const panel = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!open || !userOpened) return;
+    panel.current
+      ?.querySelector<HTMLElement>(
+        'input:not([type=hidden]), select, textarea, button',
+      )
+      ?.focus();
+  }, [open, userOpened]);
+  return (
+    <div
+      className={`disclosure${open ? ' is-open' : ''}${variant === 'link' ? ' is-link' : ''} ${className}`}
+    >
+      <button
+        type="button"
+        className={
+          variant === 'link'
+            ? 'disclosure-link'
+            : `button disclosure-trigger${variant === 'secondary' ? ' secondary' : ''}`
+        }
+        aria-expanded={open}
+        aria-controls={id}
+        onClick={() => {
+          setUserOpened(true);
+          setOpen((o) => !o);
+        }}
+      >
+        {label}
+        <ChevronDown
+          size={16}
+          aria-hidden="true"
+          className="disclosure-chevron"
+        />
+      </button>
+      {open && (
+        <div id={id} ref={panel} className="disclosure-panel">
+          {children}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** A row of small toggles sharing one panel: "Edit this day · Log time". */
+export function DisclosureTabs({
+  items,
+  className = '',
+}: {
+  items: { label: string; content: ReactNode }[];
+  className?: string;
+}) {
+  const [active, setActive] = useState<number | null>(null);
+  const id = useId();
+  const panel = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (active === null) return;
+    panel.current
+      ?.querySelector<HTMLElement>(
+        'input:not([type=hidden]), select, textarea, button',
+      )
+      ?.focus();
+  }, [active]);
+  return (
+    <div className={`disclosure is-link ${className}`}>
+      <div className="disclosure-tabs">
+        {items.map((item, i) => (
+          <button
+            type="button"
+            key={item.label}
+            className="disclosure-link"
+            aria-expanded={active === i}
+            aria-controls={id}
+            onClick={() => setActive(active === i ? null : i)}
+          >
+            {item.label}
+            <ChevronDown
+              size={14}
+              aria-hidden="true"
+              className="disclosure-chevron"
+            />
+          </button>
+        ))}
+      </div>
+      {active !== null && (
+        <div id={id} ref={panel} className="disclosure-panel">
+          {items[active].content}
+        </div>
+      )}
+    </div>
+  );
+}

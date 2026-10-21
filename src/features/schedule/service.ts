@@ -1,7 +1,7 @@
 import 'server-only';
 import { db } from '@/server/db';
 import type { Prisma } from '@/generated/prisma/client';
-import { routineOccurrence, dateInput } from './domain';
+import { routineOccurrence, dateInput, weekDays } from './domain';
 export type ScheduleUser = { id: string; timezone: string };
 export async function locked<T>(
   userId: string,
@@ -61,6 +61,16 @@ export async function generateInTransaction(
 }
 export async function generatePlan(user: ScheduleUser, day: string) {
   return locked(user.id, (tx) => generateInTransaction(tx, user, day));
+}
+/**
+ * Fills today through this week's Sunday. Viewing Today or Plan calls this, so the
+ * current week never needs a manual "generate" step; next week is Prepare next week.
+ */
+export async function generateThroughSunday(user: ScheduleUser, today: string) {
+  const days = weekDays(today).filter((d) => d >= today);
+  return locked(user.id, async (tx) => {
+    for (const day of days) await generateInTransaction(tx, user, day);
+  });
 }
 export async function validateGoal(
   tx: Prisma.TransactionClient,

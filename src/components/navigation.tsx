@@ -3,20 +3,21 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
   Sun,
+  CalendarDays,
   Code2,
   BookOpen,
   Briefcase,
-  CalendarDays,
-  ChartNoAxesCombined,
+  ClipboardCheck,
   Settings,
 } from 'lucide-react';
+// Labels say what you do there; routes are unchanged.
 const items = [
   ['/today', 'Today', Sun],
-  ['/dsa', 'DSA', Code2],
+  ['/calendar', 'Plan', CalendarDays],
+  ['/dsa', 'Practice', Code2],
   ['/learn', 'Learn', BookOpen],
   ['/jobs', 'Jobs', Briefcase],
-  ['/calendar', 'Calendar', CalendarDays],
-  ['/review', 'Review', ChartNoAxesCombined],
+  ['/review', 'Weekly review', ClipboardCheck],
   ['/settings', 'Settings', Settings],
 ] as const;
 export function Navigation() {

@@ -372,6 +372,74 @@ describe.skipIf(!url)('daily execution persistence', () => {
       execute({ id: 'wrong-owner', timezone: user.timezone }, b.id, 'start'),
     ).rejects.toThrow('no longer exists');
   });
+  it('adds a new routine to days already planned from today on, skipping passed slots', async () => {
+    await generatePlan(user, '2026-09-23');
+    const thursday = await generatePlan(user, '2026-09-24');
+    // A one-off block already occupies Thursday 09:30–10:30 Toronto.
+    await prisma.timeBlock.create({
+      data: {
+        dailyPlanId: thursday.id,
+        title: 'Dentist',
+        category: 'PERSONAL',
+        isOverride: true,
+        plannedStart: new Date('2026-09-24T13:30Z'),
+        plannedEnd: new Date('2026-09-24T14:30Z'),
+      },
+    });
+    const now = new Date('2026-09-23T12:00Z'); // 08:00 in Toronto
+    const input = {
+      title: 'Study',
+      category: 'DSA',
+      weekdays: [3, 4],
+      startLocal: '09:00',
+      endLocal: '10:00',
+      enabled: true,
+      priority: 2,
+      description: '',
+      goalId: '',
+    };
+    // Wednesday is added; Thursday overlaps the one-off block and is left alone.
+    expect(await saveRoutine(user, input, { sync: false }, now)).toEqual({
+      changed: 0,
+      added: 1,
+    });
+    const study = await prisma.routineBlock.findFirstOrThrow({
+      where: { userId: user.id, title: 'Study' },
+    });
+    const blocks = await prisma.timeBlock.findMany({
+      where: { routineKey: study.id },
+    });
+    expect(
+      blocks.map((b) => [
+        b.occurrenceDate?.toISOString().slice(0, 10),
+        b.isOverride,
+        b.status,
+      ]),
+    ).toEqual([['2026-09-23', false, 'PLANNED']]);
+    // A slot whose time already passed today is not back-filled; tomorrow still is.
+    expect(
+      await saveRoutine(
+        user,
+        { ...input, title: 'Early', startLocal: '06:00', endLocal: '07:00' },
+        { sync: false },
+        now,
+      ),
+    ).toEqual({ changed: 0, added: 1 });
+    // With overlap allowed, both days are filled.
+    expect(
+      await saveRoutine(
+        user,
+        { ...input, title: 'Late', startLocal: '09:30', endLocal: '10:30' },
+        { sync: false, allowOverlap: true },
+        now,
+      ),
+    ).toEqual({ changed: 0, added: 2 });
+    expect(
+      await prisma.timeBlock.count({
+        where: { dailyPlan: { userId: user.id } },
+      }),
+    ).toBe(5);
+  });
   it('pauses, re-enables, and deletes a template without destroying dated blocks', async () => {
     const input = {
       title: 'Flexible routine',
