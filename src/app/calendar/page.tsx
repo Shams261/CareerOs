@@ -1,25 +1,44 @@
 import Link from 'next/link';
-import { GoogleCalendarPanel } from '@/features/calendar/panel';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { formatInTimeZone } from 'date-fns-tz';
+import { Disclosure } from '@/components/disclosure';
+import { DateJump } from '@/components/date-jump';
 import { getConnection } from '@/features/calendar/service';
 import { blockSyncView } from '@/features/calendar/domain';
 import { db, owner } from '@/server/db';
 import { dayKey, clock } from '@/lib/time';
+import { generateThroughSunday } from '@/features/schedule/service';
 import { dateInput, weekDays, shiftDay } from '@/features/schedule/domain';
-import {
-  RoutineForm,
-  CategoryOptions,
-  GenerateForm,
-} from '@/features/schedule/forms';
+import { RoutineForm, CategoryOptions } from '@/features/schedule/forms';
+
+const WEEKDAY = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+const label = (day: string, pattern: string) =>
+  formatInTimeZone(new Date(`${day}T12:00:00Z`), 'UTC', pattern);
+const statusText = {
+  CONNECTED: 'connected',
+  REAUTH_REQUIRED: 'reconnect required',
+  ERROR: 'needs attention',
+  DISCONNECTED: 'not connected',
+} as const;
+
 export default async function Calendar({
   searchParams,
 }: {
-  searchParams: Promise<{ date?: string; google?: string; reason?: string }>;
+  searchParams: Promise<{ date?: string }>;
 }) {
   const user = await owner(),
     query = await searchParams,
     today = dayKey(new Date(), user.timezone),
     selected = dateInput.safeParse(query.date).success ? query.date! : today,
-    days = weekDays(selected);
+    days = weekDays(selected),
+    thisWeek = weekDays(today);
+  let generationError = '';
+  try {
+    await generateThroughSunday(user, today);
+  } catch (error) {
+    generationError =
+      error instanceof Error ? error.message : 'Unable to plan this week.';
+  }
   const [routines, plans, goals, connection] = await Promise.all([
     db().routineBlock.findMany({
       where: { userId: user.id },
@@ -39,118 +58,156 @@ export default async function Calendar({
     getConnection(user.id),
   ]);
   const syncing = connection && connection.status !== 'DISCONNECTED';
+  const unplanned = days.some(
+    (day) =>
+      day > thisWeek[6] &&
+      !plans.find((p) => p.date.toISOString().slice(0, 10) === day)
+        ?.generatedAt,
+  );
   return (
     <>
       <CategoryOptions />
-      <p className="eyebrow">Protect your time · {user.timezone}</p>
-      <h1>A week that fits your life.</h1>
-      <p className="muted mb-5">
-        Edit any day for a one-off change, or update your recurring routine
-        below. No code changes needed.
-      </p>
-      <GoogleCalendarPanel user={user} flash={query} />
-      <div className="row flex-wrap mb-5">
-        <Link
-          className="button secondary"
-          href={`/calendar?date=${shiftDay(days[0], -7)}`}
-        >
-          ← Previous week
-        </Link>
-        <strong>
-          {days[0]} — {days[6]}
-        </strong>
-        <Link
-          className="button secondary"
-          href={`/calendar?date=${shiftDay(days[0], 7)}`}
-        >
-          Next week →
-        </Link>
+      <p className="eyebrow">Plan · {user.timezone}</p>
+      <div className="page-head">
+        <h1>
+          Week of {label(days[0], 'MMM d')} – {label(days[6], 'MMM d, yyyy')}
+        </h1>
+        <nav className="day-nav" aria-label="Week navigation">
+          <Link
+            className="button secondary"
+            href={`/calendar?date=${shiftDay(days[0], -7)}`}
+            aria-label="Previous week"
+          >
+            <ChevronLeft size={18} aria-hidden="true" />
+          </Link>
+          {days[0] !== thisWeek[0] && (
+            <Link className="button secondary" href="/calendar">
+              This week
+            </Link>
+          )}
+          <Link
+            className="button secondary"
+            href={`/calendar?date=${shiftDay(days[0], 7)}`}
+            aria-label="Next week"
+          >
+            <ChevronRight size={18} aria-hidden="true" />
+          </Link>
+          <DateJump
+            value={selected}
+            path="/calendar"
+            label="Open the week containing a date"
+          />
+        </nav>
       </div>
-      <form className="actions" action="/calendar">
-        <label>
-          Jump to week containing
-          <input type="date" name="date" defaultValue={selected} required />
-        </label>
-        <button className="button self-end mb-3">Open week</button>
-      </form>
-      <section className="week-grid">
+      {generationError && (
+        <p role="alert" className="form-message mb-5">
+          This week could not be planned: {generationError}. Check the routines
+          below.
+        </p>
+      )}
+      <section className="card" aria-labelledby="routines-heading">
+        <div className="section-head">
+          <h2 id="routines-heading">Routines</h2>
+        </div>
+        <Disclosure
+          label="Add routine"
+          variant={routines.length ? 'secondary' : 'primary'}
+          defaultOpen={!routines.length}
+        >
+          <RoutineForm goals={goals} />
+        </Disclosure>
+        {!routines.length && (
+          <p className="muted mt-4">
+            No routines yet. Add one and your days fill in from it.
+          </p>
+        )}
+        {routines.map((r) => (
+          <div key={r.id} className="routine-row">
+            <div>
+              <strong>{r.title}</strong>
+              <p className="muted">
+                {r.weekdays.map((d) => WEEKDAY[d]).join(', ')} · {r.startLocal}–
+                {r.endLocal}
+                {r.enabled ? '' : ' · Paused'}
+              </p>
+            </div>
+            <Disclosure variant="link" label="Edit">
+              <RoutineForm routine={r} goals={goals} />
+            </Disclosure>
+          </div>
+        ))}
+      </section>
+      <section className="week-grid" aria-label="Week">
         {days.map((day, index) => {
           const plan = plans.find(
             (p) => p.date.toISOString().slice(0, 10) === day,
           );
           return (
-            <article className="week-day" key={day}>
+            <article
+              className={`week-day${day === today ? ' is-today' : ''}`}
+              key={day}
+              aria-current={day === today ? 'date' : undefined}
+            >
               <Link className="link" href={`/today?date=${day}`}>
-                {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'][index]} ·{' '}
-                {day.slice(5)}
+                {WEEKDAY[(index + 1) % 7]} · {day.slice(5)}
               </Link>
               {plan?.blocks.length ? (
-                plan.blocks.map((b) => (
-                  <Link
-                    href={`/today?date=${day}`}
-                    className="week-block"
-                    key={b.id}
-                  >
-                    <span className="muted">
-                      {clock(b.plannedStart, user.timezone)}
-                    </span>
-                    <strong>{b.title}</strong>
-                    <span className="muted">
-                      {b.status.replaceAll('_', ' ')}
-                      {syncing
-                        ? ` · Google: ${blockSyncView(b, connection.calendarId, connection.excludedCategories)}`
-                        : ''}
-                    </span>
-                  </Link>
-                ))
+                plan.blocks.map((b) => {
+                  const sync = syncing
+                    ? blockSyncView(
+                        b,
+                        connection.calendarId,
+                        connection.excludedCategories,
+                      )
+                    : null;
+                  return (
+                    <Link
+                      href={`/today?date=${day}`}
+                      className="week-block"
+                      key={b.id}
+                    >
+                      <span className="muted">
+                        {clock(b.plannedStart, user.timezone)}
+                      </span>
+                      <strong>{b.title}</strong>
+                      <span className="muted">
+                        {b.status.replaceAll('_', ' ').toLowerCase()}
+                        {sync && sync !== 'Synced' && sync !== 'Not synced'
+                          ? ` · Google: ${sync.toLowerCase()}`
+                          : ''}
+                      </span>
+                    </Link>
+                  );
+                })
               ) : (
                 <p className="muted mt-4">
-                  {plan?.generatedAt ? 'No blocks' : 'Plan not generated'}
+                  {plan?.generatedAt || day <= thisWeek[6]
+                    ? 'Nothing planned'
+                    : 'Not planned yet'}
                 </p>
               )}
-              <Link className="muted block mt-4" href={`/today?date=${day}`}>
-                Inspect / edit day →
-              </Link>
             </article>
           );
         })}
       </section>
-      <section className="card">
-        <h2>Generate dated plans</h2>
-        <GenerateForm day={today} />
-      </section>
-      <section className="card">
-        <h2>Recurring routine</h2>
-        <p className="muted mb-4">
-          Templates for days not yet generated. Editing an existing plan never
-          changes these routines, and a new or changed routine never rewrites a
-          day that already has a plan: add a block on that day from Today, or
-          generate the days that are still missing below.
+      {unplanned && (
+        <p className="muted mb-5">
+          Next week is planned from{' '}
+          <Link className="link" href="/review?step=plan">
+            Weekly review → Prepare next week
+          </Link>
+          .
         </p>
-        <details className="mb-5">
-          <summary>Create recurring routine</summary>
-          <RoutineForm goals={goals} />
-        </details>
-        {!routines.length && (
-          <p className="empty">
-            Start with one block. Your routine can change at any time.
-          </p>
-        )}
-        {routines.map((r) => (
-          <details key={r.id} className="routine-row">
-            <summary>
-              {r.title} ·{' '}
-              {r.weekdays
-                .map(
-                  (d) => ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][d],
-                )
-                .join(', ')}{' '}
-              · {r.startLocal}–{r.endLocal} {r.enabled ? '' : '· Paused'}
-            </summary>
-            <RoutineForm routine={r} goals={goals} />
-          </details>
-        ))}
-      </section>
+      )}
+      <p className="status-line">
+        <span>
+          Google Calendar{' '}
+          {syncing ? statusText[connection.status] : 'not connected'}
+        </span>
+        <Link className="link" href="/settings#google-heading">
+          {syncing ? 'Manage in Settings' : 'Connect in Settings'}
+        </Link>
+      </p>
     </>
   );
 }

@@ -20,15 +20,43 @@ import {
   statusLabel,
   calendarDate,
 } from './domain';
+/** `compact` is the first-run form: a name, saved as the active current focus. */
 export function SubjectForm({
   subject,
   currentId,
   goals,
+  compact = false,
 }: {
   subject?: LearningSubject;
   currentId: string | null;
   goals: { id: string; title: string }[];
+  compact?: boolean;
 }) {
+  if (compact)
+    return (
+      <ActionForm
+        action={subjectAction}
+        label="Add subject"
+        className="dsa-form"
+      >
+        <input type="hidden" name="id" value="" />
+        <input type="hidden" name="description" value="" />
+        <input type="hidden" name="status" value="ACTIVE" />
+        <input type="hidden" name="ordering" value="0" />
+        <input type="hidden" name="goalId" value="" />
+        <input type="hidden" name="current" value="on" />
+        <label>
+          Subject
+          <input
+            name="name"
+            required
+            maxLength={100}
+            placeholder="System design"
+          />
+        </label>
+        <button className="button">Add subject</button>
+      </ActionForm>
+    );
   return (
     <ActionForm
       action={subjectAction}
@@ -93,9 +121,11 @@ export function SubjectForm({
           name="current"
           defaultChecked={!!subject && subject.id === currentId}
         />
-        Current primary focus (active subjects only)
+        Current focus (active subjects only)
       </label>
-      <button className="button">Save subject</button>
+      <button className="button">
+        {subject ? 'Save subject' : 'Add subject'}
+      </button>
     </ActionForm>
   );
 }
@@ -144,10 +174,6 @@ export function LearningTopicForm({
           ))}
         </select>
       </label>
-      <p className="muted">
-        Active readiness follows assessments. Interview ready requires all four
-        dimensions Strong. Pause or complete a topic to exclude it from reviews.
-      </p>
       <label>
         Learning order
         <input
@@ -180,7 +206,7 @@ export function LearningTopicForm({
           defaultValue={topic?.notes ?? ''}
         />
       </label>
-      <button className="button">Save topic</button>
+      <button className="button">{topic ? 'Save topic' : 'Add topic'}</button>
     </ActionForm>
   );
 }
@@ -227,10 +253,6 @@ export function ActivityForm({ topicId }: { topicId: string }) {
           </label>
         ))}
       </div>
-      <p className="muted">
-        Only supplied dimensions change. “Not assessed” clears a rating. Notes
-        alone never change mastery or review dates.
-      </p>
       <label>
         Time spent (minutes, optional)
         <input name="durationMinutes" type="number" min="1" max="1440" />
@@ -262,7 +284,7 @@ export function ReviewForm({ topic }: { topic: LearningTopic }) {
           }
         />
       </label>
-      <button className="button">Schedule review</button>
+      <button className="button">Save review date</button>
     </ActionForm>
   );
 }
@@ -333,12 +355,7 @@ export function LearningReminderForm({
           defaultValue={pref?.preferredTime ?? '18:00'}
         />
       </label>
-      <p className="muted">
-        One inbox reminder per owner calendar day when reviews are due,
-        delivered to any device with push enabled. Requires the deployment
-        scheduler.
-      </p>
-      <button className="button">Save learning reminder</button>
+      <button className="button">Save reminder</button>
     </ActionForm>
   );
 }

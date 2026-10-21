@@ -27,10 +27,11 @@ async function perform(work: () => Promise<string>): Promise<ActionState> {
   try {
     const message = await work();
     revalidatePath('/calendar');
+    revalidatePath('/settings');
     revalidatePath('/today');
     return { ok: true, message };
   } catch (error) {
-    revalidatePath('/calendar');
+    revalidatePath('/settings');
     return {
       message:
         error instanceof CalendarError
@@ -77,7 +78,7 @@ export async function resolveConflictAction(_s: ActionState, form: FormData) {
     return 'Conflict resolved.';
   });
   // The resolved conflict leaves the list, so confirm at panel level instead of in its form.
-  if (result.ok) redirect(`/calendar?google=resolved_${choice}#google-heading`);
+  if (result.ok) redirect(`/settings?google=resolved_${choice}#google-heading`);
   return result;
 }
 
@@ -89,7 +90,7 @@ export async function categoriesAction(_s: ActionState, form: FormData) {
       await owner(),
       all.filter((c) => !synced.has(c)),
     );
-    return 'Sync categories saved. Excluded categories are removed from the Silsila calendar on the next sync.';
+    return 'Categories saved.';
   });
 }
 
@@ -112,7 +113,7 @@ export async function disconnectAction(_s: ActionState, form: FormData) {
   // The connected panel (and this form) is replaced after disconnecting: confirm at panel level.
   if (result.ok)
     redirect(
-      `/calendar?google=${removed ? 'removed' : 'disconnected'}#google-heading`,
+      `/settings?google=${removed ? 'removed' : 'disconnected'}#google-heading`,
     );
   return result;
 }

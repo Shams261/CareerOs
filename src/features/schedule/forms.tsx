@@ -2,7 +2,6 @@ import { ActionForm } from '@/components/action-form';
 import {
   blockAction,
   routineAction,
-  generationAction,
   executionAction,
   manualAction,
   reviewAction,
@@ -13,11 +12,12 @@ import type {
   DailyCheckIn,
 } from '@/generated/prisma/client';
 import { formatInTimeZone } from 'date-fns-tz';
-import { shiftDay } from './domain';
 export type GoalOption = { id: string; title: string };
+const WEEKDAY = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 function CommonFields({
   goals,
   value,
+  compact = false,
 }: {
   goals: GoalOption[];
   value?: {
@@ -27,6 +27,7 @@ function CommonFields({
     goalId: string | null;
     priority: number;
   };
+  compact?: boolean;
 }) {
   return (
     <>
@@ -38,6 +39,7 @@ function CommonFields({
             required
             maxLength={160}
             defaultValue={value?.title}
+            placeholder="DSA practice"
           />
         </label>
         <label>
@@ -50,34 +52,46 @@ function CommonFields({
             defaultValue={value?.category ?? 'DSA'}
           />
         </label>
-        <label>
-          Goal
-          <select name="goalId" defaultValue={value?.goalId ?? ''}>
-            <option value="">No goal</option>
-            {goals.map((g) => (
-              <option key={g.id} value={g.id}>
-                {g.title}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label>
-          Priority
-          <select name="priority" defaultValue={value?.priority ?? 2}>
-            <option value={1}>High</option>
-            <option value={2}>Normal</option>
-            <option value={3}>Low</option>
-          </select>
-        </label>
+        {compact ? (
+          <>
+            <input type="hidden" name="priority" value={value?.priority ?? 2} />
+            <input type="hidden" name="goalId" value={value?.goalId ?? ''} />
+            <input type="hidden" name="description" value="" />
+          </>
+        ) : (
+          <>
+            <label>
+              Goal
+              <select name="goalId" defaultValue={value?.goalId ?? ''}>
+                <option value="">No goal</option>
+                {goals.map((g) => (
+                  <option key={g.id} value={g.id}>
+                    {g.title}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label>
+              Priority
+              <select name="priority" defaultValue={value?.priority ?? 2}>
+                <option value={1}>High</option>
+                <option value={2}>Normal</option>
+                <option value={3}>Low</option>
+              </select>
+            </label>
+          </>
+        )}
       </div>
-      <label>
-        Notes
-        <textarea
-          name="description"
-          maxLength={1000}
-          defaultValue={value?.description ?? ''}
-        />
-      </label>
+      {!compact && (
+        <label>
+          Notes
+          <textarea
+            name="description"
+            maxLength={1000}
+            defaultValue={value?.description ?? ''}
+          />
+        </label>
+      )}
     </>
   );
 }
@@ -114,7 +128,8 @@ export function BlockForm({
   return (
     <ActionForm
       action={blockAction}
-      label={block ? 'Edit this occurrence only' : 'Add a block'}
+      label={block ? 'Edit this day only' : 'Add a block'}
+      resetOnSuccess={!block}
     >
       <input type="hidden" name="id" value={block?.id ?? ''} />
       <input
@@ -178,32 +193,30 @@ export function BlockForm({
         </label>
       </div>
       <label className="check">
-        <input type="checkbox" name="allowOverlap" /> Allow this overlap if
-        another block conflicts
+        <input type="checkbox" name="allowOverlap" /> Allow overlap with another
+        block
       </label>
-      <p className="muted">
-        {zone}. Only this dated occurrence changes. Actual sessions and
-        recurring routines stay intact.
-      </p>
       <button className="button mt-3">
-        {block ? 'Save this occurrence' : 'Add block'}
+        {block ? 'Save for this day' : 'Add block'}
       </button>
     </ActionForm>
   );
 }
+/** `compact` is the first-run form: title, category, days and time only. */
 export function RoutineForm({
   routine,
   goals,
+  compact = false,
 }: {
   routine?: RoutineBlock;
   goals: GoalOption[];
+  compact?: boolean;
 }) {
   return (
     <ActionForm
       action={routineAction}
-      label={
-        routine ? `Edit routine ${routine.title}` : 'Create recurring routine'
-      }
+      label={routine ? `Edit routine ${routine.title}` : 'Add routine'}
+      resetOnSuccess={!routine}
     >
       <input type="hidden" name="id" value={routine?.id ?? ''} />
       <input
@@ -211,7 +224,7 @@ export function RoutineForm({
         name="version"
         value={routine?.updatedAt.toISOString() ?? ''}
       />
-      <CommonFields goals={goals} value={routine} />
+      <CommonFields goals={goals} value={routine} compact={compact} />
       <fieldset>
         <legend>Repeat on</legend>
         <div className="weekday-picker">
@@ -225,7 +238,7 @@ export function RoutineForm({
                   routine?.weekdays.includes(d) ?? [1, 2, 3, 4, 5].includes(d)
                 }
               />
-              {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][d]}
+              {WEEKDAY[d]}
             </label>
           ))}
         </div>
@@ -250,65 +263,44 @@ export function RoutineForm({
           />
         </label>
       </div>
-      <p className="muted">
-        An end time at or before the start is on the following day.
-      </p>
-      <label className="check">
-        <input
-          type="checkbox"
-          name="enabled"
-          defaultChecked={routine?.enabled ?? true}
-        />{' '}
-        Enabled
-      </label>
+      {compact ? (
+        <input type="hidden" name="enabled" value="on" />
+      ) : (
+        <label className="check">
+          <input
+            type="checkbox"
+            name="enabled"
+            defaultChecked={routine?.enabled ?? true}
+          />{' '}
+          Active
+        </label>
+      )}
       {routine && (
         <>
           <label>
             Apply changes to
             <select name="scope" defaultValue="template">
-              <option value="template">Only days not generated yet</option>
+              <option value="template">Days not planned yet</option>
               <option value="future">
-                Also eligible future generated blocks — preview first
+                Also days already planned (preview first)
               </option>
             </select>
           </label>
           <label className="check">
-            <input type="checkbox" name="remove" /> Delete this recurring
-            routine (preview before deleting)
+            <input type="checkbox" name="remove" /> Remove this routine (preview
+            first)
           </label>
         </>
       )}
-      <label className="check">
-        <input type="checkbox" name="allowOverlap" /> Allow this overlap with
-        other routines or dated blocks
-      </label>
+      {!compact && (
+        <label className="check">
+          <input type="checkbox" name="allowOverlap" /> Allow overlap with other
+          routines or blocks
+        </label>
+      )}
       <button className="button mt-3">
-        {routine ? 'Save / preview routine' : 'Create routine'}
+        {routine ? 'Save routine' : 'Add routine'}
       </button>
-    </ActionForm>
-  );
-}
-export function GenerateForm({ day }: { day: string }) {
-  return (
-    <ActionForm action={generationAction} label="Generate plans">
-      <div className="actions">
-        <label>
-          Starting date
-          <input type="date" name="day" defaultValue={day} required />
-        </label>
-        <label>
-          Generate
-          <select name="count" defaultValue="1">
-            <option value="1">One day</option>
-            <option value="7">Next 7 days</option>
-          </select>
-        </label>
-        <button className="button self-end mb-3">Generate plans</button>
-      </div>
-      <p className="muted">
-        Choose {shiftDay(day, 1)} for tomorrow. Existing dated plans are
-        preserved.
-      </p>
     </ActionForm>
   );
 }
@@ -316,9 +308,12 @@ export function GenerateForm({ day }: { day: string }) {
 export function ExecutionControls({
   block,
   canStart = true,
+  current = false,
 }: {
   block: TimeBlock;
   canStart?: boolean;
+  /** The block happening now: its Start answers the S shortcut. */
+  current?: boolean;
 }) {
   return (
     <ActionForm action={executionAction} label={`Actions for ${block.title}`}>
@@ -331,6 +326,11 @@ export function ExecutionControls({
                 className="button"
                 name="action"
                 value={block.status === 'IN_PROGRESS' ? 'stop' : 'start'}
+                data-shortcut={
+                  current && block.status !== 'IN_PROGRESS'
+                    ? 'start'
+                    : undefined
+                }
               >
                 {block.status === 'IN_PROGRESS' ? 'Stop session' : 'Start'}
               </button>
@@ -344,6 +344,13 @@ export function ExecutionControls({
             <button className="button secondary" name="action" value="cancel">
               Cancel block
             </button>
+            <input
+              className="reason"
+              name="reason"
+              maxLength={300}
+              aria-label="Skip reason (optional)"
+              placeholder="Skip reason (optional)"
+            />
           </>
         ) : (
           <button className="button secondary" name="action" value="reset">
@@ -351,16 +358,6 @@ export function ExecutionControls({
           </button>
         )}
       </div>
-      {['PLANNED', 'IN_PROGRESS'].includes(block.status) && (
-        <label className="muted">
-          Skip reason (optional)
-          <input
-            name="reason"
-            maxLength={300}
-            placeholder="e.g. Work ran late"
-          />
-        </label>
-      )}
     </ActionForm>
   );
 }
@@ -374,18 +371,15 @@ export function ManualSessionForm({
   day: string;
 }) {
   return (
-    <ActionForm
-      action={manualAction}
-      label={`Log actual time for ${block.title}`}
-    >
+    <ActionForm action={manualAction} label={`Log time for ${block.title}`}>
       <input type="hidden" name="id" value={block.id} />
       <div className="form-grid">
         <label>
-          Actual start date
+          Started on
           <input name="day" type="date" required defaultValue={day} />
         </label>
         <label>
-          Actual start time
+          Started at
           <input
             name="startLocal"
             type="time"
@@ -394,11 +388,11 @@ export function ManualSessionForm({
           />
         </label>
         <label>
-          Actual end date
+          Ended on
           <input name="endDay" type="date" required defaultValue={day} />
         </label>
         <label>
-          Actual end time
+          Ended at
           <input
             name="endLocal"
             type="time"
@@ -408,14 +402,10 @@ export function ManualSessionForm({
         </label>
       </div>
       <label>
-        Session notes
+        Notes
         <textarea name="notes" maxLength={1000} />
       </label>
-      <p className="muted">
-        {zone}. Actual entries cannot overlap another session or end in the
-        future.
-      </p>
-      <button className="button mt-3">Save actual time</button>
+      <button className="button mt-3">Save time</button>
     </ActionForm>
   );
 }
@@ -446,7 +436,7 @@ export function ReviewForm({
         />
       </label>
       <label>
-        Carry forward (optional)
+        Carry to tomorrow (optional)
         <input
           name="carryForward"
           maxLength={500}

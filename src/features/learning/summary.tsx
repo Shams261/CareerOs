@@ -42,7 +42,7 @@ export async function TodayLearning({
       </p>
       <p className="muted">
         Reviews due: {queue.length} · Next topic:{' '}
-        {next?.title ?? 'Choose in Learning'}
+        {next?.title ?? 'Choose in Learn'}
       </p>
       <ol className="dsa-list">
         {queue.slice(0, 2).map((t) => (
@@ -61,7 +61,7 @@ export async function TodayLearning({
         )}
       </ol>
       <Link className="link" href="/learn#review-queue">
-        Open Learning Queue →
+        Open Learn →
       </Link>
     </section>
   );

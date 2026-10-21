@@ -10,6 +10,7 @@ import { pushConfig } from '@/lib/env';
 import { healthCheck } from '@/server/health';
 import { activeDevices } from '@/features/push/service';
 import { PushControls } from '@/features/push/controls';
+import { GoogleCalendarPanel } from '@/features/calendar/panel';
 import { signOutAction } from '@/features/auth/actions';
 import { currentWeek } from '@/features/review/domain';
 import { shiftDay } from '@/features/schedule/domain';
@@ -17,10 +18,15 @@ import { shiftDay } from '@/features/schedule/domain';
 const ago = (d: Date | null | undefined, now: Date) =>
   d ? formatDistance(d, now, { addSuffix: true }) : 'never';
 
-export default async function Settings() {
+export default async function Settings({
+  searchParams,
+}: {
+  searchParams: Promise<{ google?: string; reason?: string }>;
+}) {
   const user = await owner();
   const theme = await savedTheme();
   const now = new Date();
+  const flash = await searchParams;
   const push = (() => {
     try {
       return pushConfig();
@@ -48,83 +54,60 @@ export default async function Settings() {
       }),
     ]);
   const job = (name: string) => jobs.find((j) => j.name === name);
+  // The checklist disappears once everything on it is done.
   const steps: [string, boolean, string][] = [
-    ['Sign in', true, '/settings'],
-    [`Confirm timezone (${user.timezone})`, true, '/settings'],
-    ['Set up routines', routines > 0, '/calendar'],
+    ['Add a routine', routines > 0, '/calendar'],
     ['Enable notifications on a device', devices > 0, '#notifications-heading'],
     [
       'Connect Google Calendar',
       calendar?.status === 'CONNECTED',
-      '/calendar#google-heading',
+      '#google-heading',
     ],
-    ['Prepare next week', nextWeekPlans > 0, '/review'],
-    ['Start using Today', true, '/today'],
+    ['Prepare next week', nextWeekPlans > 0, '/review?step=plan'],
   ];
+  const remaining = steps.filter(([, done]) => !done);
   return (
     <>
-      <p className="eyebrow">Make it yours</p>
-      <h1>Workspace settings</h1>
-      <section className="card mt-7" aria-labelledby="theme-heading">
-        <h2 id="theme-heading">Theme</h2>
-        <p className="muted">
-          Light by default. Your choice is saved in this browser.
-        </p>
-        <form action={saveTheme} className="mt-3">
-          <label htmlFor="theme">Appearance</label>
-          <select id="theme" name="theme" defaultValue={theme} key={theme}>
-            <option value="light">Light</option>
-            <option value="dark">Dark</option>
-          </select>
-          <Button>Save theme</Button>
-        </form>
-      </section>
-      <section className="card mt-7" aria-labelledby="account-heading">
-        <h2 id="account-heading">Account</h2>
-        <p>{user.email}</p>
-        <p className="muted">
-          Timezone: {user.timezone}. Dates and reminders use this zone.
-        </p>
-        <form action={signOutAction} className="mt-3">
-          <Button className="secondary">Sign out</Button>
-        </form>
-      </section>
-
-      <section className="card" aria-labelledby="start-heading">
-        <h2 id="start-heading">Getting started</h2>
-        <ol className="plain-list checklist">
-          {steps.map(([label, done, href]) => (
-            <li key={label}>
-              <span aria-hidden="true">{done ? '✓' : '○'}</span>{' '}
-              <span className="sr-only">{done ? 'Done:' : 'To do:'}</span>{' '}
-              <Link className="link" href={href}>
-                {label}
-              </Link>
-            </li>
-          ))}
-        </ol>
-      </section>
-
-      <section className="card" aria-labelledby="notifications-heading">
+      <p className="eyebrow">Workspace · {user.timezone}</p>
+      <h1>Settings</h1>
+      {remaining.length > 0 && (
+        <section className="card mt-7" aria-labelledby="start-heading">
+          <h2 id="start-heading">Getting started</h2>
+          <ol className="plain-list checklist">
+            {steps.map(([label, done, href]) => (
+              <li key={label}>
+                <span aria-hidden="true">{done ? '✓' : '○'}</span>{' '}
+                <span className="sr-only">{done ? 'Done:' : 'To do:'}</span>{' '}
+                <Link className="link" href={href}>
+                  {label}
+                </Link>
+              </li>
+            ))}
+          </ol>
+        </section>
+      )}
+      <section
+        className={`card${remaining.length ? '' : ' mt-7'}`}
+        aria-labelledby="notifications-heading"
+      >
         <h2 id="notifications-heading">Notifications</h2>
         {push ? (
           <PushControls publicKey={push.publicKey} />
         ) : (
           <p className="muted">
-            Closed-app notifications are not configured on this server (VAPID
-            keys missing). Reminders still appear in the Today inbox.
+            Push is not configured on this server. Reminders still appear on
+            Today.
           </p>
         )}
         <p className="muted">
-          Enabled on {devices} device{devices === 1 ? '' : 's'}. Reminders are
-          always kept in the Today inbox; push is an extra delivery channel.
-          Works in Chrome, Edge and Firefox on desktop and Android, and in
-          Safari on macOS. On iPhone/iPad it requires iOS 16.4+ with Silsila
-          added to the Home Screen. Browsers and focus modes may delay or
-          silence alerts.
+          Enabled on {devices} device{devices === 1 ? '' : 's'}. Reminders
+          always stay on Today; push is an extra channel.
+          {devices === 0
+            ? ' On iPhone or iPad, add Silsila to the Home Screen first.'
+            : ''}
         </p>
-        <h3 className="mt-4">Daily progress reminder</h3>
-        <ActionForm action={reminderAction} label="Daily progress reminder">
+        <h3 className="mt-4">Daily reminder</h3>
+        <ActionForm action={reminderAction} label="Daily reminder">
           <label className="check">
             <input
               type="checkbox"
@@ -134,7 +117,7 @@ export default async function Settings() {
             Remind me when I haven’t reviewed my day
           </label>
           <label>
-            Local reminder time
+            Time
             <input
               required
               type="time"
@@ -142,12 +125,31 @@ export default async function Settings() {
               defaultValue={pref?.preferredTime ?? '21:30'}
             />
           </label>
-          <p className="muted mb-4">
-            Timezone: {pref?.timezone ?? user.timezone}. Requires the deployment
-            scheduler.
-          </p>
-          <Button>Save preference</Button>
+          <Button className="mt-3">Save</Button>
         </ActionForm>
+      </section>
+
+      <GoogleCalendarPanel user={user} flash={flash} />
+
+      <section className="card" aria-labelledby="theme-heading">
+        <h2 id="theme-heading">Appearance</h2>
+        <form action={saveTheme} className="mt-3">
+          <label htmlFor="theme">Theme</label>
+          <select id="theme" name="theme" defaultValue={theme} key={theme}>
+            <option value="light">Light</option>
+            <option value="dark">Dark</option>
+          </select>
+          <Button className="mt-3">Save</Button>
+        </form>
+      </section>
+
+      <section className="card" aria-labelledby="account-heading">
+        <h2 id="account-heading">Account</h2>
+        <p>{user.email}</p>
+        <p className="muted">Timezone: {user.timezone}</p>
+        <form action={signOutAction} className="mt-3">
+          <Button className="secondary">Sign out</Button>
+        </form>
       </section>
 
       <section className="card" aria-labelledby="status-heading">
@@ -180,7 +182,7 @@ export default async function Settings() {
             </dd>
           </div>
           <div>
-            <dt className="muted">Notification job</dt>
+            <dt className="muted">Reminder job</dt>
             <dd>
               Last success {ago(job('notifications')?.lastSucceededAt, now)}
             </dd>
@@ -197,9 +199,7 @@ export default async function Settings() {
       <section className="card" aria-labelledby="data-heading">
         <h2 id="data-heading">Your data</h2>
         <p className="muted">
-          Download a JSON copy of your Silsila records. It excludes Google
-          credentials, device notification keys and sessions. Database backups
-          remain the way to recover a full workspace.
+          A JSON copy of your records, without credentials or device keys.
         </p>
         <a className="button secondary" href="/api/export" download>
           Download data export

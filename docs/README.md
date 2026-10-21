@@ -43,3 +43,5 @@ See the [WI-008.1 handoff](WI-008.1-HANDOFF.md) for the Heroku container deploym
 See the [WI-008.2 handoff](WI-008.2-HANDOFF.md) for the Render + Supabase free-tier path.
 
 See the [WI-008.3 handoff](WI-008.3-HANDOFF.md) for the post-launch polish from the production acceptance pass.
+
+See the [WI-009 handoff](WI-009-HANDOFF.md) for the UX simplification (first-run cards, visible actions, plain words, three-step weekly review).

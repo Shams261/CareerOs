@@ -6,6 +6,9 @@ import { learningSnapshot } from '@/features/learning/service';
 import { dueState, statuses, statusLabel } from '@/features/learning/domain';
 import { SubjectForm, LearningTopicForm } from '@/features/learning/forms';
 import { TopicList } from '@/features/learning/components';
+import { Disclosure } from '@/components/disclosure';
+
+const FILTER_THRESHOLD = 8;
 export default async function Subject({
   params,
   searchParams,
@@ -21,87 +24,87 @@ export default async function Subject({
   if (!subject) notFound();
   const day = dayKey(new Date(), user.timezone),
     topics = data.topics.filter((t) => t.subjectId === id),
+    filtering =
+      topics.length > FILTER_THRESHOLD || !!query.status || !!query.due,
     visible = topics.filter(
       (t) =>
         (!query.status || t.status === query.status) &&
         (!query.due || ['today', 'overdue'].includes(dueState(t, day))),
-    );
+    ),
+    ready = topics.filter((t) => t.status === 'INTERVIEW_READY').length,
+    review = topics.filter((t) => t.status === 'NEEDS_REVISION').length;
   return (
     <>
       <Link className="link" href="/learn">
         ← Learning
       </Link>
-      <p className="eyebrow mt-4">{statusLabel(subject.status)}</p>
-      <h1>{subject.name}</h1>
-      <p className="muted mb-7">{subject.description}</p>
-      <section className="card">
-        <h2>Progress</h2>
-        <p>
-          {
-            topics.filter(
-              (t) =>
-                t.lastReviewedAt ||
-                [
-                  'LEARNING',
-                  'NEEDS_REVISION',
-                  'INTERVIEW_READY',
-                  'COMPLETED',
-                ].includes(t.status),
-            ).length
-          }{' '}
-          / {topics.length} topics touched ·{' '}
-          {topics.filter((t) => t.status === 'INTERVIEW_READY').length}{' '}
-          interview ready ·{' '}
-          {topics.filter((t) => t.status === 'NEEDS_REVISION').length} need
-          review
-        </p>
-      </section>
-      <section className="card">
-        <h2>Topics in learning order</h2>
-        <form className="dsa-filters">
-          <label>
-            Status
-            <select name="status" defaultValue={query.status ?? ''}>
-              <option value="">All statuses</option>
-              {statuses.map((s) => (
-                <option key={s} value={s}>
-                  {statusLabel(s)}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="check">
-            <input
-              type="checkbox"
-              name="due"
-              value="yes"
-              defaultChecked={!!query.due}
-            />
-            Due reviews only
-          </label>
-          <button className="button">Filter</button>
-          <Link className="link" href={`/learn/subjects/${id}`}>
-            Clear
-          </Link>
-        </form>
-        <TopicList topics={visible} day={day} />
-      </section>
-      <section className="card">
-        <details>
-          <summary>Add topic</summary>
+      <p className="eyebrow mt-4">
+        {statusLabel(subject.status)}
+        {subject.id === data.currentSubjectId ? ' · Current focus' : ''}
+      </p>
+      <div className="page-head">
+        <h1>{subject.name}</h1>
+        <Disclosure label="Add topic" variant="primary">
           <LearningTopicForm subjectId={id} topics={topics} />
-        </details>
+        </Disclosure>
+      </div>
+      {subject.description && (
+        <p className="muted mb-5">{subject.description}</p>
+      )}
+      <section className="card" aria-labelledby="topics-heading">
+        <div className="section-head">
+          <h2 id="topics-heading">
+            Topics{' '}
+            <span className="muted">
+              · {topics.length} · {ready} interview ready · {review} need review
+            </span>
+          </h2>
+        </div>
+        {filtering && (
+          <form className="dsa-filters mb-4">
+            <label>
+              Status
+              <select name="status" defaultValue={query.status ?? ''}>
+                <option value="">All statuses</option>
+                {statuses.map((s) => (
+                  <option key={s} value={s}>
+                    {statusLabel(s)}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="check">
+              <input
+                type="checkbox"
+                name="due"
+                value="yes"
+                defaultChecked={!!query.due}
+              />
+              Due reviews only
+            </label>
+            <div className="actions">
+              <button className="button secondary">Filter</button>
+              <Link className="link" href={`/learn/subjects/${id}`}>
+                Clear
+              </Link>
+            </div>
+          </form>
+        )}
+        {topics.length ? (
+          <TopicList topics={visible} day={day} />
+        ) : (
+          <p className="muted">No topics yet. Add the first one above.</p>
+        )}
       </section>
-      <section className="card">
-        <details>
-          <summary>Edit subject / focus / archive</summary>
+      <Disclosure label="Edit subject">
+        <section className="card">
           <SubjectForm
             subject={subject}
             currentId={data.currentSubjectId}
             goals={data.goals}
           />
-        </details>
-      </section>
+        </section>
+      </Disclosure>
     </>
   );
 }

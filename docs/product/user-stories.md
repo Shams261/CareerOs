@@ -48,14 +48,14 @@ Current persona: one private workspace owner. Future employees maintaining the p
 
 ## Future story backlog (not started)
 
-| ID     | Outcome                                         | Definition needed before implementation                                                                                                              |
-| ------ | ----------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
-| US-021 | Production deployment and recovery              | Resolve release-blocking NFRs, hosting, backups, restore evidence, HTTPS and operational ownership.                                                  |
-| US-022 | Goal and learning/problem/application authoring | DSA authoring (WI-003), learning (WI-004) and job applications (WI-005) delivered; goal authoring still needs scope, validation and ownership rules. |
-| US-023 | Correct closed actual-session records           | Preserve history, conflict handling, auditability and correction UX.                                                                                 |
-| US-024 | Reliable closed-app Web Push                    | Subscription lifecycle, transport outbox/retries, revocation, browser limits and delivery evidence.                                                  |
-| US-025 | Calendar synchronization                        | OAuth, conflict policy, idempotency, source-of-truth and failure recovery.                                                                           |
-| US-026 | Multi-user product readiness                    | Authentication, tenant isolation, privacy/retention, abuse controls and capacity evidence; requires ADRs.                                            |
+| ID     | Outcome                                         | Definition needed before implementation                                                                                                                             |
+| ------ | ----------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| US-021 | Production deployment and recovery              | Resolve release-blocking NFRs, hosting, backups, restore evidence, HTTPS and operational ownership.                                                                 |
+| US-022 | Goal and learning/problem/application authoring | Delivered in WI-009: goals (`/roadmap`) with target dates, status and priority; owner-scoped, Zod-validated, linked by routines, subjects, priorities and roadmaps. |
+| US-023 | Correct closed actual-session records           | Preserve history, conflict handling, auditability and correction UX.                                                                                                |
+| US-024 | Reliable closed-app Web Push                    | Subscription lifecycle, transport outbox/retries, revocation, browser limits and delivery evidence.                                                                 |
+| US-025 | Calendar synchronization                        | OAuth, conflict policy, idempotency, source-of-truth and failure recovery.                                                                                          |
+| US-026 | Multi-user product readiness                    | Authentication, tenant isolation, privacy/retention, abuse controls and capacity evidence; requires ADRs.                                                           |
 
 | US-027 | Dependency security remediation | Triage all audit findings, assess reachability, upgrade compatibly, verify migrations/tests/build and record residual risk under NFR-002. |
 

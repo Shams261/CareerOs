@@ -37,6 +37,7 @@ export async function exportOwnerData(userId: string, now = new Date()) {
     preferences,
     notifications,
     calendar,
+    roadmaps,
   ] = await Promise.all([
     db().user.findUniqueOrThrow({
       where: { id: userId },
@@ -93,6 +94,7 @@ export async function exportOwnerData(userId: string, now = new Date()) {
         lastSuccessfulSyncAt: true,
       },
     }),
+    db().roadmap.findMany({ ...own, include: { items: true } }),
   ]);
   return {
     format: 'careeros-export',
@@ -101,6 +103,7 @@ export async function exportOwnerData(userId: string, now = new Date()) {
     note: 'Instants are UTC ISO strings; calendar dates (DATE columns) are YYYY-MM-DD at 00:00Z.',
     user,
     goals,
+    roadmaps,
     routines,
     dailyPlans: plans,
     actualSessions: sessions,

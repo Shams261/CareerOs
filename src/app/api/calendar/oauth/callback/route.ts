@@ -16,7 +16,10 @@ export async function GET(request: Request) {
   // Redirect to the public origin, never to the request host: behind a hosting proxy the
   // request URL names the internal listener (for example localhost:10000).
   const back = (query: string) =>
-    Response.redirect(new URL(`/calendar?${query}`, authConfig().baseUrl), 303);
+    Response.redirect(
+      new URL(`/settings?${query}#google-heading`, authConfig().baseUrl),
+      303,
+    );
   const deps = defaultDeps();
   if (!deps) return back('google=error&reason=not_configured');
   const jar = await cookies();

@@ -14,11 +14,11 @@ import {
 import { MAX_PRIORITIES } from './domain';
 
 const prompts = [
-  ['biggestWin', 'Biggest win'],
-  ['biggestBlocker', 'Biggest blocker'],
+  ['biggestWin', 'What went well?'],
+  ['biggestBlocker', 'What got in the way?'],
+  ['nextWeekChange', 'What will I change next week?'],
   ['lessons', 'What did I learn?'],
-  ['nextWeekChange', 'What should I change next week?'],
-  ['carryForward', 'Carry forward'],
+  ['carryForward', 'Still to do'],
 ] as const;
 
 /** Five optional short prompts. Save draft or complete; completed reviews stay editable. */
@@ -195,9 +195,8 @@ export function PrepareNextWeekForm({ monday }: { monday: string }) {
     <ActionForm action={prepareNextWeekAction} label="Prepare next week">
       <input type="hidden" name="monday" value={monday} />
       <p className="muted">
-        Generates next week&apos;s dated plans from your routines. Days already
-        generated (and any one-off edits) are left alone. Google Calendar, if
-        connected, publishes afterwards.
+        Plans next week from your routines. Days already planned stay as they
+        are.
       </p>
       <button className="button">Prepare next week</button>
     </ActionForm>
@@ -232,9 +231,6 @@ export function WeeklyReminderForm({
           defaultValue={pref?.preferredTime ?? '18:00'}
         />
       </label>
-      <p className="muted">
-        One in-app inbox reminder per week. No closed-app push.
-      </p>
       <button className="button secondary">Save reminder</button>
     </ActionForm>
   );

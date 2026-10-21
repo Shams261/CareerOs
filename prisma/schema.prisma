@@ -14,6 +14,17 @@ enum GoalStatus {
   ARCHIVED
 }
 
+enum RoadmapItemKind {
+  CONCEPT
+  QUESTION
+}
+
+enum RoadmapItemStatus {
+  NOT_STARTED
+  IN_PROGRESS
+  DONE
+}
+
 enum BlockStatus {
   PLANNED
   IN_PROGRESS
@@ -124,6 +135,8 @@ model User {
   createdAt          DateTime                 @default(now()) @db.Timestamptz(3)
   updatedAt          DateTime                 @updatedAt @db.Timestamptz(3)
   goals              Goal[]
+  roadmaps           Roadmap[]
+  roadmapItems       RoadmapItem[]
   plans              DailyPlan[]
   sessions           ActualSession[]
   problems           DsaProblem[]
@@ -141,6 +154,7 @@ model User {
 
 model Goal {
   weeklyPriorities WeeklyPriority[]
+  roadmaps         Roadmap[]
   subjects         LearningSubject[]
   id               String            @id @default(cuid())
   userId           String
@@ -239,20 +253,22 @@ model ActualSession {
 }
 
 model DsaTopic {
-  prepItems   InterviewPrepItem[]
-  currentFor  User[]
-  id          String              @id @default(cuid())
-  name        String              @unique
-  description String?
-  status      LearningStatus      @default(NOT_STARTED)
-  ordering    Int                 @default(0)
-  createdAt   DateTime            @default(now()) @db.Timestamptz(3)
-  updatedAt   DateTime            @updatedAt @db.Timestamptz(3)
-  problems    DsaProblem[]
+  prepItems    InterviewPrepItem[]
+  roadmapItems RoadmapItem[]
+  currentFor   User[]
+  id           String              @id @default(cuid())
+  name         String              @unique
+  description  String?
+  status       LearningStatus      @default(NOT_STARTED)
+  ordering     Int                 @default(0)
+  createdAt    DateTime            @default(now()) @db.Timestamptz(3)
+  updatedAt    DateTime            @updatedAt @db.Timestamptz(3)
+  problems     DsaProblem[]
 }
 
 model DsaProblem {
   prepItems       InterviewPrepItem[]
+  roadmapItems    RoadmapItem[]
   attempts        DsaAttempt[]
   revisionStage   Int                 @default(0)
   revisionManual  Boolean             @default(false)
@@ -324,6 +340,7 @@ model LearningActivity {
 
 model LearningTopic {
   prepItems      InterviewPrepItem[]
+  roadmapItems   RoadmapItem[]
   subjectId      String
   subject        LearningSubject     @relation(fields: [subjectId], references: [id], onDelete: Restrict)
   description    String?
@@ -802,4 +819,54 @@ model JobRun {
   lastFailedAt    DateTime? @db.Timestamptz(3)
   lastError       String?
   lastSummary     Json?
+}
+
+/// WI-009: an interview roadmap is a planning layer. Items may point at a Learn topic or a
+/// Practice problem/topic but never change mastery, attempts or revision dates.
+model Roadmap {
+  id          String        @id @default(cuid())
+  userId      String
+  user        User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title       String
+  description String?
+  goalId      String?
+  goal        Goal?         @relation(fields: [goalId], references: [id], onDelete: SetNull)
+  ordering    Int           @default(0)
+  archivedAt  DateTime?     @db.Timestamptz(3)
+  createdAt   DateTime      @default(now()) @db.Timestamptz(3)
+  updatedAt   DateTime      @updatedAt @db.Timestamptz(3)
+  items       RoadmapItem[]
+
+  @@index([userId, ordering])
+}
+
+model RoadmapItem {
+  id               String            @id @default(cuid())
+  userId           String
+  user             User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  roadmapId        String
+  roadmap          Roadmap           @relation(fields: [roadmapId], references: [id], onDelete: Cascade)
+  section          String
+  kind             RoadmapItemKind   @default(CONCEPT)
+  title            String
+  notes            String?
+  url              String?
+  status           RoadmapItemStatus @default(NOT_STARTED)
+  completedAt      DateTime?         @db.Timestamptz(3)
+  askedInInterview Boolean           @default(false)
+  askedNote        String?
+  ordering         Int               @default(0)
+  learningTopicId  String?
+  learningTopic    LearningTopic?    @relation(fields: [learningTopicId], references: [id], onDelete: SetNull)
+  dsaProblemId     String?
+  dsaProblem       DsaProblem?       @relation(fields: [dsaProblemId], references: [id], onDelete: SetNull)
+  dsaTopicId       String?
+  dsaTopic         DsaTopic?         @relation(fields: [dsaTopicId], references: [id], onDelete: SetNull)
+  createdAt        DateTime          @default(now()) @db.Timestamptz(3)
+  updatedAt        DateTime          @updatedAt @db.Timestamptz(3)
+
+  @@index([roadmapId, section, ordering])
+  @@index([userId, status])
+  @@index([learningTopicId])
+  @@index([dsaProblemId])
 }

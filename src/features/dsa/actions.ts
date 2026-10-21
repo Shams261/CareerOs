@@ -39,13 +39,13 @@ export async function topicAction(_state: ActionState, form: FormData) {
 export async function problemAction(_state: ActionState, form: FormData) {
   return perform(async () => {
     await saveProblem(await owner(), Object.fromEntries(form));
-    return 'Problem saved. Find it in the problem library below.';
+    return 'Problem saved.';
   });
 }
 export async function attemptAction(_state: ActionState, form: FormData) {
   return perform(async () => {
     await recordAttempt(await owner(), Object.fromEntries(form));
-    return 'Attempt saved. Revision date updated.';
+    return 'Attempt saved.';
   });
 }
 export async function revisionAction(_state: ActionState, form: FormData) {
@@ -55,6 +55,6 @@ export async function revisionAction(_state: ActionState, form: FormData) {
       String(form.get('id') ?? ''),
       String(form.get('date') ?? ''),
     );
-    return 'Manual revision date saved. Progression and history preserved.';
+    return 'Revision date saved.';
   });
 }

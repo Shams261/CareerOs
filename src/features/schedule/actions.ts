@@ -5,8 +5,8 @@ import { issueMessages } from '@/lib/validation';
 import { owner } from '@/server/db';
 import { syncSoon } from '@/features/calendar/background';
 import { saveBlock, saveRoutine, PreviewRequired } from './editing';
-import { dateInput, shiftDay } from './domain';
-import { generatePlan, locked } from './service';
+import { dateInput } from './domain';
+import { locked } from './service';
 import {
   execute,
   logSession,
@@ -60,7 +60,7 @@ export async function blockAction(_state: ActionState, form: FormData) {
       form.get('allowOverlap') === 'on',
       String(form.get('version') ?? ''),
     );
-    return 'Day saved. Your recurring routine is unchanged.';
+    return 'Saved for this day.';
   });
 }
 export async function routineAction(_state: ActionState, form: FormData) {
@@ -70,14 +70,20 @@ export async function routineAction(_state: ActionState, form: FormData) {
       weekdays: form.getAll('weekdays'),
       enabled: form.get('enabled') === 'on',
     };
-    const changed = await saveRoutine(await owner(), raw, {
+    const { changed, added } = await saveRoutine(await owner(), raw, {
       sync: form.get('scope') === 'future',
       token: String(form.get('token') ?? ''),
       version: String(form.get('version') ?? ''),
       remove: form.get('remove') === 'on',
       allowOverlap: form.get('allowOverlap') === 'on',
     });
-    return `Routine saved. ${changed} dated blocks updated; daily overrides and actual work preserved.`;
+    const days = (n: number) => `${n} planned day${n === 1 ? '' : 's'}`;
+    if (form.get('remove') === 'on') return 'Routine removed.';
+    if (!form.get('id'))
+      return added ? `Routine added to ${days(added)}.` : 'Routine added.';
+    return changed
+      ? `Routine saved. ${days(changed)} updated.`
+      : 'Routine saved.';
   });
 }
 export async function executionAction(_state: ActionState, form: FormData) {
@@ -91,24 +97,13 @@ export async function executionAction(_state: ActionState, form: FormData) {
       action,
       String(form.get('reason') ?? ''),
     );
-    return action === 'complete'
-      ? 'Block completed. Planned times preserved.'
-      : 'Progress saved.';
+    return action === 'complete' ? 'Completed.' : 'Saved.';
   });
 }
 export async function manualAction(_state: ActionState, form: FormData) {
   return perform(async () => {
     await logSession(await owner(), Object.fromEntries(form));
-    return 'Actual time saved. Complete the block separately when finished.';
-  });
-}
-export async function generationAction(_state: ActionState, form: FormData) {
-  return perform(async () => {
-    const user = await owner(),
-      day = dateInput.parse(form.get('day')),
-      count = z.coerce.number().int().min(1).max(7).parse(form.get('count'));
-    for (let i = 0; i < count; i++) await generatePlan(user, shiftDay(day, i));
-    return `${count} day(s) ready. Existing plans preserved.`;
+    return 'Time saved.';
   });
 }
 export async function reviewAction(_state: ActionState, form: FormData) {

@@ -22,10 +22,16 @@ export const attemptInput = z
         : v.confidenceAfter !== 'GREEN',
     {
       message:
-        'YES allows Yellow or Green; PARTIAL and NO allow Red or Yellow.',
+        'Solved on your own needs Yellow or Green; with hints or the solution, Red or Yellow.',
       path: ['confidenceAfter'],
     },
   );
+/** How an attempt was solved, in the owner's words. */
+export const solvedText = {
+  YES: 'on my own',
+  PARTIAL: 'with hints',
+  NO: 'needed the solution',
+} as const;
 export function revision(
   conf: z.infer<typeof confidence>,
   stage: number,

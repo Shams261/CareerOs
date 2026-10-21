@@ -179,3 +179,36 @@ Attention is derived, not stored: overdue follow-up, result needed, interview be
 **Alternatives rejected:** Heroku on a personal card (recurring cost before value is proven); waiting indefinitely (blocks the usage phase); Neon instead of Supabase (its 100 CU-hour monthly cap suspends the project under a per-minute cron); keeping the instance awake with a separate pinger (the cron already provides the traffic); a `release`-style migration on container start (would run with no backup and on every spin-up).
 
 **Consequences:** No vendor backups: the owner's weekly `pnpm db:backup` is the only copy, verified with `pnpm db:restore:verify`. A fractional CPU makes server renders slower than on a paid dyno; acceptable for one owner and a reason to move once usage justifies spend. If cron-job.org fails, the instance sleeps and the first visit waits about a minute; Settings → System status reveals it. The Supabase session pooler caps clients at the project's pool size, so `DATABASE_POOL_MAX` stays small. Supabase pauses a free project after 7 idle days; the cron prevents this, and a paused project is resumed from the dashboard without data loss.
+
+## ADR-015 — A new routine joins the days already planned; the current week plans itself
+
+**Status:** Accepted (2026-10-21, WI-009).
+
+**Context:** The production acceptance pass and the UX critique both found the same trap: a newcomer adds a one-off block, which creates today's plan, then creates their first routine and finds today still empty. The only remedy was a "Generate plans" control whose vocabulary ("dated plans") meant nothing to the owner. ADR-002 protects edited days from routine edits; it never required a brand-new routine to stay off days that merely exist.
+
+**Decision:**
+
+- **Creating a routine adds its occurrences to already-planned days from today on.** Only slots whose start is still in the future are created; a slot that overlaps an existing block is skipped unless the owner allowed overlap; existing blocks are never edited, replaced or removed. Implemented in `saveRoutine` (`src/features/schedule/editing.ts`) through the same proposal logic that edits use, and covered by a database test.
+- **Editing a routine is unchanged:** days not planned yet by default, planned days only through the previewed "Also days already planned" scope (ADR-002).
+- **The current week plans itself.** Viewing Today or Plan runs `generateThroughSunday`, which fills today through Sunday idempotently. Next week is still created only by **Prepare next week**. The manual generate form and action are removed.
+
+**Alternatives rejected:** keeping the generate control with better copy (the owner would still have to know a step exists); regenerating a day whenever a routine changes (rewrites history, contradicts ADR-002); filling only today (the week grid would show "Not planned yet" for days the owner opens next).
+
+**Consequences:** The first routine appears on Today immediately. A routine created in the afternoon for a morning slot starts tomorrow, which the success message states ("Routine added to N planned days"). Plans for the current week are created on first view rather than on a schedule; the calendar sync job and Prepare next week keep their own generation paths.
+
+## ADR-016 — Goals and roadmaps are a planning layer over the learning models
+
+**Status:** Accepted (2026-10-21, WI-009).
+
+**Context:** The owner prepares for technical interviews from a roadmap of concepts and questions (DSA, system design, behavioural) and wants to see what is covered and what came up in interviews. `LearningTopic` and `DsaProblem` already carry mastery, attempts and revision dates with their own rules (distinct models invariant). A roadmap item is often one of those, but just as often a question ("design a rate limiter") that belongs to neither. `Goal` existed in the schema with relations to routines, subjects, topics, sessions and priorities, but had no authoring surface.
+
+**Decision:**
+
+- **`Roadmap` → `RoadmapItem`** (section, kind concept/question, status not started / in progress / done, `askedInInterview` with a note, notes, URL, ordering) is owner-scoped and may point at a `LearningTopic`, `DsaProblem` or `DsaTopic` through nullable `SetNull` foreign keys, exactly like `InterviewPrepItem`.
+- **The roadmap never writes to the models it points at.** Marking an item done or asked changes the item only; mastery, attempts and revision dates move only through Learn and Practice. The link is for navigation and context.
+- **Goals are authored on the same page** and show live progress derived from existing data: planned and recorded minutes of goal-linked blocks and sessions in the current week, roadmap items done, topics interview-ready. Counts only; no percentage score.
+- **The chain on Today** marks the last fourteen owner-local days with recorded work or a saved review. It is derived on read, stores nothing, and shows no count or streak in the interface.
+
+**Alternatives rejected:** modelling roadmap items as learning topics (forces every interview question into a mastery model and auto-converts domains); a roadmap-level completion percentage (a score, against the voice rule); storing the chain (duplicates what sessions and reviews already record).
+
+**Consequences:** One migration adds two tables and two enums; nothing existing changes. Deleting a goal keeps its roadmaps (goal reference cleared); deleting a roadmap removes its items. Bulk entry parses one item per line so a pasted outline becomes a roadmap in one step.

@@ -4,6 +4,7 @@ import { formatInTimeZone } from 'date-fns-tz';
 import { db, owner } from '@/server/db';
 import { dayKey } from '@/lib/time';
 import { ResourceLink } from '@/components/resource-link';
+import { Disclosure, DisclosureTabs } from '@/components/disclosure';
 import { applicationDetail } from '@/features/jobs/service';
 import {
   calendarDate,
@@ -148,29 +149,29 @@ export default async function Application({
                 No next action. {ownerLabel(app.actionOwner)}.
               </p>
             )}
-            {!isOpen(app.stage) && (
-              <p className="muted">
-                This application is closed; it stays here for reference and
-                never appears in attention lists.
-              </p>
-            )}
-            {(app.nextAction || app.nextActionDate) && (
-              <details className="mt-4">
-                <summary>Mark done and set the next step</summary>
-                <FollowUpDoneForm app={app} />
-              </details>
-            )}
-            <details className="mt-3">
-              <summary>Edit next action / waiting state</summary>
-              <FollowUpForm app={app} />
-            </details>
+            {!isOpen(app.stage) && <p className="muted">Closed application.</p>}
+            <DisclosureTabs
+              className="mt-4"
+              items={[
+                ...(app.nextAction || app.nextActionDate
+                  ? [
+                      {
+                        label: 'Mark done',
+                        content: <FollowUpDoneForm app={app} />,
+                      },
+                    ]
+                  : []),
+                {
+                  label: 'Edit next action',
+                  content: <FollowUpForm app={app} />,
+                },
+              ]}
+            />
           </section>
 
           <section className="card" aria-labelledby="interviews-heading">
             <h2 id="interviews-heading">Interviews</h2>
-            {!app.rounds.length && (
-              <p className="muted">No interview rounds yet.</p>
-            )}
+            {!app.rounds.length && <p className="muted">No interviews yet.</p>}
             {app.rounds.map((r) => {
               const prep = r.prepItems.filter((p) => p.kind === 'PREP'),
                 gaps = r.prepItems.filter((p) => p.kind === 'GAP'),
@@ -280,51 +281,70 @@ export default async function Application({
                       </ul>
                     </>
                   )}
-                  <details className="mt-3">
-                    <summary>Add prep item</summary>
-                    <PrepForm roundId={r.id} kind="PREP" links={links} />
-                  </details>
-                  <details className="mt-3">
-                    <summary>Add weak area (learning feedback)</summary>
-                    <p className="muted">
-                      Links a learning topic or DSA item for later study. It
-                      does not change mastery or record an attempt.
-                    </p>
-                    <PrepForm roundId={r.id} kind="GAP" links={links} />
-                  </details>
-                  {/* Stays mounted after completion so the save confirmation remains visible. */}
-                  <details className="mt-3" open={awaitingResult}>
-                    <summary>
-                      {r.status === 'COMPLETED'
-                        ? 'Edit reflection'
-                        : 'Log result / reflection'}
-                    </summary>
-                    <ResultForm round={r} stage={app.stage} />
-                  </details>
-                  {r.status !== 'COMPLETED' && (
-                    <details className="mt-3">
-                      <summary>Reschedule</summary>
-                      <RescheduleForm round={r} />
-                    </details>
+                  {awaitingResult && (
+                    <Disclosure
+                      label="Log the result"
+                      variant="primary"
+                      defaultOpen
+                      className="mt-4"
+                    >
+                      <ResultForm round={r} stage={app.stage} />
+                    </Disclosure>
                   )}
-                  <details className="mt-3">
-                    <summary>Edit interview details</summary>
-                    <RoundDetailsForm round={r} />
-                  </details>
+                  <DisclosureTabs
+                    className="mt-3"
+                    items={[
+                      {
+                        label: 'Add prep item',
+                        content: (
+                          <PrepForm roundId={r.id} kind="PREP" links={links} />
+                        ),
+                      },
+                      {
+                        label: 'Add weak area',
+                        content: (
+                          <PrepForm roundId={r.id} kind="GAP" links={links} />
+                        ),
+                      },
+                      ...(awaitingResult
+                        ? []
+                        : [
+                            {
+                              label:
+                                r.status === 'COMPLETED'
+                                  ? 'Edit reflection'
+                                  : 'Log result',
+                              content: (
+                                <ResultForm round={r} stage={app.stage} />
+                              ),
+                            },
+                          ]),
+                      ...(r.status !== 'COMPLETED'
+                        ? [
+                            {
+                              label: 'Reschedule',
+                              content: <RescheduleForm round={r} />,
+                            },
+                          ]
+                        : []),
+                      {
+                        label: 'Edit details',
+                        content: <RoundDetailsForm round={r} />,
+                      },
+                    ]}
+                  />
                 </article>
               );
             })}
             {isOpen(app.stage) && (
-              <details className="mt-4">
-                <summary>Add interview round</summary>
+              <Disclosure label="Add interview" className="mt-4">
                 <RoundForm applicationId={app.id} zone={zone} />
-              </details>
+              </Disclosure>
             )}
           </section>
 
           <section className="card" aria-labelledby="timeline-heading">
             <h2 id="timeline-heading">Timeline</h2>
-            <p className="muted">Append-only; newest first.</p>
             <ol className="plain-list">
               {app.activities.map((a) => (
                 <li className="dsa-item" key={a.id}>
@@ -337,15 +357,11 @@ export default async function Application({
               ))}
             </ol>
             {!hasCreated && (
-              <p className="muted">
-                Added before stage history existed; earlier events were not
-                recorded.
-              </p>
+              <p className="muted">Earlier events were not recorded.</p>
             )}
-            <details className="mt-3">
-              <summary>Add timeline note</summary>
+            <Disclosure variant="link" label="Add a note" className="mt-3">
               <NoteForm id={app.id} />
-            </details>
+            </Disclosure>
           </section>
         </section>
         <aside>
@@ -374,10 +390,13 @@ export default async function Application({
               </>
             )}
             {app.jobDescription && (
-              <details className="mt-4">
-                <summary>Job description snapshot</summary>
+              <Disclosure
+                variant="link"
+                label="Job description"
+                className="mt-4"
+              >
                 <p className="learning-notes">{app.jobDescription}</p>
-              </details>
+              </Disclosure>
             )}
             {app.resources.map((r) => (
               <p key={r.id}>
@@ -385,12 +404,11 @@ export default async function Application({
               </p>
             ))}
           </section>
-          <section className="card">
-            <details>
-              <summary>Edit application details</summary>
+          <Disclosure label="Edit application">
+            <section className="card">
               <DetailsForm app={app} />
-            </details>
-          </section>
+            </section>
+          </Disclosure>
         </aside>
       </div>
     </>

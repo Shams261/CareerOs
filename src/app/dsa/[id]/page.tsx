@@ -3,9 +3,10 @@ import { notFound } from 'next/navigation';
 import { formatInTimeZone } from 'date-fns-tz';
 import { db, owner } from '@/server/db';
 import { ResourceLink } from '@/components/resource-link';
+import { Disclosure } from '@/components/disclosure';
 import { InterviewMentions } from '@/features/jobs/summary';
 import { AttemptForm, ProblemForm, RevisionForm } from '@/features/dsa/forms';
-import { revisionDay } from '@/features/dsa/domain';
+import { revisionDay, solvedText } from '@/features/dsa/domain';
 export default async function Problem({
   params,
 }: {
@@ -31,10 +32,10 @@ export default async function Problem({
   return (
     <>
       <Link className="link" href="/dsa">
-        ← DSA queue
+        ← Practice
       </Link>
       <p className="eyebrow mt-5">
-        {p.topic.name} · {p.platform} · {p.difficulty}
+        {p.topic.name} · {p.platform} · {p.difficulty.toLowerCase()}
       </p>
       <h1>{p.title}</h1>
       <section className="card">
@@ -44,17 +45,17 @@ export default async function Problem({
           >
             {p.attemptsCount ? p.confidence : 'Unattempted'}
           </span>
-          <ResourceLink url={p.problemUrl}>Open Problem</ResourceLink>
+          <ResourceLink url={p.problemUrl}>Open problem</ResourceLink>
         </div>
         <p className="mt-4">Last attempt: {date(p.lastAttemptedAt)}</p>
         <p>
           Next revision:{' '}
-          {p.nextRevisionAt ? revisionDay(p.nextRevisionAt) : 'Not scheduled'}{' '}
-          {p.revisionManual ? '(manually scheduled)' : ''}
+          {p.nextRevisionAt ? revisionDay(p.nextRevisionAt) : 'Not scheduled'}
+          {p.revisionManual ? ' (set by hand)' : ''}
         </p>
         <p className="muted">
           {p.attemptsCount} attempt{p.attemptsCount === 1 ? '' : 's'} · Green
-          progression {p.revisionStage}/3 · Dates use {user.timezone}
+          revisions in a row: {p.revisionStage} of 3
         </p>
         {p.notes && <p className="mt-4">{p.notes}</p>}
         {p.resources.map((r) => (
@@ -62,33 +63,34 @@ export default async function Problem({
             <ResourceLink url={r.url}>{r.title}</ResourceLink>
           </p>
         ))}
+        {p.attemptsCount > 0 && (
+          <Disclosure
+            variant="link"
+            label="Change revision date"
+            className="mt-4"
+          >
+            <RevisionForm problem={p} />
+          </Disclosure>
+        )}
       </section>
-      <section className="card">
-        <h2>Record attempt</h2>
-        <p className="muted">
-          Saved at the current time. A running DSA session is linked
-          automatically; a timer is optional.
-        </p>
+      <section className="card" aria-labelledby="attempt-heading">
+        <h2 id="attempt-heading">Record an attempt</h2>
         <AttemptForm problemId={p.id} />
       </section>
-      <section className="card">
-        <h2>Attempt history</h2>
+      <section className="card" aria-labelledby="history-heading">
+        <h2 id="history-heading">Attempts</h2>
         {legacy > 0 && (
           <p className="muted">
-            {legacy} earlier attempt(s) recorded in the legacy summary. Detailed
-            history was not captured; it has not been reconstructed.
+            {legacy} earlier attempt{legacy === 1 ? '' : 's'} without details.
           </p>
         )}
-        {!p.attempts.length && (
-          <p className="muted">No detailed attempts recorded yet.</p>
-        )}
+        {!p.attempts.length && <p className="muted">No attempts yet.</p>}
         {p.attempts.map((a) => (
           <article className="dsa-item" key={a.id}>
             <h3>{date(a.attemptedAt)}</h3>
             <p>
-              {a.solvedIndependently} ·{' '}
               {a.confidenceBefore ? `${a.confidenceBefore} → ` : ''}
-              {a.confidenceAfter}
+              {a.confidenceAfter} · {solvedText[a.solvedIndependently]}
               {a.durationMinutes ? ` · ${a.durationMinutes} min` : ''}
             </p>
             {a.mistake && (
@@ -98,30 +100,17 @@ export default async function Problem({
             )}
             {a.notes && <p className="mt-3">{a.notes}</p>}
             {a.actualSessionId && (
-              <p className="muted">Linked to an actual DSA session.</p>
+              <p className="muted">Linked to a recorded session.</p>
             )}
           </article>
         ))}
       </section>
       <InterviewMentions userId={user.id} dsaProblemId={p.id} />
-      {p.attemptsCount > 0 && (
+      <Disclosure label="Edit problem">
         <section className="card">
-          <details>
-            <summary>Schedule revision manually</summary>
-            <p className="muted">
-              Changes the due date only. Your next attempt resumes automatic
-              scheduling.
-            </p>
-            <RevisionForm problem={p} />
-          </details>
-        </section>
-      )}
-      <section className="card">
-        <details>
-          <summary>Edit problem</summary>
           <ProblemForm problem={p} topics={topics} />
-        </details>
-      </section>
+        </section>
+      </Disclosure>
     </>
   );
 }

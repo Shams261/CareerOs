@@ -5,6 +5,7 @@ import { BrandLogo } from '@/components/brand';
 import { inter, display } from '@/lib/fonts';
 import type { Metadata } from 'next';
 import { Navigation } from '@/components/navigation';
+import { RunningNow } from '@/features/execution/running';
 import './globals.css';
 import type { Viewport } from 'next';
 import { currentSession } from '@/server/session';
@@ -72,6 +73,7 @@ export default async function RootLayout({
               </Link>
             </div>
             <Navigation />
+            <RunningNow />
             <footer className="muted mt-auto">
               <form action={signOutAction} className="mt-2">
                 <button className="link">Sign out</button>
@@ -79,9 +81,6 @@ export default async function RootLayout({
             </footer>
           </aside>
           <main id="main" className="content">
-            <div className="topbar">
-              <span>PERSONAL WORKSPACE</span>
-            </div>
             {children}
           </main>
         </div>

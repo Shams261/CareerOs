@@ -269,7 +269,7 @@ export async function saveRoutine(
         lines.length
           ? lines
           : [
-              'No eligible dated blocks will change. Existing daily overrides and recorded work are preserved.',
+              'No planned blocks will change. Day-specific changes and recorded time are kept.',
             ],
       );
     if (!options.allowOverlap)
@@ -290,6 +290,7 @@ export async function saveRoutine(
       }
     const { id: ignored, ...fields } = input;
     void ignored;
+    let added = 0;
     if (options.remove) {
       if (!previous) throw new Error('Select an existing routine.');
       await tx.routineBlock.delete({ where: { id: previous.id } });
@@ -298,8 +299,8 @@ export async function saveRoutine(
         where: { id: previous.id },
         data: { ...fields, goalId: fields.goalId || null },
       });
-    else
-      await tx.routineBlock.create({
+    else {
+      const created = await tx.routineBlock.create({
         data: {
           ...fields,
           id: randomUUID(),
@@ -307,6 +308,39 @@ export async function saveRoutine(
           goalId: fields.goalId || null,
         },
       });
+      // A brand-new routine joins days that are already planned from today on, so the
+      // first routine shows up on Today. Nothing existing is edited; a slot whose time has
+      // passed, or that would overlap another block, is left alone (ADR-015).
+      if (created.enabled)
+        for (const p of await proposals(
+          tx,
+          user,
+          { ...candidate, id: created.id },
+          now,
+        )) {
+          if (p.kind !== 'create' || !p.start || !p.end) continue;
+          if (
+            !options.allowOverlap &&
+            (await conflicts(tx, user.id, p.start, p.end)).length
+          )
+            continue;
+          await tx.timeBlock.create({
+            data: {
+              dailyPlanId: p.planId,
+              routineKey: created.id,
+              occurrenceDate: new Date(p.day),
+              title: fields.title,
+              description: fields.description,
+              priority: fields.priority,
+              category: fields.category,
+              goalId: fields.goalId || null,
+              plannedStart: p.start,
+              plannedEnd: p.end,
+            },
+          });
+          added++;
+        }
+    }
     for (const p of changes) {
       if (p.kind === 'cancel') {
         await tx.timeBlock.update({
@@ -337,7 +371,7 @@ export async function saveRoutine(
       }
       if (p.id) await clearBlockReminders(tx, user.id, p.id);
     }
-    return changes.length;
+    return { changed: changes.length, added };
   });
 }
 export async function routineOptions(userId: string) {
