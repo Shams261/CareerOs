@@ -2,6 +2,8 @@ import Link from 'next/link';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { formatInTimeZone } from 'date-fns-tz';
 import { Disclosure } from '@/components/disclosure';
+import { PageShortcuts } from '@/components/shortcuts';
+import { CategoryIcon } from '@/components/category-icon';
 import { DateJump } from '@/components/date-jump';
 import { getConnection } from '@/features/calendar/service';
 import { blockSyncView } from '@/features/calendar/domain';
@@ -74,6 +76,11 @@ export default async function Calendar({
   return (
     <>
       <CategoryOptions />
+      <PageShortcuts
+        shortcuts={[{ key: 'n', label: 'Add routine', press: 'add-routine' }]}
+        prev={`/calendar?date=${shiftDay(days[0], -7)}`}
+        next={`/calendar?date=${shiftDay(days[0], 7)}`}
+      />
       <p className="eyebrow">Plan · {user.timezone}</p>
       <div className="page-head">
         <h1>
@@ -120,6 +127,7 @@ export default async function Calendar({
           label="Add routine"
           variant={routines.length ? 'secondary' : 'primary'}
           defaultOpen={!routines.length}
+          shortcut="add-routine"
         >
           <RoutineForm goals={goals} />
         </Disclosure>
@@ -176,7 +184,10 @@ export default async function Calendar({
                       <span className="muted">
                         {clock(b.plannedStart, user.timezone)}
                       </span>
-                      <strong>{b.title}</strong>
+                      <strong>
+                        <CategoryIcon category={b.category} size={12} />
+                        {b.title}
+                      </strong>
                       <span className="muted">
                         {executionLabel(b, now).toLowerCase()}
                         {sync && sync !== 'Synced' && sync !== 'Not synced'

@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- WI-011: `?` lists the keyboard shortcuts of the page; Plan and Roadmap gain shortcuts; Weekly review step three previews next week's reminders from the real preferences; block categories get a small glyph on Today and the week grid; Start here cards open with the brand mark; dark mode tuned.
 - WI-011 (in progress): application page opens with a one-line summary (stage, next action, next interview, applied); the Today interview hero carries the open prep items; phones get a bottom navigation bar with a More sheet; lists sit on the canvas as flat sections while cards stay for forms and live blocks; list rows are tighter; execution states have quiet tones (completed, skipped, overdue, current, cancelled).
 - WI-011 (in progress): **Undo** for one-click destructive actions. Skip and Cancel block, Remove note, Remove roadmap item and Remove priority now answer with "Undo" beside the confirmation for eight seconds; undo re-creates the record under the signed-in owner (no soft deletes, no schema change). `src/features/undo`.
 

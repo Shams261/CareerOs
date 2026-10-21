@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { BrandMark } from '@/components/brand';
 import { owner } from '@/server/db';
 import { dayKey } from '@/lib/time';
 import { learningSnapshot } from '@/features/learning/service';
@@ -37,6 +38,7 @@ export default async function Learn() {
       </div>
       {!data.subjects.length ? (
         <section className="card setup-card" aria-labelledby="setup-heading">
+          <BrandMark className="setup-mark" />
           <p className="eyebrow">Start here</p>
           <h2 id="setup-heading">Learning is organised by subject.</h2>
           <p>

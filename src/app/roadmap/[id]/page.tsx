@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation';
 import { owner, db } from '@/server/db';
 import { ResourceLink } from '@/components/resource-link';
 import { Disclosure } from '@/components/disclosure';
+import { PageShortcuts } from '@/components/shortcuts';
 import {
   BulkItemsForm,
   ItemControls,
@@ -37,6 +38,9 @@ export default async function RoadmapDetail({
   const sections = [...roadmap.sections.keys()];
   return (
     <>
+      <PageShortcuts
+        shortcuts={[{ key: 'n', label: 'Add items', press: 'add-items' }]}
+      />
       <Link className="link" href="/roadmap">
         ← Roadmap
       </Link>
@@ -46,7 +50,7 @@ export default async function RoadmapDetail({
       </p>
       <div className="page-head">
         <h1>{roadmap.title}</h1>
-        <Disclosure label="Add items" variant="primary">
+        <Disclosure label="Add items" variant="primary" shortcut="add-items">
           <BulkItemsForm roadmapId={roadmap.id} sections={sections} />
         </Disclosure>
       </div>

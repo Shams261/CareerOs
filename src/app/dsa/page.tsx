@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { BrandMark } from '@/components/brand';
 import { db, owner } from '@/server/db';
 import { dsaSnapshot } from '@/features/dsa/service';
 import {
@@ -84,6 +85,7 @@ export default async function Dsa({
       </div>
       {!topics.length ? (
         <section className="card setup-card" aria-labelledby="setup-heading">
+          <BrandMark className="setup-mark" />
           <p className="eyebrow">Start here</p>
           <h2 id="setup-heading">Practice is organised by topic.</h2>
           <p>

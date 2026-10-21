@@ -3,6 +3,7 @@ import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { formatInTimeZone } from 'date-fns-tz';
 import { db, owner } from '@/server/db';
 import { Disclosure } from '@/components/disclosure';
+import { remindersPreview } from '@/features/notifications/preview';
 import { shiftDay } from '@/features/schedule/domain';
 import {
   currentWeek,
@@ -116,24 +117,26 @@ export default async function Review({
   // Each step loads only what it shows; Details loads everything.
   const details = step === 'details',
     plan = step === 'plan' || details;
-  const [w, carry, next, trend, history, goals, pref] = await Promise.all([
-    weekReview(user, monday, now),
-    details ? carryForward(user, now) : { dsa: [], learning: [], jobs: [] },
-    plan && planning ? nextWeekContext(user, nextMonday, now) : null,
-    details ? recentTrend(user, monday, now) : [],
-    details ? reviewHistory(user.id) : [],
-    plan
-      ? db().goal.findMany({
-          where: { userId: user.id },
-          select: { id: true, title: true },
-        })
-      : [],
-    details
-      ? db().notificationPreference.findUnique({
-          where: { userId_type: { userId: user.id, type: 'WEEKLY_REVIEW' } },
-        })
-      : null,
-  ]);
+  const [w, carry, next, trend, history, goals, pref, reminders] =
+    await Promise.all([
+      weekReview(user, monday, now),
+      details ? carryForward(user, now) : { dsa: [], learning: [], jobs: [] },
+      plan && planning ? nextWeekContext(user, nextMonday, now) : null,
+      details ? recentTrend(user, monday, now) : [],
+      details ? reviewHistory(user.id) : [],
+      plan
+        ? db().goal.findMany({
+            where: { userId: user.id },
+            select: { id: true, title: true },
+          })
+        : [],
+      details
+        ? db().notificationPreference.findUnique({
+            where: { userId_type: { userId: user.id, type: 'WEEKLY_REVIEW' } },
+          })
+        : null,
+      plan ? remindersPreview(user, nextMonday) : [],
+    ]);
   const s = w.schedule;
   const max = Math.max(
     s.focus.planned,
@@ -386,6 +389,22 @@ export default async function Review({
               <PrepareNextWeekForm monday={next.bounds.monday} />
             </section>
           )}
+          <section className="card flat" aria-labelledby="reminders-heading">
+            <div className="section-head">
+              <h2 id="reminders-heading">Reminders next week</h2>
+              <Link className="link" href="/settings#notifications-heading">
+                Change in Settings
+              </Link>
+            </div>
+            <ul className="plain-list reminder-lines">
+              {reminders.map((r) => (
+                <li key={r.title} className={r.on ? '' : 'is-off'}>
+                  <strong>{r.title}</strong>
+                  <span className="muted">{r.on ? r.detail : 'Off.'}</span>
+                </li>
+              ))}
+            </ul>
+          </section>
         </>
       )}
 

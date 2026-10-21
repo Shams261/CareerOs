@@ -20,6 +20,12 @@ Eight of the thirteen items from the analysis: undo, application summary, interv
 | Density | List rows tighter than forms: `.dsa-item`, `.roadmap-item`, `.execution-block`, `.learning-history`. |
 | Status tones | `executionTone()` maps each execution label to a quiet tone: completed green, skipped amber, overdue red, current and in progress teal, cancelled struck through; used by the Today pill and a left edge on week-grid blocks. The label still carries the meaning. |
 
+| Shortcuts | `PageShortcuts` replaces the Today-only component: Today (N add a block, S start, T today, arrows for days), Plan (N add routine, arrows for weeks), Roadmap (N add goal) and a roadmap (N add items). `?` opens an overlay listing the page's keys; Escape or a click outside closes it. |
+| Reminders preview | Weekly review step three ends with "Reminders next week": one line per reminder type read from the same preferences and dates the scheduler uses (daily, DSA revisions, technical reviews, follow-ups with their days and companies, interviews with their times, weekly review), each marked Off when disabled, with a link to Settings. `src/features/notifications/preview.ts`; facts only, nothing written. |
+| Category icons | `CategoryIcon` maps a block category to a small glyph (DSA, system design, technical, job search, LinkedIn, gym, work, personal, interview, other) in the Today timeline and the week grid. Decorative; the category text stays. |
+| Empty-state mark | The brand rings, small and quiet, open each Start here card (Today, Roadmap, Practice, Learn, Jobs). |
+| Dark mode | Checked on Today, Weekly review and a roadmap with the dark cookie: the teal live card, chain, week chart, flat sections, status tones, phone bar and shortcuts overlay all read correctly on the dark palette; no token changes were needed. |
+
 ## 3. Verification
 
 Local fake-Google loop: Skip on Today showed "Skipped. Undo"; Undo returned the block to Upcoming; the phone bar and the More sheet render at 375 px with no overflow; flat sections and status tones checked at 1440 px on Today, Practice and a roadmap; no console errors from this branch (the pane's console still lists entries from an earlier compile error that is long fixed).

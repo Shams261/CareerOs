@@ -1792,3 +1792,82 @@ summary {
 .week-block.is-info {
   border-left-color: var(--primary);
 }
+
+/* WI-011: shortcuts overlay, category glyphs, empty-state mark, reminder lines. */
+.shortcuts-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  background: rgb(27 26 22 / 35%);
+  display: grid;
+  place-items: center;
+  padding: 24px;
+}
+.shortcuts {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+  padding: 22px 26px;
+  width: min(360px, 100%);
+}
+.shortcuts dl {
+  display: grid;
+  gap: 10px;
+  margin: 14px 0 0;
+}
+.shortcuts dl > div {
+  display: grid;
+  grid-template-columns: 64px 1fr;
+  gap: 12px;
+  align-items: center;
+}
+.shortcuts dt,
+.shortcuts dd {
+  margin: 0;
+}
+.shortcuts dd {
+  font-size: 14px;
+}
+kbd {
+  display: inline-block;
+  min-width: 26px;
+  padding: 3px 7px;
+  border: 1px solid var(--border-strong);
+  border-bottom-width: 2px;
+  border-radius: 6px;
+  background: var(--surface-muted);
+  font-family: var(--font-ui);
+  font-size: 12px;
+  font-weight: 600;
+  text-align: center;
+}
+.category-icon {
+  margin-right: 7px;
+  vertical-align: -2px;
+  color: var(--muted);
+}
+.setup-mark {
+  width: 48px;
+  height: 24px;
+  color: var(--border-strong);
+  margin-bottom: 14px;
+}
+.reminder-lines li {
+  display: grid;
+  gap: 2px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border-subtle);
+}
+.reminder-lines li:last-child {
+  border-bottom: 0;
+}
+.reminder-lines li.is-off strong {
+  color: var(--muted);
+  font-weight: 500;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .shortcuts {
+    animation: silsila-rise var(--motion-normal) var(--motion-easing) both;
+  }
+}
