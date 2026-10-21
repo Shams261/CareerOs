@@ -2,15 +2,12 @@ import { ActionForm } from '@/components/action-form';
 import type { Goal, Roadmap, RoadmapItem } from '@/generated/prisma/client';
 import {
   DEFAULT_PROMPT_TEMPLATE,
-  referenceLines,
   scenarioLines,
-  type Reference,
   type Scenario,
 } from './domain';
 import {
   bulkItemsAction,
   goalAction,
-  itemAction,
   itemOpAction,
   roadmapAction,
 } from './actions';
@@ -252,158 +249,6 @@ export function BulkItemsForm({
       </label>
       <p className="muted">Start a line with ? to mark a question.</p>
       <button className="button">Add items</button>
-    </ActionForm>
-  );
-}
-
-export function ItemForm({
-  item,
-  sections,
-  links,
-}: {
-  item: RoadmapItem;
-  sections: string[];
-  links: LinkOption[];
-}) {
-  const current = item.learningTopicId
-    ? `learning:${item.learningTopicId}`
-    : item.dsaTopicId
-      ? `dsa-topic:${item.dsaTopicId}`
-      : item.dsaProblemId
-        ? `problem:${item.dsaProblemId}`
-        : '';
-  return (
-    <ActionForm
-      action={itemAction}
-      label={`Edit ${item.title}`}
-      className="dsa-form"
-    >
-      <input type="hidden" name="id" value={item.id} />
-      <div className="form-grid">
-        <label>
-          Title
-          <input
-            name="title"
-            required
-            maxLength={200}
-            defaultValue={item.title}
-          />
-        </label>
-        <label>
-          Section
-          <input
-            name="section"
-            required
-            maxLength={120}
-            list={`sections-edit-${item.roadmapId}`}
-            defaultValue={item.section}
-          />
-        </label>
-        <label>
-          Kind
-          <select name="kind" defaultValue={item.kind}>
-            <option value="CONCEPT">Concept</option>
-            <option value="QUESTION">Question</option>
-          </select>
-        </label>
-        <label>
-          Linked to
-          <select name="link" defaultValue={current}>
-            <option value="">Nothing</option>
-            {links.map((l) => (
-              <option key={l.value} value={l.value}>
-                {l.label}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label>
-          Priority
-          <select name="priority" defaultValue={item.priority}>
-            <option value={1}>P0 · first</option>
-            <option value={2}>P1 · important</option>
-            <option value={3}>P2 · later</option>
-          </select>
-        </label>
-        <label>
-          Estimate (minutes)
-          <input
-            name="estimateMinutes"
-            type="number"
-            min={1}
-            max={6000}
-            defaultValue={item.estimateMinutes ?? ''}
-          />
-        </label>
-        <label>
-          Link (optional)
-          <input name="url" type="url" defaultValue={item.url ?? ''} />
-        </label>
-        <label>
-          Where it came up (optional)
-          <input
-            name="askedNote"
-            maxLength={200}
-            defaultValue={item.askedNote ?? ''}
-            placeholder="Amazon phone screen"
-          />
-        </label>
-        <label>
-          Revise on (clear to stop)
-          <input
-            name="nextRevisionAt"
-            type="date"
-            defaultValue={item.nextRevisionAt?.toISOString().slice(0, 10) ?? ''}
-          />
-        </label>
-      </div>
-      <datalist id={`sections-edit-${item.roadmapId}`}>
-        {sections.map((s) => (
-          <option key={s} value={s} />
-        ))}
-      </datalist>
-      <label>
-        Scope: what to cover
-        <textarea
-          name="scope"
-          rows={3}
-          maxLength={8000}
-          defaultValue={item.scope ?? ''}
-        />
-      </label>
-      <label>
-        Checkpoint: what done means
-        <textarea
-          name="checkpoint"
-          rows={2}
-          maxLength={4000}
-          defaultValue={item.checkpoint ?? ''}
-        />
-      </label>
-      <label>
-        References, one per line as <code>Label | https://url</code>
-        <textarea
-          name="references"
-          rows={3}
-          maxLength={20000}
-          defaultValue={referenceLines(
-            (item.references as Reference[] | null) ?? [],
-          )}
-        />
-      </label>
-      <label>
-        Notes for revision (links are fine)
-        <textarea
-          name="notes"
-          rows={6}
-          maxLength={20000}
-          defaultValue={item.notes ?? ''}
-        />
-      </label>
-      {item.sourceRef && (
-        <p className="muted">Imported from: {item.sourceRef}</p>
-      )}
-      <button className="button">Save item</button>
     </ActionForm>
   );
 }

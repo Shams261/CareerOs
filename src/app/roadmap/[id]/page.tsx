@@ -7,9 +7,9 @@ import { PageShortcuts } from '@/components/shortcuts';
 import {
   BulkItemsForm,
   ItemControls,
-  ItemForm,
   RoadmapForm,
 } from '@/features/roadmap/forms';
+import { ItemForm, LinkOptionsProvider } from '@/features/roadmap/item-form';
 import { StudyPrompt } from '@/features/roadmap/study-prompt';
 import { linkOptions, roadmapDetail } from '@/features/roadmap/service';
 import {
@@ -108,7 +108,7 @@ export default async function RoadmapDetail({
       {roadmap.description && (
         <p className="muted mb-5">{roadmap.description}</p>
       )}
-      <p className="status-line mb-5">
+      <div className="status-line mb-5">
         <span>
           {roadmap.progress.done} of {roadmap.progress.total} done
         </span>
@@ -139,7 +139,7 @@ export default async function RoadmapDetail({
         <Disclosure variant="link" label="Edit roadmap">
           <RoadmapForm roadmap={roadmap} goals={goals} />
         </Disclosure>
-      </p>
+      </div>
       {filtering && (
         <form className="dsa-filters mb-5" method="get" aria-label="Filters">
           <label>
@@ -180,200 +180,203 @@ export default async function RoadmapDetail({
           </p>
         </section>
       )}
-      {sections.map((section) => {
-        const all = roadmap.sections.get(section)!;
-        const items = all.filter(keep);
-        const done = all.filter((i) => i.status === 'DONE').length;
-        if (!items.length) return null;
-        return (
-          <section
-            className="card flat"
-            key={section}
-            aria-label={`${section} section`}
-          >
-            <div className="section-head">
-              <h2>
-                {section}{' '}
-                <span className="muted">
-                  · {done} of {all.length}
-                </span>
-              </h2>
-            </div>
-            <ol className="plain-list">
-              {items.map((item) => {
-                const references =
-                  (item.references as Reference[] | null) ?? [];
-                const hasStudy =
-                  item.scope ||
-                  item.checkpoint ||
-                  references.length ||
-                  item.notes ||
-                  item.sourceRef;
-                return (
-                  <li
-                    className={`roadmap-item is-${item.status.toLowerCase().replace('_', '-')}`}
-                    key={item.id}
-                    id={`item-${item.id}`}
-                  >
-                    <span className="roadmap-mark" aria-hidden="true">
-                      {mark[item.status]}
-                    </span>
-                    <div className="roadmap-body">
-                      <p className="roadmap-title">
-                        <span className="sr-only">
-                          {markText[item.status]}:{' '}
-                        </span>
-                        {item.title}
-                        {item.priority === 1 && (
-                          <span className="pill priority">P0</span>
-                        )}
-                        {item.priority === 3 && (
-                          <span className="pill">P2</span>
-                        )}
-                        {item.kind === 'QUESTION' && (
-                          <span className="pill info">Question</span>
-                        )}
-                        {item.askedInInterview && (
-                          <span className="pill green">
-                            Asked{item.askedNote ? ` · ${item.askedNote}` : ''}
+      <LinkOptionsProvider links={links}>
+        {sections.map((section) => {
+          const all = roadmap.sections.get(section)!;
+          const items = all.filter(keep);
+          const done = all.filter((i) => i.status === 'DONE').length;
+          if (!items.length) return null;
+          return (
+            <section
+              className="card flat"
+              key={section}
+              aria-label={`${section} section`}
+            >
+              <div className="section-head">
+                <h2>
+                  {section}{' '}
+                  <span className="muted">
+                    · {done} of {all.length}
+                  </span>
+                </h2>
+              </div>
+              <ol className="plain-list">
+                {items.map((item) => {
+                  const references =
+                    (item.references as Reference[] | null) ?? [];
+                  const hasStudy =
+                    item.scope ||
+                    item.checkpoint ||
+                    references.length ||
+                    item.notes ||
+                    item.sourceRef;
+                  return (
+                    <li
+                      className={`roadmap-item is-${item.status.toLowerCase().replace('_', '-')}`}
+                      key={item.id}
+                      id={`item-${item.id}`}
+                    >
+                      <span className="roadmap-mark" aria-hidden="true">
+                        {mark[item.status]}
+                      </span>
+                      <div className="roadmap-body">
+                        <p className="roadmap-title">
+                          <span className="sr-only">
+                            {markText[item.status]}:{' '}
                           </span>
-                        )}
-                        {item.estimateMinutes && (
-                          <span className="muted roadmap-estimate">
-                            {item.estimateMinutes} min
-                          </span>
-                        )}
-                        {revisionState(item, today) === 'upcoming' && (
-                          <span className="muted roadmap-estimate">
-                            Revise {dateLabel(item.nextRevisionAt!)}
-                          </span>
-                        )}
-                        {revisionState(item, today) === 'due' && (
-                          <span className="pill yellow">Revise today</span>
-                        )}
-                        {revisionState(item, today) === 'overdue' && (
-                          <span className="pill red">
-                            Revision overdue · {dateLabel(item.nextRevisionAt!)}
-                          </span>
-                        )}
-                      </p>
-                      {(item.learningTopic ||
-                        item.dsaProblem ||
-                        item.dsaTopic ||
-                        item.url) && (
-                        <p className="muted roadmap-links">
-                          {item.learningTopic && (
-                            <Link
-                              className="link"
-                              href={`/learn/topics/${item.learningTopic.id}`}
-                            >
-                              {item.learningTopic.subject.name} —{' '}
-                              {item.learningTopic.title}
-                            </Link>
+                          {item.title}
+                          {item.priority === 1 && (
+                            <span className="pill priority">P0</span>
                           )}
-                          {item.dsaProblem && (
-                            <Link
-                              className="link"
-                              href={`/dsa/${item.dsaProblem.id}`}
-                            >
-                              Record an attempt
-                            </Link>
+                          {item.priority === 3 && (
+                            <span className="pill">P2</span>
                           )}
-                          {item.dsaTopic && (
-                            <span>Practice topic: {item.dsaTopic.name}</span>
+                          {item.kind === 'QUESTION' && (
+                            <span className="pill info">Question</span>
                           )}
-                          {item.url && (
-                            <ResourceLink url={item.url}>
-                              Open link
-                            </ResourceLink>
+                          {item.askedInInterview && (
+                            <span className="pill green">
+                              Asked
+                              {item.askedNote ? ` · ${item.askedNote}` : ''}
+                            </span>
+                          )}
+                          {item.estimateMinutes && (
+                            <span className="muted roadmap-estimate">
+                              {item.estimateMinutes} min
+                            </span>
+                          )}
+                          {revisionState(item, today) === 'upcoming' && (
+                            <span className="muted roadmap-estimate">
+                              Revise {dateLabel(item.nextRevisionAt!)}
+                            </span>
+                          )}
+                          {revisionState(item, today) === 'due' && (
+                            <span className="pill yellow">Revise today</span>
+                          )}
+                          {revisionState(item, today) === 'overdue' && (
+                            <span className="pill red">
+                              Revision overdue ·{' '}
+                              {dateLabel(item.nextRevisionAt!)}
+                            </span>
                           )}
                         </p>
-                      )}
-                      <ItemControls item={item} />
-                      <div className="roadmap-toggles">
-                        <Disclosure variant="link" label="Study">
-                          <div className="study-panel">
-                            {item.scope && (
-                              <p>
-                                <strong>Scope.</strong>{' '}
-                                <span className="learning-notes">
-                                  {item.scope}
-                                </span>
-                              </p>
+                        {(item.learningTopic ||
+                          item.dsaProblem ||
+                          item.dsaTopic ||
+                          item.url) && (
+                          <p className="muted roadmap-links">
+                            {item.learningTopic && (
+                              <Link
+                                className="link"
+                                href={`/learn/topics/${item.learningTopic.id}`}
+                              >
+                                {item.learningTopic.subject.name} —{' '}
+                                {item.learningTopic.title}
+                              </Link>
                             )}
-                            {item.checkpoint && (
-                              <p>
-                                <strong>Done means.</strong>{' '}
-                                <span className="learning-notes">
-                                  {item.checkpoint}
-                                </span>
-                              </p>
+                            {item.dsaProblem && (
+                              <Link
+                                className="link"
+                                href={`/dsa/${item.dsaProblem.id}`}
+                              >
+                                Record an attempt
+                              </Link>
                             )}
-                            {references.length > 0 && (
-                              <ul className="plain-list reference-list">
-                                {references.map((r) => (
-                                  <li key={r.url}>
-                                    <ResourceLink url={r.url}>
-                                      {r.label}
-                                    </ResourceLink>
-                                    {r.kind && (
-                                      <span className="muted"> · {r.kind}</span>
-                                    )}
-                                  </li>
-                                ))}
-                              </ul>
+                            {item.dsaTopic && (
+                              <span>Practice topic: {item.dsaTopic.name}</span>
                             )}
-                            {item.notes && (
-                              <p>
-                                <strong>My notes.</strong>{' '}
-                                <span className="learning-notes">
-                                  {item.notes}
-                                </span>
-                              </p>
+                            {item.url && (
+                              <ResourceLink url={item.url}>
+                                Open link
+                              </ResourceLink>
                             )}
-                            {item.sourceRef && (
-                              <p className="muted">From: {item.sourceRef}</p>
-                            )}
-                            {!hasStudy && (
-                              <p className="muted">
-                                No scope or notes yet. Edit the item to add what
-                                to cover and what done means.
-                              </p>
-                            )}
-                            <StudyPrompt
-                              roadmap={{ title: roadmap.title }}
-                              template={roadmap.promptTemplate}
-                              scenarios={scenarios}
-                              item={{
-                                title: item.title,
-                                section: item.section,
-                                scope: item.scope,
-                                checkpoint: item.checkpoint,
-                                priority: item.priority,
-                                estimateMinutes: item.estimateMinutes,
-                                references,
-                                notes: item.notes,
-                                url: item.url,
-                              }}
-                            />
-                          </div>
-                        </Disclosure>
-                        <Disclosure variant="link" label="Edit">
-                          <ItemForm
-                            item={item}
-                            sections={sections}
-                            links={links}
-                          />
-                        </Disclosure>
+                          </p>
+                        )}
+                        <ItemControls item={item} />
+                        <div className="roadmap-toggles">
+                          <Disclosure variant="link" label="Study">
+                            <div className="study-panel">
+                              {item.scope && (
+                                <p>
+                                  <strong>Scope.</strong>{' '}
+                                  <span className="learning-notes">
+                                    {item.scope}
+                                  </span>
+                                </p>
+                              )}
+                              {item.checkpoint && (
+                                <p>
+                                  <strong>Done means.</strong>{' '}
+                                  <span className="learning-notes">
+                                    {item.checkpoint}
+                                  </span>
+                                </p>
+                              )}
+                              {references.length > 0 && (
+                                <ul className="plain-list reference-list">
+                                  {references.map((r) => (
+                                    <li key={r.url}>
+                                      <ResourceLink url={r.url}>
+                                        {r.label}
+                                      </ResourceLink>
+                                      {r.kind && (
+                                        <span className="muted">
+                                          {' '}
+                                          · {r.kind}
+                                        </span>
+                                      )}
+                                    </li>
+                                  ))}
+                                </ul>
+                              )}
+                              {item.notes && (
+                                <p>
+                                  <strong>My notes.</strong>{' '}
+                                  <span className="learning-notes">
+                                    {item.notes}
+                                  </span>
+                                </p>
+                              )}
+                              {item.sourceRef && (
+                                <p className="muted">From: {item.sourceRef}</p>
+                              )}
+                              {!hasStudy && (
+                                <p className="muted">
+                                  No scope or notes yet. Edit the item to add
+                                  what to cover and what done means.
+                                </p>
+                              )}
+                              <StudyPrompt
+                                roadmap={{ title: roadmap.title }}
+                                template={roadmap.promptTemplate}
+                                scenarios={scenarios}
+                                item={{
+                                  title: item.title,
+                                  section: item.section,
+                                  scope: item.scope,
+                                  checkpoint: item.checkpoint,
+                                  priority: item.priority,
+                                  estimateMinutes: item.estimateMinutes,
+                                  references,
+                                  notes: item.notes,
+                                  url: item.url,
+                                }}
+                              />
+                            </div>
+                          </Disclosure>
+                          <Disclosure variant="link" label="Edit">
+                            <ItemForm item={item} sections={sections} />
+                          </Disclosure>
+                        </div>
                       </div>
-                    </div>
-                  </li>
-                );
-              })}
-            </ol>
-          </section>
-        );
-      })}
+                    </li>
+                  );
+                })}
+              </ol>
+            </section>
+          );
+        })}
+      </LinkOptionsProvider>
       {filtering && shown === 0 && roadmap.items.length > 0 && (
         <section className="card">
           <p className="muted">Nothing matches these filters.</p>
