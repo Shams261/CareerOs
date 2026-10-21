@@ -44,4 +44,6 @@ See the [WI-008.2 handoff](WI-008.2-HANDOFF.md) for the Render + Supabase free-t
 
 See the [WI-008.3 handoff](WI-008.3-HANDOFF.md) for the post-launch polish from the production acceptance pass.
 
-See the [WI-009 handoff](WI-009-HANDOFF.md) for the UX simplification (first-run cards, visible actions, plain words, three-step weekly review).
+See the [WI-009 handoff](WI-009-HANDOFF.md) for the UX simplification (first-run cards, visible actions, plain words, three-step weekly review) and the goals and roadmap layer.
+
+See the [WI-010 handoff](WI-010-HANDOFF.md) for the week chart, light motion and notes to self.

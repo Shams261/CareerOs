@@ -10,7 +10,7 @@ If CLAUDE.md conflicts with the implementation, schema, tests, migrations or an 
 
 ## Current product state
 
-Latest completed work item: **WI-009** (UX simplification, 2026-10-21), after WI-008 (personal production launch, live since 2026-10-20) and the brand system.
+Latest completed work item: **WI-010** (week chart, motion, notes to self, 2026-10-21), after WI-009 (UX simplification, roadmap and goals, 2026-10-21), after WI-008 (personal production launch, live since 2026-10-20) and the brand system.
 
 - **Schedule and execution (WI-001/002):** weekly RoutineBlocks, idempotent DailyPlan/TimeBlock generation, per-occurrence overrides, start/stop/resume/complete/skip/cancel, manual sessions, one running session per owner, daily check-in.
 - **DSA (WI-003):** topics, problems, append-only attempts, RED/YELLOW/GREEN confidence, spaced revision dates, due/overdue queue.
@@ -21,6 +21,7 @@ Latest completed work item: **WI-009** (UX simplification, 2026-10-21), after WI
 - **Weekly review (WI-007):** Monday–Sunday live metrics, reflection, priorities, Prepare next week.
 - **Production (WI-008):** Google owner sign-in, server sessions, CSP/HSTS/rate limits, env validation, Web Push, PWA, health, JobRun status, export, backup and restore verification.
 - **UX simplification (WI-009):** first-run cards on Today, Practice, Learn and Jobs; visible primary actions (`Disclosure` replaces `<details>` for forms); plain vocabulary; filters and counters only once data exists; three-screen weekly review; sidebar Today / Plan / Roadmap / Practice / Learn / Jobs / Weekly review / Settings; Google Calendar panel lives in Settings; inline form feedback with a pending state and auto-clearing success.
+- **Week at a glance, motion, notes (WI-010):** per-day planned/recorded minutes in `scheduleWeek` and a bar chart on review step one; motion only under `prefers-reduced-motion: no-preference`; `QuickNote` captured from the shell, listed on Today until done. No streak, no score.
 - **Goals and roadmap (WI-009):** `Goal` authoring with target dates and live weekly progress; `Roadmap` → `RoadmapItem` (sections, concepts/questions, status, asked-in-interview mark, optional links to Learn topics and Practice problems/topics). A roadmap is a planning layer: it never changes mastery, attempts or revision dates (ADR-016). Today shows the chain (14 days, record not score), goals, a day-closed card, a live timer and keyboard shortcuts; the running session sits in the shell on every page.
 
 ## Architecture
@@ -150,7 +151,7 @@ Update this section when the phase changes.
 - Schema: `prisma/schema.prisma`; migrations: `prisma/migrations/`
 - Architecture and decisions: `docs/architecture/overview.md`, `docs/architecture/decisions.md`, `docs/architecture/data-flows.md`
 - Handbook index: `docs/README.md`
-- WI handoffs: `docs/WI-00x-HANDOFF.md` (latest `docs/WI-009-HANDOFF.md`)
+- WI handoffs: `docs/WI-0xx-HANDOFF.md` (latest `docs/WI-010-HANDOFF.md`)
 - Security: `docs/engineering/security.md`, `SECURITY.md`
 - Product flows and stories: `docs/product/user-flows.md`, `docs/product/user-stories.md`
 - Brand: `docs/product/brand-system.md`, `public/brand/README.md`
