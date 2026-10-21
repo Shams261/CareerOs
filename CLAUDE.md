@@ -139,7 +139,7 @@ State as of 2026-10-20: **Silsila is live at https://usesilsila.me** on a Render
 Feature development is intentionally paused. Priority order:
 
 1. Merge and deploy WI-009, then re-check the first-run flow on usesilsila.me (the production workspace already has routines, so the Today card will not show there).
-2. Take the first weekly `pnpm db:backup` against Supabase. Use Silsila daily for 7–14 days and collect friction.
+2. Use Silsila daily for 7–14 days and collect friction. Weekly backup (first one verified 2026-10-21): `PATH=/opt/homebrew/opt/libpq/bin:$PATH pnpm db:backup`, then verify against the Docker PostgreSQL 17 (`docs/engineering/backup-restore.md`).
 3. Small follow-up WI when convenient: a `/privacy` page so the Google app can be published (removes the seven-day Calendar reconnect).
 4. Only then define WI-009 from real usage.
 
