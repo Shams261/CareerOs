@@ -38,9 +38,22 @@ export default async function Dsa({
     '00:00',
     user.timezone,
   );
-  const weekCount = await db().dsaAttempt.count({
-    where: { userId: user.id, attemptedAt: { gte: weekStart, lte: now } },
-  });
+  const [weekCount, lastAttempt] = await Promise.all([
+    db().dsaAttempt.count({
+      where: { userId: user.id, attemptedAt: { gte: weekStart, lte: now } },
+    }),
+    db().dsaAttempt.findFirst({
+      where: { userId: user.id },
+      orderBy: [{ attemptedAt: 'desc' }, { id: 'desc' }],
+      select: {
+        attemptedAt: true,
+        problem: { select: { id: true, title: true } },
+      },
+    }),
+  ]);
+  const nextInTopic = currentTopic
+    ? problems.find((p) => p.topicId === currentTopic.id && !p.attemptsCount)
+    : null;
   const queue = revisionQueue(problems, day),
     practiced = problems.filter((p) => p.attemptsCount > 0);
   const current = {
@@ -101,6 +114,18 @@ export default async function Dsa({
             </span>
             <span>
               {weekCount} attempt{weekCount === 1 ? '' : 's'} this week
+              {lastAttempt && (
+                <>
+                  {' · last: '}
+                  <Link
+                    className="link"
+                    href={`/dsa/${lastAttempt.problem.id}`}
+                  >
+                    {lastAttempt.problem.title}
+                  </Link>
+                  {`, ${formatInTimeZone(lastAttempt.attemptedAt, user.timezone, 'MMM d')}`}
+                </>
+              )}
             </span>
             {currentTopic && (
               <span>
@@ -108,6 +133,14 @@ export default async function Dsa({
                 <a className="link" href="#topics">
                   {currentTopic.name}
                 </a>
+                {nextInTopic && (
+                  <>
+                    {' · next: '}
+                    <Link className="link" href={`/dsa/${nextInTopic.id}`}>
+                      {nextInTopic.title}
+                    </Link>
+                  </>
+                )}
               </span>
             )}
           </p>

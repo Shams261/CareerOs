@@ -136,6 +136,36 @@ export function ItemList({
               )}
               {meta.length > 0 && <span>{meta.join(' · ')}</span>}
             </span>
+            {!isOpen && (
+              <ActionForm
+                action={itemOpAction}
+                label={`Quick action for ${item.title}`}
+                className="row-quick"
+              >
+                <input type="hidden" name="id" value={item.id} />
+                {item.status === 'DONE' && item.nextRevisionAt ? (
+                  <button
+                    className="button secondary small"
+                    name="op"
+                    value="revised"
+                    aria-label={`Revised: ${item.title}`}
+                    title="Revised"
+                  >
+                    <Check size={14} aria-hidden="true" /> Revised
+                  </button>
+                ) : item.status !== 'DONE' ? (
+                  <button
+                    className="button secondary small"
+                    name="op"
+                    value="done"
+                    aria-label={`Done: ${item.title}`}
+                    title="Done"
+                  >
+                    <Check size={14} aria-hidden="true" /> Done
+                  </button>
+                ) : null}
+              </ActionForm>
+            )}
             {isOpen && (
               <div id={`panel-${item.id}`} className="item-panel">
                 {item.scope && <p className="item-scope">{item.scope}</p>}

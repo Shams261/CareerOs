@@ -2025,7 +2025,7 @@ kbd {
 }
 .item-row {
   display: grid;
-  grid-template-columns: 24px minmax(0, 1fr) auto;
+  grid-template-columns: 24px minmax(0, 1fr) auto auto;
   gap: 0 12px;
   align-items: center;
   padding: 12px 0;
@@ -2419,5 +2419,37 @@ a.problem-title:hover {
     grid-row: 2;
     grid-column: 2;
     justify-self: end;
+  }
+}
+
+/* Quick Done in the row: shown on hover and keyboard focus, always on phones. */
+.row-quick {
+  display: contents;
+}
+.row-quick fieldset {
+  border: 0;
+  padding: 0;
+  margin: 0;
+  grid-column: 4;
+}
+.row-quick .button {
+  min-height: 32px;
+  padding: 4px 10px;
+  opacity: 0;
+  transition: opacity var(--motion-fast) var(--motion-easing);
+}
+.item-row:hover .row-quick .button,
+.item-row:focus-within .row-quick .button,
+.row-quick .button[aria-busy='true'] {
+  opacity: 1;
+}
+.row-quick .form-success,
+.row-quick .form-message {
+  grid-column: 2 / -1;
+  margin: 4px 0 0;
+}
+@media (hover: none), (max-width: 700px) {
+  .row-quick .button {
+    opacity: 1;
   }
 }

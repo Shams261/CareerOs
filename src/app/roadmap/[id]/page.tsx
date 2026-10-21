@@ -62,9 +62,13 @@ export default async function RoadmapDetail({
     query.section && roadmap.sections.has(query.section)
       ? query.section
       : (roadmap.next?.section ?? sectionNames[0] ?? '');
+  const current = sections.find((s) => s.name === selected);
+  // Long sections with progress open on what is left; the hint below says what is hidden.
+  const defaultShow: Show =
+    (current?.total ?? 0) > 15 && (current?.done ?? 0) > 0 ? 'open' : 'all';
   const show: Show = shows.includes(query.show as Show)
     ? (query.show as Show)
-    : 'all';
+    : defaultShow;
   const q = (query.q ?? '').trim().toLowerCase();
   const rows: Row[] = (roadmap.sections.get(selected) ?? [])
     .filter(
@@ -94,7 +98,6 @@ export default async function RoadmapDetail({
         dsaTopic: item.dsaTopic,
       },
     }));
-  const current = sections.find((s) => s.name === selected);
   const initialOpen =
     roadmap.next && roadmap.next.section === selected ? roadmap.next.id : null;
   return (
@@ -182,6 +185,17 @@ export default async function RoadmapDetail({
                 <ItemFilters q={query.q ?? ''} show={show} />
               )}
             </div>
+            {show === 'open' && !query.show && (current?.done ?? 0) > 0 && (
+              <p className="muted mb-3">
+                {current!.done} done hidden ·{' '}
+                <Link
+                  className="link"
+                  href={`/roadmap/${roadmap.id}?section=${encodeURIComponent(selected)}&show=all`}
+                >
+                  Show everything
+                </Link>
+              </p>
+            )}
             <LinkOptionsProvider links={links}>
               <ItemList
                 key={`${selected}:${show}:${q}`}
