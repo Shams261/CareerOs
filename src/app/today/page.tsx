@@ -19,6 +19,7 @@ import {
   dateInput,
   dayProgress,
   executionLabel,
+  executionTone,
   shiftDay,
 } from '@/features/schedule/domain';
 import {
@@ -307,7 +308,10 @@ export default async function Today({
                   </p>
                 )}
                 {blocks.map((block) => (
-                  <article className="execution-block" key={block.id}>
+                  <article
+                    className={`execution-block is-${executionTone(executionLabel(block, now)) || 'planned'}`}
+                    key={block.id}
+                  >
                     <div className="block-time">
                       <strong>
                         {clock(block.plannedStart, user.timezone)}
@@ -330,7 +334,9 @@ export default async function Today({
                             {block.category} · {origin(block)}
                           </p>
                         </div>
-                        <span className="pill">
+                        <span
+                          className={`pill ${executionTone(executionLabel(block, now))}`}
+                        >
                           {executionLabel(block, now)}
                         </span>
                       </div>

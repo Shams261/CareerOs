@@ -189,7 +189,7 @@ export default async function Dsa({
                 )}
               </section>
               <section
-                className="card"
+                className="card flat"
                 id="library"
                 aria-labelledby="library-heading"
               >
@@ -310,7 +310,7 @@ export default async function Dsa({
                 )}
               </section>
               {recent.length > 0 && (
-                <section className="card" aria-labelledby="recent-heading">
+                <section className="card flat" aria-labelledby="recent-heading">
                   <h2 id="recent-heading">Recent attempts</h2>
                   {recent.map((a) => (
                     <div className="dsa-item" key={a.id}>

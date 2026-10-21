@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- WI-011 (in progress): application page opens with a one-line summary (stage, next action, next interview, applied); the Today interview hero carries the open prep items; phones get a bottom navigation bar with a More sheet; lists sit on the canvas as flat sections while cards stay for forms and live blocks; list rows are tighter; execution states have quiet tones (completed, skipped, overdue, current, cancelled).
 - WI-011 (in progress): **Undo** for one-click destructive actions. Skip and Cancel block, Remove note, Remove roadmap item and Remove priority now answer with "Undo" beside the confirmation for eight seconds; undo re-creates the record under the signed-in owner (no soft deletes, no schema change). `src/features/undo`.
 
 - WI-010 snapshot cache (ADR-017): read-only snapshots (DSA, learning, jobs, goals, chain, calendar health, week review) are kept in process for twenty seconds per owner and dropped by every server action, scheduler run and calendar sync; `SNAPSHOT_CACHE=off` disables it.

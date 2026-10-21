@@ -178,7 +178,7 @@ export default async function Jobs({
                   )}
                 </section>
               )}
-              <section className="card" aria-labelledby="pipeline-heading">
+              <section className="card flat" aria-labelledby="pipeline-heading">
                 <div className="section-head">
                   <h2 id="pipeline-heading">
                     Applications <span className="muted">· {apps.length}</span>

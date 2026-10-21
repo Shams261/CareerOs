@@ -102,6 +102,15 @@ export function executionLabel(
   if (block.plannedStart <= now) return 'Current';
   return 'Upcoming';
 }
+/** A quiet visual tone per execution label: colour never carries meaning alone. */
+export function executionTone(label: string) {
+  if (label === 'Completed') return 'green';
+  if (label === 'Skipped') return 'yellow';
+  if (label === 'Cancelled') return 'cancelled';
+  if (label === 'In progress' || label === 'Current') return 'info';
+  if (label.startsWith('Overdue')) return 'red';
+  return '';
+}
 /** Focus time excludes Work, Gym and Personal; every other (custom) category counts. */
 export const isFocusCategory = (category: string) =>
   !['WORK', 'GYM', 'PERSONAL'].includes(category);

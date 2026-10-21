@@ -744,7 +744,10 @@ async function loadTodaysInterviews(user: ScheduleUser, day: string) {
     },
     include: {
       application: true,
-      prepItems: { select: { completed: true } },
+      prepItems: {
+        select: { id: true, title: true, completed: true, kind: true },
+        orderBy: { ordering: 'asc' },
+      },
     },
     orderBy: { scheduledStart: 'asc' },
   });

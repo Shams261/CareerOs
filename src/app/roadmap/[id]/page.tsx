@@ -77,7 +77,7 @@ export default async function RoadmapDetail({
         const done = items.filter((i) => i.status === 'DONE').length;
         return (
           <section
-            className="card"
+            className="card flat"
             key={section}
             aria-label={`${section} section`}
           >

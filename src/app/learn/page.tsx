@@ -148,7 +148,7 @@ export default async function Learn() {
               <p className="muted">Start with due reviews, then a new topic.</p>
             )}
           </section>
-          <section className="card" aria-labelledby="subjects-heading">
+          <section className="card flat" aria-labelledby="subjects-heading">
             <div className="section-head">
               <h2 id="subjects-heading">Subjects</h2>
             </div>
@@ -192,7 +192,7 @@ export default async function Learn() {
             )}
           </section>
           {data.recent.length > 0 && (
-            <section className="card" aria-labelledby="recent-heading">
+            <section className="card flat" aria-labelledby="recent-heading">
               <h2 id="recent-heading">Recent activity</h2>
               {data.recent.map((a) => (
                 <div className="dsa-item" key={a.id}>

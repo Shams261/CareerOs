@@ -152,7 +152,7 @@ export default async function Settings({
         </form>
       </section>
 
-      <section className="card" aria-labelledby="status-heading">
+      <section className="card flat" aria-labelledby="status-heading">
         <h2 id="status-heading">System status</h2>
         <dl className="job-facts">
           <div>

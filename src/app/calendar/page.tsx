@@ -8,7 +8,13 @@ import { blockSyncView } from '@/features/calendar/domain';
 import { db, owner } from '@/server/db';
 import { dayKey, clock } from '@/lib/time';
 import { generateThroughSunday } from '@/features/schedule/service';
-import { dateInput, weekDays, shiftDay } from '@/features/schedule/domain';
+import {
+  dateInput,
+  executionLabel,
+  executionTone,
+  weekDays,
+  shiftDay,
+} from '@/features/schedule/domain';
 import { RoutineForm, CategoryOptions } from '@/features/schedule/forms';
 
 const WEEKDAY = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -28,7 +34,8 @@ export default async function Calendar({
 }) {
   const user = await owner(),
     query = await searchParams,
-    today = dayKey(new Date(), user.timezone),
+    now = new Date(),
+    today = dayKey(now, user.timezone),
     selected = dateInput.safeParse(query.date).success ? query.date! : today,
     days = weekDays(selected),
     thisWeek = weekDays(today);
@@ -163,7 +170,7 @@ export default async function Calendar({
                   return (
                     <Link
                       href={`/today?date=${day}`}
-                      className="week-block"
+                      className={`week-block is-${executionTone(executionLabel(b, now)) || 'planned'}`}
                       key={b.id}
                     >
                       <span className="muted">
@@ -171,7 +178,7 @@ export default async function Calendar({
                       </span>
                       <strong>{b.title}</strong>
                       <span className="muted">
-                        {b.status.replaceAll('_', ' ').toLowerCase()}
+                        {executionLabel(b, now).toLowerCase()}
                         {sync && sync !== 'Synced' && sync !== 'Not synced'
                           ? ` · Google: ${sync.toLowerCase()}`
                           : ''}
