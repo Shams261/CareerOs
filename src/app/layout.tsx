@@ -4,8 +4,10 @@ import Link from 'next/link';
 import { BrandLogo } from '@/components/brand';
 import { inter, display } from '@/lib/fonts';
 import type { Metadata } from 'next';
+import { Suspense } from 'react';
 import { Navigation } from '@/components/navigation';
 import { RunningNow } from '@/features/execution/running';
+import { CaptureForm } from '@/features/notes/forms';
 import './globals.css';
 import type { Viewport } from 'next';
 import { currentSession } from '@/server/session';
@@ -73,7 +75,10 @@ export default async function RootLayout({
               </Link>
             </div>
             <Navigation />
-            <RunningNow />
+            <Suspense fallback={null}>
+              <RunningNow />
+            </Suspense>
+            <CaptureForm />
             <footer className="muted mt-auto">
               <form action={signOutAction} className="mt-2">
                 <button className="link">Sign out</button>

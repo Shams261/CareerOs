@@ -12,6 +12,9 @@ export async function TodayLearning({
   now: Date;
   blocks: { category: string; goalId: string | null; status: string }[];
 }) {
+  // Nothing to suggest unless the day has a technical block or a goal-linked block.
+  const live = blocks.filter((b) => b.status !== 'CANCELLED');
+  if (!live.some((b) => isTechnical(b.category) || b.goalId)) return null;
   const data = await learningSnapshot(user, now),
     goals = new Set(
       data.subjects
@@ -20,10 +23,8 @@ export async function TodayLearning({
         .filter(Boolean),
     );
   if (
-    !blocks.some(
-      (b) =>
-        b.status !== 'CANCELLED' &&
-        (isTechnical(b.category) || (b.goalId && goals.has(b.goalId))),
+    !live.some(
+      (b) => isTechnical(b.category) || (b.goalId && goals.has(b.goalId)),
     )
   )
     return null;

@@ -35,6 +35,10 @@ export function weekBounds(monday: string, zone: string) {
     days: weekDays(monday),
     start: localInstant(monday, '00:00', zone),
     end: localInstant(shiftDay(monday, 7), '00:00', zone),
+    /** Local midnight of each day plus the week's end: eight instants. */
+    edges: Array.from({ length: 8 }, (_, i) =>
+      localInstant(shiftDay(monday, i), '00:00', zone),
+    ),
   };
 }
 export type WeekBounds = ReturnType<typeof weekBounds>;
@@ -164,8 +168,30 @@ export function scheduleWeek(
     routines: [...byCategory.values()].sort(
       (a, c) => c.planned - a.planned || a.label.localeCompare(c.label),
     ),
-    days: b.days.map((day) => ({
+    days: b.days.map((day, i) => ({
       day,
+      planned: Math.round(
+        live.reduce(
+          (n, x) =>
+            n +
+            minutes(
+              new Date(Math.max(+b.edges[i], +x.plannedStart)),
+              new Date(Math.min(+b.edges[i + 1], +x.plannedEnd)),
+            ),
+          0,
+        ),
+      ),
+      actual: Math.round(
+        sessions.reduce(
+          (n, s) =>
+            n +
+            minutes(
+              new Date(Math.max(+b.edges[i], +s.startedAt)),
+              new Date(Math.min(+b.edges[i + 1], +(s.endedAt ?? now))),
+            ),
+          0,
+        ),
+      ),
       items: blocks
         .filter((x) => x.day === day)
         .sort((a, c) => +a.plannedStart - +c.plannedStart)

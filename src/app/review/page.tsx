@@ -113,19 +113,26 @@ export default async function Review({
     : 'week';
   const nextMonday = shiftDay(monday, 7);
   const planning = monday >= thisWeek;
+  // Each step loads only what it shows; Details loads everything.
+  const details = step === 'details',
+    plan = step === 'plan' || details;
   const [w, carry, next, trend, history, goals, pref] = await Promise.all([
     weekReview(user, monday, now),
-    carryForward(user, now),
-    planning ? nextWeekContext(user, nextMonday, now) : null,
-    recentTrend(user, monday, now),
-    reviewHistory(user.id),
-    db().goal.findMany({
-      where: { userId: user.id },
-      select: { id: true, title: true },
-    }),
-    db().notificationPreference.findUnique({
-      where: { userId_type: { userId: user.id, type: 'WEEKLY_REVIEW' } },
-    }),
+    details ? carryForward(user, now) : { dsa: [], learning: [], jobs: [] },
+    plan && planning ? nextWeekContext(user, nextMonday, now) : null,
+    details ? recentTrend(user, monday, now) : [],
+    details ? reviewHistory(user.id) : [],
+    plan
+      ? db().goal.findMany({
+          where: { userId: user.id },
+          select: { id: true, title: true },
+        })
+      : [],
+    details
+      ? db().notificationPreference.findUnique({
+          where: { userId_type: { userId: user.id, type: 'WEEKLY_REVIEW' } },
+        })
+      : null,
   ]);
   const s = w.schedule;
   const max = Math.max(
@@ -229,6 +236,47 @@ export default async function Review({
               actual={s.focus.actual}
               max={max}
             />
+            <div
+              className="week-chart mt-5"
+              role="img"
+              aria-label={`Planned and recorded minutes per day: ${s.days
+                .map(
+                  (d) =>
+                    `${weekday(d.day)} ${formatMinutes(d.planned)} planned, ${formatMinutes(d.actual)} recorded`,
+                )
+                .join('; ')}`}
+            >
+              {s.days.map((d) => {
+                const top = Math.max(
+                  1,
+                  ...s.days.map((x) => Math.max(x.planned, x.actual)),
+                );
+                const pct = (n: number) => `${Math.round((n / top) * 100)}%`;
+                return (
+                  <div
+                    className={`week-col${d.day === w.today ? ' is-today' : ''}`}
+                    key={d.day}
+                    title={`${weekday(d.day)}: ${formatMinutes(d.planned)} planned · ${formatMinutes(d.actual)} recorded`}
+                  >
+                    <div className="week-bars">
+                      <span
+                        className="week-bar-p"
+                        style={{ height: pct(d.planned) }}
+                      />
+                      <span
+                        className="week-bar-a"
+                        style={{ height: pct(d.actual) }}
+                      />
+                    </div>
+                    <span className="week-col-label">{weekday(d.day)}</span>
+                  </div>
+                );
+              })}
+            </div>
+            <p className="status-line">
+              <span className="legend legend-p">Planned</span>
+              <span className="legend legend-a">Recorded</span>
+            </p>
             <div className="mt-5">
               {s.days.map((d) => (
                 <div className="day-line" key={d.day}>

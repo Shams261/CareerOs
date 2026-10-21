@@ -16,7 +16,7 @@ describe.skipIf(!url)('WI-008 to WI-009 upgrade', () => {
       const all = (await readdir('prisma/migrations'))
         .filter((d) => !d.endsWith('.toml'))
         .sort();
-      expect(all.at(-1)).toBe(target);
+      expect(all).toContain(target);
       for (const m of all.slice(0, all.indexOf(target)))
         await client.query(
           await readFile(`prisma/migrations/${m}/migration.sql`, 'utf8'),

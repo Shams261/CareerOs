@@ -30,6 +30,7 @@ export function Navigation() {
         <Link
           key={href}
           href={href}
+          prefetch={false}
           aria-current={
             path === href || path.startsWith(`${href}/`) ? 'page' : undefined
           }

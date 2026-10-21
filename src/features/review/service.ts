@@ -1,4 +1,5 @@
 import 'server-only';
+import { memo } from '@/server/memo';
 import { db } from '@/server/db';
 import { dayKey } from '@/lib/time';
 import { localTime } from '@/lib/validation';
@@ -55,7 +56,7 @@ async function scheduleData(userId: string, b: WeekBounds) {
  * history on every read, so a session logged later changes past weeks. Only the owner's writing
  * (review text and priorities) is stored.
  */
-export async function weekReview(
+async function loadWeekReview(
   user: ScheduleUser,
   monday: string,
   now = new Date(),
@@ -640,3 +641,9 @@ export async function saveWeeklyReminder(user: ScheduleUser, raw: unknown) {
     }),
   );
 }
+/** Cached for a few seconds per owner and week; every write drops it. */
+export const weekReview = (
+  user: ScheduleUser,
+  monday: string,
+  now = new Date(),
+) => memo(user.id, `review:${monday}`, () => loadWeekReview(user, monday, now));

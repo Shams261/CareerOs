@@ -1,4 +1,5 @@
 import 'server-only';
+import { memo } from '@/server/memo';
 import { z } from 'zod';
 import { db } from '@/server/db';
 import {
@@ -279,7 +280,7 @@ export async function saveLearningReminder(user: ScheduleUser, raw: unknown) {
     }),
   );
 }
-export async function learningSnapshot(user: ScheduleUser, now = new Date()) {
+async function loadLearningSnapshot(user: ScheduleUser, now = new Date()) {
   const start = weekStart(now, user.timezone);
   const [subjects, topics, current, recent, weekly, sessions, goals, pref] =
     await Promise.all([
@@ -368,3 +369,6 @@ export async function learningSnapshot(user: ScheduleUser, now = new Date()) {
     },
   };
 }
+/** Cached for a few seconds per owner; every write drops it (see src/server/memo.ts). */
+export const learningSnapshot = (user: ScheduleUser, now = new Date()) =>
+  memo(user.id, 'learning', () => loadLearningSnapshot(user, now));

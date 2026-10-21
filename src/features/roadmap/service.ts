@@ -1,4 +1,5 @@
 import 'server-only';
+import { memo } from '@/server/memo';
 import { db } from '@/server/db';
 import type { Prisma } from '@/generated/prisma/client';
 import { dayBounds, dayKey } from '@/lib/time';
@@ -228,7 +229,7 @@ async function goalWeek(user: ScheduleUser, now: Date) {
   return minutes;
 }
 
-export async function goalsOverview(user: ScheduleUser, now = new Date()) {
+async function loadGoalsOverview(user: ScheduleUser, now = new Date()) {
   const [goals, roadmaps, subjects, week] = await Promise.all([
     db().goal.findMany({
       where: { userId: user.id },
@@ -337,7 +338,7 @@ export async function linkOptions(userId: string) {
  * The chain: the last `length` owner-local days, each marked when work was recorded or the
  * day was reviewed. A record, not a score: nothing is counted or compared.
  */
-export async function chainDays(
+async function loadChainDays(
   user: ScheduleUser,
   now = new Date(),
   length = 14,
@@ -373,3 +374,8 @@ export async function chainDays(
     };
   });
 }
+/** Cached for a few seconds per owner; every write drops it (see src/server/memo.ts). */
+export const goalsOverview = (user: ScheduleUser, now = new Date()) =>
+  memo(user.id, 'goals', () => loadGoalsOverview(user, now));
+export const chainDays = (user: ScheduleUser, now = new Date(), length = 14) =>
+  memo(user.id, `chain:${length}`, () => loadChainDays(user, now, length));

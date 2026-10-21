@@ -1,4 +1,5 @@
 'use server';
+import { forgetAll } from '@/server/memo';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { issueMessages } from '@/lib/validation';
@@ -25,6 +26,7 @@ function refresh() {
 async function perform(work: () => Promise<string>): Promise<ActionState> {
   try {
     const message = await work();
+    forgetAll();
     refresh();
     // Local change is committed; Google Calendar catches up after the response (ADR-010).
     syncSoon(await owner());

@@ -212,3 +212,20 @@ Attention is derived, not stored: overdue follow-up, result needed, interview be
 **Alternatives rejected:** modelling roadmap items as learning topics (forces every interview question into a mastery model and auto-converts domains); a roadmap-level completion percentage (a score, against the voice rule); storing the chain (duplicates what sessions and reviews already record).
 
 **Consequences:** One migration adds two tables and two enums; nothing existing changes. Deleting a goal keeps its roadmaps (goal reference cleared); deleting a roadmap removes its items. Bulk entry parses one item per line so a pasted outline becomes a roadmap in one step.
+
+## ADR-017 — A short in-process snapshot cache, dropped on every write
+
+**Status:** Accepted (2026-10-21, WI-010).
+
+**Context:** Production runs one Node process in Ohio against a database in Canada Central; each statement costs about 80 ms of round trip. After the WI-010 performance pass, Today still issued about forty statements, most of them read-only snapshots (DSA, learning, jobs, goals, the chain, calendar health) that several pages share and that do not change between two page views a few seconds apart. The architecture has no Redis and no page cache by design: private pages are `no-store` and the weekly review recomputes facts live.
+
+**Decision:**
+
+- `src/server/memo.ts` keeps read-only snapshot promises in a module-level map keyed by owner and name, for twenty seconds. The snapshot services (`dsaSnapshot`, `learningSnapshot`, `jobSnapshot`, `jobTodaySummary`, `todaysInterviews`, `goalsOverview`, `chainDays`, `calendarOverview`, `weekReview`) are the only callers.
+- **Every write drops the whole cache:** each feature's server-action helper calls `forgetAll()` after its work, `recordRun` does so after a scheduler run, and `syncCalendar` does so in a `finally`, so background syncs count too. A failed load is never cached.
+- **Off under test** (`NODE_ENV=test`) so service tests stay exact; `SNAPSHOT_CACHE=off` disables it anywhere, `=on` enables it in a test.
+- Page-level data (the day's blocks, sessions, the running session, notes, reminders) is never cached: Start, Stop and Complete must read fresh.
+
+**Alternatives rejected:** Redis or another process (nothing to share with: one owner, one process); Next.js `unstable_cache` or ISR (would cache private HTML, contradicting `no-store`); longer TTLs (the twenty-second window already covers moving between pages, and the write-drop makes staleness impossible for the owner's own actions).
+
+**Consequences:** A second page view within twenty seconds skips the snapshot statements entirely. A second process would hold its own cache, which is acceptable at twenty seconds and documented here; moving to more than one instance should revisit it. Scheduler runs clear the cache every minute, so the realistic benefit is within a single minute of navigation.

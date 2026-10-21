@@ -1421,3 +1421,193 @@ summary {
     flex-wrap: wrap;
   }
 }
+
+/* WI-010: the week at a glance. */
+.week-chart {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 8px;
+  height: 120px;
+  align-items: end;
+}
+.week-col {
+  display: grid;
+  grid-template-rows: 1fr auto;
+  height: 100%;
+  gap: 6px;
+  border-radius: var(--radius-sm);
+  padding: 4px 4px 0;
+}
+.week-col.is-today {
+  background: var(--tint);
+}
+.week-bars {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 3px;
+  height: 100%;
+}
+.week-bar-p,
+.week-bar-a {
+  display: block;
+  width: 12px;
+  min-height: 2px;
+  border-radius: 3px 3px 0 0;
+}
+.week-bar-p {
+  border: 1px solid var(--primary);
+  border-bottom: 0;
+  background: transparent;
+}
+.week-bar-a {
+  background: var(--primary);
+}
+.week-col-label {
+  font-size: 11px;
+  text-align: center;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.legend::before {
+  content: '';
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  margin-right: 6px;
+  vertical-align: -1px;
+}
+.legend-p::before {
+  border: 1px solid var(--primary);
+}
+.legend-a::before {
+  background: var(--primary);
+}
+
+/* WI-010: motion, lightly. Everything here is off under reduced motion. */
+@media (prefers-reduced-motion: no-preference) {
+  @keyframes silsila-rise {
+    from {
+      opacity: 0;
+      transform: translateY(6px);
+    }
+  }
+  @keyframes silsila-breathe {
+    0%,
+    100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.35;
+    }
+  }
+  .card,
+  .setup-card,
+  .today-focus,
+  .stats > .stat {
+    animation: silsila-rise var(--motion-slow) var(--motion-easing) both;
+  }
+  .stats > .stat:nth-child(2) {
+    animation-delay: 40ms;
+  }
+  .stats > .stat:nth-child(3) {
+    animation-delay: 80ms;
+  }
+  .stats > .stat:nth-child(4) {
+    animation-delay: 120ms;
+  }
+  .disclosure-panel {
+    animation: silsila-rise var(--motion-normal) var(--motion-easing) both;
+  }
+  .button:active:not(:disabled) {
+    transform: scale(0.98);
+  }
+  .live-dot {
+    animation: silsila-breathe 2.4s ease-in-out infinite;
+  }
+  .week-bar-p,
+  .week-bar-a {
+    transition: height var(--motion-slow) var(--motion-easing);
+  }
+}
+.live-dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: currentColor;
+  margin-right: 8px;
+  vertical-align: 2px;
+}
+
+/* WI-010: note to self. */
+.capture fieldset {
+  display: grid;
+  gap: 6px;
+}
+.capture input {
+  margin: 0;
+  min-height: 40px;
+  font-size: 13px;
+}
+.capture .button {
+  min-height: 36px;
+  padding: 6px 12px;
+  justify-self: start;
+}
+.capture .form-success,
+.capture .form-message {
+  margin-top: 4px;
+}
+.note-row {
+  padding: 12px 0;
+  border-top: 1px solid var(--border-subtle);
+}
+.note-row:first-child {
+  border-top: 0;
+  padding-top: 0;
+}
+.note-row .actions {
+  margin-top: 6px;
+}
+.note-row .actions .button {
+  min-height: 34px;
+  padding: 5px 10px;
+}
+@media (max-width: 700px) {
+  .capture fieldset {
+    grid-template-columns: 1fr auto;
+    align-items: center;
+  }
+}
+
+/* Streaming placeholders. */
+.skeleton {
+  display: grid;
+  gap: 10px;
+  min-height: 96px;
+}
+.skeleton-line {
+  display: block;
+  height: 12px;
+  border-radius: 6px;
+  background: var(--surface-muted);
+}
+.skeleton-line.w-40 {
+  width: 40%;
+}
+.skeleton-line.w-60 {
+  width: 60%;
+}
+@media (prefers-reduced-motion: no-preference) {
+  @keyframes silsila-shimmer {
+    50% {
+      opacity: 0.55;
+    }
+  }
+  .skeleton-line {
+    animation: silsila-shimmer 1.6s ease-in-out infinite;
+  }
+}

@@ -5,6 +5,7 @@ import { CalendarAttention } from '@/features/calendar/panel';
 import { WeeklyReviewPrompt } from '@/features/review/summary';
 import { isDsa } from '@/features/dsa/domain';
 import Link from 'next/link';
+import { Suspense } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { ActionForm } from '@/components/action-form';
 import { Disclosure, DisclosureTabs } from '@/components/disclosure';
@@ -32,8 +33,18 @@ import { ExecutionRefresh } from '@/features/execution/refresh';
 import { LiveTimer } from '@/features/execution/live';
 import { TodayShortcuts } from '@/features/execution/shortcuts';
 import { Chain, TodayGoals } from '@/features/roadmap/summary';
+import { openNotes } from '@/features/notes/service';
+import { NoteList } from '@/features/notes/forms';
 import { readNotification } from '@/server/actions';
 import { Button } from '@/components/ui/button';
+/** A quiet placeholder while an aside card is still loading. */
+const CardSkeleton = () => (
+  <section className="card skeleton" aria-hidden="true">
+    <span className="skeleton-line w-40" />
+    <span className="skeleton-line" />
+    <span className="skeleton-line w-60" />
+  </section>
+);
 export default async function Today({
   searchParams,
 }: {
@@ -61,6 +72,7 @@ export default async function Today({
     notifications,
     applications,
     routines,
+    notes,
   ] = await Promise.all([
     db().dailyPlan.findUnique({
       where: { userId_date: { userId: user.id, date: new Date(day) } },
@@ -96,6 +108,7 @@ export default async function Today({
       where: { userId: user.id, appliedAt: new Date(day) },
     }),
     db().routineBlock.count({ where: { userId: user.id } }),
+    openNotes(user.id),
   ]);
   const blocks = plan?.blocks ?? [],
     summary = blockSummary(blocks, now),
@@ -152,15 +165,21 @@ export default async function Today({
           </span>
         </nav>
       </div>
-      {!firstRun && <Chain user={user} now={now} />}
+      {!firstRun && (
+        <Suspense fallback={null}>
+          <Chain user={user} now={now} />
+        </Suspense>
+      )}
       {generationError && (
         <p role="alert" className="form-message mb-5">
           This week could not be planned: {generationError}. Check your routines
           on Plan.
         </p>
       )}
-      <CalendarAttention user={user} />
-      <TodayInterview user={user} day={day} />
+      <Suspense fallback={null}>
+        <CalendarAttention user={user} />
+        <TodayInterview user={user} day={day} />
+      </Suspense>
       {running && (
         <section className="hero">
           <div>
@@ -381,16 +400,23 @@ export default async function Today({
               </section>
             </section>
             <aside>
-              {day === today && <TodayGoals user={user} now={now} />}
-              {day === today && <WeeklyReviewPrompt user={user} now={now} />}
-              {day === today && <TodayJobs user={user} now={now} />}
-              {day === today && (
-                <TodayLearning user={user} now={now} blocks={blocks} />
+              {notes.length > 0 && day === today && (
+                <section className="card" aria-labelledby="notes-heading">
+                  <h2 id="notes-heading">Notes to self</h2>
+                  <NoteList notes={notes} />
+                </section>
               )}
-              {day === today &&
-                blocks.some(
-                  (b) => isDsa(b.category) && b.status !== 'CANCELLED',
-                ) && <TodayDsa user={user} now={now} />}
+              {day === today && (
+                <Suspense fallback={<CardSkeleton />}>
+                  <TodayGoals user={user} now={now} />
+                  <WeeklyReviewPrompt user={user} now={now} />
+                  <TodayJobs user={user} now={now} />
+                  <TodayLearning user={user} now={now} blocks={blocks} />
+                  {blocks.some(
+                    (b) => isDsa(b.category) && b.status !== 'CANCELLED',
+                  ) && <TodayDsa user={user} now={now} />}
+                </Suspense>
+              )}
               {plan?.reviewedAt && plan.checkIn ? (
                 <section
                   className="card day-closed"

@@ -137,6 +137,7 @@ model User {
   goals              Goal[]
   roadmaps           Roadmap[]
   roadmapItems       RoadmapItem[]
+  quickNotes         QuickNote[]
   plans              DailyPlan[]
   sessions           ActualSession[]
   problems           DsaProblem[]
@@ -869,4 +870,16 @@ model RoadmapItem {
   @@index([userId, status])
   @@index([learningTopicId])
   @@index([dsaProblemId])
+}
+
+/// WI-010: a note to self captured from any page; it waits on Today until marked done.
+model QuickNote {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  body      String
+  createdAt DateTime  @default(now()) @db.Timestamptz(3)
+  doneAt    DateTime? @db.Timestamptz(3)
+
+  @@index([userId, doneAt, createdAt])
 }

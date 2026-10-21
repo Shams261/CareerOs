@@ -1,4 +1,5 @@
 import 'server-only';
+import { forgetAll, memo } from '@/server/memo';
 import { createHash, randomUUID } from 'node:crypto';
 import { db } from '@/server/db';
 import { Prisma } from '@/generated/prisma/client';
@@ -359,6 +360,18 @@ const cancelledRemote = (title = ''): Snapshot => ({
  * never run inside a database transaction; local writes are short owner-locked transactions.
  */
 export async function syncCalendar(
+  user: ScheduleUser,
+  deps: CalendarDeps,
+  opts: { full?: boolean } = {},
+) {
+  try {
+    return await syncCalendarInner(user, deps, opts);
+  } finally {
+    // Background syncs do not pass through recordRun; the snapshots must still refresh.
+    forgetAll();
+  }
+}
+async function syncCalendarInner(
   user: ScheduleUser,
   deps: CalendarDeps,
   opts: { full?: boolean } = {},
@@ -1129,7 +1142,7 @@ export async function disconnectCalendar(
 }
 
 /** Read model for /calendar: connection, derived counts and open conflicts. */
-export async function calendarOverview(user: ScheduleUser) {
+async function loadCalendarOverview(user: ScheduleUser) {
   const [conn, conflicts] = await Promise.all([
     getConnection(user.id),
     db().calendarSyncConflict.findMany({
@@ -1140,3 +1153,6 @@ export async function calendarOverview(user: ScheduleUser) {
   ]);
   return { conn, conflicts };
 }
+/** Cached for a few seconds per owner; every write drops it (see src/server/memo.ts). */
+export const calendarOverview = (user: ScheduleUser) =>
+  memo(user.id, 'calendar', () => loadCalendarOverview(user));

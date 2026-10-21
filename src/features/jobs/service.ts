@@ -1,4 +1,5 @@
 import 'server-only';
+import { memo } from '@/server/memo';
 import { z } from 'zod';
 import { db } from '@/server/db';
 import { locked, type ScheduleUser } from '@/features/schedule/service';
@@ -631,7 +632,7 @@ export async function saveJobReminders(user: ScheduleUser, raw: unknown) {
 }
 
 const roundOrder = [{ scheduledStart: 'asc' as const }, { id: 'asc' as const }];
-export async function jobSnapshot(user: ScheduleUser, now = new Date()) {
+async function loadJobSnapshot(user: ScheduleUser, now = new Date()) {
   const [apps, activities, sessions, block, prefs] = await Promise.all([
     db().jobApplication.findMany({
       where: { userId: user.id },
@@ -729,7 +730,7 @@ export async function applicationDetail(user: ScheduleUser, id: string) {
 }
 
 /** Scheduled interviews starting within the owner's calendar day. */
-export async function todaysInterviews(user: ScheduleUser, day: string) {
+async function loadTodaysInterviews(user: ScheduleUser, day: string) {
   const bounds = dayBounds(day, user.timezone);
   return db().interviewRound.findMany({
     where: {
@@ -749,7 +750,7 @@ export async function todaysInterviews(user: ScheduleUser, day: string) {
   });
 }
 /** Compact Today facts. Null when the owner has no open application. */
-export async function jobTodaySummary(user: ScheduleUser, now = new Date()) {
+async function loadJobTodaySummary(user: ScheduleUser, now = new Date()) {
   const [apps, block] = await Promise.all([
     db().jobApplication.findMany({
       where: { userId: user.id, stage: { notIn: ['REJECTED', 'WITHDRAWN'] } },
@@ -785,3 +786,12 @@ export async function jobTodaySummary(user: ScheduleUser, now = new Date()) {
     block,
   };
 }
+/** Cached for a few seconds per owner; every write drops it (see src/server/memo.ts). */
+export const jobSnapshot = (user: ScheduleUser, now = new Date()) =>
+  memo(user.id, 'jobs', () => loadJobSnapshot(user, now));
+/** Cached for a few seconds per owner; every write drops it (see src/server/memo.ts). */
+export const jobTodaySummary = (user: ScheduleUser, now = new Date()) =>
+  memo(user.id, 'jobs-today', () => loadJobTodaySummary(user, now));
+/** Cached for a few seconds per owner; every write drops it (see src/server/memo.ts). */
+export const todaysInterviews = (user: ScheduleUser, day: string) =>
+  memo(user.id, `interviews:${day}`, () => loadTodaysInterviews(user, day));

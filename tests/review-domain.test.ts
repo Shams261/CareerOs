@@ -107,6 +107,13 @@ describe('schedule week', () => {
     },
   ];
   const s = scheduleWeek(blocks, sessions, b, now);
+  it('splits planned and recorded minutes by owner-local day', () => {
+    expect(s.days.map((d) => d.actual)).toEqual([165, 0, 40, 0, 0, 0, 0]);
+    expect(s.days.reduce((n, d) => n + d.planned, 0)).toBe(
+      s.rows.reduce((n, r) => n + r.planned, 0),
+    );
+    expect(s.days.every((d) => d.planned >= 0 && d.actual >= 0)).toBe(true);
+  });
   it('reuses the focus rule and clips to the week', () => {
     expect(s.totals).toMatchObject({
       planned: 5,
