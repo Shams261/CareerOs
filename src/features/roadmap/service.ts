@@ -1,0 +1,375 @@
+import 'server-only';
+import { db } from '@/server/db';
+import type { Prisma } from '@/generated/prisma/client';
+import { dayBounds, dayKey } from '@/lib/time';
+import { locked, type ScheduleUser } from '@/features/schedule/service';
+import { shiftDay, weekDays } from '@/features/schedule/domain';
+import {
+  bulkItemsInput,
+  goalInput,
+  itemInput,
+  itemOps,
+  nextStatus,
+  parseBulkLines,
+  roadmapInput,
+  roadmapProgress,
+  type ItemOp,
+} from './domain';
+import { z } from 'zod';
+
+const itemInclude = {
+  learningTopic: {
+    select: { id: true, title: true, subject: { select: { name: true } } },
+  },
+  dsaProblem: { select: { id: true, title: true } },
+  dsaTopic: { select: { id: true, name: true } },
+} satisfies Prisma.RoadmapItemInclude;
+
+export async function saveGoal(user: ScheduleUser, raw: unknown) {
+  const input = goalInput.parse(raw);
+  return locked(user.id, async (tx) => {
+    const data = {
+      title: input.title,
+      category: input.category,
+      description: input.description,
+      targetDate: input.targetDate ? new Date(input.targetDate) : null,
+      status: input.status,
+      priority: input.priority,
+    };
+    if (input.id) {
+      const existing = await tx.goal.findFirst({
+        where: { id: input.id, userId: user.id },
+      });
+      if (!existing) throw new Error('Goal no longer exists. Reload the page.');
+      return tx.goal.update({ where: { id: existing.id }, data });
+    }
+    return tx.goal.create({ data: { ...data, userId: user.id } });
+  });
+}
+
+export async function saveRoadmap(user: ScheduleUser, raw: unknown) {
+  const input = roadmapInput.parse(raw);
+  return locked(user.id, async (tx) => {
+    if (
+      input.goalId &&
+      !(await tx.goal.findFirst({
+        where: { id: input.goalId, userId: user.id },
+      }))
+    )
+      throw new Error('Choose a goal from your workspace.');
+    const data = {
+      title: input.title,
+      description: input.description,
+      goalId: input.goalId,
+      archivedAt: input.archived ? new Date() : null,
+    };
+    if (input.id) {
+      const existing = await tx.roadmap.findFirst({
+        where: { id: input.id, userId: user.id },
+      });
+      if (!existing)
+        throw new Error('Roadmap no longer exists. Reload the page.');
+      return tx.roadmap.update({ where: { id: existing.id }, data });
+    }
+    const count = await tx.roadmap.count({ where: { userId: user.id } });
+    return tx.roadmap.create({
+      data: { ...data, userId: user.id, ordering: count },
+    });
+  });
+}
+
+/** Appends one item per line to a section, after the section's current items. */
+export async function addItems(user: ScheduleUser, raw: unknown) {
+  const input = bulkItemsInput.parse(raw);
+  const parsed = parseBulkLines(input.lines);
+  if (!parsed.length) throw new Error('Add at least one line.');
+  return locked(user.id, async (tx) => {
+    const roadmap = await tx.roadmap.findFirst({
+      where: { id: input.roadmapId, userId: user.id },
+    });
+    if (!roadmap) throw new Error('Roadmap no longer exists. Reload the page.');
+    const last = await tx.roadmapItem.aggregate({
+      where: { roadmapId: roadmap.id, section: input.section },
+      _max: { ordering: true },
+    });
+    let ordering = (last._max.ordering ?? -1) + 1;
+    for (const item of parsed)
+      await tx.roadmapItem.create({
+        data: {
+          userId: user.id,
+          roadmapId: roadmap.id,
+          section: input.section,
+          title: item.title,
+          kind: item.kind,
+          ordering: ordering++,
+        },
+      });
+    return parsed.length;
+  });
+}
+
+async function ownedItem(
+  tx: Prisma.TransactionClient,
+  userId: string,
+  id: string,
+) {
+  const item = await tx.roadmapItem.findFirst({ where: { id, userId } });
+  if (!item) throw new Error('This item no longer exists. Reload the page.');
+  return item;
+}
+
+export async function saveItem(user: ScheduleUser, raw: unknown) {
+  const input = itemInput.parse(raw);
+  const [kind, id] = input.link ? input.link.split(':') : ['', ''];
+  return locked(user.id, async (tx) => {
+    const item = await ownedItem(tx, user.id, input.id);
+    const links = {
+      learningTopicId: kind === 'learning' ? id : null,
+      dsaTopicId: kind === 'dsa-topic' ? id : null,
+      dsaProblemId: kind === 'problem' ? id : null,
+    };
+    if (
+      (links.learningTopicId &&
+        !(await tx.learningTopic.findFirst({
+          where: { id: links.learningTopicId, userId: user.id },
+        }))) ||
+      (links.dsaProblemId &&
+        !(await tx.dsaProblem.findFirst({
+          where: { id: links.dsaProblemId, userId: user.id },
+        }))) ||
+      (links.dsaTopicId &&
+        !(await tx.dsaTopic.findFirst({ where: { id: links.dsaTopicId } })))
+    )
+      throw new Error('Choose a topic or problem from your workspace.');
+    return tx.roadmapItem.update({
+      where: { id: item.id },
+      data: {
+        title: input.title,
+        section: input.section,
+        kind: input.kind,
+        notes: input.notes,
+        url: input.url,
+        askedNote: input.askedNote,
+        ...links,
+      },
+    });
+  });
+}
+
+/** Status and interview marks. Never touches Learn mastery or Practice attempts. */
+export async function applyItemOp(user: ScheduleUser, raw: unknown) {
+  const { id, op } = z
+    .object({ id: z.string().min(1), op: z.enum(itemOps) })
+    .parse(raw);
+  return locked(user.id, async (tx) => {
+    const item = await ownedItem(tx, user.id, id);
+    if (op === 'remove') {
+      await tx.roadmapItem.delete({ where: { id: item.id } });
+      return op;
+    }
+    if (op === 'asked' || op === 'unasked') {
+      await tx.roadmapItem.update({
+        where: { id: item.id },
+        data: { askedInInterview: op === 'asked' },
+      });
+      return op;
+    }
+    const status = nextStatus(op as ItemOp, item.status);
+    await tx.roadmapItem.update({
+      where: { id: item.id },
+      data: {
+        status,
+        completedAt:
+          status === 'DONE' ? (item.completedAt ?? new Date()) : null,
+      },
+    });
+    return op;
+  });
+}
+
+/** Planned and recorded minutes toward each goal in the owner's current week. */
+async function goalWeek(user: ScheduleUser, now: Date) {
+  const today = dayKey(now, user.timezone),
+    days = weekDays(today),
+    start = dayBounds(days[0], user.timezone).start,
+    end = dayBounds(days[6], user.timezone).end;
+  const [blocks, sessions] = await Promise.all([
+    db().timeBlock.findMany({
+      where: {
+        dailyPlan: { userId: user.id },
+        goalId: { not: null },
+        status: { not: 'CANCELLED' },
+        plannedStart: { lt: end },
+        plannedEnd: { gt: start },
+      },
+      select: { goalId: true, plannedStart: true, plannedEnd: true },
+    }),
+    db().actualSession.findMany({
+      where: {
+        userId: user.id,
+        goalId: { not: null },
+        startedAt: { lt: end },
+        OR: [{ endedAt: null }, { endedAt: { gt: start } }],
+      },
+      select: { goalId: true, startedAt: true, endedAt: true },
+    }),
+  ]);
+  const clamp = (a: Date, b: Date) =>
+    Math.max(0, Math.min(+end, +b) - Math.max(+start, +a)) / 60000;
+  const minutes = new Map<string, { planned: number; actual: number }>();
+  const bucket = (id: string) => {
+    if (!minutes.has(id)) minutes.set(id, { planned: 0, actual: 0 });
+    return minutes.get(id)!;
+  };
+  for (const b of blocks)
+    bucket(b.goalId!).planned += clamp(b.plannedStart, b.plannedEnd);
+  for (const s of sessions)
+    bucket(s.goalId!).actual += clamp(s.startedAt, s.endedAt ?? now);
+  return minutes;
+}
+
+export async function goalsOverview(user: ScheduleUser, now = new Date()) {
+  const [goals, roadmaps, subjects, week] = await Promise.all([
+    db().goal.findMany({
+      where: { userId: user.id },
+      orderBy: [{ status: 'asc' }, { priority: 'asc' }, { createdAt: 'asc' }],
+    }),
+    db().roadmap.findMany({
+      where: { userId: user.id },
+      include: { items: { select: { status: true, askedInInterview: true } } },
+      orderBy: { ordering: 'asc' },
+    }),
+    db().learningSubject.findMany({
+      where: { userId: user.id, goalId: { not: null } },
+      include: { topics: { select: { status: true } } },
+    }),
+    goalWeek(user, now),
+  ]);
+  return goals.map((g) => {
+    const own = roadmaps.filter((r) => r.goalId === g.id && !r.archivedAt);
+    const topics = subjects
+      .filter((s) => s.goalId === g.id)
+      .flatMap((s) => s.topics);
+    return {
+      ...g,
+      week: week.get(g.id) ?? { planned: 0, actual: 0 },
+      roadmap: roadmapProgress(own.flatMap((r) => r.items)),
+      topics: {
+        total: topics.length,
+        ready: topics.filter((t) => t.status === 'INTERVIEW_READY').length,
+      },
+    };
+  });
+}
+
+export async function roadmapList(user: ScheduleUser) {
+  const roadmaps = await db().roadmap.findMany({
+    where: { userId: user.id },
+    include: {
+      goal: { select: { id: true, title: true } },
+      items: {
+        select: { status: true, askedInInterview: true, section: true },
+      },
+    },
+    orderBy: { ordering: 'asc' },
+  });
+  return roadmaps.map((r) => ({
+    ...r,
+    progress: roadmapProgress(r.items),
+    sections: [...new Set(r.items.map((i) => i.section))],
+  }));
+}
+
+export async function roadmapDetail(user: ScheduleUser, id: string) {
+  const roadmap = await db().roadmap.findFirst({
+    where: { id, userId: user.id },
+    include: {
+      goal: { select: { id: true, title: true } },
+      items: {
+        include: itemInclude,
+        orderBy: [{ section: 'asc' }, { ordering: 'asc' }],
+      },
+    },
+  });
+  if (!roadmap) return null;
+  const sections = new Map<string, typeof roadmap.items>();
+  // Sections keep the order their first item was added in.
+  for (const item of [...roadmap.items].sort(
+    (a, b) => +a.createdAt - +b.createdAt,
+  ))
+    if (!sections.has(item.section)) sections.set(item.section, []);
+  for (const item of roadmap.items) sections.get(item.section)!.push(item);
+  return { ...roadmap, sections, progress: roadmapProgress(roadmap.items) };
+}
+
+/** Links an item form can offer: the owner's topics, DSA topics and problems. */
+export async function linkOptions(userId: string) {
+  const [topics, dsaTopics, problems] = await Promise.all([
+    db().learningTopic.findMany({
+      where: { userId, subject: { status: { not: 'ARCHIVED' } } },
+      include: { subject: { select: { name: true } } },
+      orderBy: [{ subject: { ordering: 'asc' } }, { ordering: 'asc' }],
+    }),
+    db().dsaTopic.findMany({ orderBy: { ordering: 'asc' } }),
+    db().dsaProblem.findMany({
+      where: { userId },
+      orderBy: { title: 'asc' },
+      select: { id: true, title: true },
+    }),
+  ]);
+  return [
+    ...topics.map((t) => ({
+      value: `learning:${t.id}`,
+      label: `Learn · ${t.subject.name} — ${t.title}`,
+    })),
+    ...dsaTopics.map((t) => ({
+      value: `dsa-topic:${t.id}`,
+      label: `Practice topic · ${t.name}`,
+    })),
+    ...problems.map((p) => ({
+      value: `problem:${p.id}`,
+      label: `Problem · ${p.title}`,
+    })),
+  ];
+}
+
+/**
+ * The chain: the last `length` owner-local days, each marked when work was recorded or the
+ * day was reviewed. A record, not a score: nothing is counted or compared.
+ */
+export async function chainDays(
+  user: ScheduleUser,
+  now = new Date(),
+  length = 14,
+) {
+  const today = dayKey(now, user.timezone),
+    first = shiftDay(today, -(length - 1)),
+    start = dayBounds(first, user.timezone).start;
+  const [sessions, plans] = await Promise.all([
+    db().actualSession.findMany({
+      where: { userId: user.id, startedAt: { gte: start, lte: now } },
+      select: { startedAt: true },
+    }),
+    db().dailyPlan.findMany({
+      where: {
+        userId: user.id,
+        reviewedAt: { not: null },
+        date: { gte: new Date(first), lte: new Date(today) },
+      },
+      select: { date: true },
+    }),
+  ]);
+  const worked = new Set(
+    sessions.map((s) => dayKey(s.startedAt, user.timezone)),
+  );
+  const reviewed = new Set(plans.map((p) => p.date.toISOString().slice(0, 10)));
+  return Array.from({ length }, (_, i) => {
+    const day = shiftDay(first, i);
+    return {
+      day,
+      worked: worked.has(day),
+      reviewed: reviewed.has(day),
+      today: day === today,
+    };
+  });
+}
