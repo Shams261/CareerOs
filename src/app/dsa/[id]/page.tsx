@@ -53,8 +53,8 @@ export default async function Problem({
           {p.revisionManual ? '(manually scheduled)' : ''}
         </p>
         <p className="muted">
-          {p.attemptsCount} attempts · Green progression {p.revisionStage}/3 ·
-          Dates use {user.timezone}
+          {p.attemptsCount} attempt{p.attemptsCount === 1 ? '' : 's'} · Green
+          progression {p.revisionStage}/3 · Dates use {user.timezone}
         </p>
         {p.notes && <p className="mt-4">{p.notes}</p>}
         {p.resources.map((r) => (

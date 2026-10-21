@@ -500,7 +500,8 @@ export default async function Review({
                     Week of {range(m)}
                   </Link>{' '}
                   · {h.completedAt ? 'Completed' : 'Draft'} ·{' '}
-                  {h._count.priorities} priorities
+                  {h._count.priorities} priorit
+                  {h._count.priorities === 1 ? 'y' : 'ies'}
                 </li>
               );
             })}

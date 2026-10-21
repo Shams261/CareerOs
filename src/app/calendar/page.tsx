@@ -17,9 +17,8 @@ export default async function Calendar({
 }) {
   const user = await owner(),
     query = await searchParams,
-    selected = dateInput.safeParse(query.date).success
-      ? query.date!
-      : dayKey(new Date(), user.timezone),
+    today = dayKey(new Date(), user.timezone),
+    selected = dateInput.safeParse(query.date).success ? query.date! : today,
     days = weekDays(selected);
   const [routines, plans, goals, connection] = await Promise.all([
     db().routineBlock.findMany({
@@ -118,13 +117,15 @@ export default async function Calendar({
       </section>
       <section className="card">
         <h2>Generate dated plans</h2>
-        <GenerateForm day={days[0]} />
+        <GenerateForm day={today} />
       </section>
       <section className="card">
         <h2>Recurring routine</h2>
         <p className="muted mb-4">
           Templates for days not yet generated. Editing an existing plan never
-          changes these routines.
+          changes these routines, and a new or changed routine never rewrites a
+          day that already has a plan: add a block on that day from Today, or
+          generate the days that are still missing below.
         </p>
         <details className="mb-5">
           <summary>Create recurring routine</summary>

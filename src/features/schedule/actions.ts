@@ -1,6 +1,7 @@
 'use server';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
+import { issueMessages } from '@/lib/validation';
 import { owner } from '@/server/db';
 import { syncSoon } from '@/features/calendar/background';
 import { saveBlock, saveRoutine, PreviewRequired } from './editing';
@@ -37,9 +38,7 @@ async function perform(work: () => Promise<string>): Promise<ActionState> {
       };
     if (error instanceof z.ZodError)
       return {
-        message: error.issues
-          .map((i) => `${i.path.join('.')}: ${i.message}`)
-          .join('; '),
+        message: issueMessages(error.issues),
       };
     console.error(
       'Schedule operation failed',

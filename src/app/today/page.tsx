@@ -54,7 +54,7 @@ export default async function Today({
         include: {
           blocks: {
             orderBy: { plannedStart: 'asc' },
-            include: { sessions: true },
+            include: { sessions: { orderBy: { startedAt: 'asc' } } },
           },
           checkIn: true,
         },
@@ -89,7 +89,10 @@ export default async function Today({
   const blocks = plan?.blocks ?? [],
     summary = blockSummary(blocks, now),
     progress = dayProgress(blocks, sessions, bounds.start, bounds.end, now),
-    duration = (n: number) => `${Math.floor(n / 60)}h ${n % 60}m`;
+    duration = (n: number) => `${Math.floor(n / 60)}h ${n % 60}m`,
+    // A finished session shorter than a minute is real work, not zero.
+    sessionLength = (n: number, ended: boolean) =>
+      ended && n < 1 ? 'under a minute' : duration(n);
   return (
     <>
       <ExecutionRefresh />
@@ -262,7 +265,7 @@ export default async function Today({
                 {block.skipReason && (
                   <p className="muted">Skipped: {block.skipReason}</p>
                 )}
-                <ExecutionControls block={block} />
+                <ExecutionControls block={block} canStart={day <= today} />
                 {block.sessions.map((s) => (
                   <p className="muted mt-3" key={s.id}>
                     Actual:{' '}
@@ -279,7 +282,11 @@ export default async function Today({
                           'MMM d, h:mm a',
                         )
                       : 'running'}{' '}
-                    · {duration(minutes(s.startedAt, s.endedAt ?? now))}
+                    ·{' '}
+                    {sessionLength(
+                      minutes(s.startedAt, s.endedAt ?? now),
+                      !!s.endedAt,
+                    )}
                     {s.notes ? ` · ${s.notes}` : ''}
                   </p>
                 ))}

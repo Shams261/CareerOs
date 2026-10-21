@@ -20,6 +20,7 @@ export function TopicForm({
       action={topicAction}
       label={topic ? `Edit topic ${topic.name}` : 'Add topic'}
       className="dsa-form"
+      resetOnSuccess={!topic}
     >
       <input type="hidden" name="id" value={topic?.id ?? ''} />
       <label>

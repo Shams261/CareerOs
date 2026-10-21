@@ -312,20 +312,29 @@ export function GenerateForm({ day }: { day: string }) {
     </ActionForm>
   );
 }
-export function ExecutionControls({ block }: { block: TimeBlock }) {
+/** `canStart` is false for days after today: sessions are recorded against the present. */
+export function ExecutionControls({
+  block,
+  canStart = true,
+}: {
+  block: TimeBlock;
+  canStart?: boolean;
+}) {
   return (
     <ActionForm action={executionAction} label={`Actions for ${block.title}`}>
       <input type="hidden" name="id" value={block.id} />
       <div className="actions">
         {['PLANNED', 'IN_PROGRESS'].includes(block.status) ? (
           <>
-            <button
-              className="button"
-              name="action"
-              value={block.status === 'IN_PROGRESS' ? 'stop' : 'start'}
-            >
-              {block.status === 'IN_PROGRESS' ? 'Stop session' : 'Start'}
-            </button>
+            {(canStart || block.status === 'IN_PROGRESS') && (
+              <button
+                className="button"
+                name="action"
+                value={block.status === 'IN_PROGRESS' ? 'stop' : 'start'}
+              >
+                {block.status === 'IN_PROGRESS' ? 'Stop session' : 'Start'}
+              </button>
+            )}
             <button className="button secondary" name="action" value="complete">
               Complete
             </button>
