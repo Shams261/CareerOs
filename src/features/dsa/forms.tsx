@@ -8,13 +8,31 @@ import {
 } from './actions';
 import type { DsaTopic, DsaProblem } from '@/generated/prisma/client';
 import { revisionDay } from './domain';
+/** `compact` is the first-run form: a name, saved as the current topic. */
 export function TopicForm({
   topic,
   currentId,
+  compact = false,
 }: {
   topic?: DsaTopic;
   currentId?: string;
+  compact?: boolean;
 }) {
+  if (compact)
+    return (
+      <ActionForm action={topicAction} label="Add topic" className="dsa-form">
+        <input type="hidden" name="id" value="" />
+        <input type="hidden" name="description" value="" />
+        <input type="hidden" name="status" value="LEARNING" />
+        <input type="hidden" name="ordering" value="0" />
+        <input type="hidden" name="current" value="on" />
+        <label>
+          Topic
+          <input name="name" required maxLength={100} placeholder="Arrays" />
+        </label>
+        <button className="button">Add topic</button>
+      </ActionForm>
+    );
   return (
     <ActionForm
       action={topicAction}
@@ -69,11 +87,7 @@ export function TopicForm({
         />
         Current topic
       </label>
-      <p className="muted">
-        Choose Learning or Revising for your current focus. Uncheck Current
-        topic to clear it.
-      </p>
-      <button className="button">Save topic</button>
+      <button className="button">{topic ? 'Save topic' : 'Add topic'}</button>
     </ActionForm>
   );
 }
@@ -158,7 +172,7 @@ export function ProblemForm({
         />
       </label>
       <button className="button" disabled={!topics.length}>
-        Save problem
+        {problem ? 'Save problem' : 'Add problem'}
       </button>
       {!topics.length && <p className="muted">Add a topic first.</p>}
     </ActionForm>
@@ -176,31 +190,29 @@ export function AttemptForm({ problemId }: { problemId: string }) {
       <input type="hidden" name="problemId" value={problemId} />
       <input type="hidden" name="requestId" value={requestId} />
       <label>
-        Solved independently?
+        Did you solve it yourself?
         <select name="solvedIndependently" required defaultValue="">
           <option value="" disabled>
             Choose
           </option>
-          <option value="YES">YES — independently</option>
-          <option value="PARTIAL">PARTIAL — needed help</option>
-          <option value="NO">NO — needed the approach</option>
+          <option value="YES">Yes, on my own</option>
+          <option value="PARTIAL">Partly, with hints</option>
+          <option value="NO">No, I needed the solution</option>
         </select>
       </label>
       <label>
-        Confidence after attempt
+        Confidence now
         <select name="confidenceAfter" required defaultValue="">
           <option value="" disabled>
             Choose
           </option>
-          <option value="RED">RED — cannot derive the approach</option>
-          <option value="YELLOW">YELLOW — understand, not yet reliable</option>
-          <option value="GREEN">GREEN — independent and can explain</option>
+          <option value="RED">Red — can’t derive the approach yet</option>
+          <option value="YELLOW">
+            Yellow — understand it, not yet reliable
+          </option>
+          <option value="GREEN">Green — can solve and explain it</option>
         </select>
       </label>
-      <p className="muted">
-        YES allows Yellow or Green. PARTIAL / NO allows Red or Yellow.
-        Completing a timer never changes confidence.
-      </p>
       <label>
         Time spent (minutes, optional)
         <input name="durationMinutes" type="number" min="1" max="1440" />
@@ -240,7 +252,7 @@ export function RevisionForm({ problem }: { problem: DsaProblem }) {
           }
         />
       </label>
-      <button className="button">Schedule revision</button>
+      <button className="button">Save revision date</button>
     </ActionForm>
   );
 }

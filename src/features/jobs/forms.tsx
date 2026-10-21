@@ -95,10 +95,6 @@ export function QuickAddForm({ today }: { today: string }) {
           <option key={s} value={s} />
         ))}
       </datalist>
-      <p className="muted">
-        Saved roles have no applied date. Recruiter, interviews and notes can be
-        added later.
-      </p>
       <button className="button">Add application</button>
     </ActionForm>
   );
@@ -579,10 +575,6 @@ export function ResultForm({
           </label>
         )}
       </div>
-      <p className="muted">
-        Your reflection only. Nothing here changes learning mastery or DSA
-        attempts.
-      </p>
       <button className="button">
         {completed ? 'Save reflection' : 'Save result'}
       </button>
@@ -726,11 +718,7 @@ export function JobReminderForm({
           defaultValue={interview?.offsetMinutes ?? 60}
         />
       </label>
-      <p className="muted">
-        In-app inbox reminders created by the deployment scheduler. No
-        closed-app push or email.
-      </p>
-      <button className="button">Save job reminders</button>
+      <button className="button">Save reminders</button>
     </ActionForm>
   );
 }

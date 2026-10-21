@@ -1,4 +1,5 @@
 import { formatDistance } from 'date-fns';
+import { Disclosure } from '@/components/disclosure';
 import { ActionForm } from '@/components/action-form';
 import { Button } from '@/components/ui/button';
 import type { ScheduleUser } from '@/features/schedule/service';
@@ -57,7 +58,7 @@ export async function GoogleCalendarPanel({
           : flash?.google === 'resolved_local'
             ? 'Kept the Silsila version and updated Google Calendar.'
             : flash?.google === 'resolved_remote'
-              ? 'Applied the Google Calendar version to this dated block.'
+              ? 'Applied the Google Calendar version to that day.'
               : flash?.google === 'error'
                 ? (errorMessages[flash.reason as CalendarErrorCode] ??
                   errorMessages.exchange_failed)
@@ -66,10 +67,7 @@ export async function GoogleCalendarPanel({
     return (
       <section className="card" aria-labelledby="google-heading">
         <h2 id="google-heading">Google Calendar</h2>
-        <p className="muted">
-          Not configured on this server. See README: Google Calendar model for
-          the OAuth client and encryption key settings.
-        </p>
+        <p className="muted">Not configured on this server.</p>
       </section>
     );
   const connected = conn && conn.status !== 'DISCONNECTED';
@@ -129,12 +127,9 @@ export async function GoogleCalendarPanel({
       {!connected ? (
         <>
           <p className="muted">
-            Publishes your planned Silsila blocks to a dedicated{' '}
-            <strong>{conn?.calendarName ?? 'Silsila'}</strong> Google calendar
-            and brings back moves, renames and deletions of those events as
-            one-off changes. Routines, completed work, notes and job/learning
-            data never leave Silsila. Silsila only asks to manage calendars it
-            creates, plus your email to show which account is connected.
+            Shows your planned blocks in a separate{' '}
+            <strong>{conn?.calendarName ?? 'Silsila'}</strong> calendar in your
+            Google account. Only that calendar is ever touched.
           </p>
           <form action={connectCalendarAction}>
             <Button>Connect Google Calendar</Button>
@@ -157,6 +152,12 @@ export async function GoogleCalendarPanel({
               ],
               ['Sync status', health],
               ['Pending changes', String(pending)],
+              [
+                'Updates',
+                calendarConfig()?.webhookBaseUrl
+                  ? 'Instant, with a scheduled fallback'
+                  : 'Scheduled',
+              ],
             ].map(([k, v]) => (
               <div key={k}>
                 <dt className="muted">{k}</dt>
@@ -171,11 +172,6 @@ export async function GoogleCalendarPanel({
                 errorMessages.unexpected}
             </p>
           )}
-          <p className="muted">
-            {calendarConfig()?.webhookBaseUrl
-              ? 'Push sync is active: Google notifies Silsila of changes; scheduled sync remains as a fallback.'
-              : 'Push sync unavailable in local development; manual/cron sync remains active.'}
-          </p>
           <div className="actions">
             {conn.status === 'CONNECTED' && (
               <ActionForm action={syncNowAction}>
@@ -192,8 +188,7 @@ export async function GoogleCalendarPanel({
             <div className="mt-4" aria-label="Sync conflicts">
               <h3>Sync conflicts · {conflicts.length}</h3>
               <p className="muted">
-                Both Silsila and Google changed these blocks since the last
-                sync. Choose one version; nothing is merged or lost silently.
+                Both sides changed these blocks. Choose which version to keep.
               </p>
               {conflicts.map((c) => (
                 <article className="learning-history" key={c.id}>
@@ -229,8 +224,11 @@ export async function GoogleCalendarPanel({
               ))}
             </div>
           )}
-          <details className="mt-4">
-            <summary>Categories to sync</summary>
+          <Disclosure
+            variant="link"
+            label="Categories to sync"
+            className="mt-4"
+          >
             <ActionForm
               action={categoriesAction}
               label="Sync categories"
@@ -249,24 +247,20 @@ export async function GoogleCalendarPanel({
                 </label>
               ))}
               <p className="muted">
-                Planned blocks from the last {SYNC_WINDOW.pastDays} and next{' '}
-                {SYNC_WINDOW.futureDays} days sync. Cancelled blocks are
-                removed; completed and skipped blocks stay as planned history.
+                Blocks from the last {SYNC_WINDOW.pastDays} and next{' '}
+                {SYNC_WINDOW.futureDays} days sync.
               </p>
               <Button>Save categories</Button>
             </ActionForm>
-          </details>
-          <details className="mt-3">
-            <summary>Disconnect</summary>
+          </Disclosure>
+          <Disclosure variant="link" label="Disconnect" className="mt-3">
             <ActionForm
               action={disconnectAction}
               label="Disconnect Google Calendar"
               className="dsa-form"
             >
               <p className="muted">
-                Disconnecting revokes Silsila&apos;s Google access and stops
-                sync. Your Silsila schedule is never changed. Events stay in the
-                Silsila Google calendar unless you also remove it.
+                Stops sync. Your Silsila schedule is unchanged.
               </p>
               <label className="check">
                 <input type="checkbox" name="remove" />
@@ -279,7 +273,7 @@ export async function GoogleCalendarPanel({
               </label>
               <Button className="secondary">Disconnect Google Calendar</Button>
             </ActionForm>
-          </details>
+          </Disclosure>
         </>
       )}
     </section>
@@ -299,8 +293,8 @@ export async function CalendarAttention({ user }: { user: ScheduleUser }) {
         ? `: ${conflicts.length} sync conflict(s)`
         : `: ${statusText[conn.status].toLowerCase()}`}
       .{' '}
-      <a className="link" href="/calendar#google-heading">
-        Review in Calendar →
+      <a className="link" href="/settings#google-heading">
+        Open Settings →
       </a>
     </p>
   );

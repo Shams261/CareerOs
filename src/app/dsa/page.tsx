@@ -5,12 +5,18 @@ import {
   learningState,
   revisionDay,
   revisionQueue,
+  solvedText,
 } from '@/features/dsa/domain';
 import { TopicForm, ProblemForm } from '@/features/dsa/forms';
+import { Disclosure } from '@/components/disclosure';
 import { dayKey, localInstant } from '@/lib/time';
 import { shiftDay } from '@/features/schedule/domain';
 import { formatInTimeZone } from 'date-fns-tz';
 import { ResourceLink } from '@/components/resource-link';
+
+/** Filters appear once a list is long enough to need them. */
+const FILTER_THRESHOLD = 8;
+
 export default async function Dsa({
   searchParams,
 }: {
@@ -40,7 +46,13 @@ export default async function Dsa({
   ]);
   const queue = revisionQueue(problems, day),
     practiced = problems.filter((p) => p.attemptsCount > 0),
-    currentProblems = practiced.filter((p) => p.topicId === currentTopic?.id);
+    currentProblems = practiced.filter((p) => p.topicId === currentTopic?.id),
+    fresh = problems.filter(
+      (p) => p.topicId === currentTopic?.id && !p.attemptsCount,
+    ),
+    filtering =
+      problems.length > FILTER_THRESHOLD ||
+      ['topic', 'confidence', 'difficulty', 'state', 'q'].some((k) => query[k]);
   const filtered = problems.filter(
     (p) =>
       (!query.topic || p.topicId === query.topic) &&
@@ -52,226 +64,294 @@ export default async function Dsa({
   );
   const counts = (items: typeof problems) =>
     ['GREEN', 'YELLOW', 'RED']
-      .map((c) => `${items.filter((p) => p.confidence === c).length} ${c}`)
+      .map(
+        (c) =>
+          `${items.filter((p) => p.confidence === c).length} ${c[0]}${c.slice(1).toLowerCase()}`,
+      )
       .join(' · ');
+  const due = queue.filter((p) => learningState(p, day) === 'due').length,
+    overdue = queue.filter((p) => learningState(p, day) === 'overdue').length;
   return (
     <>
-      <p className="eyebrow">Practice with intention · {user.timezone}</p>
-      <h1>DSA learning & revision</h1>
-      <p className="muted mb-7">
-        Solve externally. Remember what you learned here.
-      </p>
-      <section className="card">
-        <p className="eyebrow">Current topic</p>
-        <h2>{currentTopic?.name ?? 'Choose your next focus'}</h2>
-        <p>
-          {currentProblems.length} unique problems practiced ·{' '}
-          {counts(currentProblems)}
-        </p>
-        <p className="muted">
-          All topics: {practiced.length} unique problems practiced ·{' '}
-          {counts(practiced)} · {weekCount} attempts this week
-        </p>
-        <p className="muted">
-          {queue.filter((p) => learningState(p, day) === 'due').length} due
-          today ·{' '}
-          {queue.filter((p) => learningState(p, day) === 'overdue').length}{' '}
-          overdue
-        </p>
-        <a className="link" href="#topics">
-          Manage topics →
-        </a>
-      </section>
-      <section className="card" id="revision-queue">
-        <h2>Today&apos;s revision queue</h2>
-        <p className="muted">
-          Overdue first, then due today; Red → Yellow → Green within each group.
-        </p>
-        {!queue.length && (
-          <p className="empty">
-            Nothing due. Your upcoming revisions will appear here automatically.
-          </p>
+      <p className="eyebrow">DSA · {user.timezone}</p>
+      <div className="page-head">
+        <h1>Practice</h1>
+        {topics.length > 0 && (
+          <Disclosure label="Add a problem" variant="primary">
+            <ProblemForm topics={topics} currentId={currentTopic?.id} />
+          </Disclosure>
         )}
-        {['overdue', 'due'].map((group) => (
-          <div key={group}>
-            {queue.some((p) => learningState(p, day) === group) && (
-              <h3 className="mt-5">
-                {group === 'overdue' ? 'Overdue' : 'Due today'}
-              </h3>
+      </div>
+      {!topics.length ? (
+        <section className="card setup-card" aria-labelledby="setup-heading">
+          <p className="eyebrow">Start here</p>
+          <h2 id="setup-heading">Practice is organised by topic.</h2>
+          <p>
+            Add the topic you are working on now. Problems and revisions hang
+            off it.
+          </p>
+          <TopicForm compact />
+        </section>
+      ) : (
+        <>
+          <section className="card today-focus">
+            <div className="form-grid">
+              <div>
+                <p className="eyebrow">Current topic</p>
+                <h2 className="mt-3">
+                  {currentTopic?.name ?? 'No current topic'}
+                </h2>
+                <p className="muted">
+                  {!currentTopic
+                    ? 'Mark a topic as current under Topics.'
+                    : currentProblems.length
+                      ? `${currentProblems.length} practiced · ${counts(currentProblems)}`
+                      : 'Nothing practiced yet.'}
+                </p>
+              </div>
+              <div>
+                <p className="eyebrow">This week</p>
+                <h2 className="mt-3">
+                  {weekCount} attempt{weekCount === 1 ? '' : 's'}
+                </h2>
+                <p className="muted">
+                  {practiced.length
+                    ? `${practiced.length} practiced in all · ${due} due today · ${overdue} overdue`
+                    : 'Attempts are recorded on each problem.'}
+                </p>
+              </div>
+            </div>
+          </section>
+          <section
+            className="card"
+            id="revision-queue"
+            aria-labelledby="queue-heading"
+          >
+            <h2 id="queue-heading">Due for revision</h2>
+            {!queue.length && <p className="muted">Nothing due.</p>}
+            {['overdue', 'due'].map((group) => (
+              <div key={group}>
+                {queue.some((p) => learningState(p, day) === group) && (
+                  <h3 className="mt-5">
+                    {group === 'overdue' ? 'Overdue' : 'Due today'}
+                  </h3>
+                )}
+                {queue
+                  .filter((p) => learningState(p, day) === group)
+                  .map((p) => (
+                    <div className="dsa-item" key={p.id}>
+                      <Link className="link" href={`/dsa/${p.id}`}>
+                        {p.title}
+                      </Link>{' '}
+                      <span className={`pill ${p.confidence.toLowerCase()}`}>
+                        {p.confidence}
+                      </span>
+                      <p className="muted">
+                        {group === 'overdue'
+                          ? `Overdue by ${Math.round((+new Date(day) - +p.nextRevisionAt!) / 86400000)} day(s)`
+                          : 'Due today'}{' '}
+                        · {revisionDay(p.nextRevisionAt!)}
+                      </p>
+                    </div>
+                  ))}
+              </div>
+            ))}
+          </section>
+          <section className="card" aria-labelledby="next-heading">
+            <h2 id="next-heading">
+              Next up{currentTopic ? ` in ${currentTopic.name}` : ''}
+            </h2>
+            {fresh.map((p) => (
+              <p className="mt-3" key={p.id}>
+                <Link className="link" href={`/dsa/${p.id}`}>
+                  {p.title} → Practice
+                </Link>
+              </p>
+            ))}
+            {!fresh.length && (
+              <p className="muted">
+                {currentTopic
+                  ? 'No new problems yet. Add one above.'
+                  : 'Mark a topic as current to see new problems here.'}
+              </p>
             )}
-            {queue
-              .filter((p) => learningState(p, day) === group)
-              .map((p) => (
-                <div className="dsa-item" key={p.id}>
+          </section>
+          <section
+            className="card"
+            id="library"
+            aria-labelledby="library-heading"
+          >
+            <div className="section-head">
+              <h2 id="library-heading">
+                All problems <span className="muted">· {problems.length}</span>
+              </h2>
+            </div>
+            {filtering && (
+              <form className="dsa-filters mb-5" method="get">
+                <label>
+                  Search
+                  <input name="q" defaultValue={query.q} />
+                </label>
+                <label>
+                  Topic
+                  <select name="topic" defaultValue={query.topic ?? ''}>
+                    <option value="">All topics</option>
+                    {topics.map((t) => (
+                      <option key={t.id} value={t.id}>
+                        {t.name}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label>
+                  Confidence
+                  <select
+                    name="confidence"
+                    defaultValue={query.confidence ?? ''}
+                  >
+                    <option value="">Any</option>
+                    {['RED', 'YELLOW', 'GREEN'].map((v) => (
+                      <option key={v} value={v}>
+                        {v[0] + v.slice(1).toLowerCase()}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label>
+                  Difficulty
+                  <select
+                    name="difficulty"
+                    defaultValue={query.difficulty ?? ''}
+                  >
+                    <option value="">Any</option>
+                    {['EASY', 'MEDIUM', 'HARD'].map((v) => (
+                      <option key={v} value={v}>
+                        {v[0] + v.slice(1).toLowerCase()}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label>
+                  Revision
+                  <select name="state" defaultValue={query.state ?? ''}>
+                    <option value="">Any</option>
+                    {[
+                      'due',
+                      'overdue',
+                      'upcoming',
+                      'unattempted',
+                      'unscheduled',
+                    ].map((v) => (
+                      <option key={v}>{v}</option>
+                    ))}
+                  </select>
+                </label>
+                <div className="actions">
+                  <button className="button secondary">Filter</button>
+                  <Link className="link" href="/dsa#library">
+                    Clear
+                  </Link>
+                </div>
+              </form>
+            )}
+            {filtering && (
+              <p className="muted">
+                {filtered.length} of {problems.length}
+              </p>
+            )}
+            {filtered.map((p) => (
+              <article className="dsa-item" key={p.id}>
+                <h3>
                   <Link className="link" href={`/dsa/${p.id}`}>
                     {p.title}
                   </Link>
-                  <span className={`pill ${p.confidence.toLowerCase()}`}>
-                    {p.confidence}
+                </h3>
+                <p className="muted">
+                  {p.topic.name} · {p.platform} · {p.difficulty.toLowerCase()}
+                </p>
+                <div className="row flex-wrap">
+                  <span
+                    className={`pill ${p.attemptsCount ? p.confidence.toLowerCase() : ''}`}
+                  >
+                    {p.attemptsCount ? p.confidence : 'Unattempted'}
                   </span>
+                  <span className="muted">
+                    {learningState(p, day)}
+                    {p.nextRevisionAt
+                      ? ` · ${revisionDay(p.nextRevisionAt)}`
+                      : ''}
+                  </span>
+                  <ResourceLink url={p.problemUrl}>Open problem</ResourceLink>
+                </div>
+              </article>
+            ))}
+            {!filtered.length && (
+              <p className="muted">
+                {problems.length ? 'No matching problems.' : 'No problems yet.'}
+              </p>
+            )}
+          </section>
+          {recent.length > 0 && (
+            <section className="card" aria-labelledby="recent-heading">
+              <h2 id="recent-heading">Recent attempts</h2>
+              {recent.map((a) => (
+                <div className="dsa-item" key={a.id}>
                   <p className="muted">
-                    {group === 'overdue'
-                      ? `Overdue by ${Math.round((+new Date(day) - +p.nextRevisionAt!) / 86400000)} day(s)`
-                      : 'Due today'}{' '}
-                    · {revisionDay(p.nextRevisionAt!)}
+                    {formatInTimeZone(
+                      a.attemptedAt,
+                      user.timezone,
+                      'MMM d, h:mm a',
+                    )}
                   </p>
+                  <Link className="link" href={`/dsa/${a.problemId}`}>
+                    {a.problem.title}
+                  </Link>
+                  <p>
+                    {a.confidenceBefore
+                      ? `${a.confidenceBefore} → `
+                      : 'First attempt → '}
+                    {a.confidenceAfter} · {solvedText[a.solvedIndependently]}
+                  </p>
+                  {a.mistake && <p>{a.mistake}</p>}
                 </div>
               ))}
-          </div>
-        ))}
-      </section>
-      <section className="card">
-        <h2>New problems in {currentTopic?.name ?? 'your current topic'}</h2>
-        {problems
-          .filter((p) => p.topicId === currentTopic?.id && !p.attemptsCount)
-          .map((p) => (
-            <p className="mt-3" key={p.id}>
-              <Link className="link" href={`/dsa/${p.id}`}>
-                {p.title} → Practice
-              </Link>
-            </p>
-          ))}
-        {!problems.some(
-          (p) => p.topicId === currentTopic?.id && !p.attemptsCount,
-        ) && (
-          <p className="muted">
-            Choose a current topic and add a new problem when ready.
-          </p>
-        )}
-      </section>
-      <section className="card">
-        <details>
-          <summary>Add a problem</summary>
-          <ProblemForm topics={topics} currentId={currentTopic?.id} />
-        </details>
-      </section>
-      <section className="card" id="library">
-        <h2>Problem library</h2>
-        <form className="dsa-filters" method="get">
-          <label>
-            Search title
-            <input name="q" defaultValue={query.q} />
-          </label>
-          <label>
-            Topic
-            <select name="topic" defaultValue={query.topic ?? ''}>
-              <option value="">All topics</option>
-              {topics.map((t) => (
-                <option key={t.id} value={t.id}>
-                  {t.name}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label>
-            Confidence
-            <select name="confidence" defaultValue={query.confidence ?? ''}>
-              <option value="">All confidence</option>
-              {['RED', 'YELLOW', 'GREEN'].map((v) => (
-                <option key={v}>{v}</option>
-              ))}
-            </select>
-          </label>
-          <label>
-            Difficulty
-            <select name="difficulty" defaultValue={query.difficulty ?? ''}>
-              <option value="">All difficulties</option>
-              {['EASY', 'MEDIUM', 'HARD'].map((v) => (
-                <option key={v}>{v}</option>
-              ))}
-            </select>
-          </label>
-          <label>
-            Revision status
-            <select name="state" defaultValue={query.state ?? ''}>
-              <option value="">All states</option>
-              {['due', 'overdue', 'upcoming', 'unattempted', 'unscheduled'].map(
-                (v) => (
-                  <option key={v}>{v}</option>
-                ),
-              )}
-            </select>
-          </label>
-          <button className="button">Apply filters</button>
-          <Link className="link" href="/dsa#library">
-            Clear filters
-          </Link>
-        </form>
-        <p className="muted mt-4">{filtered.length} problem(s)</p>
-        {filtered.map((p) => (
-          <article className="dsa-item" key={p.id}>
-            <h3>
-              <Link className="link" href={`/dsa/${p.id}`}>
-                {p.title}
-              </Link>
-            </h3>
-            <p className="muted">
-              {p.topic.name} · {p.platform} · {p.difficulty}
-            </p>
-            <div className="row flex-wrap">
-              <span
-                className={`pill ${p.attemptsCount ? p.confidence.toLowerCase() : ''}`}
-              >
-                {p.attemptsCount ? p.confidence : 'Unattempted'}
-              </span>
-              <span>
-                {learningState(p, day)}
-                {p.nextRevisionAt ? ` · ${revisionDay(p.nextRevisionAt)}` : ''}
-              </span>
-              <ResourceLink url={p.problemUrl}>Open Problem</ResourceLink>
+            </section>
+          )}
+          <section
+            className="card"
+            id="topics"
+            aria-labelledby="topics-heading"
+          >
+            <div className="section-head">
+              <h2 id="topics-heading">Topics</h2>
             </div>
-          </article>
-        ))}
-        {!filtered.length && (
-          <p className="empty">
-            No matching problems. Clear filters or add your first problem.
-          </p>
-        )}
-      </section>
-      <section className="card">
-        <h2>Recent activity</h2>
-        {recent.map((a) => (
-          <div className="dsa-item" key={a.id}>
-            <p className="muted">
-              {formatInTimeZone(a.attemptedAt, user.timezone, 'MMM d, h:mm a')}
-            </p>
-            <Link className="link" href={`/dsa/${a.problemId}`}>
-              {a.problem.title}
-            </Link>
-            <p>
-              {a.confidenceBefore
-                ? `${a.confidenceBefore} → `
-                : 'First attempt → '}
-              {a.confidenceAfter} · {a.solvedIndependently}
-            </p>
-            {a.mistake && <p>{a.mistake}</p>}
-          </div>
-        ))}
-        {!recent.length && (
-          <p className="muted">Your recorded attempts will appear here.</p>
-        )}
-      </section>
-      <section className="card" id="topics">
-        <h2>Topics</h2>
-        <details className="mb-5">
-          <summary>Add a topic</summary>
-          <TopicForm />
-        </details>
-        {topics.map((t) => (
-          <details className="dsa-item" key={t.id}>
-            <summary>
-              {t.name}
-              {t.id === currentTopic?.id ? ' · Current' : ''} ·{' '}
-              {t.status.replaceAll('_', ' ')} ·{' '}
-              {practiced.filter((p) => p.topicId === t.id).length} practiced
-            </summary>
-            <p className="muted">
-              {counts(practiced.filter((p) => p.topicId === t.id))}
-            </p>
-            <TopicForm topic={t} currentId={currentTopic?.id} />
-          </details>
-        ))}
-      </section>
+            <Disclosure label="Add a topic">
+              <TopicForm />
+            </Disclosure>
+            {topics.map((t) => (
+              <div className="routine-row mt-4" key={t.id}>
+                <div>
+                  <strong>
+                    {t.name}
+                    {t.id === currentTopic?.id ? ' · Current' : ''}
+                  </strong>
+                  <p className="muted">
+                    {t.status.replaceAll('_', ' ').toLowerCase()} ·{' '}
+                    {practiced.filter((p) => p.topicId === t.id).length}{' '}
+                    practiced
+                    {practiced.some((p) => p.topicId === t.id)
+                      ? ` · ${counts(practiced.filter((p) => p.topicId === t.id))}`
+                      : ''}
+                  </p>
+                </div>
+                <Disclosure variant="link" label="Edit">
+                  <TopicForm topic={t} currentId={currentTopic?.id} />
+                </Disclosure>
+              </div>
+            ))}
+          </section>
+        </>
+      )}
     </>
   );
 }

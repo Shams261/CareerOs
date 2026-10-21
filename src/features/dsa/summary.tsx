@@ -18,10 +18,14 @@ export async function TodayDsa({
   return (
     <section className="card" aria-label="Today's DSA">
       <h2>Today&apos;s DSA</h2>
-      <p>Current topic: {data.currentTopic?.name ?? 'Choose a topic in DSA'}</p>
-      <p className="muted">
-        Revisions due: {queue.length} · RED: {red} · YELLOW: {yellow}
+      <p>
+        Current topic: {data.currentTopic?.name ?? 'Choose a topic in Practice'}
       </p>
+      {queue.length > 0 && (
+        <p className="muted">
+          Revisions due: {queue.length} · Red: {red} · Yellow: {yellow}
+        </p>
+      )}
       <ol className="dsa-list">
         {queue.slice(0, 3).map((p) => (
           <li key={p.id}>
@@ -31,13 +35,9 @@ export async function TodayDsa({
           </li>
         ))}
       </ol>
-      {!queue.length && (
-        <p className="muted">
-          No revisions due. Practice a new problem from your current topic.
-        </p>
-      )}
+      {!queue.length && <p className="muted">No revisions due.</p>}
       <Link className="link" href="/dsa#revision-queue">
-        Open DSA Queue →
+        Open Practice →
       </Link>
     </section>
   );
