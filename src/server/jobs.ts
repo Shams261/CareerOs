@@ -1,4 +1,5 @@
 import 'server-only';
+import { forgetAll } from './memo';
 import { db } from './db';
 import type { Prisma } from '@/generated/prisma/client';
 
@@ -15,6 +16,8 @@ export async function recordRun<T extends Prisma.InputJsonValue>(
   });
   try {
     const summary = await work();
+    // A scheduler run may have written reminders, blocks or sync state.
+    forgetAll();
     await db().jobRun.update({
       where: { name },
       data: {

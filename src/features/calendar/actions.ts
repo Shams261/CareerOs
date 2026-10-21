@@ -1,4 +1,5 @@
 'use server';
+import { forgetAll } from '@/server/memo';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
@@ -26,6 +27,7 @@ function deps() {
 async function perform(work: () => Promise<string>): Promise<ActionState> {
   try {
     const message = await work();
+    forgetAll();
     revalidatePath('/calendar');
     revalidatePath('/settings');
     revalidatePath('/today');

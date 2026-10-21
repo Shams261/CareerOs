@@ -1,4 +1,5 @@
 'use server';
+import { forgetAll } from '@/server/memo';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { owner } from '@/server/db';
@@ -17,6 +18,7 @@ import {
 async function perform(work: () => Promise<string>): Promise<ActionState> {
   try {
     const message = await work();
+    forgetAll();
     revalidatePath('/review');
     revalidatePath('/today');
     return { ok: true, message };

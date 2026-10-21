@@ -1,4 +1,5 @@
 import 'server-only';
+import { memo } from '@/server/memo';
 import { z } from 'zod';
 import { db } from '@/server/db';
 import { locked, type ScheduleUser } from '@/features/schedule/service';
@@ -154,7 +155,7 @@ export async function scheduleRevision(
     });
   });
 }
-export async function dsaSnapshot(user: ScheduleUser) {
+async function loadDsaSnapshot(user: ScheduleUser) {
   const [problems, topics, current] = await Promise.all([
     db().dsaProblem.findMany({
       where: { userId: user.id },
@@ -169,3 +170,6 @@ export async function dsaSnapshot(user: ScheduleUser) {
   ]);
   return { problems, topics, currentTopic: current.currentDsaTopic };
 }
+/** Cached for a few seconds per owner; every write drops it (see src/server/memo.ts). */
+export const dsaSnapshot = (user: ScheduleUser) =>
+  memo(user.id, 'dsa', () => loadDsaSnapshot(user));

@@ -35,7 +35,7 @@ Latest completed work item: **WI-010** (week chart, motion, notes to self, 2026-
 - **Notifications:** `NotificationLog` is the durable inbox, filled by `POST /api/notifications/process` (cron). Web Push is a delivery channel on top of it, not a separate engine; the inbox row survives push failure.
 - **Google Calendar:** `CalendarConnection` per owner, `TimeBlock` carries the external event id, etag, hash and sync status. Sync runs from cron, manual "Sync now", or a webhook-triggered pass. Only the dedicated calendar is ever read or written.
 - Scheduled work is external cron hitting two bearer-protected endpoints. No queues, Redis or workers.
-- **Request cost discipline (WI-010):** every statement is a cross-region round trip in production. `currentSession` is request-cached; aside cards on Today sit behind Suspense; pages load only what the visible step needs; navigation links do not prefetch; the client refresh is five minutes. Measure with PostgreSQL `log_statement` on a local `next start` before adding queries to a page (recipe in `docs/WI-010-HANDOFF.md`).
+- **Request cost discipline (WI-010):** every statement is a cross-region round trip in production. `currentSession` is request-cached; aside cards on Today sit behind Suspense; pages load only what the visible step needs; navigation links do not prefetch; the client refresh is five minutes. Read-only snapshots go through `memo()` in `src/server/memo.ts` (twenty seconds, dropped by every write; ADR-017); never cache the day's blocks, sessions or the running session. Measure with PostgreSQL `log_statement` on a local `next start` before adding queries to a page (recipe in `docs/WI-010-HANDOFF.md`).
 
 ## Core domain invariants
 

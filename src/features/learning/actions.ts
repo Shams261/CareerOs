@@ -1,4 +1,5 @@
 'use server';
+import { forgetAll } from '@/server/memo';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { issueMessages } from '@/lib/validation';
@@ -18,6 +19,7 @@ async function perform(
 ): Promise<ActionState> {
   try {
     await work();
+    forgetAll();
     revalidatePath('/learn', 'layout');
     revalidatePath('/today');
     return { ok: true, message };
