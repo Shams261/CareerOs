@@ -7,13 +7,16 @@ import {
 } from '@/features/calendar/service';
 import { syncSoon } from '@/features/calendar/background';
 import { OAUTH_COOKIE } from '@/features/calendar/domain';
+import { authConfig } from '@/lib/env';
 export const runtime = 'nodejs';
 
 /** Google redirects here with ?code&state (or ?error). Tokens never reach the browser. */
 export async function GET(request: Request) {
   const url = new URL(request.url);
+  // Redirect to the public origin, never to the request host: behind a hosting proxy the
+  // request URL names the internal listener (for example localhost:10000).
   const back = (query: string) =>
-    Response.redirect(new URL(`/calendar?${query}`, url), 303);
+    Response.redirect(new URL(`/calendar?${query}`, authConfig().baseUrl), 303);
   const deps = defaultDeps();
   if (!deps) return back('google=error&reason=not_configured');
   const jar = await cookies();
