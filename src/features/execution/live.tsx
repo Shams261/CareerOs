@@ -33,6 +33,7 @@ export function LiveTimer({
       aria-live="off"
       suppressHydrationWarning
     >
+      <span className="live-dot" aria-hidden="true" />
       {h > 0 ? `${h}:${pad(m)}:${pad(s)}` : `${m}:${pad(s)}`}
     </time>
   );
