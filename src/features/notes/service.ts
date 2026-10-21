@@ -33,5 +33,5 @@ export async function noteOp(user: ScheduleUser, raw: unknown) {
       where: { id: note.id },
       data: { doneAt: note.doneAt ?? new Date() },
     });
-  return op;
+  return { op, note };
 }

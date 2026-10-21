@@ -18,19 +18,24 @@ export type ActionState = {
   ok?: boolean;
   token?: string;
   preview?: string[];
+  /** A one-click way back, shown beside the success message for a few seconds. */
+  undo?: { kind: string; payload: unknown; label?: string };
 };
 function refresh() {
   for (const route of ['/today', '/calendar', '/review', '/jobs'])
     revalidatePath(route);
 }
-async function perform(work: () => Promise<string>): Promise<ActionState> {
+type Done = string | { message: string; undo?: ActionState['undo'] };
+async function perform(work: () => Promise<Done>): Promise<ActionState> {
   try {
-    const message = await work();
+    const done = await work();
     forgetAll();
     refresh();
     // Local change is committed; Google Calendar catches up after the response (ADR-010).
     syncSoon(await owner());
-    return { message, ok: true };
+    return typeof done === 'string'
+      ? { message: done, ok: true }
+      : { message: done.message, undo: done.undo, ok: true };
   } catch (error) {
     if (error instanceof PreviewRequired)
       return {
@@ -99,6 +104,12 @@ export async function executionAction(_state: ActionState, form: FormData) {
       action,
       String(form.get('reason') ?? ''),
     );
+    const id = String(form.get('id'));
+    if (action === 'skip' || action === 'cancel')
+      return {
+        message: action === 'skip' ? 'Skipped.' : 'Block cancelled.',
+        undo: { kind: 'block-reset', payload: { id } },
+      };
     return action === 'complete' ? 'Completed.' : 'Saved.';
   });
 }

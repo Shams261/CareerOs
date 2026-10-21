@@ -7,12 +7,15 @@ import { owner } from '@/server/db';
 import type { ActionState } from '@/features/schedule/actions';
 import { addNote, noteOp } from './service';
 
-async function perform(work: () => Promise<string>): Promise<ActionState> {
+type Done = string | { message: string; undo?: ActionState['undo'] };
+async function perform(work: () => Promise<Done>): Promise<ActionState> {
   try {
-    const message = await work();
+    const done = await work();
     forgetAll();
     revalidatePath('/', 'layout');
-    return { ok: true, message };
+    return typeof done === 'string'
+      ? { ok: true, message: done }
+      : { ok: true, message: done.message, undo: done.undo };
   } catch (error) {
     return {
       message:
@@ -32,10 +35,15 @@ export async function addNoteAction(_s: ActionState, f: FormData) {
 }
 export async function noteOpAction(_s: ActionState, f: FormData) {
   return perform(async () => {
-    const op = await noteOp(await owner(), {
+    const { op, note } = await noteOp(await owner(), {
       id: f.get('id'),
       op: f.get('op'),
     });
-    return op === 'done' ? 'Done.' : 'Removed.';
+    return op === 'done'
+      ? 'Done.'
+      : {
+          message: 'Removed.',
+          undo: { kind: 'restore-note', payload: { body: note.body } },
+        };
   });
 }

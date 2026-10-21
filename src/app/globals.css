@@ -1611,3 +1611,23 @@ summary {
     animation: silsila-shimmer 1.6s ease-in-out infinite;
   }
 }
+
+/* WI-011: undo beside the message. */
+.undo-link {
+  margin-left: 10px;
+  padding: 0 2px;
+  font: inherit;
+  font-weight: 700;
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+.undo-link:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+.undo-result {
+  margin-left: 10px;
+  font-weight: 500;
+}

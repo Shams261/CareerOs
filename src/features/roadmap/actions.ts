@@ -13,14 +13,17 @@ import {
   saveRoadmap,
 } from './service';
 
-async function perform(work: () => Promise<string>): Promise<ActionState> {
+type Done = string | { message: string; undo?: ActionState['undo'] };
+async function perform(work: () => Promise<Done>): Promise<ActionState> {
   try {
-    const message = await work();
+    const done = await work();
     forgetAll();
     revalidatePath('/roadmap', 'layout');
     revalidatePath('/today');
     revalidatePath('/review');
-    return { ok: true, message };
+    return typeof done === 'string'
+      ? { ok: true, message: done }
+      : { ok: true, message: done.message, undo: done.undo };
   } catch (error) {
     return {
       message:
@@ -61,14 +64,32 @@ export async function itemAction(_s: ActionState, f: FormData) {
 }
 export async function itemOpAction(_s: ActionState, f: FormData) {
   return perform(async () => {
-    const op = await applyItemOp(await owner(), {
+    const { op, item } = await applyItemOp(await owner(), {
       id: f.get('id'),
       op: f.get('op'),
     });
-    return op === 'remove'
-      ? 'Removed.'
-      : op === 'asked'
-        ? 'Marked as asked in an interview.'
-        : 'Saved.';
+    if (op === 'remove')
+      return {
+        message: 'Removed.',
+        undo: {
+          kind: 'restore-roadmap-item',
+          payload: {
+            roadmapId: item.roadmapId,
+            section: item.section,
+            kind: item.kind,
+            title: item.title,
+            notes: item.notes,
+            url: item.url,
+            status: item.status,
+            askedInInterview: item.askedInInterview,
+            askedNote: item.askedNote,
+            ordering: item.ordering,
+            learningTopicId: item.learningTopicId,
+            dsaProblemId: item.dsaProblemId,
+            dsaTopicId: item.dsaTopicId,
+          },
+        },
+      };
+    return op === 'asked' ? 'Marked as asked in an interview.' : 'Saved.';
   });
 }

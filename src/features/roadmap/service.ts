@@ -166,14 +166,14 @@ export async function applyItemOp(user: ScheduleUser, raw: unknown) {
     const item = await ownedItem(tx, user.id, id);
     if (op === 'remove') {
       await tx.roadmapItem.delete({ where: { id: item.id } });
-      return op;
+      return { op, item };
     }
     if (op === 'asked' || op === 'unasked') {
       await tx.roadmapItem.update({
         where: { id: item.id },
         data: { askedInInterview: op === 'asked' },
       });
-      return op;
+      return { op, item };
     }
     const status = nextStatus(op as ItemOp, item.status);
     await tx.roadmapItem.update({
@@ -184,7 +184,7 @@ export async function applyItemOp(user: ScheduleUser, raw: unknown) {
           status === 'DONE' ? (item.completedAt ?? new Date()) : null,
       },
     });
-    return op;
+    return { op, item };
   });
 }
 

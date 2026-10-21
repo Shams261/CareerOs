@@ -591,8 +591,13 @@ export async function setPriorityDone(
 export async function removePriority(user: ScheduleUser, id: string) {
   return locked(user.id, async (tx) => {
     const p = await ownedPriority(tx, user.id, id);
+    const review = await tx.weeklyReview.findUniqueOrThrow({
+      where: { id: p.reviewId },
+      select: { weekStart: true },
+    });
     await tx.weeklyPriority.delete({ where: { id } });
     await renumber(tx, p.reviewId);
+    return { ...p, weekStart: review.weekStart.toISOString().slice(0, 10) };
   });
 }
 
