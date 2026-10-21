@@ -1543,7 +1543,7 @@ summary {
 }
 
 /* WI-010: note to self. */
-.capture {
+.capture fieldset {
   display: grid;
   gap: 6px;
 }
@@ -1577,12 +1577,8 @@ summary {
   padding: 5px 10px;
 }
 @media (max-width: 700px) {
-  .capture {
+  .capture fieldset {
     grid-template-columns: 1fr auto;
     align-items: center;
-  }
-  .capture .form-success,
-  .capture .form-message {
-    grid-column: 1 / -1;
   }
 }
