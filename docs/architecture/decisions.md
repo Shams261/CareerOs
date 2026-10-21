@@ -195,3 +195,20 @@ Attention is derived, not stored: overdue follow-up, result needed, interview be
 **Alternatives rejected:** keeping the generate control with better copy (the owner would still have to know a step exists); regenerating a day whenever a routine changes (rewrites history, contradicts ADR-002); filling only today (the week grid would show "Not planned yet" for days the owner opens next).
 
 **Consequences:** The first routine appears on Today immediately. A routine created in the afternoon for a morning slot starts tomorrow, which the success message states ("Routine added to N planned days"). Plans for the current week are created on first view rather than on a schedule; the calendar sync job and Prepare next week keep their own generation paths.
+
+## ADR-016 — Goals and roadmaps are a planning layer over the learning models
+
+**Status:** Accepted (2026-10-21, WI-009).
+
+**Context:** The owner prepares for technical interviews from a roadmap of concepts and questions (DSA, system design, behavioural) and wants to see what is covered and what came up in interviews. `LearningTopic` and `DsaProblem` already carry mastery, attempts and revision dates with their own rules (distinct models invariant). A roadmap item is often one of those, but just as often a question ("design a rate limiter") that belongs to neither. `Goal` existed in the schema with relations to routines, subjects, topics, sessions and priorities, but had no authoring surface.
+
+**Decision:**
+
+- **`Roadmap` → `RoadmapItem`** (section, kind concept/question, status not started / in progress / done, `askedInInterview` with a note, notes, URL, ordering) is owner-scoped and may point at a `LearningTopic`, `DsaProblem` or `DsaTopic` through nullable `SetNull` foreign keys, exactly like `InterviewPrepItem`.
+- **The roadmap never writes to the models it points at.** Marking an item done or asked changes the item only; mastery, attempts and revision dates move only through Learn and Practice. The link is for navigation and context.
+- **Goals are authored on the same page** and show live progress derived from existing data: planned and recorded minutes of goal-linked blocks and sessions in the current week, roadmap items done, topics interview-ready. Counts only; no percentage score.
+- **The chain on Today** marks the last fourteen owner-local days with recorded work or a saved review. It is derived on read, stores nothing, and shows no count or streak in the interface.
+
+**Alternatives rejected:** modelling roadmap items as learning topics (forces every interview question into a mastery model and auto-converts domains); a roadmap-level completion percentage (a score, against the voice rule); storing the chain (duplicates what sessions and reviews already record).
+
+**Consequences:** One migration adds two tables and two enums; nothing existing changes. Deleting a goal keeps its roadmaps (goal reference cleared); deleting a roadmap removes its items. Bulk entry parses one item per line so a pasted outline becomes a roadmap in one step.

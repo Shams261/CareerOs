@@ -11,6 +11,7 @@ For the owner's first days on a deployed Silsila. The app leads with the first s
 ## Make the week yours
 
 - [ ] Today → **Start here**: add the first routine block (what, which days, what time). Today and the rest of the week fill in from it. More routines: Plan → **Add routine**. Editing a routine changes days not planned yet unless you choose to apply it to planned days (previewed first).
+- [ ] Roadmap: add one goal with a date, then a roadmap: paste your interview outline as sections of concepts and questions. Mark items Done as you cover them and "Asked in interview" when they come up.
 - [ ] Practice: add the current topic and a few problems.
 - [ ] Learn: add the subject you are focusing on.
 - [ ] Jobs: add the applications already in flight, with next actions and dates.
