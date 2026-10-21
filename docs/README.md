@@ -41,3 +41,5 @@ See the [WI-008 handoff](WI-008-HANDOFF.md) for the production launch and harden
 See the [WI-008.1 handoff](WI-008.1-HANDOFF.md) for the Heroku container deployment path and database TLS setting.
 
 See the [WI-008.2 handoff](WI-008.2-HANDOFF.md) for the Render + Supabase free-tier path.
+
+See the [WI-008.3 handoff](WI-008.3-HANDOFF.md) for the post-launch polish from the production acceptance pass.

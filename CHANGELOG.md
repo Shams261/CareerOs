@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- WI-008.3: post-launch polish from the production acceptance pass. Calendar generates from today and its "for tomorrow" hint is correct; validation messages name fields in words instead of schema keys; DSA topic, learning subject and learning topic forms clear after a save; "1 attempt" and "1 priority" pluralise; actual sessions list in time order; Start is hidden on days after today; a finished session shorter than a minute reads "under a minute"; the daily reminder form confirms its save; the routine section explains that already-generated days keep their plan; learning reminder copy no longer claims there is no push.
+- Fix: the Google Calendar OAuth callback redirects to the public origin instead of the proxied request host.
+- Go-live recorded: Silsila runs at https://usesilsila.me on Render with Supabase PostgreSQL; scheduler on cron-job.org; Google OAuth app in Testing pending a privacy page (see WI-008.2 handoff section 8).
+
 - Fix: the production container starts Next.js directly (`node node_modules/next/dist/bin/next start`) and pnpm's `verifyDepsBeforeRun` is disabled. On Render the first deploy died with `EACCES` because `pnpm start` decided the production modules were stale after the host re-layered the image and tried `pnpm install --production` as the unprivileged user.
 
 - WI-008.2: Render + Supabase free-tier deployment path (ADR-014) while the Heroku student credit is pending. `render.yaml` blueprint (Docker runtime, health check, deploy after checks pass, generated secrets); deployment guide rewritten around Render and the Supabase session pooler with Heroku kept as the alternative; operations and environment notes for workstation-run migrations and backups. No code change; the same image runs on either host.

@@ -120,7 +120,7 @@ Local quirk: node and pnpm are installed via nvm (`~/.nvm/versions/node/v24.17.0
 
 ## Production and operations
 
-State as of 2026-10-02: hosting is **Render free web service + Supabase free PostgreSQL via the session pooler** (ADR-014; `render.yaml`), chosen because the Heroku student credit (ADR-013, `heroku.yml`, kept as the alternative) was not granted. Same Dockerfile on either host. Free instances have no shell: migrations and backups run from a workstation against the Supabase URL. The local database holds only seed data, so production starts empty. Not yet done: the Render service and Supabase project themselves, DNS, real Google client, real-device push. Silsila currently requires one long-running Node process and should not be assumed serverless-compatible unless the architecture is deliberately changed and verified. Other requirements: managed PostgreSQL 17, HTTPS, external cron for two endpoints.
+State as of 2026-10-20: **Silsila is live at https://usesilsila.me** on a Render free web service (Docker image from this repo, Ohio, service `silsila`, auto-deploys `main` after CI passes) with Supabase free PostgreSQL 17 (Canada Central, session pooler, `DATABASE_SSL=no-verify`). ADR-014; Heroku (ADR-013, `heroku.yml`) is the documented alternative. Free instances have no shell: migrations and backups run from a workstation against the Supabase URL. cron-job.org calls the two scheduler endpoints on `silsila.onrender.com`. The Google OAuth app is in Testing (owner is the test user) until a privacy page exists. Not yet verified: Web Push on real devices, Google Calendar connect.
 
 - Deployment (Render + Supabase path, Heroku alternative, local Docker rehearsal): `docs/engineering/deployment.md`
 - Environment variables: `docs/engineering/environment.md`, `.env.example`
@@ -136,11 +136,10 @@ State as of 2026-10-02: hosting is **Render free web service + Supabase free Pos
 
 Feature development is intentionally paused. Priority order:
 
-1. Merge WI-008.2, then follow the owner-run sequence in `docs/engineering/deployment.md`: Supabase project and migration from the workstation, Render blueprint, first deploy on the empty database, domain and TLS, cron-job.org.
-2. Configure the real Google client; verify sign-in and Calendar.
-3. Verify Web Push on real devices.
-4. Use Silsila daily for 7–14 days and collect friction.
-5. Only then define WI-009 from real usage.
+1. Verify Web Push on desktop and phone; connect Google Calendar; take the first weekly `pnpm db:backup` against Supabase.
+2. Use Silsila daily for 7–14 days and collect friction.
+3. Small follow-up WI when convenient: a `/privacy` page so the Google app can be published (removes the seven-day Calendar reconnect).
+4. Only then define WI-009 from real usage.
 
 Update this section when the phase changes.
 
