@@ -29,6 +29,9 @@ import {
   RoutineForm,
 } from '@/features/schedule/forms';
 import { ExecutionRefresh } from '@/features/execution/refresh';
+import { LiveTimer } from '@/features/execution/live';
+import { TodayShortcuts } from '@/features/execution/shortcuts';
+import { Chain, TodayGoals } from '@/features/roadmap/summary';
 import { readNotification } from '@/server/actions';
 import { Button } from '@/components/ui/button';
 export default async function Today({
@@ -112,6 +115,10 @@ export default async function Today({
   return (
     <>
       <ExecutionRefresh />
+      <TodayShortcuts
+        prev={`/today?date=${shiftDay(day, -1)}`}
+        next={`/today?date=${shiftDay(day, 1)}`}
+      />
       <CategoryOptions />
       <p className="eyebrow">
         {day === today ? 'Today' : day < today ? 'Past day' : 'Upcoming day'} ·{' '}
@@ -140,8 +147,12 @@ export default async function Today({
             <ChevronRight size={18} aria-hidden="true" />
           </Link>
           <DateJump value={day} path="/today" label="Open a date" />
+          <span className="kbd-hint muted" aria-hidden="true">
+            N add · S start · ← →
+          </span>
         </nav>
       </div>
+      {!firstRun && <Chain user={user} now={now} />}
       {generationError && (
         <p role="alert" className="form-message mb-5">
           This week could not be planned: {generationError}. Check your routines
@@ -153,11 +164,12 @@ export default async function Today({
       {running && (
         <section className="hero">
           <div>
-            <p className="eyebrow">
-              Active session · {duration(minutes(running.startedAt, now))}{' '}
-              elapsed
-            </p>
+            <p className="eyebrow">Running now</p>
             <h2>{running.task?.title ?? running.category}</h2>
+            <LiveTimer
+              startedAt={running.startedAt.toISOString()}
+              className="live-timer-hero"
+            />
             <p className="muted">
               Started{' '}
               {formatInTimeZone(
@@ -259,6 +271,7 @@ export default async function Today({
                 <Disclosure
                   label="Add a block"
                   variant={blocks.length ? 'secondary' : 'primary'}
+                  shortcut="add-block"
                 >
                   <BlockForm day={day} zone={user.timezone} goals={goals} />
                 </Disclosure>
@@ -311,6 +324,7 @@ export default async function Today({
                       <ExecutionControls
                         block={block}
                         canStart={day <= today}
+                        current={summary.current?.id === block.id}
                       />
                       {block.sessions.map((s) => (
                         <p className="recorded" key={s.id}>
@@ -367,6 +381,7 @@ export default async function Today({
               </section>
             </section>
             <aside>
+              {day === today && <TodayGoals user={user} now={now} />}
               {day === today && <WeeklyReviewPrompt user={user} now={now} />}
               {day === today && <TodayJobs user={user} now={now} />}
               {day === today && (
@@ -376,13 +391,44 @@ export default async function Today({
                 blocks.some(
                   (b) => isDsa(b.category) && b.status !== 'CANCELLED',
                 ) && <TodayDsa user={user} now={now} />}
-              <section className="card" aria-labelledby="review-heading">
-                <h2 id="review-heading">Daily review</h2>
-                <p className="muted">
-                  {plan?.reviewedAt ? 'Reviewed.' : 'Not reviewed yet.'}
-                </p>
-                <ReviewForm day={day} review={plan?.checkIn} />
-              </section>
+              {plan?.reviewedAt && plan.checkIn ? (
+                <section
+                  className="card day-closed"
+                  aria-labelledby="review-heading"
+                >
+                  <p className="eyebrow">Day closed</p>
+                  <h2 id="review-heading">
+                    {plan.checkIn.rating
+                      ? `${plan.checkIn.rating} / 5`
+                      : 'Reviewed'}
+                  </h2>
+                  <p className="muted">
+                    {progress.completed} of {progress.planned} blocks ·{' '}
+                    {duration(progress.actualFocus)} recorded
+                  </p>
+                  {plan.checkIn.notes && <p>{plan.checkIn.notes}</p>}
+                  {plan.checkIn.blocker && (
+                    <p className="muted">Blocker: {plan.checkIn.blocker}</p>
+                  )}
+                  {plan.checkIn.carryForward && (
+                    <p className="muted">
+                      Tomorrow: {plan.checkIn.carryForward}
+                    </p>
+                  )}
+                  <Disclosure
+                    variant="link"
+                    label="Edit review"
+                    className="mt-3"
+                  >
+                    <ReviewForm day={day} review={plan.checkIn} />
+                  </Disclosure>
+                </section>
+              ) : (
+                <section className="card" aria-labelledby="review-heading">
+                  <h2 id="review-heading">Daily review</h2>
+                  <ReviewForm day={day} review={plan?.checkIn} />
+                </section>
+              )}
               {notifications.length > 0 && (
                 <section className="card" aria-labelledby="reminders-heading">
                   <h2 id="reminders-heading">Reminders</h2>

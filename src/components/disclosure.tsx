@@ -14,12 +14,15 @@ export function Disclosure({
   variant = 'secondary',
   defaultOpen = false,
   className = '',
+  shortcut,
 }: {
   label: string;
   children: ReactNode;
   variant?: Variant;
   defaultOpen?: boolean;
   className?: string;
+  /** A `data-shortcut` name so a keyboard shortcut can press this trigger. */
+  shortcut?: string;
 }) {
   const [open, setOpen] = useState(defaultOpen);
   const [userOpened, setUserOpened] = useState(false);
@@ -46,6 +49,7 @@ export function Disclosure({
         }
         aria-expanded={open}
         aria-controls={id}
+        data-shortcut={shortcut}
         onClick={() => {
           setUserOpened(true);
           setOpen((o) => !o);

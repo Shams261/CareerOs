@@ -308,9 +308,12 @@ export function RoutineForm({
 export function ExecutionControls({
   block,
   canStart = true,
+  current = false,
 }: {
   block: TimeBlock;
   canStart?: boolean;
+  /** The block happening now: its Start answers the S shortcut. */
+  current?: boolean;
 }) {
   return (
     <ActionForm action={executionAction} label={`Actions for ${block.title}`}>
@@ -323,6 +326,11 @@ export function ExecutionControls({
                 className="button"
                 name="action"
                 value={block.status === 'IN_PROGRESS' ? 'stop' : 'start'}
+                data-shortcut={
+                  current && block.status !== 'IN_PROGRESS'
+                    ? 'start'
+                    : undefined
+                }
               >
                 {block.status === 'IN_PROGRESS' ? 'Stop session' : 'Start'}
               </button>
