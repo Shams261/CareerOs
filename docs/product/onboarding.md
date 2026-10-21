@@ -38,3 +38,7 @@ For the owner's first days on a deployed Silsila. The app leads with the first s
 - [ ] Settings → **Download data export** once, to see what it contains (no credentials).
 - [ ] Confirm the operator's backup schedule ran and a restore was verified ([backup and restore](../engineering/backup-restore.md)).
 - [ ] Sign out on shared computers. Sign-in lasts 30 days per browser.
+
+## Roadmap as your tracker
+
+Roadmap holds your five study streams. Open a roadmap, pick the next item (the overview and Today say "Continue" and "Next"), open **Study** and press **Copy prompt**: choose the scenario (start, doubt, research, questions, drills, mock, summary, pause), add a doubt or a link if you have one, and paste the prompt into Claude or ChatGPT. Study there. Back here, press Done (or Start while it is in progress), mark "Asked in interview" when it came up, and keep links and notes under Edit → Notes for revision. DSA problems also live in Practice: "Record an attempt" keeps confidence and revision dates. Long roadmaps show filters by status and priority; P0 items come first.

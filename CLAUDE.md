@@ -10,7 +10,7 @@ If CLAUDE.md conflicts with the implementation, schema, tests, migrations or an 
 
 ## Current product state
 
-Latest completed work item: **WI-010** (week chart, motion, notes to self, 2026-10-21), after WI-009 (UX simplification, roadmap and goals, 2026-10-21), after WI-008 (personal production launch, live since 2026-10-20) and the brand system.
+Latest completed work item: **WI-012** (the Roadmap as the single study tracker, 2026-10-21), after WI-011 (undo, summaries, phone navigation, shortcuts overlay), WI-010 (week chart, motion, notes to self, snapshot cache), WI-009 (UX simplification, roadmap and goals), WI-008 (personal production launch, live since 2026-10-20) and the brand system.
 
 - **Schedule and execution (WI-001/002):** weekly RoutineBlocks, idempotent DailyPlan/TimeBlock generation, per-occurrence overrides, start/stop/resume/complete/skip/cancel, manual sessions, one running session per owner, daily check-in.
 - **DSA (WI-003):** topics, problems, append-only attempts, RED/YELLOW/GREEN confidence, spaced revision dates, due/overdue queue.
@@ -23,6 +23,7 @@ Latest completed work item: **WI-010** (week chart, motion, notes to self, 2026-
 - **UX simplification (WI-009):** first-run cards on Today, Practice, Learn and Jobs; visible primary actions (`Disclosure` replaces `<details>` for forms); plain vocabulary; filters and counters only once data exists; three-screen weekly review; sidebar Today / Plan / Roadmap / Practice / Learn / Jobs / Weekly review / Settings; Google Calendar panel lives in Settings; inline form feedback with a pending state and auto-clearing success.
 - **Week at a glance, motion, notes (WI-010):** per-day planned/recorded minutes in `scheduleWeek` and a bar chart on review step one; motion only under `prefers-reduced-motion: no-preference`; `QuickNote` captured from the shell, listed on Today until done. No streak, no score.
 - **Goals and roadmap (WI-009):** `Goal` authoring with target dates and live weekly progress; `Roadmap` → `RoadmapItem` (sections, concepts/questions, status, asked-in-interview mark, optional links to Learn topics and Practice problems/topics). A roadmap is a planning layer: it never changes mastery, attempts or revision dates (ADR-016). Today shows the chain (14 days, record not score), goals, a day-closed card, a live timer and keyboard shortcuts; the running session sits in the shell on every page.
+- **The Roadmap as the tracker (WI-012, ADR-018):** items carry scope, checkpoint, priority (P0–P2), estimate, read-only references, source and an import slug; roadmaps carry a study prompt template and scenarios; **Copy prompt** renders on the client (`src/features/roadmap/study-prompt.tsx`) so the owner studies in Claude or ChatGPT and marks the item here. Filters above eight items; Continue on the overview; Next on Today. Material is imported, never committed: `pnpm roadmap:bundle` (parsers `scripts/lib/roadmap-sources.ts`; researched curriculum as data in `scripts/lib/dsa-curriculum.ts` and `scripts/lib/interview-research.ts`) then `pnpm roadmap:import` (idempotent; keyed by roadmap title, item slug, topic name, problem URL; never overwrites marks, attempts, confidence or owner notes). DSA problems from the bundle are `DsaProblem`s in Practice. `scripts/reset-owner-data.sql` is the one-time production reset. Item notes, references and the bundle are owner material: never logged; in the export.
 
 ## Architecture
 
@@ -50,6 +51,7 @@ Violating any of these is a bug, not a design choice.
 - Silsila reads and writes only its own app-created calendar (`calendar.app.created`). Events without Silsila private properties are ignored, never mutated.
 - DSA (`DsaProblem` → `DsaAttempt` → confidence → revision) and technical learning (`LearningTopic` → activity → mastery → review) are distinct models. Do not merge them or auto-convert other domains into either. `RoadmapItem` may link to either but never writes to them; marking an item done or asked changes the item only.
 - `JobApplication` has many `InterviewRound`s. Never model one interview as the application.
+- The roadmap never writes to Learn or Practice; marks change the item only (ADR-016/018). Imported items are keyed by `(roadmapId, slug)`; owner-added items have no slug. An import must never overwrite `status`, `completedAt`, `askedInInterview`, `askedNote`, attempts, confidence, or notes the owner has written.
 - Attempts, activities, job activities and stage history are append-only.
 - Owner id comes from the server session only. Never accept a user id from the browser.
 - Existing migrations are immutable; schema changes get a new migration. Multi-row mutations use transactions and the advisory locks already in `schedule/service.ts` and `calendar/service.ts`.
@@ -110,6 +112,9 @@ pnpm timestamps:audit    # read-only
 pnpm timestamps:repair   # dry-run unless --apply --confirm=<db>
 pnpm db:backup
 pnpm db:restore:verify <file>          # restores into a new scratch DB, then drops it
+pnpm roadmap:bundle "<sources folder>" # study materials → roadmap-bundle.json (needs pdftotext); never committed
+pnpm roadmap:import <bundle.json>      # idempotent import for the single owner (DATABASE_URL)
+psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f scripts/reset-owner-data.sql   # one-time owner data reset; verified backup first
 ```
 
 Local quirk: node and pnpm are installed via nvm (`~/.nvm/versions/node/v24.17.0/bin`). Disposable test databases go on the Homebrew PostgreSQL 16 at 5432. The `.env` database on 127.0.0.1:55432 is a second Homebrew instance with its data directory in `/private/tmp`; it holds only the example seed, never personal data. Production rehearsal: `DB_PORT=5433 docker compose --profile app up --build` (see README).
@@ -140,10 +145,10 @@ State as of 2026-10-20: **Silsila is live at https://usesilsila.me** on a Render
 
 Feature development is intentionally paused. Priority order:
 
-1. Merge and deploy WI-009, then re-check the first-run flow on usesilsila.me (the production workspace already has routines, so the Today card will not show there).
-2. Use Silsila daily for 7–14 days and collect friction. Weekly backup (first one verified 2026-10-21): `PATH=/opt/homebrew/opt/libpq/bin:$PATH pnpm db:backup`, then verify against the Docker PostgreSQL 17 (`docs/engineering/backup-restore.md`).
+1. After the WI-012 merge, the owner runs the one-time runbook from the workstation: verified backup (`PATH=/opt/homebrew/opt/libpq/bin:$PATH pnpm db:backup` + Docker PostgreSQL 17 restore check) → clear the TEST routine and blocks in the app and Sync now → `scripts/reset-owner-data.sql` → deploy → `pnpm db:deploy` → `pnpm roadmap:bundle` → `pnpm roadmap:import` (`docs/engineering/backup-restore.md`, `docs/engineering/operations.md`).
+2. Use Silsila daily as the single tracker for 7–14 days and collect friction; verify Web Push on real devices; connect Google Calendar; weekly backup.
 3. Small follow-up WI when convenient: a `/privacy` page so the Google app can be published (removes the seven-day Calendar reconnect).
-4. Only then define WI-009 from real usage.
+4. AI preparation suggestions were designed and then deferred by the owner (2026-10-21); revisit only after real usage.
 
 Update this section when the phase changes.
 
