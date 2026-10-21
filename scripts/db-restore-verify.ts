@@ -33,6 +33,11 @@ async function main() {
   );
   if (exists.rowCount) throw new Error(`Refusing: ${scratch} already exists.`);
   await admin.query(`CREATE DATABASE "${scratch}"`);
+  // A public-schema dump recreates the schema itself; the new database's empty one must go.
+  const fresh = new Client({ connectionString: utcConnectionString(target) });
+  await fresh.connect();
+  await fresh.query('DROP SCHEMA IF EXISTS public');
+  await fresh.end();
   console.log(
     `Restoring ${file} into new scratch database ${describeDatabase(target)}`,
   );
