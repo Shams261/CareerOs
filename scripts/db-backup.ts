@@ -9,6 +9,10 @@ import { pgEnv, run } from './lib/pg-tools';
  * pnpm db:backup — custom-format pg_dump of DATABASE_URL into BACKUP_DIR (default ./backups,
  * git-ignored), readable only by the current user. Backups contain personal data: store them
  * encrypted and off the application host. A dump is not proven until `pnpm db:restore:verify`.
+ *
+ * Only the `public` schema is dumped: every Silsila table (and `_prisma_migrations`) lives
+ * there. On a managed provider the same database also holds provider schemas and extensions
+ * (Supabase: auth, storage, vault, graphql) that cannot be restored anywhere else.
  */
 const url = process.env.DATABASE_URL;
 if (!url) throw new Error('DATABASE_URL is required.');
@@ -21,7 +25,14 @@ const file = join(
 console.log(`Backing up ${describeDatabase(url)} → ${file}`);
 run(
   'pg_dump',
-  ['--format=custom', '--no-owner', '--no-acl', '--file', file],
+  [
+    '--format=custom',
+    '--schema=public',
+    '--no-owner',
+    '--no-acl',
+    '--file',
+    file,
+  ],
   pgEnv(url),
 );
 chmodSync(file, 0o600);
