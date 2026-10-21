@@ -1871,3 +1871,64 @@ kbd {
     animation: silsila-rise var(--motion-normal) var(--motion-easing) both;
   }
 }
+
+/* WI-012: the roadmap as the tracker. */
+.roadmap-toggles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 16px;
+}
+.roadmap-toggles > .disclosure {
+  flex-basis: auto;
+}
+.roadmap-toggles > .disclosure.is-open {
+  flex-basis: 100%;
+}
+.roadmap-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 12px;
+}
+.roadmap-estimate {
+  font-weight: 400;
+  font-size: 13px;
+}
+.pill.priority {
+  background: var(--primary);
+  color: var(--on-primary);
+  border-color: var(--primary);
+}
+.study-panel {
+  display: grid;
+  gap: 10px;
+  padding: 12px 14px;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+}
+.study-panel p {
+  margin: 0;
+}
+.reference-list {
+  display: grid;
+  gap: 4px;
+  padding-left: 0;
+}
+.study-prompt {
+  border-top: 1px solid var(--border-subtle);
+  padding-top: 10px;
+}
+.study-prompt .actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  margin: 8px 0 0;
+}
+.study-prompt textarea {
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 13px;
+}
+.roadmap-sections span.is-done {
+  color: var(--success);
+}

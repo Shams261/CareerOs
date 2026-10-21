@@ -149,11 +149,32 @@ export default async function RoadmapPage() {
                   ? ` · ${r.progress.inProgress} in progress`
                   : ''}
                 {r.progress.asked ? ` · ${r.progress.asked} asked` : ''}
-                {r.sections.length
-                  ? ` · ${r.sections.length} section${r.sections.length === 1 ? '' : 's'}`
-                  : ''}
                 {r.goal ? ` · ${r.goal.title}` : ''}
               </p>
+              {r.next && (
+                <p>
+                  Continue:{' '}
+                  <Link
+                    className="link"
+                    href={`/roadmap/${r.id}#item-${r.next.id}`}
+                  >
+                    {r.next.title}
+                  </Link>
+                  <span className="muted"> · {r.next.section}</span>
+                </p>
+              )}
+              {r.sections.length > 0 && (
+                <p className="status-line roadmap-sections">
+                  {r.sections.map((s) => (
+                    <span
+                      key={s.name}
+                      className={s.done === s.total ? 'is-done' : ''}
+                    >
+                      {s.name} {s.done}/{s.total}
+                    </span>
+                  ))}
+                </p>
+              )}
             </div>
             <Link className="button secondary" href={`/roadmap/${r.id}`}>
               Open

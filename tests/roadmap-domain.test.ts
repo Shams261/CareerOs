@@ -1,9 +1,17 @@
 import { describe, expect, it } from 'vitest';
 import {
+  DEFAULT_SCENARIOS,
   daysUntil,
+  nextItem,
   nextStatus,
   parseBulkLines,
+  parseReferenceLines,
+  parseScenarioLines,
+  referenceLines,
+  renderPrompt,
   roadmapProgress,
+  scenarioLines,
+  sectionSummary,
   targetLabel,
 } from '../src/features/roadmap/domain';
 
@@ -54,5 +62,127 @@ describe('roadmapProgress and target labels', () => {
       'Target passed 1 day ago',
     );
     expect(targetLabel(null, '2026-10-21')).toBe('No target date');
+  });
+});
+
+describe('WI-012 tracker helpers', () => {
+  const base = {
+    priority: 2,
+    ordering: 0,
+    createdAt: new Date('2026-10-21T00:00:00Z'),
+  };
+  const items = [
+    {
+      id: 'a',
+      title: 'Two Sum',
+      section: 'Arrays',
+      status: 'DONE' as const,
+      ...base,
+    },
+    {
+      id: 'b',
+      title: '3Sum',
+      section: 'Arrays',
+      status: 'NOT_STARTED' as const,
+      ...base,
+      ordering: 1,
+    },
+    {
+      id: 'c',
+      title: 'Invert',
+      section: 'Trees',
+      status: 'IN_PROGRESS' as const,
+      ...base,
+      createdAt: new Date('2026-10-22T00:00:00Z'),
+    },
+  ];
+  it('summarises sections in first-added order and picks the item to continue', () => {
+    expect(sectionSummary(items)).toEqual([
+      { name: 'Arrays', total: 2, done: 1 },
+      { name: 'Trees', total: 1, done: 0 },
+    ]);
+    // In progress wins over not started even when it sits in a later section.
+    expect(nextItem(items)?.id).toBe('c');
+    expect(nextItem(items.filter((i) => i.id !== 'c'))?.id).toBe('b');
+    expect(
+      nextItem(items.map((i) => ({ ...i, status: 'DONE' as const }))),
+    ).toBeNull();
+  });
+  it('parses and prints scenario and reference lines', () => {
+    const scenarios = parseScenarioLines(
+      'start | Start | Teach it\n\nDoubt Mode | Doubt | Explain | with a pipe',
+    );
+    expect(scenarios).toEqual([
+      { id: 'start', name: 'Start', intro: 'Teach it' },
+      { id: 'doubt-mode', name: 'Doubt', intro: 'Explain | with a pipe' },
+    ]);
+    expect(scenarioLines(scenarios).split('\n')).toHaveLength(2);
+    expect(() => parseScenarioLines('only-id')).toThrow('Scenario line');
+    const refs = parseReferenceLines(
+      'MDN HTTP | https://developer.mozilla.org/docs/Web/HTTP | Official docs\nhttps://example.com/plain',
+    );
+    expect(refs).toEqual([
+      {
+        label: 'MDN HTTP',
+        url: 'https://developer.mozilla.org/docs/Web/HTTP',
+        kind: 'Official docs',
+      },
+      {
+        label: 'https://example.com/plain',
+        url: 'https://example.com/plain',
+        kind: undefined,
+      },
+    ]);
+    expect(referenceLines(refs)).toContain(
+      'MDN HTTP | https://developer.mozilla.org/docs/Web/HTTP | Official docs',
+    );
+    expect(() => parseReferenceLines('No url here')).toThrow('Reference line');
+  });
+  it('renders the study prompt from the template, the item and the scenario', () => {
+    const text = renderPrompt(
+      'Week {{section}} — {{topic}} ({{priority}}, {{estimate}})\n{{scope}}\n{{checkpoint}}\n{{references}}\n{{notes}}\n{{scenario}}{{extra}}\n{{unknown}}',
+      { title: 'Backend' },
+      {
+        title: 'HTTP semantics',
+        section: 'Week 1',
+        scope: 'Methods, status codes',
+        checkpoint: 'Explain retry risks',
+        priority: 1,
+        estimateMinutes: 45,
+        references: [
+          { label: 'MDN', url: 'https://mdn.example', kind: 'docs' },
+        ],
+        notes: null,
+        url: 'https://example.com/x',
+      },
+      { id: 'doubt', name: 'Doubt', intro: 'Reteach it' },
+      'Why is PUT idempotent?',
+    );
+    expect(text).toBe(
+      [
+        'Week Week 1 — HTTP semantics (P0, 45 minutes)',
+        'Methods, status codes',
+        'Explain retry risks',
+        '- MDN: https://mdn.example (docs)',
+        '- Link: https://example.com/x',
+        '- none yet',
+        'Reteach it',
+        'ADDITIONAL CONTEXT / DOUBT / LINK:',
+        'Why is PUT idempotent?',
+        '',
+        '{{unknown}}',
+      ].join('\n'),
+    );
+    // No template: the built-in one carries the scenario and defaults for empty fields.
+    const fallback = renderPrompt(
+      null,
+      { title: 'DSA' },
+      { title: 'Tries', section: 'Patterns' },
+      DEFAULT_SCENARIOS[0],
+    );
+    expect(fallback).toContain('Topic: Tries');
+    expect(fallback).toContain('Not written down; use the topic title.');
+    expect(fallback).toContain(DEFAULT_SCENARIOS[0].intro);
+    expect(fallback).not.toContain('{{');
   });
 });

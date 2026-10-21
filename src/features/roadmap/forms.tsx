@@ -1,6 +1,13 @@
 import { ActionForm } from '@/components/action-form';
 import type { Goal, Roadmap, RoadmapItem } from '@/generated/prisma/client';
 import {
+  DEFAULT_PROMPT_TEMPLATE,
+  referenceLines,
+  scenarioLines,
+  type Reference,
+  type Scenario,
+} from './domain';
+import {
   bulkItemsAction,
   goalAction,
   itemAction,
@@ -150,14 +157,45 @@ export function RoadmapForm({
         />
       </label>
       {roadmap && (
-        <label className="check">
-          <input
-            type="checkbox"
-            name="archived"
-            defaultChecked={!!roadmap.archivedAt}
-          />
-          Archived
-        </label>
+        <>
+          <label>
+            Study prompt template
+            <textarea
+              name="promptTemplate"
+              rows={8}
+              maxLength={20000}
+              defaultValue={roadmap.promptTemplate ?? ''}
+              placeholder={DEFAULT_PROMPT_TEMPLATE.slice(0, 160) + '…'}
+            />
+          </label>
+          <p className="muted">
+            Leave empty for the built-in template. Placeholders:{' '}
+            {
+              '{{topic}} {{section}} {{roadmap}} {{scope}} {{checkpoint}} {{priority}} {{estimate}} {{references}} {{notes}} {{scenario}} {{extra}}'
+            }
+          </p>
+          <label>
+            Scenarios, one per line as <code>id | Name | instruction</code>
+            <textarea
+              name="scenarios"
+              rows={5}
+              maxLength={20000}
+              defaultValue={scenarioLines(
+                (roadmap.scenarios as Scenario[] | null) ?? [],
+              )}
+              placeholder="start | Start or continue | Teach this topic directly…"
+            />
+          </label>
+          <p className="muted">Leave empty for the built-in scenarios.</p>
+          <label className="check">
+            <input
+              type="checkbox"
+              name="archived"
+              defaultChecked={!!roadmap.archivedAt}
+            />
+            Archived
+          </label>
+        </>
       )}
       <button className="button">
         {roadmap ? 'Save roadmap' : 'Create roadmap'}
@@ -280,6 +318,24 @@ export function ItemForm({
           </select>
         </label>
         <label>
+          Priority
+          <select name="priority" defaultValue={item.priority}>
+            <option value={1}>P0 · first</option>
+            <option value={2}>P1 · important</option>
+            <option value={3}>P2 · later</option>
+          </select>
+        </label>
+        <label>
+          Estimate (minutes)
+          <input
+            name="estimateMinutes"
+            type="number"
+            min={1}
+            max={6000}
+            defaultValue={item.estimateMinutes ?? ''}
+          />
+        </label>
+        <label>
           Link (optional)
           <input name="url" type="url" defaultValue={item.url ?? ''} />
         </label>
@@ -299,13 +355,46 @@ export function ItemForm({
         ))}
       </datalist>
       <label>
-        Notes
+        Scope: what to cover
+        <textarea
+          name="scope"
+          rows={3}
+          maxLength={8000}
+          defaultValue={item.scope ?? ''}
+        />
+      </label>
+      <label>
+        Checkpoint: what done means
+        <textarea
+          name="checkpoint"
+          rows={2}
+          maxLength={4000}
+          defaultValue={item.checkpoint ?? ''}
+        />
+      </label>
+      <label>
+        References, one per line as <code>Label | https://url</code>
+        <textarea
+          name="references"
+          rows={3}
+          maxLength={20000}
+          defaultValue={referenceLines(
+            (item.references as Reference[] | null) ?? [],
+          )}
+        />
+      </label>
+      <label>
+        Notes for revision (links are fine)
         <textarea
           name="notes"
-          maxLength={2000}
+          rows={6}
+          maxLength={20000}
           defaultValue={item.notes ?? ''}
         />
       </label>
+      {item.sourceRef && (
+        <p className="muted">Imported from: {item.sourceRef}</p>
+      )}
       <button className="button">Save item</button>
     </ActionForm>
   );

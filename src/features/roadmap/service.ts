@@ -1,7 +1,7 @@
 import 'server-only';
 import { memo } from '@/server/memo';
 import { db } from '@/server/db';
-import type { Prisma } from '@/generated/prisma/client';
+import { Prisma } from '@/generated/prisma/client';
 import { dayBounds, dayKey } from '@/lib/time';
 import { locked, type ScheduleUser } from '@/features/schedule/service';
 import { shiftDay, weekDays } from '@/features/schedule/domain';
@@ -11,9 +11,11 @@ import {
   itemInput,
   itemOps,
   nextStatus,
+  nextItem,
   parseBulkLines,
   roadmapInput,
   roadmapProgress,
+  sectionSummary,
   type ItemOp,
 } from './domain';
 import { z } from 'zod';
@@ -63,6 +65,8 @@ export async function saveRoadmap(user: ScheduleUser, raw: unknown) {
       description: input.description,
       goalId: input.goalId,
       archivedAt: input.archived ? new Date() : null,
+      promptTemplate: input.promptTemplate,
+      scenarios: input.scenarios ?? Prisma.DbNull,
     };
     if (input.id) {
       const existing = await tx.roadmap.findFirst({
@@ -148,6 +152,11 @@ export async function saveItem(user: ScheduleUser, raw: unknown) {
         title: input.title,
         section: input.section,
         kind: input.kind,
+        scope: input.scope,
+        checkpoint: input.checkpoint,
+        priority: input.priority,
+        estimateMinutes: input.estimateMinutes ?? null,
+        references: input.references ?? Prisma.DbNull,
         notes: input.notes,
         url: input.url,
         askedNote: input.askedNote,
@@ -237,7 +246,7 @@ async function loadGoalsOverview(user: ScheduleUser, now = new Date()) {
     }),
     db().roadmap.findMany({
       where: { userId: user.id },
-      include: { items: { select: { status: true, askedInInterview: true } } },
+      include: { items: { select: itemSummary } },
       orderBy: { ordering: 'asc' },
     }),
     db().learningSubject.findMany({
@@ -251,10 +260,20 @@ async function loadGoalsOverview(user: ScheduleUser, now = new Date()) {
     const topics = subjects
       .filter((s) => s.goalId === g.id)
       .flatMap((s) => s.topics);
+    const next = own
+      .map((r) => ({ roadmap: r, item: nextItem(r.items) }))
+      .find((n) => n.item);
     return {
       ...g,
       week: week.get(g.id) ?? { planned: 0, actual: 0 },
       roadmap: roadmapProgress(own.flatMap((r) => r.items)),
+      next: next
+        ? {
+            roadmapId: next.roadmap.id,
+            roadmapTitle: next.roadmap.title,
+            ...next.item!,
+          }
+        : null,
       topics: {
         total: topics.length,
         ready: topics.filter((t) => t.status === 'INTERVIEW_READY').length,
@@ -263,21 +282,32 @@ async function loadGoalsOverview(user: ScheduleUser, now = new Date()) {
   });
 }
 
+/** Enough of an item to count it, find the next one and name it. */
+const itemSummary = {
+  id: true,
+  title: true,
+  section: true,
+  status: true,
+  askedInInterview: true,
+  priority: true,
+  ordering: true,
+  createdAt: true,
+} satisfies Prisma.RoadmapItemSelect;
+
 export async function roadmapList(user: ScheduleUser) {
   const roadmaps = await db().roadmap.findMany({
     where: { userId: user.id },
     include: {
       goal: { select: { id: true, title: true } },
-      items: {
-        select: { status: true, askedInInterview: true, section: true },
-      },
+      items: { select: itemSummary },
     },
     orderBy: { ordering: 'asc' },
   });
   return roadmaps.map((r) => ({
     ...r,
     progress: roadmapProgress(r.items),
-    sections: [...new Set(r.items.map((i) => i.section))],
+    sections: sectionSummary(r.items),
+    next: nextItem(r.items),
   }));
 }
 
@@ -300,7 +330,12 @@ export async function roadmapDetail(user: ScheduleUser, id: string) {
   ))
     if (!sections.has(item.section)) sections.set(item.section, []);
   for (const item of roadmap.items) sections.get(item.section)!.push(item);
-  return { ...roadmap, sections, progress: roadmapProgress(roadmap.items) };
+  return {
+    ...roadmap,
+    sections,
+    progress: roadmapProgress(roadmap.items),
+    next: nextItem(roadmap.items),
+  };
 }
 
 /** Links an item form can offer: the owner's topics, DSA topics and problems. */

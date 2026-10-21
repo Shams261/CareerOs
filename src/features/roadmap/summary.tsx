@@ -41,6 +41,18 @@ export async function TodayGoals({
               ? ` · roadmap ${g.roadmap.done} of ${g.roadmap.total}`
               : ''}
           </p>
+          {g.next && (
+            <p className="muted">
+              Next:{' '}
+              <Link
+                className="link"
+                href={`/roadmap/${g.next.roadmapId}#item-${g.next.id}`}
+              >
+                {g.next.title}
+              </Link>{' '}
+              · {g.next.roadmapTitle}
+            </p>
+          )}
         </div>
       ))}
     </section>

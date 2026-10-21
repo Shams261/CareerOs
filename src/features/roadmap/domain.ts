@@ -25,6 +25,139 @@ export const goalInput = z.object({
 });
 export type GoalInput = z.infer<typeof goalInput>;
 
+/** A prompt scenario: the owner picks one when copying a study prompt. */
+export type Scenario = { id: string; name: string; intro: string };
+/** A curated starting point shown read-only with an item. */
+export type Reference = { label: string; url: string; kind?: string };
+
+export const scenarioSchema = z.object({
+  id: z.string().min(1).max(40),
+  name: z.string().min(1).max(80),
+  intro: z.string().min(1).max(4000),
+});
+export const referenceSchema = z.object({
+  label: z.string().min(1).max(200),
+  url: z.string().min(1).max(2000),
+  kind: z.string().max(80).optional(),
+});
+
+/** Offered when a roadmap has no scenarios of its own. */
+export const DEFAULT_SCENARIOS: Scenario[] = [
+  {
+    id: 'start',
+    name: 'Start or continue',
+    intro:
+      'Teach this topic directly, intuition first, then the mechanism, trade-offs and failure modes. No diagnostic questions or compulsory quiz. Pause for my doubts; when I say continue, move on.',
+  },
+  {
+    id: 'doubt',
+    name: 'Explain my doubt differently',
+    intro:
+      'I am stuck on one part of this topic. Use the doubt below if given, otherwise ask what is unclear. Reteach it from first principles with a new example or dry run. Do not quiz me.',
+  },
+  {
+    id: 'research',
+    name: 'Research deeper',
+    intro:
+      'Go deeper on this topic and its gaps. Prefer official documentation and reliable engineering sources; treat community posts as opinion. Say so when browsing is unavailable; never invent sources.',
+  },
+  {
+    id: 'questions',
+    name: 'Interview questions',
+    intro:
+      'Give the highest-value SDE II interview questions for exactly this scope, with concise model answers, likely follow-ups and common traps, in one organized batch. Do not quiz me interactively.',
+  },
+  {
+    id: 'summary',
+    name: 'Revision summary',
+    intro:
+      'Summarize only what we actually covered: mental model, mechanism, key insights, misconceptions, open questions and a short revision sheet. Mark it studied, not verified.',
+  },
+  {
+    id: 'pause',
+    name: 'Pause and checkpoint',
+    intro:
+      'I am stopping now. Summarize what we covered, my unresolved doubts and the exact next step, then write a compact RESUME CONTEXT block I can paste into a new chat. Do not mark anything complete.',
+  },
+];
+
+/**
+ * The default study prompt. Placeholders: `{{topic}} {{section}} {{roadmap}} {{scope}}
+ * {{checkpoint}} {{priority}} {{estimate}} {{references}} {{notes}} {{scenario}} {{extra}}`.
+ */
+export const DEFAULT_PROMPT_TEMPLATE = `STUDY SESSION — {{roadmap}}
+Section: {{section}}
+Topic: {{topic}}
+Priority: {{priority}}
+Scope to cover: {{scope}}
+Done means: {{checkpoint}}
+
+Reference starting points (verify; do not pretend to have read what you cannot open):
+{{references}}
+
+My notes so far:
+{{notes}}
+
+Teach in simple Hinglish with standard English technical terms, intuition before depth, aimed at an engineer with about four years of experience preparing for SDE II interviews. Do not ask diagnostic questions or force quizzes. Distinguish studied from verified.
+
+WHAT I WANT NOW:
+{{scenario}}
+{{extra}}
+Begin now.`;
+
+/** Scenarios as the roadmap form edits them: `id | Name | intro`, one per line. */
+export function parseScenarioLines(text: string): Scenario[] {
+  const out: Scenario[] = [];
+  for (const raw of text.split(/\r?\n/)) {
+    const line = raw.trim();
+    if (!line) continue;
+    const [id, name, ...rest] = line.split('|').map((p) => p.trim());
+    if (!id || !name || !rest.length)
+      throw new Error(
+        `Scenario line needs "id | Name | instruction": ${line.slice(0, 60)}`,
+      );
+    out.push(
+      scenarioSchema.parse({
+        id: id.toLowerCase().replace(/[^a-z0-9-]/g, '-'),
+        name,
+        intro: rest.join(' | '),
+      }),
+    );
+  }
+  return out;
+}
+export const scenarioLines = (scenarios: Scenario[] | null | undefined) =>
+  (scenarios ?? []).map((s) => `${s.id} | ${s.name} | ${s.intro}`).join('\n');
+
+/** References as the item form edits them: `Label | https://url`, one per line. */
+export function parseReferenceLines(text: string): Reference[] {
+  const out: Reference[] = [];
+  for (const raw of text.split(/\r?\n/)) {
+    const line = raw.trim();
+    if (!line) continue;
+    const [label, url, kind] = line.split('|').map((p) => p.trim());
+    const target = url || label;
+    if (!/^https?:\/\//.test(target))
+      throw new Error(
+        `Reference line needs "Label | https://url": ${line.slice(0, 60)}`,
+      );
+    out.push(
+      referenceSchema.parse({
+        label: url ? label : target,
+        url: target,
+        kind: kind || undefined,
+      }),
+    );
+  }
+  return out;
+}
+export const referenceLines = (refs: Reference[] | null | undefined) =>
+  (refs ?? [])
+    .map((r) => [r.label, r.url, r.kind].filter(Boolean).join(' | '))
+    .join('\n');
+
+export const PRIORITY_LABEL = { 1: 'P0', 2: 'P1', 3: 'P2' } as const;
+
 export const roadmapInput = z.object({
   id: z.string().optional(),
   title: z.string().trim().min(1).max(160),
@@ -34,6 +167,12 @@ export const roadmapInput = z.object({
     .optional()
     .transform((v) => v || null),
   archived: z.boolean().default(false),
+  promptTemplate: text(20000),
+  scenarios: z
+    .string()
+    .max(20000)
+    .optional()
+    .transform((v) => (v?.trim() ? parseScenarioLines(v) : null)),
 });
 
 export const itemKinds = ['CONCEPT', 'QUESTION'] as const;
@@ -52,7 +191,19 @@ export const itemInput = z.object({
   title: z.string().trim().min(1).max(200),
   section: z.string().trim().min(1).max(120),
   kind: z.enum(itemKinds),
-  notes: text(2000),
+  scope: text(8000),
+  checkpoint: text(4000),
+  priority: z.coerce.number().int().min(1).max(3).default(2),
+  estimateMinutes: z.preprocess(
+    (v) => (v === '' || v == null ? undefined : v),
+    z.coerce.number().int().min(1).max(6000).optional(),
+  ),
+  references: z
+    .string()
+    .max(20000)
+    .optional()
+    .transform((v) => (v?.trim() ? parseReferenceLines(v) : null)),
+  notes: text(20000),
   url: z
     .union([z.literal(''), z.url({ protocol: /^https?$/ })])
     .optional()
@@ -126,4 +277,111 @@ export function targetLabel(target: string | null, today: string) {
   if (days === 0) return 'Target is today';
   if (days < 14) return `${days} day${days === 1 ? '' : 's'} left`;
   return `${Math.round(days / 7)} weeks left`;
+}
+
+export type PromptItem = {
+  title: string;
+  section: string;
+  scope?: string | null;
+  checkpoint?: string | null;
+  priority?: number;
+  estimateMinutes?: number | null;
+  references?: Reference[] | null;
+  notes?: string | null;
+  url?: string | null;
+};
+/**
+ * Fills a roadmap's template with one item and the chosen scenario. Pure; unknown
+ * placeholders stay in the text so a typo is visible rather than silently dropped.
+ */
+export function renderPrompt(
+  template: string | null | undefined,
+  roadmap: { title: string },
+  item: PromptItem,
+  scenario: Scenario,
+  extra = '',
+) {
+  const refs = [
+    ...(item.references ?? []).map(
+      (r) => `- ${r.label}: ${r.url}${r.kind ? ` (${r.kind})` : ''}`,
+    ),
+    ...(item.url ? [`- Link: ${item.url}`] : []),
+  ];
+  const values: Record<string, string> = {
+    topic: item.title,
+    section: item.section,
+    roadmap: roadmap.title,
+    scope: item.scope?.trim() || 'Not written down; use the topic title.',
+    checkpoint:
+      item.checkpoint?.trim() || 'I can explain it and apply it without notes.',
+    priority: PRIORITY_LABEL[(item.priority ?? 2) as 1 | 2 | 3],
+    estimate: item.estimateMinutes
+      ? `${item.estimateMinutes} minutes`
+      : 'not set',
+    references: refs.length ? refs.join('\n') : '- none listed',
+    notes: item.notes?.trim() || '- none yet',
+    scenario: scenario.intro,
+    extra: extra.trim()
+      ? `\nADDITIONAL CONTEXT / DOUBT / LINK:\n${extra.trim()}\n`
+      : '',
+  };
+  return (template?.trim() || DEFAULT_PROMPT_TEMPLATE)
+    .replace(/\{\{\s*([a-z]+)\s*\}\}/g, (m, key: string) => values[key] ?? m)
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+}
+
+export type SummaryItem = {
+  id: string;
+  title: string;
+  section: string;
+  status: ItemStatus;
+  priority: number;
+  ordering: number;
+  createdAt: Date;
+};
+/** Sections in the order their first item was added, with done / total counts. */
+export function sectionSummary(items: SummaryItem[]) {
+  const order = new Map<
+    string,
+    { name: string; total: number; done: number }
+  >();
+  for (const item of [...items].sort((a, b) => +a.createdAt - +b.createdAt)) {
+    const s = order.get(item.section) ?? {
+      name: item.section,
+      total: 0,
+      done: 0,
+    };
+    s.total += 1;
+    if (item.status === 'DONE') s.done += 1;
+    order.set(item.section, s);
+  }
+  return [...order.values()];
+}
+/**
+ * "Continue": the first item in progress, else the first not started, walking sections in
+ * their order and items in theirs. Null once everything is done.
+ */
+export function nextItem(items: SummaryItem[]) {
+  const sections = sectionSummary(items).map((s) => s.name);
+  const rank = (i: SummaryItem) => [
+    sections.indexOf(i.section),
+    i.ordering,
+    +i.createdAt,
+  ];
+  const sorted = [...items].sort((a, b) => {
+    const [x, y] = [rank(a), rank(b)];
+    return x[0] - y[0] || x[1] - y[1] || x[2] - y[2];
+  });
+  const pick =
+    sorted.find((i) => i.status === 'IN_PROGRESS') ??
+    sorted.find((i) => i.status === 'NOT_STARTED');
+  return pick
+    ? {
+        id: pick.id,
+        title: pick.title,
+        section: pick.section,
+        status: pick.status,
+      }
+    : null;
 }

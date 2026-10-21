@@ -1,6 +1,7 @@
 import 'server-only';
 import { z } from 'zod';
 import { db } from '@/server/db';
+import { Prisma } from '@/generated/prisma/client';
 import type { ScheduleUser } from '@/features/schedule/service';
 import { execute } from '@/features/execution/service';
 import { addNote } from '@/features/notes/service';
@@ -27,8 +28,15 @@ const kinds = {
     section: z.string().min(1).max(120),
     kind: z.enum(['CONCEPT', 'QUESTION']),
     title: z.string().min(1).max(200),
-    notes: z.string().max(2000).nullable().optional(),
+    notes: z.string().max(20000).nullable().optional(),
     url: z.string().max(2000).nullable().optional(),
+    slug: z.string().max(200).nullable().optional(),
+    scope: z.string().max(8000).nullable().optional(),
+    checkpoint: z.string().max(4000).nullable().optional(),
+    priority: z.number().int().min(1).max(3).optional(),
+    estimateMinutes: z.number().int().nullable().optional(),
+    references: z.unknown().optional(),
+    sourceRef: z.string().max(200).nullable().optional(),
     status: z.enum(['NOT_STARTED', 'IN_PROGRESS', 'DONE']),
     askedInInterview: z.boolean(),
     askedNote: z.string().max(200).nullable().optional(),
@@ -101,6 +109,16 @@ export async function restore(
           title: p.title,
           notes: p.notes ?? null,
           url: p.url ?? null,
+          slug: p.slug ?? null,
+          scope: p.scope ?? null,
+          checkpoint: p.checkpoint ?? null,
+          priority: p.priority ?? 2,
+          estimateMinutes: p.estimateMinutes ?? null,
+          references:
+            p.references == null
+              ? Prisma.DbNull
+              : (p.references as Prisma.InputJsonValue),
+          sourceRef: p.sourceRef ?? null,
           status: p.status,
           completedAt: p.status === 'DONE' ? new Date() : null,
           askedInInterview: p.askedInInterview,
