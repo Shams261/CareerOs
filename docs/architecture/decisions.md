@@ -179,3 +179,19 @@ Attention is derived, not stored: overdue follow-up, result needed, interview be
 **Alternatives rejected:** Heroku on a personal card (recurring cost before value is proven); waiting indefinitely (blocks the usage phase); Neon instead of Supabase (its 100 CU-hour monthly cap suspends the project under a per-minute cron); keeping the instance awake with a separate pinger (the cron already provides the traffic); a `release`-style migration on container start (would run with no backup and on every spin-up).
 
 **Consequences:** No vendor backups: the owner's weekly `pnpm db:backup` is the only copy, verified with `pnpm db:restore:verify`. A fractional CPU makes server renders slower than on a paid dyno; acceptable for one owner and a reason to move once usage justifies spend. If cron-job.org fails, the instance sleeps and the first visit waits about a minute; Settings → System status reveals it. The Supabase session pooler caps clients at the project's pool size, so `DATABASE_POOL_MAX` stays small. Supabase pauses a free project after 7 idle days; the cron prevents this, and a paused project is resumed from the dashboard without data loss.
+
+## ADR-015 — A new routine joins the days already planned; the current week plans itself
+
+**Status:** Accepted (2026-10-21, WI-009).
+
+**Context:** The production acceptance pass and the UX critique both found the same trap: a newcomer adds a one-off block, which creates today's plan, then creates their first routine and finds today still empty. The only remedy was a "Generate plans" control whose vocabulary ("dated plans") meant nothing to the owner. ADR-002 protects edited days from routine edits; it never required a brand-new routine to stay off days that merely exist.
+
+**Decision:**
+
+- **Creating a routine adds its occurrences to already-planned days from today on.** Only slots whose start is still in the future are created; a slot that overlaps an existing block is skipped unless the owner allowed overlap; existing blocks are never edited, replaced or removed. Implemented in `saveRoutine` (`src/features/schedule/editing.ts`) through the same proposal logic that edits use, and covered by a database test.
+- **Editing a routine is unchanged:** days not planned yet by default, planned days only through the previewed "Also days already planned" scope (ADR-002).
+- **The current week plans itself.** Viewing Today or Plan runs `generateThroughSunday`, which fills today through Sunday idempotently. Next week is still created only by **Prepare next week**. The manual generate form and action are removed.
+
+**Alternatives rejected:** keeping the generate control with better copy (the owner would still have to know a step exists); regenerating a day whenever a routine changes (rewrites history, contradicts ADR-002); filling only today (the week grid would show "Not planned yet" for days the owner opens next).
+
+**Consequences:** The first routine appears on Today immediately. A routine created in the afternoon for a morning slot starts tomorrow, which the success message states ("Routine added to N planned days"). Plans for the current week are created on first view rather than on a schedule; the calendar sync job and Prepare next week keep their own generation paths.

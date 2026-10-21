@@ -6,7 +6,7 @@ These describe implemented WI-001/WI-002/WI-003 paths. UFD means user flow diagr
 
 ```mermaid
 flowchart TD
-  A[Open Calendar] --> B[Choose any week]
+  A[Open Plan] --> B[Choose any week]
   B --> C{Change scope}
   C -->|One day| D[Open dated plan]
   D --> E[Add / edit / reschedule block]
@@ -134,7 +134,7 @@ Saves show confirmation or keep input with the error. Forms that record events c
 
 ```mermaid
 flowchart TD
-  Cal[Calendar page] --> Connect[Connect Google Calendar]
+  Cal[Settings: Google Calendar] --> Connect[Connect Google Calendar]
   Connect --> Google[Google consent: CareerOS-created calendars + email]
   Google --> Callback[Callback: verify state/PKCE, store encrypted token]
   Callback --> Dedicated[Create or reuse the CareerOS calendar]
@@ -156,13 +156,13 @@ Results that replace the form (connected, conflict resolved, disconnected) are c
 
 ```mermaid
 flowchart TD
-  Sunday[Sunday: Today prompt / inbox reminder] --> Review[Review page: this week]
-  Review --> Facts[Execution · Progress · Carry forward (live)]
-  Facts --> Reflect[Reflection: save draft or complete]
-  Reflect --> Priorities[Choose up to 5 priorities for next week]
-  Priorities --> Context[Next week: routine preview, interviews, dues]
+  Sunday[Sunday: Today prompt / inbox reminder] --> Review[Weekly review, step 1: This week]
+  Review --> Facts[Planned versus done, one line per day; Details view holds every fact]
+  Facts --> Reflect[Step 2 Reflect: save draft or complete]
+  Reflect --> Priorities[Step 3 Next week: choose up to 5 priorities]
+  Priorities --> Context[Next week: interviews, dues, days planned]
   Context --> Routines{Change routines?}
-  Routines -->|Yes| Calendar[Edit routines on Calendar] --> Context
+  Routines -->|Yes| Calendar[Edit routines on Plan] --> Context
   Routines -->|No| Prepare[Prepare next week: generate 7 days once]
   Prepare --> Sync[Calendar sync publishes after the response]
   Review --> History[Previous weeks: stored text, live facts]
