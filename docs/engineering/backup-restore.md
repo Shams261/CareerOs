@@ -37,6 +37,23 @@ pnpm db:restore:verify <file> --keep   # keep the scratch database for inspectio
 4. Point `DATABASE_URL` at the recovered database, start the app, run the smoke test. Keep the damaged database until you are sure nothing else is needed from it.
 5. Writes made after the backup are lost unless recovered separately; decide explicitly.
 
+## Reset the owner's domain data
+
+For the one-time clean-out of a workspace that holds only acceptance-test data, before real use (WI-012). `scripts/reset-owner-data.sql` deletes, in one transaction, every record the owner authored (plans, blocks, sessions, check-ins, routines, practice problems and attempts, learning subjects and topics, applications and rounds, roadmaps, notes, reviews, reminders, sync conflicts) and the shared DSA topic list. It keeps the `User` row, sign-in sessions, notification preferences, push devices, the Google Calendar connection and watch channel, job runs, maintenance records and the migration history. It refuses to run unless the database holds exactly one `User`.
+
+1. **Back up and verify** (above): `PATH=/opt/homebrew/opt/libpq/bin:$PATH pnpm db:backup`, then `db:restore:verify` on the Docker PostgreSQL 17. Do not continue without `Restore verified.`
+2. **Clear Google first.** In the app, Plan → remove the test routine (preview, confirm) and cancel any remaining test blocks, then Settings → Sync now, so the dedicated Google calendar loses its events through sync. The script deletes blocks without talking to Google.
+3. **Run the script** against the session-pooler URL:
+
+   ```sh
+   psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f scripts/reset-owner-data.sql
+   ```
+
+   It prints a count per table; every domain table must read 0 and the kept tables keep their rows. Any error rolls the whole transaction back.
+
+4. **Check the app**: `/today` opens with the Start here card; Settings → System status is healthy; you are still signed in.
+5. Continue with the roadmap import in [operations](operations.md#roadmap-material-import-wi-012).
+
 ## Migrating an existing personal database
 
 For the owner's existing database (created before WI-008, possibly before WI-005.1). **Nothing here runs automatically, and no automated test or verification touched this database.** Do it in a quiet window; it takes a few minutes.
