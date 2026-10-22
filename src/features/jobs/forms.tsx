@@ -32,6 +32,7 @@ import {
   owners,
   stages,
 } from './domain';
+import { Button } from '@/components/ui/button';
 
 const Options = ({ values }: { values: readonly string[] }) =>
   values.map((v) => (
@@ -100,7 +101,7 @@ export function QuickAddForm({ today }: { today: string }) {
           <option key={s} value={s} />
         ))}
       </datalist>
-      <button className="button">Add application</button>
+      <Button>Add application</Button>
     </ActionForm>
   );
 }
@@ -202,7 +203,7 @@ export function DetailsForm({ app }: { app: JobApplication }) {
           defaultValue={app.jobDescription ?? ''}
         />
       </label>
-      <button className="button secondary">Save details</button>
+      <Button className="secondary">Save details</Button>
     </ActionForm>
   );
 }
@@ -240,7 +241,7 @@ export function StageForm({ app }: { app: JobApplication }) {
           placeholder="Recruiter reached out"
         />
       </label>
-      <button className="button secondary">Change stage</button>
+      <Button className="secondary">Change stage</Button>
     </ActionForm>
   );
 }
@@ -287,7 +288,7 @@ export function FollowUpForm({ app }: { app: JobApplication }) {
     >
       <input type="hidden" name="id" value={app.id} />
       <FollowUpFields app={app} />
-      <button className="button">Save next action</button>
+      <Button>Save next action</Button>
     </ActionForm>
   );
 }
@@ -310,9 +311,9 @@ export function FollowUpDoneForm({ app }: { app: JobApplication }) {
           placeholder="Sent follow-up email"
         />
       </label>
-      <p className="muted">Then set what comes next (leave blank for none).</p>
+      <h4 className="mt-3">What comes next (leave blank for none)</h4>
       <FollowUpFields />
-      <button className="button">Mark done</button>
+      <Button>Mark done</Button>
     </ActionForm>
   );
 }
@@ -435,7 +436,7 @@ export function RoundForm({
           <textarea name="notes" rows={2} maxLength={4000} />
         </label>
       </Disclosure>
-      <button className="button">Schedule interview</button>
+      <Button>Schedule interview</Button>
     </ActionForm>
   );
 }
@@ -479,7 +480,7 @@ export function RoundDetailsForm({ round }: { round: InterviewRound }) {
         Notes
         <textarea name="notes" rows={2} defaultValue={round.notes ?? ''} />
       </label>
-      <button className="button">Save interview</button>
+      <Button>Save interview</Button>
     </ActionForm>
   );
 }
@@ -501,7 +502,7 @@ export function RescheduleForm({ round }: { round: InterviewRound }) {
           placeholder="Interviewer unavailable"
         />
       </label>
-      <button className="button">Reschedule</button>
+      <Button>Reschedule</Button>
     </ActionForm>
   );
 }
@@ -587,9 +588,7 @@ export function ResultForm({
           </label>
         )}
       </div>
-      <button className="button">
-        {completed ? 'Save reflection' : 'Save result'}
-      </button>
+      <Button>{completed ? 'Save reflection' : 'Save result'}</Button>
     </ActionForm>
   );
 }
@@ -638,9 +637,9 @@ export function PrepForm({
           </select>
         </label>
       </div>
-      <button className="button secondary">
+      <Button className="secondary">
         {kind === 'GAP' ? 'Add weak area' : 'Add prep item'}
-      </button>
+      </Button>
     </ActionForm>
   );
 }
@@ -654,10 +653,13 @@ export function PrepToggle({
   title: string;
 }) {
   return (
-    <ActionForm action={prepDoneAction} label={`Toggle ${title}`}>
+    <ActionForm action={prepDoneAction}>
       <input type="hidden" name="id" value={id} />
       <input type="hidden" name="completed" value={String(!completed)} />
-      <button className="button secondary">
+      <button
+        className="button secondary"
+        aria-label={`${completed ? 'Reopen' : 'Mark done'}: ${title}`}
+      >
         {completed ? 'Reopen' : 'Mark done'}
       </button>
     </ActionForm>
@@ -677,7 +679,7 @@ export function NoteForm({ id }: { id: string }) {
         Timeline note
         <textarea name="note" rows={2} required maxLength={4000} />
       </label>
-      <button className="button secondary">Add note</button>
+      <Button className="secondary">Add note</Button>
     </ActionForm>
   );
 }
@@ -730,7 +732,7 @@ export function JobReminderForm({
           defaultValue={interview?.offsetMinutes ?? 60}
         />
       </label>
-      <button className="button secondary">Save</button>
+      <Button className="secondary">Save</Button>
     </ActionForm>
   );
 }
@@ -741,7 +743,7 @@ export function ScheduleInterviewForm({ roundId }: { roundId: string }) {
       label="Add interview to schedule"
     >
       <input type="hidden" name="id" value={roundId} />
-      <button className="button secondary">Add interview to schedule</button>
+      <Button className="secondary">Add interview to schedule</Button>
     </ActionForm>
   );
 }

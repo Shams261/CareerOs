@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ArrowRight } from 'lucide-react';
 import { formatInTimeZone } from 'date-fns-tz';
 import { db, owner } from '@/server/db';
 import { Disclosure } from '@/components/disclosure';
@@ -28,6 +28,7 @@ import {
   ReviewForm,
   WeeklyReminderForm,
 } from '@/features/review/forms';
+export const metadata = { title: 'Weekly review' };
 
 const range = (monday: string) =>
   `${formatInTimeZone(new Date(`${monday}T12:00:00Z`), 'UTC', 'MMM d')}–${formatInTimeZone(new Date(`${shiftDay(monday, 6)}T12:00:00Z`), 'UTC', 'MMM d, yyyy')}`;
@@ -195,8 +196,7 @@ export default async function Review({
             ? 'Upcoming week'
             : openLastWeek
               ? 'Last week, not yet reviewed'
-              : 'Past week'}{' '}
-        · {zone}
+              : 'Past week'}
       </p>
       <div className="page-head">
         <h1 className="editorial-heading">Week of {range(monday)}</h1>
@@ -315,7 +315,7 @@ export default async function Review({
             </div>
             <div className="step-foot">
               <Link className="button" href={href('reflect')}>
-                Next: Reflect →
+                Next: Reflect <ArrowRight size={14} aria-hidden="true" />
               </Link>
             </div>
           </section>
@@ -356,7 +356,8 @@ export default async function Review({
                   coming week.
                 </span>
                 <Link className="link" href={href('plan', thisWeek)}>
-                  Open this week&apos;s review →
+                  Open this week&apos;s review{' '}
+                  <ArrowRight size={14} aria-hidden="true" />
                 </Link>
               </p>
             )}
@@ -533,8 +534,8 @@ export default async function Review({
                 ['Problems', w.dsa.uniqueProblems],
                 ['New', w.dsa.newProblems],
                 ['Revisions', w.dsa.revisionAttempts],
-                ['Red → Yellow', w.dsa.redToYellow],
-                ['Yellow → Green', w.dsa.yellowToGreen],
+                ['Red to Yellow', w.dsa.redToYellow],
+                ['Yellow to Green', w.dsa.yellowToGreen],
                 ['Revisions overdue', w.dsa.overdue],
               ]}
             />

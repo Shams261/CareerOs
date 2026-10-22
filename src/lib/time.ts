@@ -25,6 +25,12 @@ export function dayBounds(day: string, zone: string) {
     ),
   };
 }
+/** A DATE label ("2026-10-28") shown as "Oct 28"; never an instant, so no zone is involved. */
+export const shortDate = (day: string) =>
+  formatInTimeZone(new Date(`${day}T12:00:00Z`), 'UTC', 'MMM d');
+/** A DATE label shown as "Thu, Oct 22". */
+export const weekdayDate = (day: string) =>
+  formatInTimeZone(new Date(`${day}T12:00:00Z`), 'UTC', 'EEE, MMM d');
 export const clock = (date: Date, zone: string) =>
   formatInTimeZone(date, zone, 'h:mm a');
 export function minutes(start: Date, end: Date) {

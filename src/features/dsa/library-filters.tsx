@@ -2,10 +2,12 @@
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { STATUS_FILTERS } from './domain';
+import { usePendingRegion } from '@/components/pending-region';
 
 /** Search and one status filter; both apply as you type or choose, through the URL. */
 export function LibraryFilters({ q, status }: { q: string; status: string }) {
   const router = useRouter();
+  const { start } = usePendingRegion();
   const params = useSearchParams();
   const [text, setText] = useState(q);
   const [seen, setSeen] = useState(q);
@@ -21,8 +23,7 @@ export function LibraryFilters({ q, status }: { q: string; status: string }) {
     else p.delete('q');
     if (ns) p.set('status', ns);
     else p.delete('status');
-    p.delete('page');
-    router.replace(`?${p.toString()}#library`, { scroll: false });
+    start(() => router.replace(`?${p.toString()}#library`, { scroll: false }));
   };
   useEffect(() => {
     if (text === q) return;

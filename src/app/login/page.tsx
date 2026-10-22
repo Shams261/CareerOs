@@ -27,6 +27,7 @@ export default async function Login({
         <BrandLogo stacked />
       </div>
       <h1 id="login-heading" className="login-heading">
+        <span className="sr-only">Sign in to Silsila. </span>
         Plan once.
         <br />
         Show up daily.
@@ -48,6 +49,10 @@ export default async function Login({
         <input type="hidden" name="next" value={safeNext(q.next)} />
         <Button>Continue with Google</Button>
       </form>
+      <p className="login-note">
+        Google may show an &ldquo;unverified app&rdquo; notice while Silsila is
+        in testing; continue with the owner account.
+      </p>
       <p className="login-continuity">Keep the chain going.</p>
     </section>
   );

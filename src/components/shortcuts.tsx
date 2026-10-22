@@ -1,6 +1,7 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useShortcutsEnabled } from './shortcuts-toggle';
 
 export type Shortcut = {
   key: string;
@@ -26,6 +27,11 @@ export function PageShortcuts({
 }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
+  const enabled = useShortcutsEnabled();
+  const dialog = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (open) dialog.current?.focus();
+  }, [open]);
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
       if (event.metaKey || event.ctrlKey || event.altKey) return;
@@ -45,6 +51,8 @@ export function PageShortcuts({
         event.preventDefault();
         return;
       }
+      // Single-key shortcuts can be switched off in Settings; ? and Escape always work.
+      if (!enabled) return;
       if (event.key === 'ArrowLeft' && prev) {
         router.push(prev);
         event.preventDefault();
@@ -69,7 +77,7 @@ export function PageShortcuts({
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [router, prev, next, shortcuts, open]);
+  }, [router, prev, next, shortcuts, open, enabled]);
   if (!open) return null;
   const rows: [string, string][] = [
     ...shortcuts.map((s) => [s.key.toUpperCase(), s.label] as [string, string]),
@@ -84,10 +92,18 @@ export function PageShortcuts({
       <div
         className="shortcuts"
         role="dialog"
+        aria-modal="true"
         aria-label="Keyboard shortcuts"
+        tabIndex={-1}
+        ref={dialog}
         onClick={(e) => e.stopPropagation()}
       >
         <p className="eyebrow">Keyboard</p>
+        {!enabled && (
+          <p className="muted">
+            Single-key shortcuts are off on this device (Settings → Appearance).
+          </p>
+        )}
         <dl>
           {rows.map(([k, label]) => (
             <div key={k}>
@@ -98,6 +114,13 @@ export function PageShortcuts({
             </div>
           ))}
         </dl>
+        <button
+          type="button"
+          className="button secondary small mt-3"
+          onClick={() => setOpen(false)}
+        >
+          Close
+        </button>
       </div>
     </div>
   );

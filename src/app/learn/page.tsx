@@ -3,21 +3,17 @@ import { BrandMark } from '@/components/brand';
 import { owner } from '@/server/db';
 import { dayKey } from '@/lib/time';
 import { learningSnapshot } from '@/features/learning/service';
-import {
-  dueState,
-  learningSuggestions,
-  reviewQueue,
-  statusLabel,
-} from '@/features/learning/domain';
+import { dueState, reviewQueue, statusLabel } from '@/features/learning/domain';
 import { SubjectForm } from '@/features/learning/forms';
 import { TopicList } from '@/features/learning/components';
 import { Disclosure } from '@/components/disclosure';
+import { ArrowRight } from 'lucide-react';
+export const metadata = { title: 'Learn' };
 export default async function Learn() {
   const user = await owner(),
     now = new Date(),
     day = dayKey(now, user.timezone),
     data = await learningSnapshot(user, now),
-    suggestions = learningSuggestions(data.topics, data.currentSubjectId, day),
     queue = reviewQueue(data.topics, day),
     current = data.subjects.find((s) => s.id === data.currentSubjectId),
     active = data.subjects.filter((s) => s.status === 'ACTIVE'),
@@ -138,16 +134,13 @@ export default async function Learn() {
                       className="link"
                       href={`/learn/subjects/${current.id}`}
                     >
-                      Add a topic →
+                      Add a topic <ArrowRight size={14} aria-hidden="true" />
                     </Link>
                   </>
                 ) : (
                   'Mark a subject as the current focus to see topics here.'
                 )}
               </p>
-            )}
-            {suggestions.queue.length > 0 && (
-              <p className="muted">Start with due reviews, then a new topic.</p>
             )}
           </section>
           <section className="card flat" aria-labelledby="subjects-heading">

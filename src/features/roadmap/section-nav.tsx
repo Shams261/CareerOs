@@ -3,6 +3,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { ProgressBar } from '@/components/progress-bar';
+import { usePendingRegion } from '@/components/pending-region';
 
 export type SectionSummary = {
   name: string;
@@ -25,6 +26,7 @@ export function SectionNav({
   selected: string;
 }) {
   const router = useRouter();
+  const { start } = usePendingRegion();
   const href = (name: string) =>
     `/roadmap/${roadmapId}?section=${encodeURIComponent(name)}`;
   return (
@@ -33,7 +35,10 @@ export function SectionNav({
         <span className="sr-only">Section</span>
         <select
           value={selected}
-          onChange={(e) => router.push(href(e.target.value))}
+          onChange={(e) => {
+            const to = href(e.target.value);
+            start(() => router.push(to));
+          }}
         >
           {sections.map((s) => (
             <option key={s.name} value={s.name}>
@@ -48,6 +53,11 @@ export function SectionNav({
             <Link
               href={href(s.name)}
               prefetch={false}
+              onClick={(e) => {
+                e.preventDefault();
+                const to = href(s.name);
+                start(() => router.push(to));
+              }}
               className={s.name === selected ? 'is-on' : ''}
               aria-current={s.name === selected ? 'true' : undefined}
             >
@@ -90,6 +100,7 @@ export function SectionNav({
 /** Search and status filters that apply as you type or choose; state lives in the URL. */
 export function ItemFilters({ q, show }: { q: string; show: string }) {
   const router = useRouter();
+  const { start } = usePendingRegion();
   const params = useSearchParams();
   const [text, setText] = useState(q);
   const [seen, setSeen] = useState(q);
@@ -105,7 +116,7 @@ export function ItemFilters({ q, show }: { q: string; show: string }) {
     else p.delete('q');
     if (ns && ns !== 'all') p.set('show', ns);
     else p.delete('show');
-    router.replace(`?${p.toString()}`, { scroll: false });
+    start(() => router.replace(`?${p.toString()}`, { scroll: false }));
   };
   useEffect(() => {
     if (text === q) return;

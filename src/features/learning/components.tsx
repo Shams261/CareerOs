@@ -5,6 +5,8 @@ import {
   statusLabel,
   type ReviewTopic,
 } from './domain';
+import { shortDate } from '@/lib/time';
+import { CornerDownRight } from 'lucide-react';
 export function TopicList({
   topics,
   day,
@@ -22,7 +24,9 @@ export function TopicList({
         <li className="dsa-item" key={t.id}>
           <div>
             <Link className="link" href={`/learn/topics/${t.id}`}>
-              {t.parentId ? '↳ ' : ''}
+              {t.parentId ? (
+                <CornerDownRight size={12} aria-hidden="true" />
+              ) : null}{' '}
               {t.title}
             </Link>
             <p className="muted">
@@ -31,7 +35,7 @@ export function TopicList({
           </div>
           <span className="muted">
             {t.nextReviewDate
-              ? `${calendarDate(t.nextReviewDate)} · ${dueState(t, day)}`
+              ? `${shortDate(calendarDate(t.nextReviewDate))} · ${dueState(t, day)}`
               : 'Not scheduled'}
           </span>
         </li>

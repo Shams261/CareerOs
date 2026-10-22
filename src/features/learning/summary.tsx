@@ -3,6 +3,7 @@ import type { ScheduleUser } from '@/features/schedule/service';
 import { dayKey } from '@/lib/time';
 import { learningSnapshot } from './service';
 import { isTechnical, learningSuggestions } from './domain';
+import { ArrowRight } from 'lucide-react';
 export async function TodayLearning({
   user,
   now,
@@ -62,7 +63,7 @@ export async function TodayLearning({
         )}
       </ol>
       <Link className="link" href="/learn#review-queue">
-        Open Learn →
+        Open Learn <ArrowRight size={14} aria-hidden="true" />
       </Link>
     </section>
   );

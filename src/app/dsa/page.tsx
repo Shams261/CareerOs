@@ -12,6 +12,7 @@ import {
 import { TopicForm, ProblemForm } from '@/features/dsa/forms';
 import { LibraryFilters } from '@/features/dsa/library-filters';
 import { PatternGroups, type Group } from '@/features/dsa/pattern-groups';
+import { PendingRegion } from '@/components/pending-region';
 import { ActionForm } from '@/components/action-form';
 import { makeCurrentAction } from '@/features/dsa/actions';
 import { Disclosure } from '@/components/disclosure';
@@ -19,6 +20,7 @@ import { dayKey, localInstant } from '@/lib/time';
 import { resourceUrl } from '@/lib/validation';
 import { shiftDay } from '@/features/schedule/domain';
 import { formatInTimeZone } from 'date-fns-tz';
+export const metadata = { title: 'Practice' };
 
 const tone = { RED: 'danger', YELLOW: 'warning', GREEN: 'success' } as const;
 const levelRank = { EASY: 0, MEDIUM: 1, HARD: 2 } as const;
@@ -238,7 +240,8 @@ export default async function Dsa({
               </ol>
             </section>
           )}
-          <section
+          <PendingRegion
+            as="section"
             className="card flat"
             id="library"
             aria-labelledby="library-heading"
@@ -269,7 +272,7 @@ export default async function Dsa({
             {!matched.length && problems.length > 0 && (
               <p className="muted">No matching problems.</p>
             )}
-          </section>
+          </PendingRegion>
           <section
             className="card flat"
             id="topics"

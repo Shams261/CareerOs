@@ -12,7 +12,7 @@ export function Button({
     <button
       className={cn('button', className)}
       disabled={disabled || pending}
-      aria-busy={pending}
+      aria-busy={pending || undefined}
       {...props}
     />
   );

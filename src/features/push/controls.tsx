@@ -129,7 +129,7 @@ export function PushControls({ publicKey }: { publicKey: string }) {
     unsupported:
       'Not supported in this browser. Try Chrome, Edge, Firefox, or Safari 16.4 or later.',
     install:
-      'On iPhone/iPad, add Silsila to the Home Screen (Share → Add to Home Screen), open it from there, then enable notifications.',
+      'On iPhone/iPad, add Silsila to the Home Screen (Share, then Add to Home Screen), open it from there, then enable notifications.',
     denied:
       'Blocked for this site. Allow notifications in the browser or system settings, then reload.',
     off: 'Not enabled on this device.',

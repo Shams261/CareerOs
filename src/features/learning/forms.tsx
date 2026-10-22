@@ -20,6 +20,7 @@ import {
   statusLabel,
   calendarDate,
 } from './domain';
+import { Button } from '@/components/ui/button';
 /** `compact` is the first-run form: a name, saved as the active current focus. */
 export function SubjectForm({
   subject,
@@ -54,7 +55,7 @@ export function SubjectForm({
             placeholder="System design"
           />
         </label>
-        <button className="button">Add subject</button>
+        <Button>Add subject</Button>
       </ActionForm>
     );
   return (
@@ -123,9 +124,7 @@ export function SubjectForm({
         />
         Current focus (active subjects only)
       </label>
-      <button className="button">
-        {subject ? 'Save subject' : 'Add subject'}
-      </button>
+      <Button>{subject ? 'Save subject' : 'Add subject'}</Button>
     </ActionForm>
   );
 }
@@ -206,7 +205,7 @@ export function LearningTopicForm({
           defaultValue={topic?.notes ?? ''}
         />
       </label>
-      <button className="button">{topic ? 'Save topic' : 'Add topic'}</button>
+      <Button>{topic ? 'Save topic' : 'Add topic'}</Button>
     </ActionForm>
   );
 }
@@ -261,7 +260,7 @@ export function ActivityForm({ topicId }: { topicId: string }) {
         What happened or felt difficult?
         <textarea name="notes" maxLength={4000} />
       </label>
-      <button className="button">Save activity</button>
+      <Button>Save activity</Button>
     </ActionForm>
   );
 }
@@ -284,7 +283,7 @@ export function ReviewForm({ topic }: { topic: LearningTopic }) {
           }
         />
       </label>
-      <button className="button">Save review date</button>
+      <Button>Save review date</Button>
     </ActionForm>
   );
 }
@@ -315,7 +314,9 @@ export function LearningResourceForm({ topicId }: { topicId: string }) {
             'REPOSITORY',
             'OTHER',
           ].map((s) => (
-            <option key={s}>{s}</option>
+            <option key={s} value={s}>
+              {s[0] + s.slice(1).toLowerCase()}
+            </option>
           ))}
         </select>
       </label>
@@ -323,7 +324,7 @@ export function LearningResourceForm({ topicId }: { topicId: string }) {
         Resource note
         <textarea name="notes" maxLength={2000} />
       </label>
-      <button className="button">Save resource</button>
+      <Button>Save resource</Button>
     </ActionForm>
   );
 }
@@ -355,7 +356,7 @@ export function LearningReminderForm({
           defaultValue={pref?.preferredTime ?? '18:00'}
         />
       </label>
-      <button className="button secondary">Save</button>
+      <Button className="secondary">Save</Button>
     </ActionForm>
   );
 }

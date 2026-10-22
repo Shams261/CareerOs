@@ -13,9 +13,12 @@ import { PushControls } from '@/features/push/controls';
 import { GoogleCalendarPanel } from '@/features/calendar/panel';
 import { LearningReminderForm } from '@/features/learning/forms';
 import { JobReminderForm } from '@/features/jobs/forms';
+import { ShortcutsToggle } from '@/components/shortcuts-toggle';
 import { signOutAction } from '@/features/auth/actions';
 import { currentWeek } from '@/features/review/domain';
 import { shiftDay } from '@/features/schedule/domain';
+import { Check, Circle } from 'lucide-react';
+export const metadata = { title: 'Settings' };
 
 const ago = (d: Date | null | undefined, now: Date) =>
   d ? formatDistance(d, now, { addSuffix: true }) : 'never';
@@ -85,7 +88,7 @@ export default async function Settings({
   const remaining = steps.filter(([, done]) => !done);
   return (
     <>
-      <p className="eyebrow">Workspace · {user.timezone}</p>
+      <p className="eyebrow">Workspace</p>
       <h1>Settings</h1>
       {remaining.length > 0 && (
         <section className="card mt-7" aria-labelledby="start-heading">
@@ -93,7 +96,11 @@ export default async function Settings({
           <ol className="plain-list checklist">
             {steps.map(([label, done, href]) => (
               <li key={label}>
-                <span aria-hidden="true">{done ? '✓' : '○'}</span>{' '}
+                {done ? (
+                  <Check size={14} aria-hidden="true" />
+                ) : (
+                  <Circle size={14} aria-hidden="true" />
+                )}{' '}
                 <span className="sr-only">{done ? 'Done:' : 'To do:'}</span>{' '}
                 <Link className="link" href={href}>
                   {label}
@@ -167,6 +174,7 @@ export default async function Settings({
           </select>
           <Button className="secondary mt-3">Save</Button>
         </form>
+        <ShortcutsToggle />
       </section>
 
       <section className="card" aria-labelledby="account-heading">

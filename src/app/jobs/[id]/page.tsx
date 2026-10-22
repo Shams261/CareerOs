@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { formatInTimeZone } from 'date-fns-tz';
 import { db, owner } from '@/server/db';
-import { dayKey } from '@/lib/time';
+import { dayKey, shortDate, weekdayDate } from '@/lib/time';
 import { ResourceLink } from '@/components/resource-link';
 import { Disclosure, DisclosureTabs } from '@/components/disclosure';
 import { FeedbackOutlet } from '@/components/feedback-outlet';
@@ -33,6 +33,8 @@ import {
   ZoneOptions,
   type LinkOption,
 } from '@/features/jobs/forms';
+import { ArrowLeft, Check, Circle, AlertTriangle } from 'lucide-react';
+export const metadata = { title: 'Jobs' };
 
 export default async function Application({
   params,
@@ -84,11 +86,11 @@ export default async function Application({
       case 'CREATED':
         return `Added as ${label(a.toStage ?? 'SAVED')}`;
       case 'STAGE_CHANGED':
-        return `${label(a.fromStage ?? '')} → ${label(a.toStage ?? '')}`;
+        return `${label(a.fromStage ?? '')} to ${label(a.toStage ?? '')}`;
       case 'INTERVIEW_SCHEDULED':
         return `Interview scheduled: ${a.note ?? ''}${a.newStart ? ` for ${at(a.newStart)}` : ''}`;
       case 'INTERVIEW_RESCHEDULED':
-        return `Interview rescheduled: ${a.previousStart ? at(a.previousStart) : '?'} → ${a.newStart ? at(a.newStart) : '?'}`;
+        return `Interview rescheduled: ${a.previousStart ? at(a.previousStart) : '?'} to ${a.newStart ? at(a.newStart) : '?'}`;
       case 'INTERVIEW_RESULT':
         return `Interview result — ${a.note ?? ''}`;
       case 'FOLLOW_UP_SET':
@@ -104,7 +106,7 @@ export default async function Application({
     <>
       <ZoneOptions />
       <Link className="link" href="/jobs">
-        ← Job search
+        <ArrowLeft size={14} aria-hidden="true" /> Job search
       </Link>
       <p className="eyebrow mt-4">
         {app.company}
@@ -127,7 +129,7 @@ export default async function Application({
               : follow.state === 'today'
                 ? ' · due today'
                 : follow.state === 'upcoming'
-                  ? ` · due ${follow.date}`
+                  ? ` · due ${shortDate(follow.date)}`
                   : ''}
           </span>
         )}
@@ -137,7 +139,8 @@ export default async function Application({
           </span>
         )}
         <span>
-          Applied {app.appliedAt ? calendarDate(app.appliedAt) : 'not yet'}
+          Applied{' '}
+          {app.appliedAt ? shortDate(calendarDate(app.appliedAt)) : 'not yet'}
           {app.source ? ` via ${app.source}` : ''}
         </span>
         {app.jobUrl && (
@@ -155,11 +158,11 @@ export default async function Application({
                 </p>
                 <p className="muted">
                   {follow.state === 'overdue'
-                    ? `Overdue by ${follow.days} day${follow.days === 1 ? '' : 's'} (due ${follow.date})`
+                    ? `Overdue by ${follow.days} day${follow.days === 1 ? '' : 's'} (due ${shortDate(follow.date)})`
                     : follow.state === 'today'
                       ? 'Due today'
                       : follow.state === 'upcoming'
-                        ? `Due ${follow.date}`
+                        ? `Due ${shortDate(follow.date)}`
                         : 'No due date'}{' '}
                   · {ownerLabel(app.actionOwner)}
                 </p>
@@ -221,7 +224,9 @@ export default async function Application({
                         className="link"
                         href={`/today?date=${dayKey(r.scheduleBlock.plannedStart, zone)}`}
                       >
-                        {dayKey(r.scheduleBlock.plannedStart, zone)}
+                        {weekdayDate(
+                          dayKey(r.scheduleBlock.plannedStart, zone),
+                        )}
                       </Link>
                       {r.scheduleBlock.status === 'CANCELLED'
                         ? ' (cancelled)'
@@ -266,7 +271,12 @@ export default async function Application({
                       {prep.map((p) => (
                         <li className="prep-item" key={p.id}>
                           <span>
-                            {p.completed ? '✓ Done: ' : '○ To do: '}
+                            {p.completed ? (
+                              <Check size={14} aria-hidden="true" />
+                            ) : (
+                              <Circle size={14} aria-hidden="true" />
+                            )}{' '}
+                            {p.completed ? 'Done: ' : 'To do: '}
                             {p.title}
                             <PrepLink item={p} />
                           </span>
@@ -288,7 +298,12 @@ export default async function Application({
                         {gaps.map((p) => (
                           <li className="prep-item" key={p.id}>
                             <span>
-                              {p.completed ? '✓ Addressed: ' : '△ Open: '}
+                              {p.completed ? (
+                                <Check size={14} aria-hidden="true" />
+                              ) : (
+                                <AlertTriangle size={14} aria-hidden="true" />
+                              )}{' '}
+                              {p.completed ? 'Addressed: ' : 'Open: '}
                               {p.title}
                               <PrepLink item={p} />
                             </span>
@@ -370,7 +385,8 @@ export default async function Application({
             <ol className="plain-list">
               {app.activities.map((a) => (
                 <li className="dsa-item" key={a.id}>
-                  <strong>{dayKey(a.occurredAt, zone)}</strong> — {describe(a)}
+                  <strong>{shortDate(dayKey(a.occurredAt, zone))}</strong> —{' '}
+                  {describe(a)}
                   {a.note &&
                     !['INTERVIEW_RESULT', 'INTERVIEW_SCHEDULED'].includes(
                       a.type,

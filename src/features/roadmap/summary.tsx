@@ -4,6 +4,7 @@ import { dayKey } from '@/lib/time';
 import { formatInTimeZone } from 'date-fns-tz';
 import { chainDays, goalsOverview, revisionDue } from './service';
 import { targetLabel } from './domain';
+import { ArrowRight } from 'lucide-react';
 
 const hours = (minutes: number) =>
   `${Math.floor(minutes / 60)}h ${Math.round(minutes % 60)}m`;
@@ -78,23 +79,26 @@ export async function Chain({ user, now }: { user: ScheduleUser; now: Date }) {
       className="chain"
       aria-label={`The chain: ${active} of the last ${days.length} days with recorded work or a review`}
     >
-      {days.map((d) => (
-        <li
-          key={d.day}
-          className={`chain-ring${d.worked ? ' is-worked' : ''}${d.reviewed ? ' is-reviewed' : ''}${d.today ? ' is-today' : ''}`}
-          title={`${formatInTimeZone(new Date(`${d.day}T12:00:00Z`), 'UTC', 'EEE MMM d')}${
-            d.worked && d.reviewed
-              ? ' · worked and reviewed'
-              : d.worked
-                ? ' · worked'
-                : d.reviewed
-                  ? ' · reviewed'
-                  : ''
-          }`}
-        >
-          <Link href={`/today?date=${d.day}`} aria-label={d.day} />
-        </li>
-      ))}
+      {days.map((d) => {
+        const text = `${formatInTimeZone(new Date(`${d.day}T12:00:00Z`), 'UTC', 'EEE MMM d')}${
+          d.worked && d.reviewed
+            ? ' · worked and reviewed'
+            : d.worked
+              ? ' · worked'
+              : d.reviewed
+                ? ' · reviewed'
+                : ' · nothing recorded'
+        }`;
+        return (
+          <li
+            key={d.day}
+            className={`chain-ring${d.worked ? ' is-worked' : ''}${d.reviewed ? ' is-reviewed' : ''}${d.today ? ' is-today' : ''}`}
+            title={text}
+          >
+            <Link href={`/today?date=${d.day}`} aria-label={text} />
+          </li>
+        );
+      })}
     </ol>
   );
 }
@@ -131,7 +135,7 @@ export async function TodayRevision({
       </ol>
       {due.length > 5 && (
         <Link className="link" href="/roadmap">
-          All roadmaps →
+          All roadmaps <ArrowRight size={14} aria-hidden="true" />
         </Link>
       )}
     </section>

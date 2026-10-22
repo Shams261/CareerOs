@@ -7,6 +7,7 @@ import {
   CircleCheck,
   CircleDot,
   ExternalLink,
+  ArrowRight,
 } from 'lucide-react';
 import { ActionForm } from '@/components/action-form';
 import { FeedbackOutlet } from '@/components/feedback-outlet';
@@ -15,6 +16,7 @@ import { askedNoteAction, itemOpAction, noteAction } from './actions';
 import { ItemForm } from './item-form';
 import { StudyPrompt } from './study-prompt';
 import type { Reference, Scenario } from './domain';
+import { Button } from '@/components/ui/button';
 
 export type RowLinks = {
   learningTopic: { id: string; title: string; subject: string } | null;
@@ -254,11 +256,7 @@ export function ItemList({
                 {meta.length > 0 && <span>{meta.join(' · ')}</span>}
               </span>
               {!isOpen && (
-                <ActionForm
-                  action={itemOpAction}
-                  label={`Quick action for ${item.title}`}
-                  className="row-quick"
-                >
+                <ActionForm action={itemOpAction} className="row-quick">
                   <input type="hidden" name="id" value={item.id} />
                   {item.status === 'DONE' &&
                   (revision === 'due' || revision === 'overdue') ? (
@@ -430,9 +428,7 @@ export function ItemList({
                         }}
                       />
                     </label>
-                    <button className="button secondary small">
-                      Save note
-                    </button>
+                    <Button className="secondary small">Save note</Button>
                   </ActionForm>
                   <ActionForm action={itemOpAction} broadcast="roadmap-items">
                     <input type="hidden" name="id" value={item.id} />
@@ -448,9 +444,9 @@ export function ItemList({
                           </button>
                         ) : null
                       ) : (
-                        <button className="button small" name="op" value="done">
+                        <Button className="small" name="op" value="done">
                           <Check size={14} aria-hidden="true" /> Done
-                        </button>
+                        </Button>
                       )}
                       {item.status === 'NOT_STARTED' && (
                         <button
@@ -476,9 +472,13 @@ export function ItemList({
                         value={item.askedInInterview ? 'unasked' : 'asked'}
                         aria-pressed={item.askedInInterview}
                       >
-                        {item.askedInInterview
-                          ? 'Asked ✓'
-                          : 'Asked in interview'}
+                        {item.askedInInterview ? (
+                          <>
+                            <Check size={14} aria-hidden="true" /> Asked
+                          </>
+                        ) : (
+                          'Asked in interview'
+                        )}
                       </button>
                       <span className="item-actions-spacer" />
                       <button
@@ -532,7 +532,8 @@ export function ItemList({
                         className="link-button"
                         onClick={() => toggle(next.item.id)}
                       >
-                        {next.item.title} →
+                        {next.item.title}{' '}
+                        <ArrowRight size={14} aria-hidden="true" />
                       </button>
                     </p>
                   )}

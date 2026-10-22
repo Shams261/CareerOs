@@ -12,6 +12,7 @@ import type {
   DailyCheckIn,
 } from '@/generated/prisma/client';
 import { formatInTimeZone } from 'date-fns-tz';
+import { Button } from '@/components/ui/button';
 export type GoalOption = { id: string; title: string };
 const WEEKDAY = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 function CommonFields({
@@ -196,9 +197,9 @@ export function BlockForm({
         <input type="checkbox" name="allowOverlap" /> Allow overlap with another
         block
       </label>
-      <button className="button mt-3">
+      <Button className="mt-3">
         {block ? 'Save for this day' : 'Add block'}
-      </button>
+      </Button>
     </ActionForm>
   );
 }
@@ -295,13 +296,11 @@ export function RoutineForm({
         </label>
       )}
       <div className="actions mt-3">
-        <button className="button">
-          {routine ? 'Save routine' : 'Add routine'}
-        </button>
+        <Button>{routine ? 'Save routine' : 'Add routine'}</Button>
         {routine && (
-          <button className="button destructive" name="remove" value="on">
+          <Button className="destructive" name="remove" value="on">
             Remove routine (preview first)
-          </button>
+          </Button>
         )}
       </div>
     </ActionForm>
@@ -324,7 +323,7 @@ export function ExecutionControls({
 }) {
   const running = block.status === 'IN_PROGRESS';
   return (
-    <ActionForm action={executionAction} label={`Actions for ${block.title}`}>
+    <ActionForm action={executionAction}>
       <input type="hidden" name="id" value={block.id} />
       <div className="actions">
         {['PLANNED', 'IN_PROGRESS'].includes(block.status) ? (
@@ -337,16 +336,17 @@ export function ExecutionControls({
                 data-shortcut={current && !running ? 'start' : undefined}
               >
                 {running ? 'Stop session' : 'Start'}
+                <span className="sr-only">: {block.title}</span>
               </button>
             )}
-            <button className="button secondary" name="action" value="complete">
-              Complete
-            </button>
+            <Button className="secondary" name="action" value="complete">
+              Complete<span className="sr-only">: {block.title}</span>
+            </Button>
             {!running && (
               <>
-                <button className="button secondary" name="action" value="skip">
+                <Button className="secondary" name="action" value="skip">
                   Skip
-                </button>
+                </Button>
                 <button
                   className="button secondary"
                   name="action"
@@ -365,9 +365,9 @@ export function ExecutionControls({
             )}
           </>
         ) : (
-          <button className="button secondary" name="action" value="reset">
+          <Button className="secondary" name="action" value="reset">
             Reset to planned
-          </button>
+          </Button>
         )}
       </div>
     </ActionForm>
@@ -417,7 +417,7 @@ export function ManualSessionForm({
         Notes
         <textarea name="notes" maxLength={1000} />
       </label>
-      <button className="button mt-3">Save time</button>
+      <Button className="mt-3">Save time</Button>
     </ActionForm>
   );
 }
@@ -466,7 +466,7 @@ export function ReviewForm({
           ))}
         </select>
       </label>
-      <button className="button secondary">Save daily review</button>
+      <Button className="secondary">Save daily review</Button>
     </ActionForm>
   );
 }

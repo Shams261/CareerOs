@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import { ActionForm } from '@/components/action-form';
 import { attemptAction } from './actions';
+import { Button } from '@/components/ui/button';
 
 const inferred = { YES: 'GREEN', PARTIAL: 'YELLOW', NO: 'RED' } as const;
 type How = keyof typeof inferred;
@@ -113,7 +114,7 @@ export function AttemptForm({
         Note <span className="muted">(optional)</span>
         <textarea name="notes" rows={2} maxLength={2000} />
       </label>
-      <button className="button">Save attempt</button>
+      <Button>Save attempt</Button>
     </ActionForm>
   );
 }

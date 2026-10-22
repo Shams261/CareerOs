@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { randomUUID } from 'node:crypto';
 import { formatInTimeZone } from 'date-fns-tz';
-import { ExternalLink } from 'lucide-react';
+import { ExternalLink, ArrowLeft } from 'lucide-react';
 import { db, owner } from '@/server/db';
 import { Disclosure } from '@/components/disclosure';
 import { InterviewMentions } from '@/features/jobs/summary';
@@ -10,6 +10,8 @@ import { ProblemForm, RevisionForm } from '@/features/dsa/forms';
 import { AttemptForm } from '@/features/dsa/attempt-form';
 import { isDsa, revisionDay, solvedText } from '@/features/dsa/domain';
 import { resourceUrl } from '@/lib/validation';
+import { shortDate } from '@/lib/time';
+export const metadata = { title: 'Practice' };
 
 const tone = { RED: 'danger', YELLOW: 'warning', GREEN: 'success' } as const;
 
@@ -61,11 +63,12 @@ export default async function Problem({
           className="link"
           href={`/roadmap/${origin.roadmapId}?section=${encodeURIComponent(origin.section)}#item-${origin.id}`}
         >
-          ← Back to {origin.title} on the roadmap
+          <ArrowLeft size={14} aria-hidden="true" /> Back to {origin.title} on
+          the roadmap
         </Link>
       ) : (
         <Link className="link" href="/dsa">
-          ← Practice
+          <ArrowLeft size={14} aria-hidden="true" /> Practice
         </Link>
       )}
       <p className="eyebrow mt-4">
@@ -98,7 +101,9 @@ export default async function Problem({
         <div>
           <dt className="muted">Next revision</dt>
           <dd>
-            {p.nextRevisionAt ? revisionDay(p.nextRevisionAt) : 'Not scheduled'}
+            {p.nextRevisionAt
+              ? shortDate(revisionDay(p.nextRevisionAt))
+              : 'Not scheduled'}
             {p.revisionManual ? ' (set by hand)' : ''}
           </dd>
         </div>
@@ -106,7 +111,7 @@ export default async function Problem({
           <dt className="muted">Attempts</dt>
           <dd>
             {p.attemptsCount}
-            {p.revisionStage ? ` · ${p.revisionStage} of 3 green in a row` : ''}
+            {p.revisionStage ? ` · revision stage ${p.revisionStage}` : ''}
           </dd>
         </div>
         <div>

@@ -7,6 +7,7 @@ import { BulkItemsForm, RoadmapForm } from '@/features/roadmap/forms';
 import { LinkOptionsProvider } from '@/features/roadmap/item-form';
 import { ItemList, type Row } from '@/features/roadmap/item-list';
 import { ItemFilters, SectionNav } from '@/features/roadmap/section-nav';
+import { PendingRegion } from '@/components/pending-region';
 import { linkOptions, roadmapDetail } from '@/features/roadmap/service';
 import {
   DEFAULT_SCENARIOS,
@@ -17,6 +18,8 @@ import {
 } from '@/features/roadmap/domain';
 import { dayKey } from '@/lib/time';
 import { formatInTimeZone } from 'date-fns-tz';
+import { ArrowLeft } from 'lucide-react';
+export const metadata = { title: 'Roadmap' };
 
 const dateLabel = (d: Date) =>
   formatInTimeZone(new Date(`${revisionDay(d)}T12:00:00Z`), 'UTC', 'MMM d');
@@ -132,7 +135,7 @@ export default async function RoadmapDetail({
         ]}
       />
       <Link className="link" href="/roadmap">
-        ← Roadmap
+        <ArrowLeft size={14} aria-hidden="true" /> Roadmap
       </Link>
       <p className="eyebrow mt-4">
         {roadmap.goal ? `Toward ${roadmap.goal.title}` : 'Roadmap'}
@@ -190,7 +193,7 @@ export default async function RoadmapDetail({
           </p>
         </section>
       ) : (
-        <div className="roadmap-layout">
+        <PendingRegion className="roadmap-layout">
           <SectionNav
             roadmapId={roadmap.id}
             sections={sections}
@@ -247,7 +250,7 @@ export default async function RoadmapDetail({
               />
             </LinkOptionsProvider>
           </section>
-        </div>
+        </PendingRegion>
       )}
     </>
   );

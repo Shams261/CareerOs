@@ -106,9 +106,9 @@ h3 {
 .hero {
   background: var(--primary);
   color: var(--on-primary);
-  border-radius: 16px;
-  padding: 30px;
-  margin: 28px 0;
+  border-radius: var(--radius-xl);
+  padding: var(--space-8);
+  margin: var(--space-6) 0;
   display: flex;
   justify-content: space-between;
   gap: 20px;
@@ -130,8 +130,8 @@ h3 {
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
-  padding: 24px;
-  margin-bottom: 22px;
+  padding: var(--space-6);
+  margin-bottom: var(--space-6);
 }
 .row {
   display: flex;
@@ -160,10 +160,10 @@ h3 {
   font-weight: 600;
   letter-spacing: 0.4px;
   text-transform: uppercase;
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   background: var(--subtle);
   color: var(--muted);
-  padding: 5px 8px;
+  padding: 5px var(--space-2);
 }
 .pill.yellow {
   background: var(--warning-bg);
@@ -180,8 +180,8 @@ h3 {
   background: var(--primary);
   color: var(--on-primary);
   border: 1px solid transparent;
-  border-radius: 10px;
-  padding: 10px 16px;
+  border-radius: var(--radius-md);
+  padding: 10px var(--space-4);
   min-height: 44px;
   font-size: 13px;
   font-weight: 600;
@@ -196,6 +196,9 @@ h3 {
 }
 .button:disabled {
   opacity: 0.65;
+  cursor: not-allowed;
+}
+.button[aria-busy='true'] {
   cursor: wait;
 }
 .actions {
@@ -290,7 +293,7 @@ input[type='time'] {
   padding: 10px;
   z-index: 10;
 }
-@media (max-width: 1050px) {
+@media (max-width: 1100px) {
   .content {
     padding: 25px;
   }
@@ -521,7 +524,7 @@ details[open] > summary {
 }
 
 .dsa-item {
-  padding: 1rem 0;
+  padding: 0.7rem 0;
   border-bottom: 1px solid var(--border, #e3e6e4);
   overflow-wrap: anywhere;
 }
@@ -583,6 +586,7 @@ details[open] > summary {
 }
 .prep-item {
   display: flex;
+  flex-wrap: wrap;
   justify-content: space-between;
   align-items: center;
   gap: 12px;
@@ -645,24 +649,12 @@ details[open] > summary {
 .mr-2 {
   margin-right: 0.5rem;
 }
-.prep-item {
-  flex-wrap: wrap;
-}
 .prep-item > .actions {
   flex-wrap: wrap;
   margin: 0;
 }
 
 /* WI-008 sign-in */
-.login-shell {
-  min-height: 100vh;
-  display: grid;
-  place-items: center;
-  padding: 16px;
-}
-.login-card {
-  width: min(420px, 100%);
-}
 .brand-accent {
   color: var(--brand-accent);
 }
@@ -802,6 +794,9 @@ summary {
   letter-spacing: -0.025em;
 }
 .login-shell {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
   padding: 48px 20px;
 }
 .login-card {
@@ -838,12 +833,6 @@ summary {
   font-size: 12px;
   color: var(--primary);
   margin: 20px 0 28px;
-}
-.login-card > .muted:last-child {
-  border-top: 1px solid var(--border);
-  padding-top: 20px;
-  font-size: 12px;
-  margin-bottom: 0;
 }
 @media (prefers-reduced-motion: no-preference) {
   .button,
@@ -1337,11 +1326,6 @@ summary {
 .roadmap-item:first-child {
   border-top: 0;
 }
-.roadmap-mark {
-  font-size: 15px;
-  line-height: 1.5;
-  color: var(--muted);
-}
 .roadmap-item.is-done .roadmap-mark {
   color: var(--success);
 }
@@ -1761,9 +1745,6 @@ summary {
   border-bottom: 0;
 }
 /* Density: lists tighter than forms. */
-.dsa-item {
-  padding: 0.7rem 0;
-}
 .roadmap-item {
   padding: 10px 0;
 }
@@ -1893,31 +1874,6 @@ kbd {
 .roadmap-toggles > .disclosure.is-open {
   flex-basis: 100%;
 }
-.roadmap-links {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 2px 12px;
-}
-.roadmap-estimate {
-  font-weight: 400;
-  font-size: 13px;
-}
-.pill.priority {
-  background: var(--primary);
-  color: var(--on-primary);
-  border-color: var(--primary);
-}
-.study-panel {
-  display: grid;
-  gap: 10px;
-  padding: 12px 14px;
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-md);
-  background: var(--surface);
-}
-.study-panel p {
-  margin: 0;
-}
 .reference-list {
   display: grid;
   gap: 4px;
@@ -1925,7 +1881,7 @@ kbd {
 }
 .study-prompt {
   border-top: 1px solid var(--border-subtle);
-  padding-top: 10px;
+  padding-top: 12px;
 }
 .study-prompt .actions {
   display: flex;
@@ -1937,9 +1893,6 @@ kbd {
 .study-prompt textarea {
   font-family: var(--font-mono, ui-monospace, monospace);
   font-size: 13px;
-}
-.roadmap-sections span.is-done {
-  color: var(--success);
 }
 
 /* WI-012 (approved mock): roadmap page as section navigation + one open item; quiet lists. */
@@ -2023,11 +1976,17 @@ kbd {
 }
 .item-filters input,
 .item-filters select {
-  min-height: 36px;
-  padding: 6px 10px;
+  box-sizing: border-box;
+  height: 40px;
+  min-height: 40px;
+  padding: 6px 12px;
+  font-size: 14px;
 }
 .item-filters input[type='search'] {
-  width: 180px;
+  width: 220px;
+}
+.item-filters select {
+  min-width: 150px;
 }
 .item-list {
   display: block;
@@ -2131,10 +2090,6 @@ kbd {
   width: 100%;
   box-sizing: border-box;
   min-height: 0;
-}
-.study-prompt {
-  border-top: 1px solid var(--border-subtle);
-  padding-top: 12px;
 }
 .item-actions {
   display: flex;
@@ -2534,17 +2489,6 @@ a.problem-title:hover {
   color: var(--warning-text);
   font-weight: 600;
 }
-.pager {
-  display: flex;
-  gap: 12px 16px;
-  align-items: center;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  margin-top: 16px;
-  padding-top: 12px;
-  border-top: 1px solid var(--border);
-  font-size: 13px;
-}
 @media (max-width: 1100px) {
   .problem-table {
     grid-template-columns: minmax(0, 1fr) auto;
@@ -2650,20 +2594,7 @@ a.problem-title:hover {
 .problem-open:hover {
   color: var(--primary);
 }
-.item-filters input,
-.item-filters select {
-  min-height: 40px;
-  height: 40px;
-  padding: 6px 12px;
-  font-size: 14px;
-}
-.item-filters input[type='search'] {
-  width: 220px;
-}
-.item-filters select {
-  min-width: 150px;
-}
-@media (max-width: 900px) {
+@media (max-width: 1100px) {
   .pattern-band {
     grid-template-columns: 1fr auto;
   }
@@ -2680,15 +2611,6 @@ a.problem-title:hover {
     grid-column: 2;
     grid-row: 1;
   }
-}
-/* The search field and the status select share one height. */
-.item-filters input[type='search'],
-.item-filters select {
-  box-sizing: border-box;
-  height: 40px;
-  min-height: 40px;
-  padding: 6px 12px;
-  font-size: 14px;
 }
 
 /* Roadmap audit: progress bars, continue marker, done animation, panel order, keyboard focus. */
@@ -2849,7 +2771,7 @@ a.problem-title:hover {
     margin-top: 4px;
   }
 }
-@media (max-width: 1050px) {
+@media (max-width: 1100px) {
   /* Closing the day comes first in the aside once it drops under the timeline. */
   .grid-main > aside {
     display: flex;
@@ -2912,4 +2834,48 @@ a.problem-title:hover {
   .problem-open {
     padding: 12px;
   }
+}
+
+/* WI-015: login note, sub-headings inside cards. */
+.login-note {
+  margin-top: 16px;
+  font-size: 13px;
+  color: var(--muted);
+}
+h4 {
+  margin: 0 0 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--foreground);
+}
+
+/* WI-015: inline icons sit on the text line (Tailwind's base makes svg block-level). */
+.link svg,
+.link-button svg,
+.eyebrow svg,
+.prep-item svg,
+.plain-list svg,
+.status-line svg,
+.setup-checklist svg,
+p svg,
+span > svg {
+  display: inline-block;
+  vertical-align: -0.15em;
+}
+/* WI-015: pending regions, chain targets. */
+.roadmap-layout.is-pending .roadmap-section,
+#library.is-pending .problem-table {
+  opacity: 0.55;
+  transition: opacity var(--motion-fast) var(--motion-easing);
+}
+.chain {
+  gap: 8px;
+}
+.chain-ring {
+  width: 16px;
+  height: 16px;
+}
+/* Rings are border-box (16px with a 2px border); -6px gives the link a 24px target. */
+.chain-ring a {
+  inset: -6px;
 }

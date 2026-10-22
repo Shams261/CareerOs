@@ -24,6 +24,8 @@ import {
   SYNC_WINDOW,
   type Snapshot,
 } from './domain';
+import { categoryGroup } from '@/features/review/domain';
+import { ArrowRight } from 'lucide-react';
 
 const statusText = {
   DISCONNECTED: 'Disconnected',
@@ -187,9 +189,6 @@ export async function GoogleCalendarPanel({
           {conflicts.length > 0 && (
             <div className="mt-4" aria-label="Sync conflicts">
               <h3>Sync conflicts · {conflicts.length}</h3>
-              <p className="muted">
-                Both sides changed these blocks. Choose which version to keep.
-              </p>
               {conflicts.map((c) => (
                 <article className="learning-history" key={c.id}>
                   <h4>{c.timeBlock.title}</h4>
@@ -226,7 +225,7 @@ export async function GoogleCalendarPanel({
           )}
           <Disclosure
             variant="link"
-            label="Categories to sync"
+            label={`Categories to sync (last ${SYNC_WINDOW.pastDays} and next ${SYNC_WINDOW.futureDays} days)`}
             className="mt-4"
           >
             <ActionForm
@@ -243,13 +242,9 @@ export async function GoogleCalendarPanel({
                     value={c}
                     defaultChecked={!excluded.includes(c)}
                   />
-                  {c.replaceAll('_', ' ')}
+                  {categoryGroup(c)}
                 </label>
               ))}
-              <p className="muted">
-                Blocks from the last {SYNC_WINDOW.pastDays} and next{' '}
-                {SYNC_WINDOW.futureDays} days sync.
-              </p>
               <Button>Save categories</Button>
             </ActionForm>
           </Disclosure>
@@ -259,9 +254,6 @@ export async function GoogleCalendarPanel({
               label="Disconnect Google Calendar"
               className="dsa-form"
             >
-              <p className="muted">
-                Stops sync. Your Silsila schedule is unchanged.
-              </p>
               <label className="check">
                 <input type="checkbox" name="remove" />
                 Also delete the “{conn.calendarName ?? 'Silsila'}” Google
@@ -294,7 +286,7 @@ export async function CalendarAttention({ user }: { user: ScheduleUser }) {
         : `: ${statusText[conn.status].toLowerCase()}`}
       .{' '}
       <a className="link" href="/settings#google-heading">
-        Open Settings →
+        Open Settings <ArrowRight size={14} aria-hidden="true" />
       </a>
     </p>
   );
