@@ -2,38 +2,41 @@
 :root {
   --brand-teal: #1e6b5b;
   --brand-ink: #1b1a16;
-  --brand-ivory: #f6f3ec;
-  --background: #f6f3ec;
-  --surface: #fcfaf5;
+  --brand-ivory: #f4f1ea;
+  --background: #f4f1ea;
+  --surface: #ffffff;
+  --surface-2: #fbf9f4;
   --surface-muted: #ece7dd;
   --surface-elevated: #ffffff;
   --text-primary: #1b1a16;
-  --text-secondary: #6a655d;
-  --text-muted: #777168;
+  --text-secondary: #4f4b44;
+  --text-muted: #716c63;
   --text-on-brand: #fffdf8;
-  --border: #d9d3c7;
-  --border-subtle: #e6e1d8;
+  --border: #e6e1d7;
+  --border-subtle: #efebe3;
   --border-strong: #beb7aa;
   --primary: #1e6b5b;
   --primary-hover: #175648;
   --primary-active: #12483d;
-  --primary-soft: #e2eee9;
+  --primary-soft: #e4efea;
   --focus-ring: #1e6b5b;
   --success: #347a5c;
   --success-soft: #e4efe8;
   --warning: #a86f19;
-  --warning-soft: #f5ead6;
+  --warning-soft: #f7ecd8;
   --danger: #a94843;
-  --danger-soft: #f6e4e2;
+  --danger-soft: #f7e6e4;
   --info: #4f7080;
-  --info-soft: #e4ecef;
+  --info-soft: #e6eef2;
+  --priority: #5b3e8e;
+  --priority-soft: #eee6f7;
   --font-ui:
     var(--font-inter), Inter, Geist, -apple-system, BlinkMacSystemFont,
     'Segoe UI', sans-serif;
   --font-display: var(--font-cormorant), 'Cormorant Garamond', Georgia, serif;
   --radius-sm: 8px;
   --radius-md: 12px;
-  --radius-lg: 14px;
+  --radius-lg: 16px;
   --radius-xl: 18px;
   --radius-pill: 999px;
   --space-1: 4px;
@@ -45,8 +48,8 @@
   --space-8: 32px;
   --space-10: 40px;
   --space-12: 48px;
-  --shadow-sm: 0 1px 2px rgb(27 26 22 / 4%);
-  --shadow-md: 0 8px 24px rgb(27 26 22 / 6%);
+  --shadow-sm: 0 1px 2px rgb(27 26 22 / 5%);
+  --shadow-md: 0 8px 24px -12px rgb(27 26 22 / 18%);
   --content-max: 1280px;
   --reading-max: 760px;
   --motion-fast: 120ms;
@@ -54,7 +57,8 @@
   --motion-slow: 240ms;
   --motion-easing: cubic-bezier(0.2, 0, 0, 1);
   --foreground: var(--text-primary);
-  --muted: var(--text-secondary);
+  --ink-2: var(--text-secondary);
+  --muted: var(--text-muted);
   --stone: var(--text-secondary);
   --subtle: var(--surface-muted);
   --tint: var(--primary-soft);
@@ -68,12 +72,13 @@
   --focus: var(--focus-ring);
   --success-text: #2e7053;
   --info-text: #496979;
-  --warning-text: #80530f;
+  --warning-text: #8a5a12;
   color-scheme: light;
 }
 .dark {
   --background: #14130f;
-  --surface: #1c1b17;
+  --surface: #1f1e19;
+  --surface-2: #1a1915;
   --surface-muted: #24221d;
   --surface-elevated: #27251f;
   --text-primary: #f3efe6;
@@ -96,6 +101,8 @@
   --danger-soft: #3c211f;
   --info: #81a8ba;
   --info-soft: #1d3039;
+  --priority: #b9a3dc;
+  --priority-soft: #2b2338;
   --shadow-sm: 0 1px 2px rgb(0 0 0 / 18%);
   --shadow-md: 0 10px 28px rgb(0 0 0 / 25%);
   --success-text: var(--success);

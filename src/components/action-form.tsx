@@ -30,6 +30,8 @@ export function ActionForm({
   broadcast,
   closeOnSuccess = false,
   onSuccess,
+  onPending,
+  onSettled,
 }: {
   action: (state: ActionState, form: FormData) => Promise<ActionState>;
   children: React.ReactNode;
@@ -45,6 +47,10 @@ export function ActionForm({
   closeOnSuccess?: boolean;
   /** Called after a successful save, for client state the DOM reset cannot touch. */
   onSuccess?: () => void;
+  /** Called with the submitted data before the action runs: flip the row optimistically. */
+  onPending?: (form: FormData) => void;
+  /** Called with the result: reconcile an optimistic flip (revert when `ok` is false). */
+  onSettled?: (result: ActionState) => void;
 }) {
   const disclosure = useDisclosure();
   const [state, dispatch, pending] = useActionState(
@@ -57,6 +63,7 @@ export function ActionForm({
         onSuccess?.();
         if (closeOnSuccess) disclosure?.close();
       }
+      onSettled?.(result);
       return result;
     },
     { message: '' },
@@ -117,6 +124,7 @@ export function ActionForm({
         const button = (event.nativeEvent as SubmitEvent).submitter;
         submitter.current = button;
         const form = new FormData(event.currentTarget, button);
+        onPending?.(form);
         startTransition(() => dispatch(form));
       }}
       onInvalidCapture={(event) => {
