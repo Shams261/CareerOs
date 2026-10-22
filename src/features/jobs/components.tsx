@@ -65,15 +65,17 @@ export function ApplicationRow({
   zone: string;
   today: string;
 }) {
+  const line = nextLine(app, now, zone, today);
+  const urgent = ['overdue', 'today'].includes(followUpState(app, today).state);
   return (
     <li className="dsa-item">
-      <Link className="link" href={`/jobs/${app.id}`}>
+      <Link className="link row-title" href={`/jobs/${app.id}`}>
         {app.company}
       </Link>{' '}
       <span className="muted">· {app.role}</span>
       <p className="muted">
         <span className="pill">{label(app.stage)}</span>{' '}
-        {nextLine(app, now, zone, today)}
+        {urgent ? <strong className="row-urgent">{line}</strong> : line}
       </p>
     </li>
   );

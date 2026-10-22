@@ -81,12 +81,17 @@ export function ItemList({
   sections,
   rows,
   initialOpen,
+  show = 'all',
+  nextDue = null,
 }: {
   roadmap: { id: string; title: string; promptTemplate: string | null };
   scenarios: Scenario[];
   sections: string[];
   rows: Row[];
   initialOpen: string | null;
+  /** The active filter; the empty revision view offers the next section with items due. */
+  show?: string;
+  nextDue?: { name: string; due: number } | null;
 }) {
   const hashId = useSyncExternalStore(
     subscribeHash,
@@ -303,7 +308,7 @@ export function ItemList({
                   />
                   {item.checkpoint && (
                     <p className="item-checkpoint">
-                      <strong>Done means.</strong> {item.checkpoint}
+                      <strong>Done when:</strong> {item.checkpoint}
                     </p>
                   )}
                   {item.scope && (
@@ -312,15 +317,15 @@ export function ItemList({
                       {longScope && (
                         <>
                           {' '}
-                          <button
+                          <Button
                             type="button"
-                            className="link-button"
+                            variant="link"
                             onClick={() =>
                               setExpandedScope(clamped ? item.id : null)
                             }
                           >
                             {clamped ? 'Read more' : 'Show less'}
-                          </button>
+                          </Button>
                         </>
                       )}
                     </p>
@@ -481,23 +486,24 @@ export function ItemList({
                         )}
                       </button>
                       <span className="item-actions-spacer" />
-                      <button
+                      <Button
                         type="button"
-                        className="link-button"
+                        variant="link"
                         aria-expanded={editing === item.id}
                         onClick={() =>
                           setEditing((e) => (e === item.id ? null : item.id))
                         }
                       >
                         Edit
-                      </button>
-                      <button
-                        className="link-button danger"
+                      </Button>
+                      <Button
+                        variant="link"
+                        className="danger"
                         name="op"
                         value="remove"
                       >
                         Remove
-                      </button>
+                      </Button>
                     </div>
                   </ActionForm>
                   {item.askedInInterview && (
@@ -527,14 +533,14 @@ export function ItemList({
                   {next && (
                     <p className="item-next">
                       Next:{' '}
-                      <button
+                      <Button
                         type="button"
-                        className="link-button"
+                        variant="link"
                         onClick={() => toggle(next.item.id)}
                       >
                         {next.item.title}{' '}
                         <ArrowRight size={14} aria-hidden="true" />
-                      </button>
+                      </Button>
                     </p>
                   )}
                   {editing === item.id && (
@@ -547,7 +553,21 @@ export function ItemList({
             </li>
           );
         })}
-        {!rows.length && <li className="muted">Nothing matches here.</li>}
+        {!rows.length &&
+          (show === 'revision' && nextDue ? (
+            <li className="muted">
+              Nothing due in this section.{' '}
+              <Link
+                className="link"
+                href={`/roadmap/${roadmap.id}?section=${encodeURIComponent(nextDue.name)}&show=revision`}
+              >
+                Next: {nextDue.name} ({nextDue.due} due){' '}
+                <ArrowRight size={14} aria-hidden="true" />
+              </Link>
+            </li>
+          ) : (
+            <li className="muted">Nothing matches here.</li>
+          ))}
       </ol>
     </>
   );

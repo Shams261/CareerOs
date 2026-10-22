@@ -36,11 +36,16 @@ async function perform(
     revalidatePath('/today');
     revalidatePath('/learn', 'layout');
     revalidatePath('/dsa', 'layout');
-    const undo =
-      result && typeof result === 'object' && 'undo' in result
-        ? (result as { undo: ActionState['undo'] }).undo
-        : undefined;
-    return { ok: true, message, ...(undo ? { undo } : {}) };
+    const extra =
+      result && typeof result === 'object'
+        ? (result as { undo?: ActionState['undo']; link?: ActionState['link'] })
+        : {};
+    return {
+      ok: true,
+      message,
+      ...(extra.undo ? { undo: extra.undo } : {}),
+      ...(extra.link ? { link: extra.link } : {}),
+    };
   } catch (error) {
     if (error instanceof PreviewRequired)
       return {
@@ -60,10 +65,10 @@ async function perform(
 }
 const fields = (f: FormData) => Object.fromEntries(f);
 export async function createApplicationAction(_s: ActionState, f: FormData) {
-  return perform(
-    async () => createApplication(await owner(), fields(f)),
-    'Application added.',
-  );
+  return perform(async () => {
+    const app = await createApplication(await owner(), fields(f));
+    return { link: { href: `/jobs/${app.id}`, label: 'Open application' } };
+  }, 'Application added.');
 }
 export async function detailsAction(_s: ActionState, f: FormData) {
   return perform(

@@ -106,7 +106,7 @@ export default async function Application({
     <>
       <ZoneOptions />
       <Link className="link" href="/jobs">
-        <ArrowLeft size={14} aria-hidden="true" /> Job search
+        <ArrowLeft size={14} aria-hidden="true" /> Jobs
       </Link>
       <p className="eyebrow mt-4">
         {app.company}

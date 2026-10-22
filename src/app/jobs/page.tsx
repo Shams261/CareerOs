@@ -87,7 +87,7 @@ export default async function Jobs({
     <>
       <p className="eyebrow">Jobs</p>
       <div className="page-head">
-        <h1>Job search</h1>
+        <h1>Jobs</h1>
         {apps.length > 0 && (
           <Disclosure label="Add application" variant="primary">
             <QuickAddForm today={today} />

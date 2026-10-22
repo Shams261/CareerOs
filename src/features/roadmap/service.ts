@@ -399,13 +399,18 @@ export async function roadmapList(user: ScheduleUser, now = new Date()) {
     },
     orderBy: { ordering: 'asc' },
   });
-  return roadmaps.map((r) => ({
-    ...r,
-    progress: roadmapProgress(r.items),
-    sections: sectionSummary(r.items),
-    next: nextItem(r.items),
-    due: revisionQueue(r.items, today).length,
-  }));
+  return roadmaps.map((r) => {
+    const dueItems = revisionQueue(r.items, today);
+    return {
+      ...r,
+      progress: roadmapProgress(r.items),
+      sections: sectionSummary(r.items),
+      next: nextItem(r.items),
+      due: dueItems.length,
+      /** The section of the earliest item due, where the revision view should open. */
+      dueSection: dueItems[0]?.section ?? null,
+    };
+  });
 }
 
 /** Items due or overdue for revision across the owner's live roadmaps, for Today. */
