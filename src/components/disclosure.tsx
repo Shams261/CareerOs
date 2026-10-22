@@ -6,9 +6,11 @@ import {
   useId,
   useRef,
   useState,
+  useSyncExternalStore,
   type ReactNode,
 } from 'react';
 import { ChevronDown } from 'lucide-react';
+import { hasDraft, subscribeDrafts } from './drafts';
 
 type Variant = 'primary' | 'secondary' | 'link';
 const DisclosureContext = createContext<{ close: () => void } | null>(null);
@@ -26,6 +28,7 @@ export function Disclosure({
   defaultOpen = false,
   className = '',
   shortcut,
+  draft,
 }: {
   label: string;
   children: ReactNode;
@@ -34,8 +37,17 @@ export function Disclosure({
   className?: string;
   /** A `data-shortcut` name so a keyboard shortcut can press this trigger. */
   shortcut?: string;
+  /** The form inside keeps a draft under this key: the panel opens while one exists. */
+  draft?: string;
 }) {
-  const [open, setOpen] = useState(defaultOpen);
+  const kept = useSyncExternalStore(
+    subscribeDrafts,
+    () => (draft ? hasDraft(draft) : false),
+    () => false,
+  );
+  const [chosen, setChosen] = useState<boolean | null>(null);
+  const open = chosen ?? (defaultOpen || kept);
+  const setOpen = (next: boolean) => setChosen(next);
   const [userOpened, setUserOpened] = useState(false);
   const id = useId();
   const panel = useRef<HTMLDivElement>(null);
@@ -63,7 +75,7 @@ export function Disclosure({
         data-shortcut={shortcut}
         onClick={() => {
           setUserOpened(true);
-          setOpen((o) => !o);
+          setOpen(!open);
         }}
       >
         {label}

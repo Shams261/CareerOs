@@ -5,6 +5,7 @@ import {
   useEffect,
   useRef,
   useState,
+  useSyncExternalStore,
 } from 'react';
 import { Check } from 'lucide-react';
 import { useRouter } from 'next/navigation';
@@ -15,6 +16,15 @@ import { publishFeedback } from './feedback-channel';
 import { Button } from '@/components/ui/button';
 import { useDisclosure } from './disclosure';
 import { startProgress, stopProgress } from './progress-bar-top';
+import {
+  applyDraft,
+  clearDraft,
+  hasDraft,
+  readDraft,
+  serializeForm,
+  subscribeDrafts,
+  writeDraft,
+} from './drafts';
 
 /** How long a success message stays beside the button before it clears. */
 export const SUCCESS_VISIBLE_MS = 3000;
@@ -32,6 +42,7 @@ export function ActionForm({
   onSuccess,
   onPending,
   onSettled,
+  draft,
 }: {
   action: (state: ActionState, form: FormData) => Promise<ActionState>;
   children: React.ReactNode;
@@ -51,6 +62,11 @@ export function ActionForm({
   onPending?: (form: FormData) => void;
   /** Called with the result: reconcile an optimistic flip (revert when `ok` is false). */
   onSettled?: (result: ActionState) => void;
+  /**
+   * Keep what is typed in this browser tab under this key until it is saved or discarded,
+   * so Back, a refresh or a closed panel never loses it (WI-018).
+   */
+  draft?: string;
 }) {
   const disclosure = useDisclosure();
   const [state, dispatch, pending] = useActionState(
@@ -60,6 +76,7 @@ export function ActionForm({
       if (broadcast && result.ok && result.message && !result.preview)
         publishFeedback(broadcast, result);
       if (result.ok && !result.preview) {
+        if (draft) clearDraft(draft);
         onSuccess?.();
         if (closeOnSuccess) disclosure?.close();
       }
@@ -75,6 +92,23 @@ export function ActionForm({
   const [faded, setFaded] = useState<ActionState | null>(null);
   const formRef = useRef<HTMLFormElement>(null);
   const submitter = useRef<HTMLElement | null>(null);
+  // A kept draft lands in the fields once, after hydration; the line below says so.
+  const kept = useSyncExternalStore(
+    subscribeDrafts,
+    () => (draft ? hasDraft(draft) : false),
+    () => false,
+  );
+  useEffect(() => {
+    if (!draft || !formRef.current) return;
+    const data = readDraft(draft);
+    if (data) applyDraft(formRef.current, data);
+  }, [draft]);
+  const keep = (form: HTMLFormElement) => {
+    if (!draft) return;
+    const { data, dirty } = serializeForm(form);
+    if (dirty) writeDraft(draft, data);
+    else clearDraft(draft);
+  };
   // Clear inputs after a save while keeping the form mounted so its confirmation stays visible.
   // Hidden inputs keep the fresh values rendered by the revalidated page (for example requestId).
   useEffect(() => {
@@ -127,6 +161,7 @@ export function ActionForm({
         onPending?.(form);
         startTransition(() => dispatch(form));
       }}
+      onChange={(event) => keep(event.currentTarget)}
       onInvalidCapture={(event) => {
         // One message for the first refused field; the field itself is focused and marked.
         event.preventDefault();
@@ -164,6 +199,21 @@ export function ActionForm({
       {pending && (
         <p className="sr-only" role="status">
           Saving…
+        </p>
+      )}
+      {draft && kept && !pending && (
+        <p className="form-draft">
+          Draft kept on this device.
+          <button
+            type="button"
+            className="undo-link"
+            onClick={() => {
+              clearDraft(draft);
+              formRef.current?.reset();
+            }}
+          >
+            Discard
+          </button>
         </p>
       )}
       {invalid && !pending && (

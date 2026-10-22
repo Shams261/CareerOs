@@ -49,6 +49,7 @@ export function QuickAddForm({ today }: { today: string }) {
       label="Add application"
       className="dsa-form"
       resetOnSuccess
+      draft="application:new"
     >
       <input type="hidden" name="requestId" value={randomUUID()} />
       <div className="form-grid">
@@ -392,6 +393,7 @@ export function RoundForm({
       label="Add interview"
       className="dsa-form"
       resetOnSuccess
+      draft={`round:${applicationId}`}
       broadcast="rounds"
       closeOnSuccess
     >
@@ -674,6 +676,7 @@ export function NoteForm({ id }: { id: string }) {
       label="Add timeline note"
       className="dsa-form"
       resetOnSuccess
+      draft={`job-note:${id}`}
     >
       <input type="hidden" name="id" value={id} />
       <input type="hidden" name="requestId" value={randomUUID()} />

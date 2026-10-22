@@ -67,6 +67,7 @@ export default async function RoadmapPage() {
             variant={live.length ? 'secondary' : 'primary'}
             shortcut="new-roadmap"
             defaultOpen={!live.length}
+            draft="roadmap:new"
           >
             <RoadmapForm goals={goals} />
           </Disclosure>
@@ -129,7 +130,7 @@ export default async function RoadmapPage() {
           ))}
           {!active.length && <p className="muted">No active goals.</p>}
           <div className="goal-more">
-            <Disclosure variant="link" label="Add goal">
+            <Disclosure variant="link" label="Add goal" draft="goal:new">
               <GoalForm />
             </Disclosure>
             {rest.length > 0 && (

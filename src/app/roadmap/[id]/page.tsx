@@ -154,7 +154,12 @@ export default async function RoadmapDetail({
       </p>
       <div className="page-head">
         <h1>{roadmap.title}</h1>
-        <Disclosure label="Add items" variant="primary" shortcut="add-items">
+        <Disclosure
+          label="Add items"
+          variant="primary"
+          shortcut="add-items"
+          draft={`items:${roadmap.id}`}
+        >
           <BulkItemsForm
             roadmapId={roadmap.id}
             sections={sectionNames}

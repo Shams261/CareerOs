@@ -423,7 +423,11 @@ export default async function Application({
               );
             })}
             {isOpen(app.stage) && (
-              <Disclosure label="Add interview" className="mt-4">
+              <Disclosure
+                label="Add interview"
+                className="mt-4"
+                draft={`round:${app.id}`}
+              >
                 <RoundForm applicationId={app.id} zone={zone} />
               </Disclosure>
             )}
@@ -446,7 +450,12 @@ export default async function Application({
             {!hasCreated && (
               <p className="muted">Earlier events were not recorded.</p>
             )}
-            <Disclosure variant="link" label="Add a note" className="mt-3">
+            <Disclosure
+              variant="link"
+              label="Add a note"
+              className="mt-3"
+              draft={`job-note:${app.id}`}
+            >
               <NoteForm id={app.id} />
             </Disclosure>
           </section>

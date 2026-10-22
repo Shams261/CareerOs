@@ -18,6 +18,7 @@ import { signOutAction } from '@/features/auth/actions';
 import { currentWeek } from '@/features/review/domain';
 import { shiftDay } from '@/features/schedule/domain';
 import { Check, Circle } from 'lucide-react';
+import { SettingsIndex } from '@/features/settings/index-nav';
 export const metadata = { title: 'Settings' };
 
 const ago = (d: Date | null | undefined, now: Date) =>
@@ -86,150 +87,186 @@ export default async function Settings({
     ['Prepare next week', nextWeekPlans > 0, '/review?step=plan'],
   ];
   const remaining = steps.filter(([, done]) => !done);
+  const groups = [
+    { id: 'reminders', label: 'Reminders' },
+    { id: 'calendar', label: 'Calendar' },
+    { id: 'appearance', label: 'Appearance' },
+    { id: 'account', label: 'Account' },
+    { id: 'data', label: 'Data' },
+  ];
   return (
     <>
       <p className="eyebrow">Workspace</p>
       <h1>Settings</h1>
-      {remaining.length > 0 && (
-        <section className="card mt-7" aria-labelledby="start-heading">
-          <h2 id="start-heading">Getting started</h2>
-          <ol className="plain-list checklist">
-            {steps.map(([label, done, href]) => (
-              <li key={label}>
-                {done ? (
-                  <Check size={14} aria-hidden="true" />
-                ) : (
-                  <Circle size={14} aria-hidden="true" />
-                )}{' '}
-                <span className="sr-only">{done ? 'Done:' : 'To do:'}</span>{' '}
-                <Link className="link" href={href}>
-                  {label}
-                </Link>
-              </li>
-            ))}
-          </ol>
-        </section>
-      )}
-      <section
-        className={`card${remaining.length ? '' : ' mt-7'}`}
-        aria-labelledby="notifications-heading"
-      >
-        <h2 id="notifications-heading">Notifications</h2>
-        {push ? (
-          <PushControls publicKey={push.publicKey} devices={devices} />
-        ) : (
-          <p className="muted">
-            Push is not configured on this server; reminders stay on Today.
-          </p>
-        )}
-        <h3 className="mt-4">Daily reminder</h3>
-        <ActionForm
-          action={reminderAction}
-          label="Daily reminder"
-          className="dsa-form"
-        >
-          <label className="check">
-            <input
-              type="checkbox"
-              name="enabled"
-              defaultChecked={pref?.enabled ?? false}
-            />
-            Remind me when I haven’t reviewed my day
-          </label>
-          <label>
-            Time
-            <input
-              required
-              type="time"
-              name="preferredTime"
-              defaultValue={pref?.preferredTime ?? '21:30'}
-            />
-          </label>
-          <Button className="secondary">Save</Button>
-        </ActionForm>
-        <h3 className="mt-4">Revision reminder</h3>
-        <LearningReminderForm pref={revisionPref} />
-        <h3 className="mt-4">Job reminders</h3>
-        <JobReminderForm followUp={followUpPref} interview={interviewPref} />
-      </section>
+      <div className="settings-layout">
+        <SettingsIndex sections={groups} />
+        <div className="settings-main">
+          {remaining.length > 0 && (
+            <section className="card" aria-labelledby="start-heading">
+              <h2 id="start-heading">Getting started</h2>
+              <ol className="plain-list checklist">
+                {steps.map(([label, done, href]) => (
+                  <li key={label}>
+                    {done ? (
+                      <Check size={14} aria-hidden="true" />
+                    ) : (
+                      <Circle size={14} aria-hidden="true" />
+                    )}{' '}
+                    <span className="sr-only">{done ? 'Done:' : 'To do:'}</span>{' '}
+                    <Link className="link" href={href}>
+                      {label}
+                    </Link>
+                  </li>
+                ))}
+              </ol>
+            </section>
+          )}
+          <div id="reminders" className="settings-group">
+            <section className="card" aria-labelledby="notifications-heading">
+              <h2 id="notifications-heading">Reminders</h2>
+              {push ? (
+                <PushControls publicKey={push.publicKey} devices={devices} />
+              ) : (
+                <p className="muted">
+                  Push is not configured on this server; reminders stay on
+                  Today.
+                </p>
+              )}
+              <h3 className="mt-4">Daily reminder</h3>
+              <ActionForm
+                action={reminderAction}
+                label="Daily reminder"
+                className="dsa-form"
+              >
+                <label className="check">
+                  <input
+                    type="checkbox"
+                    name="enabled"
+                    defaultChecked={pref?.enabled ?? false}
+                  />
+                  Remind me when I haven’t reviewed my day
+                </label>
+                <label>
+                  Time
+                  <input
+                    required
+                    type="time"
+                    name="preferredTime"
+                    defaultValue={pref?.preferredTime ?? '21:30'}
+                  />
+                </label>
+                <Button className="secondary">Save</Button>
+              </ActionForm>
+              <h3 className="mt-4">Revision reminder</h3>
+              <LearningReminderForm pref={revisionPref} />
+              <h3 className="mt-4">Job reminders</h3>
+              <JobReminderForm
+                followUp={followUpPref}
+                interview={interviewPref}
+              />
+            </section>
+          </div>
 
-      <GoogleCalendarPanel user={user} flash={flash} />
+          <div id="calendar" className="settings-group">
+            <GoogleCalendarPanel user={user} flash={flash} />
+          </div>
 
-      <section className="card" aria-labelledby="theme-heading">
-        <h2 id="theme-heading">Appearance</h2>
-        <form action={saveTheme} className="mt-3">
-          <label htmlFor="theme">Theme</label>
-          <select id="theme" name="theme" defaultValue={theme} key={theme}>
-            <option value="light">Light</option>
-            <option value="dark">Dark</option>
-          </select>
-          <Button className="secondary mt-3">Save</Button>
-        </form>
-        <ShortcutsToggle />
-      </section>
+          <div id="appearance" className="settings-group">
+            <section className="card" aria-labelledby="theme-heading">
+              <h2 id="theme-heading">Appearance</h2>
+              <form action={saveTheme} className="mt-3">
+                <label htmlFor="theme">Theme</label>
+                <select
+                  id="theme"
+                  name="theme"
+                  defaultValue={theme}
+                  key={theme}
+                >
+                  <option value="light">Light</option>
+                  <option value="dark">Dark</option>
+                </select>
+                <Button className="secondary mt-3">Save</Button>
+              </form>
+              <ShortcutsToggle />
+            </section>
+          </div>
 
-      <section className="card" aria-labelledby="account-heading">
-        <h2 id="account-heading">Account</h2>
-        <p>{user.email}</p>
-        <p className="muted">Timezone: {user.timezone}</p>
-        <form action={signOutAction} className="mt-3">
-          <Button className="secondary">Sign out</Button>
-        </form>
-      </section>
+          <div id="account" className="settings-group">
+            <section className="card" aria-labelledby="account-heading">
+              <h2 id="account-heading">Account</h2>
+              <p>{user.email}</p>
+              <p className="muted">Timezone: {user.timezone}</p>
+              <form action={signOutAction} className="mt-3">
+                <Button className="secondary">Sign out</Button>
+              </form>
+            </section>
+          </div>
 
-      <section className="card flat" aria-labelledby="status-heading">
-        <h2 id="status-heading">System status</h2>
-        <dl className="job-facts">
-          <div>
-            <dt className="muted">Database</dt>
-            <dd>{health.database === 'ok' ? 'Healthy' : 'Unreachable'}</dd>
-          </div>
-          <div>
-            <dt className="muted">Session time zone</dt>
-            <dd>
-              {health.sessionTimeZone === 'UTC' ? 'UTC' : 'Needs attention'}
-            </dd>
-          </div>
-          <div>
-            <dt className="muted">Schema</dt>
-            <dd>
-              {health.schema === 'current' ? 'Current' : 'Migration pending'}
-            </dd>
-          </div>
-          <div>
-            <dt className="muted">Google Calendar</dt>
-            <dd>
-              {!calendar || calendar.status === 'DISCONNECTED'
-                ? 'Not connected'
-                : calendar.status === 'CONNECTED'
-                  ? `Connected · synced ${ago(calendar.lastSuccessfulSyncAt, now)}`
-                  : 'Attention required'}
-            </dd>
-          </div>
-          <div>
-            <dt className="muted">Reminder job</dt>
-            <dd>
-              Last success {ago(job('notifications')?.lastSucceededAt, now)}
-            </dd>
-          </div>
-          <div>
-            <dt className="muted">Calendar sync job</dt>
-            <dd>
-              Last success {ago(job('calendar-sync')?.lastSucceededAt, now)}
-            </dd>
-          </div>
-        </dl>
-      </section>
+          <div id="data" className="settings-group">
+            <section className="card flat" aria-labelledby="status-heading">
+              <h2 id="status-heading">System status</h2>
+              <dl className="job-facts">
+                <div>
+                  <dt className="muted">Database</dt>
+                  <dd>
+                    {health.database === 'ok' ? 'Healthy' : 'Unreachable'}
+                  </dd>
+                </div>
+                <div>
+                  <dt className="muted">Session time zone</dt>
+                  <dd>
+                    {health.sessionTimeZone === 'UTC'
+                      ? 'UTC'
+                      : 'Needs attention'}
+                  </dd>
+                </div>
+                <div>
+                  <dt className="muted">Schema</dt>
+                  <dd>
+                    {health.schema === 'current'
+                      ? 'Current'
+                      : 'Migration pending'}
+                  </dd>
+                </div>
+                <div>
+                  <dt className="muted">Google Calendar</dt>
+                  <dd>
+                    {!calendar || calendar.status === 'DISCONNECTED'
+                      ? 'Not connected'
+                      : calendar.status === 'CONNECTED'
+                        ? `Connected · synced ${ago(calendar.lastSuccessfulSyncAt, now)}`
+                        : 'Attention required'}
+                  </dd>
+                </div>
+                <div>
+                  <dt className="muted">Reminder job</dt>
+                  <dd>
+                    Last success{' '}
+                    {ago(job('notifications')?.lastSucceededAt, now)}
+                  </dd>
+                </div>
+                <div>
+                  <dt className="muted">Calendar sync job</dt>
+                  <dd>
+                    Last success{' '}
+                    {ago(job('calendar-sync')?.lastSucceededAt, now)}
+                  </dd>
+                </div>
+              </dl>
+            </section>
 
-      <section className="card" aria-labelledby="data-heading">
-        <h2 id="data-heading">Your data</h2>
-        <p className="muted">
-          A JSON copy of your records, without credentials or device keys.
-        </p>
-        <a className="button secondary" href="/api/export" download>
-          Download data export
-        </a>
-      </section>
+            <section className="card" aria-labelledby="data-heading">
+              <h2 id="data-heading">Your data</h2>
+              <p className="muted">
+                A JSON copy of your records, without credentials or device keys.
+              </p>
+              <a className="button secondary" href="/api/export" download>
+                Download data export
+              </a>
+            </section>
+          </div>
+        </div>
+      </div>
     </>
   );
 }
