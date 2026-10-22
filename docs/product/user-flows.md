@@ -123,9 +123,9 @@ flowchart TD
   Round --> Resched[Reschedule → previous time kept]
   Round --> Result[Log result + reflection, optional stage move]
   Result --> Gap[Add weak area → learning/DSA mention]
-  Today[Today] --> Interview[Today's interview: open application / prep / meeting]
-  Today --> Summary[Job search summary]
-  Summary --> App
+  Today[Today] --> Interview[Today's interview: an agenda row with Open prep / meeting]
+  Today --> Attention[Needs attention: follow-ups, results, interview prep]
+  Attention --> App
 ```
 
 Saves show confirmation or keep input with the error. Forms that record events carry a fresh request ID after each save. Closed applications stay reachable through the Rejected/Withdrawn/All views. Grouped lists replace drag-and-drop so the pipeline works by keyboard and on mobile.

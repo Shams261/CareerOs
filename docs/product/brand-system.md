@@ -37,7 +37,7 @@ Semantic base colors match the specification. On light tinted backgrounds, succe
 
 The philosophy is **Plan → Execute → Record → Review → Continue**. Navigation labels (WI-009) say what you do there: Today, Plan, Roadmap, Practice, Learn, Jobs, Weekly review and Settings; routes keep their original names (`/calendar`, `/dsa`, `/review`). Use factual, calm copy rather than productivity scores, streak pressure or hype. Copy uses the owner's words: a block is "Routine", "Changed for this day" or "Added for this day"; never "dated plan", "occurrence", "override" or "generate". Pages carry no taglines; the date, the week or the page's name is the heading. No explanatory paragraph sits under a form.
 
-Login uses the primary hook, descriptor, **Continue with Google** and the mantra. The authenticated shell has no tagline, workspace label or repeated mantra. Today separates current and next blocks; Weekly Review allows a restrained editorial heading and is a three-step flow (This week, Reflect, Next week) with a Details view. No landing page or new product feature is added.
+Login uses the primary hook, descriptor, **Continue with Google** and the mantra. The authenticated shell has no tagline, workspace label or repeated mantra. Today is an agenda: one launcher with one primary action, the day as an open list, one Needs attention list, and panels for the review, the chain and notes (WI-020); Weekly Review allows a restrained editorial heading and is a three-step flow (This week, Reflect, Next week) with a Details view. No landing page or new product feature is added.
 
 ## Assets and maintenance
 

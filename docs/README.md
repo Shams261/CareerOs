@@ -49,3 +49,5 @@ See the [WI-009 handoff](WI-009-HANDOFF.md) for the UX simplification (first-run
 See the [WI-010 handoff](WI-010-HANDOFF.md) for the week chart, light motion and notes to self.
 
 See the [WI-011 handoff](WI-011-HANDOFF.md) for the UX pass: undo, summaries, phone navigation.
+
+See the [WI-020 handoff](WI-020-HANDOFF.md) for Today as an agenda: the launcher, the open agenda list, the Needs attention list and the side panels, with screenshots.
