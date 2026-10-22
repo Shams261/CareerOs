@@ -129,6 +129,18 @@ export default async function RoadmapDetail({
     }));
   const initialOpen =
     roadmap.next && roadmap.next.section === selected ? roadmap.next.id : null;
+  // Search is scoped to the section shown; say where else the words match.
+  const elsewhere = q
+    ? sectionNames
+        .filter((name) => name !== selected)
+        .map((name) => ({
+          name,
+          count: (roadmap.sections.get(name) ?? []).filter((i) =>
+            i.title.toLowerCase().includes(q),
+          ).length,
+        }))
+        .filter((s) => s.count > 0)
+    : [];
   return (
     <>
       <PageShortcuts
@@ -269,6 +281,8 @@ export default async function RoadmapDetail({
                 rows={rows}
                 initialOpen={initialOpen}
                 show={show}
+                elsewhere={elsewhere}
+                q={q}
                 nextDue={(() => {
                   const i = sections.findIndex((s) => s.name === selected);
                   const after = [

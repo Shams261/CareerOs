@@ -3163,8 +3163,8 @@ span > svg {
   vertical-align: 0.1em;
 }
 .pill.priority {
-  background: var(--priority-soft);
-  color: var(--priority);
+  background: var(--tint);
+  color: var(--primary);
 }
 .reference-list {
   display: flex;
@@ -3424,4 +3424,14 @@ span > svg {
   .settings-group {
     scroll-margin-top: 64px;
   }
+}
+
+/* WI-019: reminder timestamps and the search scope line. */
+.reminder-when {
+  font-size: 12px;
+  margin-top: 2px;
+}
+.search-elsewhere {
+  font-size: 13px;
+  margin: 10px 0 0;
 }

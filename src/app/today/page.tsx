@@ -640,7 +640,14 @@ export default async function Today({
                   <h2 id="reminders-heading">Reminders</h2>
                   {notifications.map((n) => (
                     <div className="mb-4" key={n.id}>
-                      <p className="muted">{n.title}</p>
+                      <p>{n.title}</p>
+                      <p className="muted reminder-when">
+                        {formatInTimeZone(
+                          n.scheduledFor,
+                          user.timezone,
+                          'EEE, MMM d · h:mm a',
+                        )}
+                      </p>
                       <form action={readNotification}>
                         <input name="id" type="hidden" value={n.id} />
                         <Button className="secondary mt-2">Mark read</Button>

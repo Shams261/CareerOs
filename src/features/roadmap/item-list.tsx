@@ -83,6 +83,8 @@ export function ItemList({
   initialOpen,
   show = 'all',
   nextDue = null,
+  elsewhere = [],
+  q = '',
 }: {
   roadmap: { id: string; title: string; promptTemplate: string | null };
   scenarios: Scenario[];
@@ -92,6 +94,9 @@ export function ItemList({
   /** The active filter; the empty revision view offers the next section with items due. */
   show?: string;
   nextDue?: { name: string; due: number } | null;
+  /** Other sections where the search words match; search is scoped to this section. */
+  elsewhere?: { name: string; count: number }[];
+  q?: string;
 }) {
   const hashId = useSyncExternalStore(
     subscribeHash,
@@ -627,9 +632,48 @@ export function ItemList({
               </Link>
             </li>
           ) : (
-            <li className="muted">Nothing matches here.</li>
+            <li className="muted">
+              {q ? 'No match in this section.' : 'Nothing matches here.'}
+              {q && elsewhere.length > 0 && (
+                <>
+                  {' '}
+                  Found in{' '}
+                  {elsewhere.map((s, i) => (
+                    <span key={s.name}>
+                      {i > 0 && ' · '}
+                      <Link
+                        className="link"
+                        href={`/roadmap/${roadmap.id}?section=${encodeURIComponent(s.name)}&q=${encodeURIComponent(q)}`}
+                      >
+                        {s.name} ({s.count})
+                      </Link>
+                    </span>
+                  ))}
+                  .
+                </>
+              )}
+              {q &&
+                !elsewhere.length &&
+                ' Nothing in the other sections either.'}
+            </li>
           ))}
       </ol>
+      {rows.length > 0 && q && elsewhere.length > 0 && (
+        <p className="muted search-elsewhere">
+          Also in{' '}
+          {elsewhere.map((s, i) => (
+            <span key={s.name}>
+              {i > 0 && ' · '}
+              <Link
+                className="link"
+                href={`/roadmap/${roadmap.id}?section=${encodeURIComponent(s.name)}&q=${encodeURIComponent(q)}`}
+              >
+                {s.name} ({s.count})
+              </Link>
+            </span>
+          ))}
+        </p>
+      )}
     </>
   );
 }

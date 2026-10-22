@@ -27,7 +27,7 @@ Inter is used for product UI. Cormorant Garamond semibold appears only in the lo
 | Border            | `#E6E1D7` | `#35322C` |
 | Row divider       | `#EFEBE3` | `#2A2822` |
 
-Two surfaces give depth (WI-017): white cards on the ivory canvas, the secondary surface for the sidebar and inputs, one small shadow on cards and one larger shadow on anything that floats. Meta text (`--muted`) is for metadata only, never for essential content; secondary body copy uses `--ink-2`. A purple pair (`#5B3E8E` on `#EEE6F7`) marks P0 priority only.
+Two surfaces give depth (WI-017): white cards on the ivory canvas, the secondary surface for the sidebar and inputs, one small shadow on cards and one larger shadow on anything that floats. Meta text (`--muted`) is for metadata only, never for essential content; secondary body copy uses `--ink-2`. The P0 mark uses the teal tint like every other selected state; there is no second accent.
 
 Tokens also cover elevated surfaces, borders, interaction states, focus, typography, radii, spacing, shadows, layout widths and motion. Light is always the default, independent of OS/browser appearance. Settings offers Light and Dark, saved per browser in the `silsila-theme` cookie for one year. The server renders the root class and theme-color from that cookie, including login, without a hydration-time theme switch. Missing or invalid cookies resolve to Light; System is not offered. Native controls use the selected color-scheme. The manifest and favicon default to Light. Teal is reserved for actions, selection and meaningful emphasis; calendar blocks remain neutral.
 

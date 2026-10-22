@@ -6,7 +6,7 @@ import { locked } from '@/features/schedule/service';
 import { blockReminderDue } from './domain';
 import { followUpReminderDue, interviewWindow } from '@/features/jobs/domain';
 import { weekOf, weeklyReminderDue } from '@/features/review/domain';
-import { clock } from '@/lib/time';
+import { clock, weekdayDate } from '@/lib/time';
 export async function processNotifications(now = new Date()) {
   const users = await db().user.findMany({
     include: { preferences: { where: { enabled: true } } },
@@ -126,8 +126,8 @@ export async function processNotifications(now = new Date()) {
                 job.id,
                 planned,
                 planned < dayKey(now, user.timezone)
-                  ? `Follow-up overdue since ${planned}: ${job.company} — ${job.nextAction ?? 'follow up'}.`
-                  : `You planned to follow up with ${job.company} today: ${job.nextAction ?? 'follow up'}.`,
+                  ? `Follow-up overdue since ${weekdayDate(planned)}: ${job.company} — ${job.nextAction ?? 'follow up'}.`
+                  : `You planned to follow up with ${job.company} today, ${weekdayDate(planned)}: ${job.nextAction ?? 'follow up'}.`,
                 now,
               );
           }
@@ -148,11 +148,9 @@ export async function processNotifications(now = new Date()) {
           for (const r of rounds) {
             const window = interviewWindow(r, now, pref.offsetMinutes);
             if (!window) continue;
-            const when =
-              dayKey(r.scheduledStart, user.timezone) ===
-              dayKey(now, user.timezone)
-                ? `today at ${clock(r.scheduledStart, user.timezone)}`
-                : `tomorrow at ${clock(r.scheduledStart, user.timezone)}`;
+            // Relative words age badly in an inbox: the absolute date always travels with them (B9).
+            const startDay = dayKey(r.scheduledStart, user.timezone);
+            const when = `${startDay === dayKey(now, user.timezone) ? 'today' : 'tomorrow'}, ${weekdayDate(startDay)} at ${clock(r.scheduledStart, user.timezone)}`;
             const prep = r.prepItems.length
               ? ` ${r.prepItems.length} prep item${r.prepItems.length === 1 ? '' : 's'} open.`
               : '';

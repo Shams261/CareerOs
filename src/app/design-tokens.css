@@ -28,8 +28,6 @@
   --danger-soft: #f7e6e4;
   --info: #4f7080;
   --info-soft: #e6eef2;
-  --priority: #5b3e8e;
-  --priority-soft: #eee6f7;
   --font-ui:
     var(--font-inter), Inter, Geist, -apple-system, BlinkMacSystemFont,
     'Segoe UI', sans-serif;
@@ -101,8 +99,6 @@
   --danger-soft: #3c211f;
   --info: #81a8ba;
   --info-soft: #1d3039;
-  --priority: #b9a3dc;
-  --priority-soft: #2b2338;
   --shadow-sm: 0 1px 2px rgb(0 0 0 / 18%);
   --shadow-md: 0 10px 28px rgb(0 0 0 / 25%);
   --success-text: var(--success);
