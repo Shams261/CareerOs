@@ -247,6 +247,16 @@ export default async function RoadmapDetail({
                 sections={sectionNames}
                 rows={rows}
                 initialOpen={initialOpen}
+                show={show}
+                nextDue={(() => {
+                  const i = sections.findIndex((s) => s.name === selected);
+                  const after = [
+                    ...sections.slice(i + 1),
+                    ...sections.slice(0, i),
+                  ];
+                  const n = after.find((s) => s.due > 0);
+                  return n ? { name: n.name, due: n.due } : null;
+                })()}
               />
             </LinkOptionsProvider>
           </section>

@@ -20,6 +20,8 @@ export type ActionState = {
   preview?: string[];
   /** A one-click way back, shown beside the success message for a few seconds. */
   undo?: { kind: string; payload: unknown; label?: string };
+  /** Where to go next, shown beside the success message ("Open application"). */
+  link?: { href: string; label: string };
 };
 function refresh() {
   for (const route of ['/today', '/calendar', '/review', '/jobs'])

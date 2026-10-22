@@ -2879,3 +2879,39 @@ span > svg {
 .chain-ring a {
   inset: -6px;
 }
+
+/* WI-016: review leftovers. */
+.roadmap-row-due {
+  display: inline-block;
+  margin: 4px 0 8px;
+  font-size: 13px;
+}
+.row-title {
+  font-size: 15px;
+}
+.row-urgent {
+  color: var(--foreground);
+  font-weight: 600;
+}
+@media (max-width: 700px) {
+  /* The running session is a one-line strip on a phone. */
+  .running-now {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 6px 12px;
+  }
+  .running-now .eyebrow {
+    display: none;
+  }
+  .running-now form {
+    margin-left: auto;
+  }
+}
+@media (pointer: coarse) {
+  .dsa-item > .link,
+  .plain-list .dsa-item .link {
+    display: inline-block;
+    padding: 6px 0;
+  }
+}

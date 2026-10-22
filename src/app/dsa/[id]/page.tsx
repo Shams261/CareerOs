@@ -61,7 +61,7 @@ export default async function Problem({
       {origin ? (
         <Link
           className="link"
-          href={`/roadmap/${origin.roadmapId}?section=${encodeURIComponent(origin.section)}#item-${origin.id}`}
+          href={`/roadmap/${origin.roadmapId}?section=${encodeURIComponent(origin.section)}&show=all#item-${origin.id}`}
         >
           <ArrowLeft size={14} aria-hidden="true" /> Back to {origin.title} on
           the roadmap
@@ -143,6 +143,16 @@ export default async function Problem({
           requestId={randomUUID()}
           defaultMinutes={defaultMinutes}
         />
+        {origin && (
+          <p className="status-line mt-4">
+            <Link
+              className="link"
+              href={`/roadmap/${origin.roadmapId}?section=${encodeURIComponent(origin.section)}&show=all#item-${origin.id}`}
+            >
+              <ArrowLeft size={14} aria-hidden="true" /> Back to {origin.title}
+            </Link>
+          </p>
+        )}
       </section>
       <section className="card flat" aria-labelledby="history-heading">
         <div className="section-head">

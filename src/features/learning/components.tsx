@@ -19,7 +19,7 @@ export function TopicList({
   day: string;
 }) {
   return topics.length ? (
-    <ul className="dsa-list">
+    <ul className="plain-list">
       {topics.map((t) => (
         <li className="dsa-item" key={t.id}>
           <div>

@@ -8,6 +8,7 @@ import {
 } from 'react';
 import { Check } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import type { ActionState } from '@/features/schedule/actions';
 import { undoAction } from '@/features/undo/actions';
 import { publishFeedback } from './feedback-channel';
@@ -61,7 +62,7 @@ export function ActionForm({
     if (!state.message || !state.ok || state.preview) return;
     const timer = setTimeout(
       () => setFaded(state),
-      state.undo ? UNDO_VISIBLE_MS : SUCCESS_VISIBLE_MS,
+      state.undo || state.link ? UNDO_VISIBLE_MS : SUCCESS_VISIBLE_MS,
     );
     return () => clearTimeout(timer);
   }, [state]);
@@ -122,6 +123,11 @@ export function ActionForm({
         >
           {shown.ok && <Check size={14} aria-hidden="true" />}
           {shown.message}
+          {shown.ok && shown.link && (
+            <Link className="link" href={shown.link.href}>
+              {shown.link.label}
+            </Link>
+          )}
           {shown.ok && shown.undo && (
             <UndoButton undo={shown.undo} onDone={() => setFaded(shown)} />
           )}

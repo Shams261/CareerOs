@@ -82,8 +82,8 @@ export async function TodayJobs({
   const s = await jobTodaySummary(user, now);
   if (!s) return null;
   return (
-    <section className="card" aria-label="Job search">
-      <h2>Job search</h2>
+    <section className="card" aria-label="Jobs">
+      <h2>Jobs</h2>
       <p>
         Applications requiring action: {s.actionRequired} · Follow-ups due:{' '}
         {s.followUpsDue}
@@ -113,7 +113,7 @@ export async function TodayJobs({
         </ul>
       )}
       <Link className="link" href="/jobs">
-        Open job search <ArrowRight size={14} aria-hidden="true" />
+        Open Jobs <ArrowRight size={14} aria-hidden="true" />
       </Link>
     </section>
   );

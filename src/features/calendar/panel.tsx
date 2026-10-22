@@ -2,13 +2,13 @@ import { formatDistance } from 'date-fns';
 import { Disclosure } from '@/components/disclosure';
 import { ActionForm } from '@/components/action-form';
 import { Button } from '@/components/ui/button';
+import { DisconnectForm } from './disconnect-form';
 import type { ScheduleUser } from '@/features/schedule/service';
 import { calendarConfig } from '@/lib/env';
 import { db } from '@/server/db';
 import {
   categoriesAction,
   connectCalendarAction,
-  disconnectAction,
   resolveConflictAction,
   syncNowAction,
 } from './actions';
@@ -249,22 +249,7 @@ export async function GoogleCalendarPanel({
             </ActionForm>
           </Disclosure>
           <Disclosure variant="link" label="Disconnect" className="mt-3">
-            <ActionForm
-              action={disconnectAction}
-              label="Disconnect Google Calendar"
-              className="dsa-form"
-            >
-              <label className="check">
-                <input type="checkbox" name="remove" />
-                Also delete the “{conn.calendarName ?? 'Silsila'}” Google
-                calendar (only that calendar; never your other calendars)
-              </label>
-              <label>
-                To delete it, type the calendar name
-                <input name="confirm" autoComplete="off" />
-              </label>
-              <Button className="secondary">Disconnect Google Calendar</Button>
-            </ActionForm>
+            <DisconnectForm calendarName={conn.calendarName ?? 'Silsila'} />
           </Disclosure>
         </>
       )}

@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { ArrowRight } from 'lucide-react';
 import { owner } from '@/server/db';
 import { dayKey } from '@/lib/time';
 import { Disclosure } from '@/components/disclosure';
@@ -193,14 +194,21 @@ export default async function RoadmapPage() {
                     <span>
                       {r.progress.done} of {r.progress.total} done
                     </span>
-                    {r.due > 0 && (
-                      <span className="is-due">{r.due} due for revision</span>
-                    )}
                     {!r.due && r.progress.inProgress > 0 && (
                       <span>{r.progress.inProgress} in progress</span>
                     )}
                   </span>
                 </Link>
+                {r.due > 0 && r.dueSection && (
+                  <Link
+                    className="link roadmap-row-due"
+                    href={`/roadmap/${r.id}?section=${encodeURIComponent(r.dueSection)}&show=revision`}
+                    prefetch={false}
+                  >
+                    {r.due} due for revision{' '}
+                    <ArrowRight size={14} aria-hidden="true" />
+                  </Link>
+                )}
               </li>
             ))}
           </ol>
