@@ -16,8 +16,10 @@ import {
 import { isFocusCategory } from '@/features/schedule/domain';
 import { z } from 'zod';
 import {
+  currentWeek,
   dsaWeek,
   isMonday,
+  isReviewDay,
   jobWeek,
   learningWeek,
   MAX_PRIORITIES,
@@ -27,6 +29,7 @@ import {
   scheduleWeek,
   type WeekBounds,
   weekBounds,
+  weeklyPromptDue,
 } from './domain';
 
 const date = (d: string) => new Date(d);
@@ -669,3 +672,14 @@ export const weekReview = (
   monday: string,
   now = new Date(),
 ) => memo(user.id, `review:${monday}`, () => loadWeekReview(user, monday, now));
+
+/** Sunday only: true while this week's review is open, with no query on other days. */
+export async function weeklyReviewOpen(user: ScheduleUser, now = new Date()) {
+  if (!isReviewDay(now, user.timezone)) return false;
+  const week = currentWeek(now, user.timezone);
+  const review = await db().weeklyReview.findUnique({
+    where: { userId_weekStart: { userId: user.id, weekStart: new Date(week) } },
+    select: { completedAt: true },
+  });
+  return weeklyPromptDue(now, user.timezone, review);
+}

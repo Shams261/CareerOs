@@ -14,7 +14,10 @@ import type {
 } from '@/generated/prisma/client';
 import { formatInTimeZone } from 'date-fns-tz';
 import { Button } from '@/components/ui/button';
-import { SecondaryActions } from '@/features/execution/secondary-actions';
+import {
+  SecondaryActions,
+  SkipStep,
+} from '@/features/execution/secondary-actions';
 export type GoalOption = { id: string; title: string };
 const WEEKDAY = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 function CommonFields({
@@ -373,16 +376,25 @@ export function RoutineForm({
  * `canStart` is false for any day but today: sessions are recorded against the present.
  * Only the block happening now (`current`) or a running one gets the primary button;
  * every other Start is secondary. A running block offers Stop and Complete only.
+ * `launcher` labels the primary action "Start session" / "Stop session"; `hideStart`
+ * keeps an agenda row from duplicating the launcher's control; `more` puts the secondary
+ * actions behind a labelled More button at every width (the agenda rows).
  */
 export function ExecutionControls({
   block,
   canStart = true,
   current = false,
+  launcher = false,
+  hideStart = false,
+  more = false,
 }: {
   block: TimeBlock;
   canStart?: boolean;
   /** The block happening now: its Start answers the S shortcut. */
   current?: boolean;
+  launcher?: boolean;
+  hideStart?: boolean;
+  more?: boolean;
 }) {
   const running = block.status === 'IN_PROGRESS';
   return (
@@ -391,43 +403,56 @@ export function ExecutionControls({
       <div className="actions">
         {['PLANNED', 'IN_PROGRESS'].includes(block.status) ? (
           <>
-            {(canStart || running) && (
+            {(canStart || running) && !hideStart && (
               <button
-                className={current || running ? 'button' : 'button secondary'}
+                className={
+                  current || running
+                    ? 'button'
+                    : `button secondary${more ? ' small' : ''}`
+                }
                 name="action"
                 value={running ? 'stop' : 'start'}
                 data-shortcut={current && !running ? 'start' : undefined}
               >
-                {running ? 'Stop session' : 'Start'}
+                {running
+                  ? launcher
+                    ? 'Stop session'
+                    : 'Stop'
+                  : launcher
+                    ? 'Start session'
+                    : 'Start'}
                 <span className="sr-only">: {block.title}</span>
               </button>
             )}
-            <SecondaryActions title={block.title}>
-              <Button className="secondary" name="action" value="complete">
+            <SecondaryActions title={block.title} always={more}>
+              <Button
+                className={`secondary${more ? ' small' : ''}`}
+                name="action"
+                value="complete"
+              >
                 Complete<span className="sr-only">: {block.title}</span>
               </Button>
               {!running && (
                 <>
-                  <Button className="secondary" name="action" value="skip">
-                    Skip<span className="sr-only">: {block.title}</span>
-                  </Button>
-                  <Button className="secondary" name="action" value="cancel">
+                  <SkipStep title={block.title} small={more} />
+                  <Button
+                    className={`secondary${more ? ' small' : ''}`}
+                    name="action"
+                    value="cancel"
+                  >
                     Cancel block<span className="sr-only">: {block.title}</span>
                   </Button>
-                  <input
-                    className="reason"
-                    name="reason"
-                    maxLength={300}
-                    aria-label="Skip reason (optional)"
-                    placeholder="Skip reason (optional)"
-                  />
                 </>
               )}
             </SecondaryActions>
           </>
         ) : (
-          <Button className="secondary" name="action" value="reset">
-            Reset to planned
+          <Button
+            className={`secondary${more ? ' small' : ''}`}
+            name="action"
+            value="reset"
+          >
+            Reset to planned<span className="sr-only">: {block.title}</span>
           </Button>
         )}
       </div>
@@ -493,45 +518,70 @@ export function ReviewForm({
     <ActionForm
       action={reviewAction}
       label="Daily review"
+      className="review-form"
       draft={`daily-review:${day}`}
+      broadcast="review"
+      closeOnSuccess
     >
       <input type="hidden" name="day" value={day} />
+      <fieldset className="rating-steps">
+        <legend>Overall day (optional)</legend>
+        <div className="rating-options">
+          {[1, 2, 3, 4, 5].map((n) => (
+            <label className="rating-step" key={n}>
+              <input
+                type="radio"
+                name="rating"
+                value={n}
+                defaultChecked={review?.rating === n}
+              />
+              <span>{n}</span>
+            </label>
+          ))}
+          <label className="rating-step rating-clear">
+            <input
+              type="radio"
+              name="rating"
+              value=""
+              defaultChecked={!review?.rating}
+            />
+            <span>No rating</span>
+          </label>
+        </div>
+      </fieldset>
       <label>
         What went well? (optional)
         <textarea
           name="notes"
+          rows={3}
           maxLength={1000}
           defaultValue={review?.notes ?? ''}
         />
       </label>
-      <label>
-        Main blocker (optional)
-        <input
-          name="blocker"
-          maxLength={500}
-          defaultValue={review?.blocker ?? ''}
-        />
-      </label>
-      <label>
-        Carry to tomorrow (optional)
-        <input
-          name="carryForward"
-          maxLength={500}
-          defaultValue={review?.carryForward ?? ''}
-        />
-      </label>
-      <label>
-        Overall day
-        <select name="rating" defaultValue={review?.rating ?? ''}>
-          <option value="">No rating</option>
-          {[1, 2, 3, 4, 5].map((n) => (
-            <option value={n} key={n}>
-              {n} / 5
-            </option>
-          ))}
-        </select>
-      </label>
-      <Button className="secondary">Save daily review</Button>
+      <FormMore
+        label="More: blocker, carry to tomorrow"
+        defaultOpen={!!(review?.blocker || review?.carryForward)}
+      >
+        <label>
+          Main blocker (optional)
+          <input
+            name="blocker"
+            maxLength={500}
+            defaultValue={review?.blocker ?? ''}
+          />
+        </label>
+        <label>
+          Carry to tomorrow (optional)
+          <input
+            name="carryForward"
+            maxLength={500}
+            defaultValue={review?.carryForward ?? ''}
+          />
+        </label>
+      </FormMore>
+      <Button className="mt-3">
+        {review ? 'Save review' : 'Save and close the day'}
+      </Button>
     </ActionForm>
   );
 }
