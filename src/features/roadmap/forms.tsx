@@ -1,12 +1,11 @@
 import { ActionForm } from '@/components/action-form';
-import type { Goal, Roadmap, RoadmapItem } from '@/generated/prisma/client';
+import type { Goal, Roadmap } from '@/generated/prisma/client';
 import {
-  bulkItemsAction,
-  goalAction,
-  itemAction,
-  itemOpAction,
-  roadmapAction,
-} from './actions';
+  DEFAULT_PROMPT_TEMPLATE,
+  scenarioLines,
+  type Scenario,
+} from './domain';
+import { bulkItemsAction, goalAction, roadmapAction } from './actions';
 
 export type LinkOption = { value: string; label: string };
 const GOAL_CATEGORIES = [
@@ -150,14 +149,45 @@ export function RoadmapForm({
         />
       </label>
       {roadmap && (
-        <label className="check">
-          <input
-            type="checkbox"
-            name="archived"
-            defaultChecked={!!roadmap.archivedAt}
-          />
-          Archived
-        </label>
+        <>
+          <label>
+            Study prompt template
+            <textarea
+              name="promptTemplate"
+              rows={8}
+              maxLength={20000}
+              defaultValue={roadmap.promptTemplate ?? ''}
+              placeholder={DEFAULT_PROMPT_TEMPLATE.slice(0, 160) + '…'}
+            />
+          </label>
+          <p className="muted">
+            Leave empty for the built-in template. Placeholders:{' '}
+            {
+              '{{topic}} {{section}} {{roadmap}} {{scope}} {{checkpoint}} {{priority}} {{estimate}} {{references}} {{notes}} {{scenario}} {{extra}}'
+            }
+          </p>
+          <label>
+            Scenarios, one per line as <code>id | Name | instruction</code>
+            <textarea
+              name="scenarios"
+              rows={5}
+              maxLength={20000}
+              defaultValue={scenarioLines(
+                (roadmap.scenarios as Scenario[] | null) ?? [],
+              )}
+              placeholder="start | Start or continue | Teach this topic directly…"
+            />
+          </label>
+          <p className="muted">Leave empty for the built-in scenarios.</p>
+          <label className="check">
+            <input
+              type="checkbox"
+              name="archived"
+              defaultChecked={!!roadmap.archivedAt}
+            />
+            Archived
+          </label>
+        </>
       )}
       <button className="button">
         {roadmap ? 'Save roadmap' : 'Create roadmap'}
@@ -214,144 +244,6 @@ export function BulkItemsForm({
       </label>
       <p className="muted">Start a line with ? to mark a question.</p>
       <button className="button">Add items</button>
-    </ActionForm>
-  );
-}
-
-export function ItemForm({
-  item,
-  sections,
-  links,
-}: {
-  item: RoadmapItem;
-  sections: string[];
-  links: LinkOption[];
-}) {
-  const current = item.learningTopicId
-    ? `learning:${item.learningTopicId}`
-    : item.dsaTopicId
-      ? `dsa-topic:${item.dsaTopicId}`
-      : item.dsaProblemId
-        ? `problem:${item.dsaProblemId}`
-        : '';
-  return (
-    <ActionForm
-      action={itemAction}
-      label={`Edit ${item.title}`}
-      className="dsa-form"
-    >
-      <input type="hidden" name="id" value={item.id} />
-      <div className="form-grid">
-        <label>
-          Title
-          <input
-            name="title"
-            required
-            maxLength={200}
-            defaultValue={item.title}
-          />
-        </label>
-        <label>
-          Section
-          <input
-            name="section"
-            required
-            maxLength={120}
-            list={`sections-edit-${item.roadmapId}`}
-            defaultValue={item.section}
-          />
-        </label>
-        <label>
-          Kind
-          <select name="kind" defaultValue={item.kind}>
-            <option value="CONCEPT">Concept</option>
-            <option value="QUESTION">Question</option>
-          </select>
-        </label>
-        <label>
-          Linked to
-          <select name="link" defaultValue={current}>
-            <option value="">Nothing</option>
-            {links.map((l) => (
-              <option key={l.value} value={l.value}>
-                {l.label}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label>
-          Link (optional)
-          <input name="url" type="url" defaultValue={item.url ?? ''} />
-        </label>
-        <label>
-          Where it came up (optional)
-          <input
-            name="askedNote"
-            maxLength={200}
-            defaultValue={item.askedNote ?? ''}
-            placeholder="Amazon phone screen"
-          />
-        </label>
-      </div>
-      <datalist id={`sections-edit-${item.roadmapId}`}>
-        {sections.map((s) => (
-          <option key={s} value={s} />
-        ))}
-      </datalist>
-      <label>
-        Notes
-        <textarea
-          name="notes"
-          maxLength={2000}
-          defaultValue={item.notes ?? ''}
-        />
-      </label>
-      <button className="button">Save item</button>
-    </ActionForm>
-  );
-}
-
-/** Status and interview marks on one row. */
-export function ItemControls({
-  item,
-}: {
-  item: Pick<RoadmapItem, 'id' | 'title' | 'status' | 'askedInInterview'>;
-}) {
-  return (
-    <ActionForm action={itemOpAction} label={`Actions for ${item.title}`}>
-      <input type="hidden" name="id" value={item.id} />
-      <div className="actions item-actions">
-        {item.status === 'NOT_STARTED' && (
-          <button className="button secondary" name="op" value="start">
-            Start
-          </button>
-        )}
-        {item.status !== 'DONE' ? (
-          <button className="button" name="op" value="done">
-            Done
-          </button>
-        ) : (
-          <button className="button secondary" name="op" value="reopen">
-            Reopen
-          </button>
-        )}
-        <button
-          className="button secondary"
-          name="op"
-          value={item.askedInInterview ? 'unasked' : 'asked'}
-          aria-pressed={item.askedInInterview}
-        >
-          {item.askedInInterview ? 'Asked ✓' : 'Asked in interview'}
-        </button>
-        <button
-          className="button secondary"
-          name="op"
-          value="remove"
-          aria-label={`Remove ${item.title}`}
-        >
-          Remove
-        </button>
-      </div>
     </ActionForm>
   );
 }

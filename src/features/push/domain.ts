@@ -7,7 +7,7 @@ export function notificationPath(type: string, dedupeKey: string) {
     case 'DSA_REVISION':
       return '/dsa';
     case 'TECHNICAL_REVIEW':
-      return '/learn';
+      return '/today';
     case 'JOB_FOLLOW_UP':
       return entity && /^[\w-]+$/.test(entity) ? `/jobs/${entity}` : '/jobs';
     case 'INTERVIEW':

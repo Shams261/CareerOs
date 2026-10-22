@@ -90,3 +90,15 @@ export function todayDsaSummary<T extends QueueProblem>(
     yellow: queue.filter((p) => p.confidence === 'YELLOW').length,
   };
 }
+
+/** The library's one filter: confidence or revision state. */
+export const STATUS_FILTERS = {
+  '': 'Any status',
+  unattempted: 'Unattempted',
+  RED: 'Red',
+  YELLOW: 'Yellow',
+  GREEN: 'Green',
+  due: 'Due today',
+  overdue: 'Overdue',
+} as const;
+export type StatusFilter = keyof typeof STATUS_FILTERS;

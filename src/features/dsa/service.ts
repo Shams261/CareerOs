@@ -61,6 +61,22 @@ export async function saveTopic(user: ScheduleUser, raw: unknown) {
     return topic;
   });
 }
+/** One click from the Topics list; the same rule as the form's "Current topic" box. */
+export async function setCurrentTopic(user: ScheduleUser, topicId: string) {
+  return locked(user.id, async (tx) => {
+    const topic = await tx.dsaTopic.findUnique({ where: { id: topicId } });
+    if (!topic) throw new Error('Topic not found.');
+    if (['PAUSED', 'COMPLETED', 'NOT_STARTED'].includes(topic.status))
+      throw new Error(
+        'Set a current topic to Learning, Revising or Interview ready.',
+      );
+    await tx.user.update({
+      where: { id: user.id },
+      data: { currentDsaTopicId: topic.id },
+    });
+    return topic;
+  });
+}
 export async function saveProblem(user: ScheduleUser, raw: unknown) {
   const input = z
     .object({

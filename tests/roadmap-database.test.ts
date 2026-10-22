@@ -10,11 +10,15 @@ import {
   applyItemOp,
   chainDays,
   goalsOverview,
+  revisionDue,
   roadmapDetail,
+  roadmapList,
   saveGoal,
   saveItem,
   saveRoadmap,
 } from '../src/features/roadmap/service';
+import { saveLearningReminder } from '../src/features/learning/service';
+import { processNotifications } from '../src/features/notifications/service';
 const url = process.env.TEST_DATABASE_URL;
 describe.skipIf(!url)('roadmap and goals persistence', () => {
   const prisma = new PrismaClient({ adapter: createPgAdapter(url!) });
@@ -123,6 +127,98 @@ describe.skipIf(!url)('roadmap and goals persistence', () => {
     await expect(
       applyItemOp(other, { id: item.id, op: 'done' }),
     ).rejects.toThrow('no longer exists');
+  });
+  it('schedules spaced revision on Done, bumps it on Revised, clears it on Reopen and reminds', async () => {
+    const roadmap = await saveRoadmap(user, { title: 'Revision roadmap' });
+    await addItems(user, {
+      roadmapId: roadmap.id,
+      section: 'Trees',
+      lines: 'Invert a tree\nMax depth',
+    });
+    const [invert, depth] = (await roadmapDetail(
+      user,
+      roadmap.id,
+    ))!.sections.get('Trees')!;
+    const day = (d: string) => new Date(d);
+    // Wednesday 2026-10-21 in Toronto.
+    await applyItemOp(user, { id: invert.id, op: 'done' }, now);
+    let row = await prisma.roadmapItem.findUniqueOrThrow({
+      where: { id: invert.id },
+    });
+    expect(row).toMatchObject({
+      status: 'DONE',
+      revisionStage: 1,
+      nextRevisionAt: day('2026-10-28'),
+    });
+    // Done again does not reschedule; Revised before the item is done is refused.
+    await applyItemOp(user, { id: invert.id, op: 'done' }, now);
+    expect(
+      (await prisma.roadmapItem.findUniqueOrThrow({ where: { id: invert.id } }))
+        .nextRevisionAt,
+    ).toEqual(day('2026-10-28'));
+    await expect(
+      applyItemOp(user, { id: depth.id, op: 'revised' }, now),
+    ).rejects.toThrow('done before');
+    // A week later it is due: Today lists it, the roadmap counts it, the reminder fires once.
+    const later = new Date('2026-10-28T18:00:00Z');
+    expect((await revisionDue(user, later)).map((i) => i.id)).toEqual([
+      invert.id,
+    ]);
+    expect(
+      (await roadmapList(user, later)).find((r) => r.id === roadmap.id)?.due,
+    ).toBe(1);
+    await saveLearningReminder(user, { enabled: true, preferredTime: '12:00' });
+    await Promise.all([
+      processNotifications(later),
+      processNotifications(later),
+    ]);
+    const logs = await prisma.notificationLog.findMany({
+      where: { userId: user.id, type: 'TECHNICAL_REVIEW' },
+    });
+    expect(logs).toHaveLength(1);
+    expect(logs[0].body).toBe('1 item due for revision today.');
+    await applyItemOp(user, { id: invert.id, op: 'revised' }, later);
+    row = await prisma.roadmapItem.findUniqueOrThrow({
+      where: { id: invert.id },
+    });
+    expect(row).toMatchObject({
+      revisionStage: 2,
+      nextRevisionAt: day('2026-11-11'),
+    });
+    expect(row.lastRevisedAt).toEqual(later);
+    expect(await revisionDue(user, later)).toEqual([]);
+    // The owner can type a date or clear it from the item form.
+    await saveItem(user, {
+      id: invert.id,
+      title: invert.title,
+      section: invert.section,
+      kind: invert.kind,
+      nextRevisionAt: '2026-12-01',
+    });
+    expect(
+      (await prisma.roadmapItem.findUniqueOrThrow({ where: { id: invert.id } }))
+        .nextRevisionAt,
+    ).toEqual(day('2026-12-01'));
+    await saveItem(user, {
+      id: invert.id,
+      title: invert.title,
+      section: invert.section,
+      kind: invert.kind,
+      nextRevisionAt: '',
+    });
+    expect(
+      (await prisma.roadmapItem.findUniqueOrThrow({ where: { id: invert.id } }))
+        .nextRevisionAt,
+    ).toBeNull();
+    await applyItemOp(user, { id: invert.id, op: 'done' }, later);
+    await applyItemOp(user, { id: invert.id, op: 'reopen' }, later);
+    expect(
+      await prisma.roadmapItem.findUniqueOrThrow({ where: { id: invert.id } }),
+    ).toMatchObject({
+      status: 'IN_PROGRESS',
+      revisionStage: 0,
+      nextRevisionAt: null,
+    });
   });
   it('marks the chain from recorded sessions and reviews only', async () => {
     const day = (offset: number) =>

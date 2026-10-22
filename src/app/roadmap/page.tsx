@@ -6,7 +6,8 @@ import { PageShortcuts } from '@/components/shortcuts';
 import { BrandMark } from '@/components/brand';
 import { GoalForm, RoadmapForm } from '@/features/roadmap/forms';
 import { goalsOverview, roadmapList } from '@/features/roadmap/service';
-import { targetLabel } from '@/features/roadmap/domain';
+import { daysUntil, targetLabel } from '@/features/roadmap/domain';
+import { ProgressBar } from '@/components/progress-bar';
 
 const hours = (minutes: number) =>
   `${Math.floor(minutes / 60)}h ${Math.round(minutes % 60)}m`;
@@ -17,13 +18,33 @@ const statusText = {
   ARCHIVED: 'Archived',
 } as const;
 
+/** "12 done this week · 704 left, 70 days to the target: about 10 a day". A fact, not a score. */
+function paceLine(
+  g: {
+    doneThisWeek: number;
+    roadmap: { total: number; done: number };
+    targetDate: Date | null;
+  },
+  today: string,
+) {
+  const left = g.roadmap.total - g.roadmap.done;
+  const days = g.targetDate
+    ? daysUntil(g.targetDate.toISOString().slice(0, 10), today)
+    : null;
+  const pace =
+    days && days > 0 && left > 0
+      ? ` · ${left} left, ${days} days to the target: about ${Math.ceil(left / days)} a day`
+      : '';
+  return `${g.doneThisWeek} done this week${pace}`;
+}
+
 export default async function RoadmapPage() {
   const user = await owner(),
     now = new Date(),
     today = dayKey(now, user.timezone);
   const [goals, roadmaps] = await Promise.all([
     goalsOverview(user, now),
-    roadmapList(user),
+    roadmapList(user, now),
   ]);
   const active = goals.filter((g) => g.status === 'ACTIVE'),
     rest = goals.filter((g) => g.status !== 'ACTIVE'),
@@ -32,14 +53,19 @@ export default async function RoadmapPage() {
   return (
     <>
       <PageShortcuts
-        shortcuts={[{ key: 'n', label: 'Add goal', press: 'add-goal' }]}
+        shortcuts={[{ key: 'n', label: 'New roadmap', press: 'new-roadmap' }]}
       />
       <p className="eyebrow">Goals and roadmaps</p>
       <div className="page-head">
         <h1>Roadmap</h1>
         {goals.length > 0 && (
-          <Disclosure label="Add goal" variant="primary" shortcut="add-goal">
-            <GoalForm />
+          <Disclosure
+            label="New roadmap"
+            variant={live.length ? 'secondary' : 'primary'}
+            shortcut="new-roadmap"
+            defaultOpen={!live.length}
+          >
+            <RoadmapForm goals={goals} />
           </Disclosure>
         )}
       </div>
@@ -55,123 +81,145 @@ export default async function RoadmapPage() {
           <GoalForm compact />
         </section>
       ) : (
-        <section className="card" aria-labelledby="goals-heading">
-          <div className="section-head">
-            <h2 id="goals-heading">Goals</h2>
-          </div>
+        <section className="card goal-card" aria-labelledby="goals-heading">
           {active.map((g) => (
-            <div className="goal-row" key={g.id}>
+            <div className="goal-summary" key={g.id}>
               <div>
-                <strong>{g.title}</strong>
+                <p className="eyebrow">Goal</p>
+                <h2 id="goals-heading">{g.title}</h2>
                 <p className="muted">
                   {targetLabel(
                     g.targetDate?.toISOString().slice(0, 10) ?? null,
                     today,
-                  )}{' '}
-                  · {g.category}
+                  )}
+                  {g.roadmap.total
+                    ? ` · ${g.roadmap.done} of ${g.roadmap.total} roadmap items done`
+                    : ''}
+                  {g.week.planned + g.week.actual > 0
+                    ? ` · ${hours(g.week.actual)} of ${hours(g.week.planned)} this week`
+                    : ''}
                 </p>
-                <p className="status-line">
-                  {g.week.planned + g.week.actual > 0 ? (
-                    <span>
-                      This week {hours(g.week.actual)} of{' '}
-                      {hours(g.week.planned)}
-                    </span>
-                  ) : (
-                    <span>Nothing planned toward it this week</span>
-                  )}
-                  {g.roadmap.total > 0 && (
-                    <span>
-                      Roadmap {g.roadmap.done} of {g.roadmap.total}
-                      {g.roadmap.asked ? ` · ${g.roadmap.asked} asked` : ''}
-                    </span>
-                  )}
-                  {g.topics.total > 0 && (
-                    <span>
-                      Topics {g.topics.ready} of {g.topics.total} interview
-                      ready
-                    </span>
-                  )}
-                </p>
-                {g.description && <p className="muted">{g.description}</p>}
+                {g.roadmap.total > 0 && (
+                  <p className="muted goal-pace">{paceLine(g, today)}</p>
+                )}
+                {g.upNext.length > 0 && (
+                  <p className="goal-upnext">
+                    <span className="muted">Up next:</span>{' '}
+                    {g.upNext.map((n, i) => (
+                      <span key={n.id}>
+                        {i > 0 && <span className="muted"> · </span>}
+                        <Link
+                          className="link"
+                          href={`/roadmap/${n.roadmapId}?section=${encodeURIComponent(n.section)}#item-${n.id}`}
+                        >
+                          {n.title}
+                        </Link>
+                      </span>
+                    ))}
+                  </p>
+                )}
               </div>
-              <Disclosure variant="link" label="Edit">
+              <Disclosure variant="link" label="Edit goal">
                 <GoalForm goal={g} />
               </Disclosure>
             </div>
           ))}
           {!active.length && <p className="muted">No active goals.</p>}
-          {rest.length > 0 && (
-            <Disclosure variant="link" label="Other goals" className="mt-4">
-              {rest.map((g) => (
-                <div className="goal-row" key={g.id}>
-                  <div>
-                    <strong>{g.title}</strong>
-                    <p className="muted">
-                      {statusText[g.status]} · {g.category}
-                    </p>
+          <div className="goal-more">
+            <Disclosure variant="link" label="Add goal">
+              <GoalForm />
+            </Disclosure>
+            {rest.length > 0 && (
+              <Disclosure variant="link" label="Other goals">
+                {rest.map((g) => (
+                  <div className="goal-summary" key={g.id}>
+                    <div>
+                      <strong>{g.title}</strong>
+                      <p className="muted">
+                        {statusText[g.status]} · {g.category}
+                      </p>
+                    </div>
+                    <Disclosure variant="link" label="Edit">
+                      <GoalForm goal={g} />
+                    </Disclosure>
                   </div>
-                  <Disclosure variant="link" label="Edit">
-                    <GoalForm goal={g} />
-                  </Disclosure>
-                </div>
+                ))}
+              </Disclosure>
+            )}
+          </div>
+        </section>
+      )}
+      {goals.length > 0 && (
+        <section className="card flat" aria-labelledby="roadmaps-heading">
+          <div className="section-head">
+            <h2 id="roadmaps-heading">Roadmaps</h2>
+          </div>
+          {!live.length && (
+            <p className="muted">
+              A roadmap is the list of topics and questions you want to be ready
+              for, in sections, with what you have covered and what came up in
+              interviews.
+            </p>
+          )}
+          <ol className="plain-list">
+            {live.map((r) => (
+              <li key={r.id}>
+                <Link
+                  className="roadmap-row"
+                  href={
+                    r.next
+                      ? `/roadmap/${r.id}?section=${encodeURIComponent(r.next.section)}#item-${r.next.id}`
+                      : `/roadmap/${r.id}`
+                  }
+                  prefetch={false}
+                >
+                  <span className="roadmap-row-main">
+                    <span className="roadmap-row-title">{r.title}</span>
+                    <ProgressBar
+                      done={r.progress.done}
+                      inProgress={r.progress.inProgress}
+                      total={r.progress.total}
+                    />
+                    <span className="muted">
+                      {r.next
+                        ? `Continue: ${r.next.title} · ${r.next.section}`
+                        : r.progress.total
+                          ? 'Everything done'
+                          : 'No items yet'}
+                    </span>
+                  </span>
+                  <span className="roadmap-row-counts">
+                    <span>
+                      {r.progress.done} of {r.progress.total} done
+                    </span>
+                    {r.due > 0 && (
+                      <span className="is-due">{r.due} due for revision</span>
+                    )}
+                    {!r.due && r.progress.inProgress > 0 && (
+                      <span>{r.progress.inProgress} in progress</span>
+                    )}
+                  </span>
+                </Link>
+              </li>
+            ))}
+          </ol>
+          {archived.length > 0 && (
+            <Disclosure
+              variant="link"
+              label="Archived roadmaps"
+              className="mt-4"
+            >
+              {archived.map((r) => (
+                <p key={r.id}>
+                  <Link className="link" href={`/roadmap/${r.id}`}>
+                    {r.title}
+                  </Link>
+                </p>
               ))}
             </Disclosure>
           )}
         </section>
       )}
-      <section className="card" aria-labelledby="roadmaps-heading">
-        <div className="section-head">
-          <h2 id="roadmaps-heading">Roadmaps</h2>
-        </div>
-        <Disclosure
-          label="New roadmap"
-          variant={live.length ? 'secondary' : 'primary'}
-          defaultOpen={!live.length && goals.length > 0}
-        >
-          <RoadmapForm goals={goals} />
-        </Disclosure>
-        {!live.length && (
-          <p className="muted mt-4">
-            A roadmap is the list of concepts and questions you want to be ready
-            for, in sections, with what you have covered and what came up in
-            interviews.
-          </p>
-        )}
-        {live.map((r) => (
-          <div className="goal-row" key={r.id}>
-            <div>
-              <Link className="link" href={`/roadmap/${r.id}`}>
-                {r.title}
-              </Link>
-              <p className="muted">
-                {r.progress.done} of {r.progress.total} done
-                {r.progress.inProgress
-                  ? ` · ${r.progress.inProgress} in progress`
-                  : ''}
-                {r.progress.asked ? ` · ${r.progress.asked} asked` : ''}
-                {r.sections.length
-                  ? ` · ${r.sections.length} section${r.sections.length === 1 ? '' : 's'}`
-                  : ''}
-                {r.goal ? ` · ${r.goal.title}` : ''}
-              </p>
-            </div>
-            <Link className="button secondary" href={`/roadmap/${r.id}`}>
-              Open
-            </Link>
-          </div>
-        ))}
-        {archived.length > 0 && (
-          <Disclosure variant="link" label="Archived roadmaps" className="mt-4">
-            {archived.map((r) => (
-              <p key={r.id}>
-                <Link className="link" href={`/roadmap/${r.id}`}>
-                  {r.title}
-                </Link>
-              </p>
-            ))}
-          </Disclosure>
-        )}
-      </section>
     </>
   );
 }

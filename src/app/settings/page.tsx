@@ -11,6 +11,7 @@ import { healthCheck } from '@/server/health';
 import { activeDevices } from '@/features/push/service';
 import { PushControls } from '@/features/push/controls';
 import { GoogleCalendarPanel } from '@/features/calendar/panel';
+import { LearningReminderForm } from '@/features/learning/forms';
 import { signOutAction } from '@/features/auth/actions';
 import { currentWeek } from '@/features/review/domain';
 import { shiftDay } from '@/features/schedule/domain';
@@ -35,24 +36,35 @@ export default async function Settings({
     }
   })();
   const nextMonday = shiftDay(currentWeek(now, user.timezone), 7);
-  const [pref, devices, health, calendar, jobs, routines, nextWeekPlans] =
-    await Promise.all([
-      db().notificationPreference.findUnique({
-        where: { userId_type: { userId: user.id, type: 'DAILY_PROGRESS' } },
-      }),
-      activeDevices(user.id),
-      healthCheck(),
-      db().calendarConnection.findUnique({ where: { userId: user.id } }),
-      db().jobRun.findMany(),
-      db().routineBlock.count({ where: { userId: user.id, enabled: true } }),
-      db().dailyPlan.count({
-        where: {
-          userId: user.id,
-          generatedAt: { not: null },
-          date: { gte: new Date(nextMonday) },
-        },
-      }),
-    ]);
+  const [
+    pref,
+    devices,
+    health,
+    calendar,
+    jobs,
+    routines,
+    nextWeekPlans,
+    revisionPref,
+  ] = await Promise.all([
+    db().notificationPreference.findUnique({
+      where: { userId_type: { userId: user.id, type: 'DAILY_PROGRESS' } },
+    }),
+    activeDevices(user.id),
+    healthCheck(),
+    db().calendarConnection.findUnique({ where: { userId: user.id } }),
+    db().jobRun.findMany(),
+    db().routineBlock.count({ where: { userId: user.id, enabled: true } }),
+    db().dailyPlan.count({
+      where: {
+        userId: user.id,
+        generatedAt: { not: null },
+        date: { gte: new Date(nextMonday) },
+      },
+    }),
+    db().notificationPreference.findUnique({
+      where: { userId_type: { userId: user.id, type: 'TECHNICAL_REVIEW' } },
+    }),
+  ]);
   const job = (name: string) => jobs.find((j) => j.name === name);
   // The checklist disappears once everything on it is done.
   const steps: [string, boolean, string][] = [
@@ -127,6 +139,8 @@ export default async function Settings({
           </label>
           <Button className="mt-3">Save</Button>
         </ActionForm>
+        <h3 className="mt-4">Revision reminder</h3>
+        <LearningReminderForm pref={revisionPref} />
       </section>
 
       <GoogleCalendarPanel user={user} flash={flash} />

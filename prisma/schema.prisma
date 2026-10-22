@@ -825,18 +825,22 @@ model JobRun {
 /// WI-009: an interview roadmap is a planning layer. Items may point at a Learn topic or a
 /// Practice problem/topic but never change mastery, attempts or revision dates.
 model Roadmap {
-  id          String        @id @default(cuid())
-  userId      String
-  user        User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-  title       String
-  description String?
-  goalId      String?
-  goal        Goal?         @relation(fields: [goalId], references: [id], onDelete: SetNull)
-  ordering    Int           @default(0)
-  archivedAt  DateTime?     @db.Timestamptz(3)
-  createdAt   DateTime      @default(now()) @db.Timestamptz(3)
-  updatedAt   DateTime      @updatedAt @db.Timestamptz(3)
-  items       RoadmapItem[]
+  id             String        @id @default(cuid())
+  userId         String
+  user           User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title          String
+  description    String?
+  goalId         String?
+  goal           Goal?         @relation(fields: [goalId], references: [id], onDelete: SetNull)
+  ordering       Int           @default(0)
+  archivedAt     DateTime?     @db.Timestamptz(3)
+  /// Study prompt template; `{{topic}} {{section}} {{scope}} {{checkpoint}} {{priority}} {{references}} {{scenario}} {{extra}}`.
+  promptTemplate String?       @db.Text
+  /// Prompt scenarios `[{ id, name, intro }]` offered when copying a study prompt.
+  scenarios      Json?
+  createdAt      DateTime      @default(now()) @db.Timestamptz(3)
+  updatedAt      DateTime      @updatedAt @db.Timestamptz(3)
+  items          RoadmapItem[]
 
   @@index([userId, ordering])
 }
@@ -850,10 +854,27 @@ model RoadmapItem {
   section          String
   kind             RoadmapItemKind   @default(CONCEPT)
   title            String
-  notes            String?
+  /// Import key within a roadmap (bundle slug); owner-added items have none.
+  slug             String?
+  /// What to cover; the owner's revision notes live in `notes`.
+  scope            String?           @db.Text
+  /// What "done" means for this item.
+  checkpoint       String?           @db.Text
+  /// 1 = P0, 2 = P1, 3 = P2.
+  priority         Int               @default(2)
+  estimateMinutes  Int?
+  /// Curated starting points `[{ label, url, kind? }]`; read-only in the app.
+  references       Json?
+  /// Where the item came from ("Backend week 3", "DSA Pattern Bible ch. 5").
+  sourceRef        String?
+  notes            String?           @db.Text
   url              String?
   status           RoadmapItemStatus @default(NOT_STARTED)
   completedAt      DateTime?         @db.Timestamptz(3)
+  /// Spaced revision after Done: stage 1 → 7 days, 2 → 14, 3 → 30, then 60. A calendar label.
+  nextRevisionAt   DateTime?         @db.Date
+  revisionStage    Int               @default(0)
+  lastRevisedAt    DateTime?         @db.Timestamptz(3)
   askedInInterview Boolean           @default(false)
   askedNote        String?
   ordering         Int               @default(0)
@@ -866,6 +887,8 @@ model RoadmapItem {
   createdAt        DateTime          @default(now()) @db.Timestamptz(3)
   updatedAt        DateTime          @updatedAt @db.Timestamptz(3)
 
+  @@unique([roadmapId, slug])
+  @@index([userId, nextRevisionAt])
   @@index([roadmapId, section, ordering])
   @@index([userId, status])
   @@index([learningTopicId])

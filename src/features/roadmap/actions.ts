@@ -10,6 +10,8 @@ import {
   applyItemOp,
   saveGoal,
   saveItem,
+  saveItemAskedNote,
+  saveItemNotes,
   saveRoadmap,
 } from './service';
 
@@ -62,6 +64,24 @@ export async function itemAction(_s: ActionState, f: FormData) {
     return 'Item saved.';
   });
 }
+export async function noteAction(_s: ActionState, f: FormData) {
+  return perform(async () => {
+    await saveItemNotes(await owner(), {
+      id: f.get('id'),
+      notes: f.get('notes') ?? '',
+    });
+    return 'Note saved.';
+  });
+}
+export async function askedNoteAction(_s: ActionState, f: FormData) {
+  return perform(async () => {
+    await saveItemAskedNote(await owner(), {
+      id: f.get('id'),
+      askedNote: f.get('askedNote') ?? '',
+    });
+    return 'Saved.';
+  });
+}
 export async function itemOpAction(_s: ActionState, f: FormData) {
   return perform(async () => {
     const { op, item } = await applyItemOp(await owner(), {
@@ -80,6 +100,16 @@ export async function itemOpAction(_s: ActionState, f: FormData) {
             title: item.title,
             notes: item.notes,
             url: item.url,
+            slug: item.slug,
+            scope: item.scope,
+            checkpoint: item.checkpoint,
+            priority: item.priority,
+            estimateMinutes: item.estimateMinutes,
+            references: item.references,
+            sourceRef: item.sourceRef,
+            nextRevisionAt:
+              item.nextRevisionAt?.toISOString().slice(0, 10) ?? null,
+            revisionStage: item.revisionStage,
             status: item.status,
             askedInInterview: item.askedInInterview,
             askedNote: item.askedNote,
@@ -90,6 +120,12 @@ export async function itemOpAction(_s: ActionState, f: FormData) {
           },
         },
       };
-    return op === 'asked' ? 'Marked as asked in an interview.' : 'Saved.';
+    return op === 'asked'
+      ? 'Marked as asked in an interview.'
+      : op === 'revised'
+        ? 'Revision recorded; the next one is scheduled.'
+        : op === 'done'
+          ? 'Done. Revision in 7 days.'
+          : 'Saved.';
   });
 }

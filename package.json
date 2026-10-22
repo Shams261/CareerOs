@@ -25,6 +25,8 @@
     "timestamps:repair": "tsx scripts/timestamps.ts repair",
     "db:backup": "tsx scripts/db-backup.ts",
     "db:restore:verify": "tsx scripts/db-restore-verify.ts",
+    "roadmap:bundle": "tsx scripts/build-roadmap-bundle.ts",
+    "roadmap:import": "tsx scripts/import-roadmap.ts",
     "google:fake": "tsx tests/support/fake-google-server.ts"
   },
   "dependencies": {

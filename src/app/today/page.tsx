@@ -35,7 +35,7 @@ import { ExecutionRefresh } from '@/features/execution/refresh';
 import { LiveTimer } from '@/features/execution/live';
 import { PageShortcuts } from '@/components/shortcuts';
 import { CategoryIcon } from '@/components/category-icon';
-import { Chain, TodayGoals } from '@/features/roadmap/summary';
+import { Chain, TodayGoals, TodayRevision } from '@/features/roadmap/summary';
 import { openNotes } from '@/features/notes/service';
 import { NoteList } from '@/features/notes/forms';
 import { readNotification } from '@/server/actions';
@@ -426,6 +426,7 @@ export default async function Today({
               {day === today && (
                 <Suspense fallback={<CardSkeleton />}>
                   <TodayGoals user={user} now={now} />
+                  <TodayRevision user={user} now={now} />
                   <WeeklyReviewPrompt user={user} now={now} />
                   <TodayJobs user={user} now={now} />
                   <TodayLearning user={user} now={now} blocks={blocks} />

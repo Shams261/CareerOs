@@ -1,11 +1,5 @@
-import { randomUUID } from 'node:crypto';
 import { ActionForm } from '@/components/action-form';
-import {
-  topicAction,
-  problemAction,
-  attemptAction,
-  revisionAction,
-} from './actions';
+import { topicAction, problemAction, revisionAction } from './actions';
 import type { DsaTopic, DsaProblem } from '@/generated/prisma/client';
 import { revisionDay } from './domain';
 /** `compact` is the first-run form: a name, saved as the current topic. */
@@ -175,61 +169,6 @@ export function ProblemForm({
         {problem ? 'Save problem' : 'Add problem'}
       </button>
       {!topics.length && <p className="muted">Add a topic first.</p>}
-    </ActionForm>
-  );
-}
-export function AttemptForm({ problemId }: { problemId: string }) {
-  const requestId = randomUUID();
-  return (
-    <ActionForm
-      action={attemptAction}
-      label="Record attempt"
-      className="dsa-form"
-      resetOnSuccess
-    >
-      <input type="hidden" name="problemId" value={problemId} />
-      <input type="hidden" name="requestId" value={requestId} />
-      <label>
-        Did you solve it yourself?
-        <select name="solvedIndependently" required defaultValue="">
-          <option value="" disabled>
-            Choose
-          </option>
-          <option value="YES">Yes, on my own</option>
-          <option value="PARTIAL">Partly, with hints</option>
-          <option value="NO">No, I needed the solution</option>
-        </select>
-      </label>
-      <label>
-        Confidence now
-        <select name="confidenceAfter" required defaultValue="">
-          <option value="" disabled>
-            Choose
-          </option>
-          <option value="RED">Red — can’t derive the approach yet</option>
-          <option value="YELLOW">
-            Yellow — understand it, not yet reliable
-          </option>
-          <option value="GREEN">Green — can solve and explain it</option>
-        </select>
-      </label>
-      <label>
-        Time spent (minutes, optional)
-        <input name="durationMinutes" type="number" min="1" max="1440" />
-      </label>
-      <label>
-        What did you miss? (optional)
-        <textarea
-          name="mistake"
-          maxLength={1000}
-          placeholder="Pattern, edge case, or implementation mistake"
-        />
-      </label>
-      <label>
-        Note (optional)
-        <textarea name="notes" maxLength={2000} />
-      </label>
-      <button className="button">Save attempt</button>
     </ActionForm>
   );
 }

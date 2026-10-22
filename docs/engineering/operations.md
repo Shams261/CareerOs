@@ -32,6 +32,28 @@ In production (ADR-014; also the Heroku alternative) the caller is [cron-job.org
 
 See [backup and restore](backup-restore.md) for `pnpm db:backup`, `pnpm db:restore:verify`, the schedule, recovery and the personal database migration checklist. Supabase Free (ADR-014) has no automated backups: `pnpm db:backup` from a workstation against the session-pooler URL, weekly and before every migration, is the only copy; it needs `pg_dump` 17 or newer (`brew install libpq`). On the Heroku alternative, `heroku pg:backups:capture` adds a provider-side snapshot. Proposed RPO/RTO are in the NFR register. Restore rehearsals always go into a new scratch database, never over a live one. Do not commit backups.
 
+## Roadmap material import (WI-012)
+
+The five roadmaps (Backend engineering, System design, Technical mastery, DSA patterns, Behavioural and resume) are imported from the owner's study materials, never committed. Two steps, both run from the workstation:
+
+1. **Build the bundle** from the folder that holds the two HTML trackers, `02_TECHNICAL_ROADMAP.md`, `LearningMaterialsPDF/DSA-PATTERN_BOOK.pdf` and the behavioural handbook PDF. Needs poppler's `pdftotext` (`brew install poppler`). The Sean Prashad problem list is fetched once from GitHub and cached as `leetcode-patterns.json` beside the sources (`PRASHAD_JSON=<path>` points at a local copy instead).
+
+   ```sh
+   pnpm roadmap:bundle "<sources folder>"
+   ```
+
+   Writes `roadmap-bundle.json` next to the sources and prints items per roadmap. Review it once by eye (it is plain JSON and may be edited); the bundle holds the owner's rehearsal text, so it stays outside the repository like a backup.
+
+2. **Import** it for the single owner (the importer refuses when the database holds any other number of users):
+
+   ```sh
+   DATABASE_URL=<session-pooler url> DATABASE_SSL=no-verify pnpm roadmap:import "<sources folder>/roadmap-bundle.json"
+   ```
+
+   Idempotent: keyed by roadmap title, item slug, DSA topic name and problem URL. A re-run updates scope, checkpoint, priority, estimate, references, link, source, prompt template and scenarios, and never touches status, completion, "asked in interview", attempts, confidence, or an item's notes once the owner has written any (the report prints `notes_kept`). Items the owner adds by hand have no slug and are never touched. Re-run after editing a source or `scripts/lib/{dsa-curriculum,interview-research}.ts`.
+
+Before the first import on a workspace that already holds test data, run the reset in [backup and restore](backup-restore.md#reset-the-owners-domain-data).
+
 ## Legacy timestamp repair
 
 For a database used before WI-005.1 on a non-UTC PostgreSQL server (see the README time storage policy). Never rehearse on the only copy.
