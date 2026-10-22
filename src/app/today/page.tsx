@@ -441,7 +441,7 @@ export default async function Today({
               )}
               {plan?.reviewedAt && plan.checkIn ? (
                 <section
-                  className="card day-closed"
+                  className="card day-closed daily-review"
                   aria-labelledby="review-heading"
                 >
                   <p className="eyebrow">Day closed</p>
@@ -472,7 +472,10 @@ export default async function Today({
                   </Disclosure>
                 </section>
               ) : (
-                <section className="card" aria-labelledby="review-heading">
+                <section
+                  className="card daily-review"
+                  aria-labelledby="review-heading"
+                >
                   <h2 id="review-heading">Daily review</h2>
                   <ReviewForm day={day} review={plan?.checkIn} />
                 </section>

@@ -74,7 +74,7 @@ export default async function RootLayout({
                 <BrandLogo />
               </Link>
             </div>
-            <Navigation />
+            <Navigation capture={<CaptureForm />} />
             <Suspense fallback={null}>
               <RunningNow />
             </Suspense>

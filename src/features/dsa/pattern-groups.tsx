@@ -46,7 +46,6 @@ export function PatternGroups({
     <div className="problem-table">
       <div className="problem-head" aria-hidden="true">
         <span>Problem</span>
-        <span>Pattern</span>
         <span>Difficulty</span>
         <span>Status</span>
       </div>
@@ -100,7 +99,6 @@ export function PatternGroups({
                       </a>
                     )}
                   </span>
-                  <span className="muted problem-cell-pattern">{g.name}</span>
                   <span
                     className={`problem-cell-level is-${p.difficulty.toLowerCase()}`}
                   >

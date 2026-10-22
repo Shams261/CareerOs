@@ -114,8 +114,11 @@ export default async function Application({
           : ''}
       </p>
       <h1>{app.role}</h1>
-      <p className="status-line summary-line mb-7">
+      <div className="status-line summary-line mb-7">
         <span className="pill">{label(app.stage)}</span>
+        <Disclosure variant="link" label="Change stage">
+          <StageForm app={app} />
+        </Disclosure>
         {(app.nextAction || app.nextActionDate) && (
           <span>
             <strong>{app.nextAction ?? 'Follow up'}</strong>
@@ -140,7 +143,7 @@ export default async function Application({
         {app.jobUrl && (
           <ResourceLink url={app.jobUrl}>Job posting</ResourceLink>
         )}
-      </p>
+      </div>
       <div className="grid-main">
         <section>
           <section className="card" aria-labelledby="next-heading">
@@ -384,13 +387,6 @@ export default async function Application({
           </section>
         </section>
         <aside>
-          <section className="card">
-            <h2>Stage</h2>
-            <p>
-              <span className="pill">{label(app.stage)}</span>
-            </p>
-            <StageForm app={app} />
-          </section>
           <section className="card flat">
             <h2>Contacts</h2>
             <p>Recruiter: {app.recruiterName ?? 'Not added'}</p>
