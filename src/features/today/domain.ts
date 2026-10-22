@@ -247,6 +247,20 @@ export const resolutionText: Record<Resolution, string> = {
   'needs-update': 'Recorded · Needs update',
 };
 
+/**
+ * The title Today shows for a block. A block the Jobs round form created is named
+ * "Company — Round"; with the company already on the meta line, the row and the launcher
+ * show the round's title. A title the owner wrote stays as written.
+ */
+export function blockTitle(
+  block: { title: string; interviewRoundId?: string | null },
+  round: { title: string; company: string } | null | undefined,
+) {
+  return round && block.title === `${round.company} — ${round.title}`
+    ? round.title
+    : block.title;
+}
+
 /* ---------- Needs attention ---------- */
 
 export type AttentionSource =
@@ -301,6 +315,14 @@ export type AttentionInput = {
     dedupeKey: string;
   }[];
   weeklyDue: boolean;
+  /** Today's blocks, so a reminder keyed on one reads as that block, not as a sentence. */
+  blocks?: {
+    id: string;
+    title: string;
+    plannedStart: Date;
+    plannedEnd: Date;
+    interviewRoundId?: string | null;
+  }[];
 };
 
 const dateLabel = (d: Date) => d.toISOString().slice(0, 10);
@@ -474,6 +496,30 @@ export function attentionItems(input: AttentionInput): AttentionItem[] {
           : undefined;
     if (host) {
       host.notificationIds.push(n.id);
+      continue;
+    }
+    const block =
+      n.type === 'UPCOMING_BLOCK' || n.type === 'OVERDUE_TASK'
+        ? input.blocks?.find((b) => b.id === entity)
+        : undefined;
+    if (block) {
+      const round = block.interviewRoundId
+        ? input.interviews.find((r) => r.id === block.interviewRoundId)
+        : null;
+      items.push({
+        id: `notification:${n.id}`,
+        source: 'notification',
+        label: 'Reminder',
+        title: blockTitle(block, round),
+        context:
+          n.type === 'OVERDUE_TASK'
+            ? `Not recorded · ${hhmm(block.plannedStart, zone)}–${hhmm(block.plannedEnd, zone)}`
+            : `Starts at ${hhmm(block.plannedStart, zone)}`,
+        href: `#block-${block.id}`,
+        tier: 3,
+        due: +n.scheduledFor,
+        notificationIds: [n.id],
+      });
       continue;
     }
     items.push({

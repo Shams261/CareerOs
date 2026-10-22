@@ -22,6 +22,7 @@ import { dayKey, minutes } from '@/lib/time';
 import type { ActualSession, TimeBlock } from '@/generated/prisma/client';
 import {
   blockResolution,
+  blockTitle,
   formatDuration,
   groupAgenda,
   hhmm,
@@ -232,6 +233,7 @@ function BlockRow({
             : resolution === 'current' || resolution === 'in-progress'
               ? `${context} · Until ${hhmm(block.plannedEnd, zone)}`
               : `${context} · ${formatDuration(planned)}`;
+  const title = blockTitle(block, round);
   const panelMeta = [
     round ? `${round.company} · Interview` : categoryGroup(block.category),
     origin(block),
@@ -258,7 +260,7 @@ function BlockRow({
           ) : (
             <CategoryIcon category={block.category} size={16} />
           )}
-          {block.title}
+          {title}
         </h3>
         <p className="agenda-meta">{meta}</p>
       </div>
@@ -297,12 +299,12 @@ function BlockRow({
         <PanelButton
           panel={panelId}
           className="agenda-details"
-          aria-label={`Details: ${block.title}`}
+          aria-label={`Details: ${title}`}
         >
           <ChevronRight size={18} aria-hidden="true" />
         </PanelButton>
       </div>
-      <SidePanel id={panelId} title={block.title}>
+      <SidePanel id={panelId} title={title}>
         <p className="muted">
           {hhmm(block.plannedStart, zone)}–{hhmm(block.plannedEnd, zone)} ·{' '}
           {panelMeta}

@@ -25,10 +25,18 @@ export async function Attention({
   user,
   now,
   interviews,
+  blocks,
 }: {
   user: ScheduleUser;
   now: Date;
   interviews: RoundLike[];
+  blocks: {
+    id: string;
+    title: string;
+    plannedStart: Date;
+    plannedEnd: Date;
+    interviewRoundId: string | null;
+  }[];
 }) {
   const [jobs, roadmap, practice, weekly, reminders] = await Promise.allSettled(
     [
@@ -87,6 +95,7 @@ export async function Attention({
         : [],
     notifications: reminders.status === 'fulfilled' ? reminders.value : [],
     weeklyDue: weekly.status === 'fulfilled' && weekly.value,
+    blocks,
   });
   const preview = items.slice(0, PREVIEW);
   return (

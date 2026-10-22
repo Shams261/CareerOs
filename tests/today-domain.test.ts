@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
   agendaEntries,
   attentionItems,
+  blockTitle,
   attentionPage,
   blockResolution,
   daySummary,
@@ -436,6 +437,71 @@ describe('needs attention', () => {
     expect(
       notificationEntity(`u:INTERVIEW:r9:${at('16:00').toISOString()}:day`),
     ).toBe('r9');
+  });
+  it('reads a reminder keyed on a block as that block, linked to its row', () => {
+    const items = attentionItems({
+      ...base,
+      blocks: [
+        {
+          id: 'b1',
+          title: 'Cover letter draft',
+          plannedStart: at('11:00'),
+          plannedEnd: at('12:00'),
+        },
+        {
+          id: 'b2',
+          title: 'Example Labs — Coding',
+          plannedStart: at('18:00'),
+          plannedEnd: at('19:00'),
+          interviewRoundId: 'r1',
+        },
+      ],
+      interviews: [
+        round({ id: 'r1', title: 'Coding', scheduledStart: at('18:00') }),
+      ],
+      notifications: [
+        {
+          id: 'n1',
+          type: 'OVERDUE_TASK',
+          title:
+            'You planned Cover letter draft from 11:00 AM–12:00 PM and haven’t recorded progress.',
+          scheduledFor: at('12:00'),
+          dedupeKey: `u:OVERDUE_TASK:b1:${at('12:00').toISOString()}`,
+        },
+        {
+          id: 'n2',
+          type: 'UPCOMING_BLOCK',
+          title: 'Example Labs — Coding starts in 15 minutes.',
+          scheduledFor: at('17:45'),
+          dedupeKey: `u:UPCOMING_BLOCK:b2:${at('18:00').toISOString()}`,
+        },
+        {
+          id: 'n3',
+          type: 'OVERDUE_TASK',
+          title: 'A block that is no longer on the plan.',
+          scheduledFor: at('13:00'),
+          dedupeKey: `u:OVERDUE_TASK:gone:${at('13:00').toISOString()}`,
+        },
+      ],
+    });
+    expect(items.map((i) => [i.title, i.context, i.href])).toEqual([
+      ['Cover letter draft', 'Not recorded · 11:00–12:00', '#block-b1'],
+      ['A block that is no longer on the plan.', 'Today', null],
+      ['Coding', 'Starts at 18:00', '#block-b2'],
+    ]);
+    expect(items[0].notificationIds).toEqual(['n1']);
+  });
+  it('shows the round title for a block the round form named, and the owner’s title otherwise', () => {
+    const r = { title: 'Recruiter call', company: 'Example Labs' };
+    expect(blockTitle({ title: 'Example Labs — Recruiter call' }, r)).toBe(
+      'Recruiter call',
+    );
+    expect(blockTitle({ title: 'Prep for the recruiter' }, r)).toBe(
+      'Prep for the recruiter',
+    );
+    expect(blockTitle({ title: 'Example Labs — Recruiter call' }, null)).toBe(
+      'Example Labs — Recruiter call',
+    );
   });
   it('keeps every reason of an application: an interview tomorrow never hides a follow-up today', () => {
     const tomorrow = round({

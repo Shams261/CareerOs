@@ -216,7 +216,12 @@ export default async function Today({
               <aside className="today-rail" aria-labelledby="attention-heading">
                 <AttentionBoundary>
                   <Suspense fallback={<AttentionSkeleton />}>
-                    <Attention user={user} now={now} interviews={rounds} />
+                    <Attention
+                      user={user}
+                      now={now}
+                      interviews={rounds}
+                      blocks={blocks}
+                    />
                   </Suspense>
                 </AttentionBoundary>
               </aside>

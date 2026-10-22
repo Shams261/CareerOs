@@ -8,7 +8,7 @@ import { ExecutionControls } from '@/features/schedule/forms';
 import { categoryGroup } from '@/features/review/domain';
 
 import type { TimeBlock } from '@/generated/prisma/client';
-import { hhmm, type LauncherState, type RoundLike } from './domain';
+import { blockTitle, hhmm, type LauncherState, type RoundLike } from './domain';
 import { PressButton } from './panels';
 
 const startsIn = (d: Date, now: Date) => {
@@ -61,10 +61,9 @@ export function Launcher({
     const block = state.block ? full(state.block.id) : null;
     const round = roundOf(block);
     eyebrow = `In session · Since ${hhmm(state.session.startedAt, zone)}`;
-    title =
-      state.session.title ??
-      block?.title ??
-      categoryGroup(state.session.category);
+    title = block
+      ? blockTitle(block, round)
+      : (state.session.title ?? categoryGroup(state.session.category));
     context = (
       <>
         {round
@@ -103,12 +102,12 @@ export function Launcher({
       )
       .sort((a, b) => +a.plannedStart - +b.plannedStart)[0];
     if (after)
-      next = `Next: ${after.title} · ${hhmm(after.plannedStart, zone)}`;
+      next = `Next: ${blockTitle(after, roundOf(after))} · ${hhmm(after.plannedStart, zone)}`;
   } else if (state.kind === 'current' || state.kind === 'next') {
     const block = full(state.block.id)!;
     const round = roundOf(block);
     eyebrow = `${state.kind === 'current' ? 'Now' : 'Next'} · ${hhmm(block.plannedStart, zone)}–${hhmm(block.plannedEnd, zone)}`;
-    title = block.title;
+    title = blockTitle(block, round);
     context = (
       <>
         {round ? `${round.company} · Interview` : categoryGroup(block.category)}
