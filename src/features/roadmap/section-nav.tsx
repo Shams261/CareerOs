@@ -137,7 +137,7 @@ export function ItemFilters({ q, show }: { q: string; show: string }) {
         <span className="sr-only">Search this section</span>
         <input
           type="search"
-          placeholder="Search"
+          placeholder="Search this section"
           value={text}
           onChange={(e) => setText(e.target.value)}
         />
