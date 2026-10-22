@@ -13,6 +13,7 @@ import type {
 } from '@/generated/prisma/client';
 import { formatInTimeZone } from 'date-fns-tz';
 import { Button } from '@/components/ui/button';
+import { SecondaryActions } from '@/features/execution/secondary-actions';
 export type GoalOption = { id: string; title: string };
 const WEEKDAY = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 function CommonFields({
@@ -131,6 +132,8 @@ export function BlockForm({
       action={blockAction}
       label={block ? 'Edit this day only' : 'Add a block'}
       resetOnSuccess={!block}
+      broadcast="blocks"
+      closeOnSuccess
     >
       <input type="hidden" name="id" value={block?.id ?? ''} />
       <input
@@ -339,30 +342,28 @@ export function ExecutionControls({
                 <span className="sr-only">: {block.title}</span>
               </button>
             )}
-            <Button className="secondary" name="action" value="complete">
-              Complete<span className="sr-only">: {block.title}</span>
-            </Button>
-            {!running && (
-              <>
-                <Button className="secondary" name="action" value="skip">
-                  Skip
-                </Button>
-                <button
-                  className="button secondary"
-                  name="action"
-                  value="cancel"
-                >
-                  Cancel block
-                </button>
-                <input
-                  className="reason"
-                  name="reason"
-                  maxLength={300}
-                  aria-label="Skip reason (optional)"
-                  placeholder="Skip reason (optional)"
-                />
-              </>
-            )}
+            <SecondaryActions title={block.title}>
+              <Button className="secondary" name="action" value="complete">
+                Complete<span className="sr-only">: {block.title}</span>
+              </Button>
+              {!running && (
+                <>
+                  <Button className="secondary" name="action" value="skip">
+                    Skip<span className="sr-only">: {block.title}</span>
+                  </Button>
+                  <Button className="secondary" name="action" value="cancel">
+                    Cancel block<span className="sr-only">: {block.title}</span>
+                  </Button>
+                  <input
+                    className="reason"
+                    name="reason"
+                    maxLength={300}
+                    aria-label="Skip reason (optional)"
+                    placeholder="Skip reason (optional)"
+                  />
+                </>
+              )}
+            </SecondaryActions>
           </>
         ) : (
           <Button className="secondary" name="action" value="reset">

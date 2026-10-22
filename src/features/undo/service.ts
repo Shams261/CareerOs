@@ -5,7 +5,7 @@ import { Prisma } from '@/generated/prisma/client';
 import type { ScheduleUser } from '@/features/schedule/service';
 import { execute } from '@/features/execution/service';
 import { addNote } from '@/features/notes/service';
-import { addPriority } from '@/features/review/service';
+import { addPriority, removePriority } from '@/features/review/service';
 import { changeStage } from '@/features/jobs/service';
 import { stages } from '@/features/jobs/domain';
 import { randomUUID } from 'node:crypto';
@@ -50,6 +50,10 @@ const kinds = {
     dsaProblemId: z.string().nullable().optional(),
     dsaTopicId: z.string().nullable().optional(),
   }),
+  /** A block just added: undo cancels it (the execution history stays append-only). */
+  'cancel-block': z.object({ id: z.string().min(1) }),
+  /** A priority just added: undo removes it. */
+  'remove-priority': z.object({ id: z.string().min(1) }),
   /** A stage change undone: the application goes back to the stage it left. */
   'restore-stage': z.object({ id: z.string().min(1), stage: z.enum(stages) }),
   /** Reopen undone: the item's status and revision schedule as they were. */
@@ -147,6 +151,16 @@ export async function restore(
         },
       });
       return 'Item restored.';
+    }
+    case 'cancel-block': {
+      const { id } = kinds[k].parse(payload);
+      await execute(user, id, 'cancel');
+      return 'Block cancelled.';
+    }
+    case 'remove-priority': {
+      const { id } = kinds[k].parse(payload);
+      await removePriority(user, id);
+      return 'Priority removed.';
     }
     case 'restore-stage': {
       const p = kinds[k].parse(payload);

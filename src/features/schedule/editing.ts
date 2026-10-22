@@ -102,7 +102,10 @@ export async function saveBlock(
       await tx.timeBlock.update({ where: { id: existing.id }, data });
       await clearBlockReminders(tx, user.id, existing.id);
       await followLinkedInterview(tx, user.id, existing, range);
-    } else await tx.timeBlock.create({ data });
+      return { id: existing.id, created: false };
+    }
+    const made = await tx.timeBlock.create({ data, select: { id: true } });
+    return { id: made.id, created: true };
   });
 }
 /** A block created from an interview round is that appointment: moving it moves the round. */

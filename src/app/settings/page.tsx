@@ -116,16 +116,7 @@ export default async function Settings({
       >
         <h2 id="notifications-heading">Notifications</h2>
         {push ? (
-          <>
-            <PushControls publicKey={push.publicKey} />
-            <p className="muted">
-              Enabled on {devices} device{devices === 1 ? '' : 's'}. Reminders
-              always stay on Today; push is an extra channel.
-              {devices === 0
-                ? ' On iPhone or iPad, add Silsila to the Home Screen first.'
-                : ''}
-            </p>
-          </>
+          <PushControls publicKey={push.publicKey} devices={devices} />
         ) : (
           <p className="muted">
             Push is not configured on this server; reminders stay on Today.

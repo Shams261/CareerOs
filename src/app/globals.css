@@ -2915,3 +2915,136 @@ span > svg {
     padding: 6px 0;
   }
 }
+
+/* WI-017: UAT quick wins. */
+.nav-progress {
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 2px;
+  width: 0;
+  background: var(--primary);
+  z-index: 60;
+  opacity: 0;
+  transition:
+    width 1.6s cubic-bezier(0.1, 0.6, 0.3, 1),
+    opacity 200ms ease;
+}
+.nav-progress.is-on {
+  width: 82%;
+  opacity: 1;
+}
+@media (prefers-reduced-motion: reduce) {
+  .nav-progress {
+    transition: none;
+  }
+  .nav-progress.is-on {
+    width: 100%;
+  }
+}
+.is-invalid {
+  border-color: var(--error) !important;
+  box-shadow: 0 0 0 3px var(--error-bg);
+}
+.day-facts {
+  margin: 4px 0 0;
+  font-size: 14px;
+  color: var(--muted);
+}
+.chain-wrap {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin: -8px 0 24px;
+}
+.chain-wrap .chain {
+  margin: 0;
+}
+.chain-caption {
+  font-size: 13px;
+  color: var(--muted);
+}
+.stage-steps-form fieldset {
+  border: 0;
+  padding: 0;
+  margin: 0;
+}
+.stage-steps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+  padding: 6px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  width: max-content;
+  max-width: 100%;
+}
+.stage-step {
+  font: 600 12px/1 var(--font-sans, inherit);
+  padding: 8px 12px;
+  border-radius: var(--radius-pill);
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  min-height: 32px;
+}
+.stage-step.is-done {
+  color: var(--primary);
+}
+.stage-step.is-current {
+  background: var(--primary);
+  color: var(--on-primary);
+  cursor: default;
+}
+.stage-step:not(:disabled):hover {
+  background: var(--tint);
+  color: var(--primary);
+}
+.stage-steps-closed {
+  display: inline-flex;
+  gap: 4px;
+  margin-left: 6px;
+  padding-left: 8px;
+  border-left: 1px solid var(--border);
+}
+.stage-step.is-closed {
+  color: var(--muted);
+}
+.stage-step.is-closed:not(:disabled):hover {
+  background: var(--error-bg);
+  color: var(--error);
+}
+.stage-steps-form .form-success,
+.stage-steps-form .form-message {
+  margin-top: 8px;
+}
+/* Secondary block actions: inline on a desktop, behind "More" on a phone. */
+.exec-more-toggle {
+  display: none;
+}
+.exec-secondary {
+  display: contents;
+}
+@media (max-width: 700px) {
+  .exec-more-toggle {
+    display: inline-flex;
+    min-width: 44px;
+    padding: 0 10px;
+  }
+  .exec-secondary {
+    display: none;
+  }
+  .exec-secondary.is-open {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    width: 100%;
+  }
+  .stage-steps {
+    border-radius: var(--radius-md);
+  }
+}

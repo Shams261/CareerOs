@@ -63,13 +63,19 @@ async function perform(work: () => Promise<Done>): Promise<ActionState> {
 }
 export async function blockAction(_state: ActionState, form: FormData) {
   return perform(async () => {
-    await saveBlock(
+    const saved = await saveBlock(
       await owner(),
       Object.fromEntries(form),
       form.get('allowOverlap') === 'on',
       String(form.get('version') ?? ''),
     );
-    return 'Saved for this day.';
+    // Undo on a new block cancels it (history stays; nothing is deleted).
+    return saved.created
+      ? {
+          message: 'Added for this day.',
+          undo: { kind: 'cancel-block', payload: { id: saved.id } },
+        }
+      : 'Saved for this day.';
   });
 }
 export async function routineAction(_state: ActionState, form: FormData) {

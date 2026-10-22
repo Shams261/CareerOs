@@ -69,8 +69,11 @@ export async function completeReviewAction(_s: ActionState, f: FormData) {
 }
 export async function priorityAction(_s: ActionState, f: FormData) {
   return perform(async () => {
-    await addPriority(await owner(), Object.fromEntries(f));
-    return 'Priority added.';
+    const p = await addPriority(await owner(), Object.fromEntries(f));
+    return {
+      message: 'Priority added.',
+      undo: { kind: 'remove-priority', payload: { id: p.id } },
+    };
   });
 }
 export async function priorityChangeAction(_s: ActionState, f: FormData) {

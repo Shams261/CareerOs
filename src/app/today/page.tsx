@@ -36,12 +36,22 @@ import { LiveTimer } from '@/features/execution/live';
 import { PageShortcuts } from '@/components/shortcuts';
 import { CategoryIcon } from '@/components/category-icon';
 import { Chain, TodayGoals, TodayRevision } from '@/features/roadmap/summary';
+import { revisionDue } from '@/features/roadmap/service';
 import { openNotes } from '@/features/notes/service';
 import { NoteList } from '@/features/notes/forms';
 import { FeedbackOutlet } from '@/components/feedback-outlet';
 import { readNotification } from '@/server/actions';
 import { Button } from '@/components/ui/button';
 import { categoryGroup } from '@/features/review/domain';
+/** "Good morning" by the owner's clock; a fact line, not a mood. */
+const greeting = (now: Date, zone: string) => {
+  const hour = Number(formatInTimeZone(now, zone, 'H'));
+  return hour < 12
+    ? 'Good morning'
+    : hour < 18
+      ? 'Good afternoon'
+      : 'Good evening';
+};
 export const metadata = { title: 'Today' };
 /** A quiet placeholder while an aside card is still loading. */
 const CardSkeleton = () => (
@@ -116,6 +126,7 @@ export default async function Today({
     db().routineBlock.count({ where: { userId: user.id } }),
     openNotes(user.id),
   ]);
+  const dueCount = day === today ? (await revisionDue(user, now)).length : 0;
   const blocks = plan?.blocks ?? [],
     summary = blockSummary(blocks, now),
     progress = dayProgress(blocks, sessions, bounds.start, bounds.end, now),
@@ -148,7 +159,25 @@ export default async function Today({
         {day === today ? 'Today' : day < today ? 'Past day' : 'Upcoming day'}
       </p>
       <div className="page-head">
-        <h1>{formatInTimeZone(bounds.start, user.timezone, 'EEEE, MMMM d')}</h1>
+        <div>
+          <h1>
+            {formatInTimeZone(bounds.start, user.timezone, 'EEEE, MMMM d')}
+          </h1>
+          {day === today && (
+            <p className="day-facts">
+              {greeting(now, user.timezone)}
+              {' · '}
+              {[
+                `${blocks.filter((b) => b.status !== 'CANCELLED').length} block${blocks.filter((b) => b.status !== 'CANCELLED').length === 1 ? '' : 's'} planned`,
+                dueCount
+                  ? `${dueCount} revision${dueCount === 1 ? '' : 's'} due`
+                  : null,
+              ]
+                .filter(Boolean)
+                .join(' · ')}
+            </p>
+          )}
+        </div>
         <nav className="day-nav" aria-label="Day navigation">
           <Link
             className="button secondary"
@@ -301,6 +330,7 @@ export default async function Today({
                     {plan?.reviewedAt ? 'Reviewed' : 'Not reviewed'}
                   </span>
                 </div>
+                <FeedbackOutlet channel="blocks" className="mb-3" />
                 <Disclosure
                   label="Add a block"
                   variant={blocks.length ? 'secondary' : 'primary'}

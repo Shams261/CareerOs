@@ -237,7 +237,7 @@ export default async function RoadmapDetail({
             )}
             <LinkOptionsProvider links={links}>
               <ItemList
-                key={`${selected}:${show}:${q}`}
+                key={`${selected}:${q}`}
                 roadmap={{
                   id: roadmap.id,
                   title: roadmap.title,

@@ -16,6 +16,8 @@ import {
   nextRound,
   ownerLabel,
   roundEnd,
+  pipelineStages,
+  closedStages,
 } from '@/features/jobs/domain';
 import {
   DetailsForm,
@@ -29,11 +31,13 @@ import {
   RoundDetailsForm,
   RoundForm,
   ScheduleInterviewForm,
-  StageForm,
   ZoneOptions,
   type LinkOption,
 } from '@/features/jobs/forms';
 import { ArrowLeft, Check, Circle, AlertTriangle } from 'lucide-react';
+import { randomUUID } from 'node:crypto';
+import { ActionForm } from '@/components/action-form';
+import { stageAction } from '@/features/jobs/actions';
 export const metadata = { title: 'Jobs' };
 
 export default async function Application({
@@ -116,11 +120,52 @@ export default async function Application({
           : ''}
       </p>
       <h1>{app.role}</h1>
+      <ActionForm action={stageAction} className="stage-steps-form mb-4">
+        <input type="hidden" name="id" value={app.id} />
+        <input type="hidden" name="requestId" value={randomUUID()} />
+        <div className="stage-steps" role="group" aria-label="Stage">
+          {pipelineStages.map((s, i) => {
+            const at = pipelineStages.indexOf(
+              app.stage as (typeof pipelineStages)[number],
+            );
+            const state =
+              s === app.stage
+                ? 'is-current'
+                : at >= 0 && i < at
+                  ? 'is-done'
+                  : '';
+            return (
+              <button
+                key={s}
+                className={`stage-step ${state}`}
+                name="stage"
+                value={s}
+                disabled={s === app.stage}
+                aria-current={s === app.stage ? 'step' : undefined}
+                title={
+                  s === app.stage ? 'Current stage' : `Move to ${label(s)}`
+                }
+              >
+                {label(s)}
+              </button>
+            );
+          })}
+          <span className="stage-steps-closed">
+            {closedStages.map((s) => (
+              <button
+                key={s}
+                className={`stage-step is-closed${s === app.stage ? ' is-current' : ''}`}
+                name="stage"
+                value={s}
+                disabled={s === app.stage}
+              >
+                {label(s)}
+              </button>
+            ))}
+          </span>
+        </div>
+      </ActionForm>
       <div className="status-line summary-line mb-7">
-        <span className="pill">{label(app.stage)}</span>
-        <Disclosure variant="link" label="Change stage">
-          <StageForm app={app} />
-        </Disclosure>
         {(app.nextAction || app.nextActionDate) && (
           <span>
             <strong>{app.nextAction ?? 'Follow up'}</strong>
@@ -195,6 +240,7 @@ export default async function Application({
 
           <section className="card" aria-labelledby="interviews-heading">
             <h2 id="interviews-heading">Interviews</h2>
+            <FeedbackOutlet channel="rounds" className="mb-3" />
             {!app.rounds.length && <p className="muted">No interviews yet.</p>}
             {app.rounds.map((r) => {
               const prep = r.prepItems.filter((p) => p.kind === 'PREP'),

@@ -1,8 +1,19 @@
 'use client';
-import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useId,
+  useRef,
+  useState,
+  type ReactNode,
+} from 'react';
 import { ChevronDown } from 'lucide-react';
 
 type Variant = 'primary' | 'secondary' | 'link';
+const DisclosureContext = createContext<{ close: () => void } | null>(null);
+/** The nearest Disclosure, so a form can close it after a successful save. */
+export const useDisclosure = () => useContext(DisclosureContext);
 
 /**
  * A real button that opens content in place. Replaces `<details>` for forms so the
@@ -64,7 +75,9 @@ export function Disclosure({
       </button>
       {open && (
         <div id={id} ref={panel} className="disclosure-panel">
-          {children}
+          <DisclosureContext.Provider value={{ close: () => setOpen(false) }}>
+            {children}
+          </DisclosureContext.Provider>
         </div>
       )}
     </div>

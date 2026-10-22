@@ -199,7 +199,7 @@ export default async function Review({
               : 'Past week'}
       </p>
       <div className="page-head">
-        <h1 className="editorial-heading">Week of {range(monday)}</h1>
+        <h1>Week of {range(monday)}</h1>
         <nav className="day-nav" aria-label="Week navigation">
           <span className="pill">{status}</span>
           <Link
