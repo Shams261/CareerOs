@@ -240,7 +240,7 @@ export const resolutionText: Record<Resolution, string> = {
   upcoming: 'Upcoming',
   current: 'Now',
   'in-progress': 'In session',
-  done: 'Completed',
+  done: 'Done',
   skipped: 'Skipped',
   cancelled: 'Cancelled',
   'not-recorded': 'Not recorded',
@@ -317,6 +317,11 @@ function dueContext(date: string, today: string) {
       ? 'Due today'
       : `Due ${shortDate(date)}`;
 }
+/** "Revision due today", "Revision overdue by 2 days": the revision rows read as one phrase. */
+function revisionContext(date: string, today: string) {
+  const due = dueContext(date, today);
+  return `Revision ${due.charAt(0).toLowerCase()}${due.slice(1)}`;
+}
 /** The entity id a reminder was keyed on (`user:type:entity:occurrence`). */
 export const notificationEntity = (dedupeKey: string) =>
   dedupeKey.split(':')[2] ?? '';
@@ -344,9 +349,9 @@ export function attentionItems(input: AttentionInput): AttentionItem[] {
       const item: AttentionItem = {
         id: `prep:${r.id}`,
         source: 'interview-prep',
-        label: 'Interview prep',
-        title: `${r.company} — ${r.title}`,
-        context: `Today at ${hhmm(r.scheduledStart, zone)} · ${r.openPrep} prep item${r.openPrep === 1 ? '' : 's'} open`,
+        label: 'Jobs',
+        title: `Prepare ${r.title}`,
+        context: `${r.company} · Today at ${hhmm(r.scheduledStart, zone)} · ${r.openPrep} prep item${r.openPrep === 1 ? '' : 's'} open`,
         href: `/jobs/${r.applicationId}#round-${r.id}`,
         tier: 1,
         due: +r.scheduledStart,
@@ -364,9 +369,9 @@ export function attentionItems(input: AttentionInput): AttentionItem[] {
         item = {
           id: `job:${app.id}`,
           source: 'job',
-          label: 'Follow-up',
-          title: `${app.nextAction ?? 'Follow up'} · ${app.company}`,
-          context: dueContext(dateLabel(app.nextActionDate), today),
+          label: 'Jobs',
+          title: app.nextAction ?? 'Follow up',
+          context: `${app.company} · ${dueContext(dateLabel(app.nextActionDate), today)}`,
           href: `/jobs/${app.id}`,
           tier: 2,
           due: +app.nextActionDate,
@@ -377,9 +382,9 @@ export function attentionItems(input: AttentionInput): AttentionItem[] {
         item = {
           id: `result:${reason.round.id}`,
           source: 'job',
-          label: 'Interview result',
-          title: `Log the result · ${app.company} — ${reason.round.title}`,
-          context: `Interview ended ${weekdayDate(dayKey(reason.round.scheduledStart, zone))}`,
+          label: 'Jobs',
+          title: `Log the ${reason.round.title} result`,
+          context: `${app.company} · Interview ended ${weekdayDate(dayKey(reason.round.scheduledStart, zone))}`,
           href: `/jobs/${app.id}#round-${reason.round.id}`,
           tier: 2,
           due: +reason.round.scheduledStart,
@@ -390,9 +395,9 @@ export function attentionItems(input: AttentionInput): AttentionItem[] {
         item = {
           id: `job:${app.id}`,
           source: 'job',
-          label: 'Follow-up',
-          title: `${app.nextAction ?? 'Follow up'} · ${app.company}`,
-          context: 'Due today',
+          label: 'Jobs',
+          title: app.nextAction ?? 'Follow up',
+          context: `${app.company} · Due today`,
           href: `/jobs/${app.id}`,
           tier: 3,
           due: +app.nextActionDate,
@@ -404,9 +409,9 @@ export function attentionItems(input: AttentionInput): AttentionItem[] {
         item = {
           id: `interview:${reason.round.id}`,
           source: 'job',
-          label: 'Interview',
-          title: `${app.company} — ${reason.round.title}`,
-          context: `${isToday ? 'Today' : 'Tomorrow'} at ${hhmm(reason.round.scheduledStart, zone)}`,
+          label: 'Jobs',
+          title: `Prepare ${reason.round.title}`,
+          context: `${app.company} · ${isToday ? 'Today' : 'Tomorrow'} at ${hhmm(reason.round.scheduledStart, zone)}`,
           href: `/jobs/${app.id}#round-${reason.round.id}`,
           tier: isToday ? 3 : 4,
           due: +reason.round.scheduledStart,
@@ -417,9 +422,9 @@ export function attentionItems(input: AttentionInput): AttentionItem[] {
         item = {
           id: `job:${app.id}`,
           source: 'job',
-          label: 'Your move',
-          title: `${app.nextAction ?? 'Decide the next step'} · ${app.company}`,
-          context: 'No date set',
+          label: 'Jobs',
+          title: app.nextAction ?? 'Decide the next step',
+          context: `${app.company} · No date set`,
           href: `/jobs/${app.id}`,
           tier: 4,
           due: Number.MAX_SAFE_INTEGER,
@@ -438,9 +443,9 @@ export function attentionItems(input: AttentionInput): AttentionItem[] {
       items.push({
         id: `practice:${p.id}`,
         source: 'practice',
-        label: 'Practice revision',
-        title: p.title,
-        context: `${dueContext(dateLabel(p.nextRevisionAt), today)} · ${p.confidence.charAt(0)}${p.confidence.slice(1).toLowerCase()}`,
+        label: 'Practice',
+        title: `Review ${p.title}`,
+        context: `${revisionContext(dateLabel(p.nextRevisionAt), today)} · ${p.confidence.charAt(0)}${p.confidence.slice(1).toLowerCase()}`,
         href: `/dsa/${p.id}`,
         tier: 3,
         due: +p.nextRevisionAt,
@@ -451,9 +456,9 @@ export function attentionItems(input: AttentionInput): AttentionItem[] {
       items.push({
         id: `roadmap:${i.id}`,
         source: 'roadmap',
-        label: 'Roadmap revision',
-        title: i.title,
-        context: `${dueContext(dateLabel(i.nextRevisionAt), today)} · ${i.roadmap.title}`,
+        label: 'Roadmap',
+        title: `Revisit ${i.title}`,
+        context: `${revisionContext(dateLabel(i.nextRevisionAt), today)} · ${i.roadmap.title}`,
         href: `/roadmap/${i.roadmap.id}?section=${encodeURIComponent(i.section)}&show=revision#item-${i.id}`,
         tier: 3,
         due: +i.nextRevisionAt,
@@ -476,7 +481,10 @@ export function attentionItems(input: AttentionInput): AttentionItem[] {
       source: 'notification',
       label: 'Reminder',
       title: n.title,
-      context: `${weekdayDate(dayKey(n.scheduledFor, zone))} · ${hhmm(n.scheduledFor, zone)}`,
+      context:
+        dayKey(n.scheduledFor, zone) === today
+          ? 'Today'
+          : weekdayDate(dayKey(n.scheduledFor, zone)),
       href: null,
       tier: 3,
       due: +n.scheduledFor,

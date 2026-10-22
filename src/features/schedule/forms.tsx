@@ -461,12 +461,14 @@ export function ExecutionControls({
               </SecondaryActions>
             )}
           </>
+        ) : more ? (
+          <SecondaryActions title={block.title} always>
+            <Button className="secondary small" name="action" value="reset">
+              Reset to planned<span className="sr-only">: {block.title}</span>
+            </Button>
+          </SecondaryActions>
         ) : (
-          <Button
-            className={`secondary${more ? ' small' : ''}`}
-            name="action"
-            value="reset"
-          >
+          <Button className="secondary" name="action" value="reset">
             Reset to planned<span className="sr-only">: {block.title}</span>
           </Button>
         )}

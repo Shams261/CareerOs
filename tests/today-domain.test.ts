@@ -373,10 +373,12 @@ describe('needs attention', () => {
       'weekly',
       'job:a3',
     ]);
-    expect(items[1].context).toBe('Overdue by 2 days');
-    expect(items[2].context).toBe('Overdue by 1 day · Yellow');
-    expect(items[4].context).toBe('Due today · Backend');
-    expect(items[0].context).toBe('Today at 16:00 · 2 prep items open');
+    expect(items[1].context).toBe('Over Co · Overdue by 2 days');
+    expect(items[2].context).toBe('Revision overdue by 1 day · Yellow');
+    expect(items[4].context).toBe('Revision due today · Backend');
+    expect(items[0].context).toBe(
+      'Example Labs · Today at 16:00 · 2 prep items open',
+    );
   });
   it('merges a reminder into the row keyed on the same entity and keeps its id', () => {
     const prep = round({
@@ -462,7 +464,7 @@ describe('needs attention', () => {
       ],
     });
     expect(items.map((i) => i.id)).toEqual(['job:a1', 'interview:rt']);
-    expect(items[0].context).toBe('Due today');
+    expect(items[0].context).toBe('Both Co · Due today');
   });
   it('drops the prep row once the interview has ended, so the result row shows', () => {
     const ended = round({
