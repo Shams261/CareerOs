@@ -120,12 +120,33 @@ export async function itemOpAction(_s: ActionState, f: FormData) {
           },
         },
       };
+    if (op === 'reopen')
+      return {
+        message: item.nextRevisionAt
+          ? 'Reopened; the revision schedule is cleared.'
+          : 'Reopened.',
+        undo: {
+          kind: 'restore-roadmap-state',
+          payload: {
+            id: item.id,
+            status: item.status,
+            completedAt: item.completedAt?.toISOString() ?? null,
+            nextRevisionAt:
+              item.nextRevisionAt?.toISOString().slice(0, 10) ?? null,
+            revisionStage: item.revisionStage,
+          },
+        },
+      };
     return op === 'asked'
       ? 'Marked as asked in an interview.'
-      : op === 'revised'
-        ? 'Revision recorded; the next one is scheduled.'
-        : op === 'done'
-          ? 'Done. Revision in 7 days.'
-          : 'Saved.';
+      : op === 'unasked'
+        ? 'Interview mark removed.'
+        : op === 'start'
+          ? 'Started.'
+          : op === 'revised'
+            ? 'Revision recorded; the next one is scheduled.'
+            : op === 'done'
+              ? 'Done. Revision in 7 days.'
+              : 'Saved.';
   });
 }

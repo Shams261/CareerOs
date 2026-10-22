@@ -43,21 +43,17 @@ export function PatternGroups({
       return next;
     });
   return (
-    <div
-      className="problem-table"
-      role="table"
-      aria-label="Problems by pattern"
-    >
-      <div className="problem-head" role="row">
-        <span role="columnheader">Problem</span>
-        <span role="columnheader">Pattern</span>
-        <span role="columnheader">Complexity</span>
-        <span role="columnheader">Status</span>
+    <div className="problem-table">
+      <div className="problem-head" aria-hidden="true">
+        <span>Problem</span>
+        <span>Pattern</span>
+        <span>Difficulty</span>
+        <span>Status</span>
       </div>
       {groups.map((g) => {
         const isOpen = open.has(g.id);
         return (
-          <div key={g.id} className="problem-group" role="rowgroup">
+          <div key={g.id} className="problem-group">
             <button
               type="button"
               className={`pattern-band${isOpen ? ' is-open' : ''}${g.current ? ' is-current' : ''}`}
@@ -83,8 +79,8 @@ export function PatternGroups({
               hidden={!isOpen}
             >
               {g.rows.map((p) => (
-                <div key={p.id} className="problem-line" role="row">
-                  <span role="cell" className="problem-cell-title">
+                <div key={p.id} className="problem-line">
+                  <span className="problem-cell-title">
                     <Link className="problem-title" href={`/dsa/${p.id}`}>
                       {p.title}
                     </Link>
@@ -104,16 +100,13 @@ export function PatternGroups({
                       </a>
                     )}
                   </span>
-                  <span role="cell" className="muted problem-cell-pattern">
-                    {g.name}
-                  </span>
+                  <span className="muted problem-cell-pattern">{g.name}</span>
                   <span
-                    role="cell"
                     className={`problem-cell-level is-${p.difficulty.toLowerCase()}`}
                   >
                     {level[p.difficulty]}
                   </span>
-                  <span role="cell" className="problem-cell-status">
+                  <span className="problem-cell-status">
                     <span
                       className={`pill ${p.attempted ? tone[p.confidence] : ''}`}
                     >

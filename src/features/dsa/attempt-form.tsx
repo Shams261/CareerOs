@@ -19,8 +19,9 @@ export function AttemptForm({
   requestId: string;
   defaultMinutes: number | null;
 }) {
-  const [how, setHow] = useState<How>('YES');
-  const [confidence, setConfidence] = useState<string>(inferred.YES);
+  // Nothing is chosen until the owner answers; Save stays blocked until then.
+  const [how, setHow] = useState<How | null>(null);
+  const [confidence, setConfidence] = useState<string>('');
   const [touched, setTouched] = useState(false);
   const choose = (value: How) => {
     setHow(value);
@@ -75,6 +76,9 @@ export function AttemptForm({
               setConfidence(e.target.value);
             }}
           >
+            <option value="" disabled>
+              Answer above first
+            </option>
             <option value="GREEN">Green — can solve and explain it</option>
             <option value="YELLOW">
               Yellow — understand it, not yet reliable

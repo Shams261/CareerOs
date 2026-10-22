@@ -258,13 +258,14 @@ export function ItemList({
                   className="row-quick"
                 >
                   <input type="hidden" name="id" value={item.id} />
-                  {item.status === 'DONE' && item.nextRevisionAt ? (
+                  {item.status === 'DONE' &&
+                  (revision === 'due' || revision === 'overdue') ? (
                     <button
                       className="button secondary small"
                       name="op"
                       value="revised"
-                      aria-label={`Revised: ${item.title}`}
-                      title="Revised"
+                      aria-label={`Mark revised: ${item.title}`}
+                      title="Mark revised"
                     >
                       <Check size={14} aria-hidden="true" /> Revised
                     </button>
@@ -437,14 +438,16 @@ export function ItemList({
                   >
                     <input type="hidden" name="id" value={item.id} />
                     <div className="item-actions">
-                      {item.status === 'DONE' && item.nextRevisionAt ? (
-                        <button
-                          className="button small"
-                          name="op"
-                          value="revised"
-                        >
-                          <Check size={14} aria-hidden="true" /> Revised
-                        </button>
+                      {item.status === 'DONE' ? (
+                        revision === 'due' || revision === 'overdue' ? (
+                          <button
+                            className="button small"
+                            name="op"
+                            value="revised"
+                          >
+                            <Check size={14} aria-hidden="true" /> Mark revised
+                          </button>
+                        ) : null
                       ) : (
                         <button className="button small" name="op" value="done">
                           <Check size={14} aria-hidden="true" /> Done

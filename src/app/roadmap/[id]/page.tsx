@@ -76,7 +76,10 @@ export default async function RoadmapDetail({
     .filter(
       (item) =>
         (show === 'all' ||
-          (show === 'open' && item.status !== 'DONE') ||
+          (show === 'open' &&
+            (item.status !== 'DONE' ||
+              (!!item.completedAt &&
+                dayKey(item.completedAt, user.timezone) === today))) ||
           (show === 'revision' &&
             ['due', 'overdue'].includes(revisionState(item, today))) ||
           (show === 'asked' && item.askedInInterview)) &&

@@ -47,6 +47,14 @@ const kinds = {
     dsaProblemId: z.string().nullable().optional(),
     dsaTopicId: z.string().nullable().optional(),
   }),
+  /** Reopen undone: the item's status and revision schedule as they were. */
+  'restore-roadmap-state': z.object({
+    id: z.string().min(1),
+    status: z.enum(['NOT_STARTED', 'IN_PROGRESS', 'DONE']),
+    completedAt: z.string().nullable().optional(),
+    nextRevisionAt: z.string().nullable().optional(),
+    revisionStage: z.number().int().min(0),
+  }),
 } as const;
 export type UndoKind = keyof typeof kinds;
 export type Undo = { kind: UndoKind; payload: unknown; label?: string };
@@ -134,6 +142,23 @@ export async function restore(
         },
       });
       return 'Item restored.';
+    }
+    case 'restore-roadmap-state': {
+      const p = kinds[k].parse(payload);
+      const item = await db().roadmapItem.findFirst({
+        where: { id: p.id, userId: user.id },
+      });
+      if (!item) throw new Error('The item no longer exists.');
+      await db().roadmapItem.update({
+        where: { id: item.id },
+        data: {
+          status: p.status,
+          completedAt: p.completedAt ? new Date(p.completedAt) : null,
+          nextRevisionAt: p.nextRevisionAt ? new Date(p.nextRevisionAt) : null,
+          revisionStage: p.revisionStage,
+        },
+      });
+      return 'Item restored with its revision schedule.';
     }
   }
 }
