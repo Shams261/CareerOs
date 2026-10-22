@@ -11,21 +11,17 @@ import {
 } from '@/features/dsa/domain';
 import { TopicForm, ProblemForm } from '@/features/dsa/forms';
 import { LibraryFilters } from '@/features/dsa/library-filters';
+import { PatternGroups, type Group } from '@/features/dsa/pattern-groups';
 import { ActionForm } from '@/components/action-form';
 import { makeCurrentAction } from '@/features/dsa/actions';
 import { Disclosure } from '@/components/disclosure';
 import { dayKey, localInstant } from '@/lib/time';
+import { resourceUrl } from '@/lib/validation';
 import { shiftDay } from '@/features/schedule/domain';
 import { formatInTimeZone } from 'date-fns-tz';
 
 const tone = { RED: 'danger', YELLOW: 'warning', GREEN: 'success' } as const;
-/** Rows per page of the library. */
-const PAGE = 60;
-const difficultyText = {
-  EASY: 'Easy',
-  MEDIUM: 'Medium',
-  HARD: 'Hard',
-} as const;
+const levelRank = { EASY: 0, MEDIUM: 1, HARD: 2 } as const;
 const dateLabel = (d: Date) =>
   formatInTimeZone(new Date(`${revisionDay(d)}T12:00:00Z`), 'UTC', 'MMM d');
 
@@ -81,29 +77,56 @@ export default async function Dsa({
         p.confidence === status);
     return ok && (!q || p.title.toLowerCase().includes(q.toLowerCase()));
   };
-  // The library is grouped by pattern in topic order; core problems come before "More practice".
-  const topicIndex = new Map(topics.map((t, i) => [t.id, i]));
-  const sorted = problems
-    .filter(matches)
-    .sort(
-      (a, b) =>
-        (topicIndex.get(a.topicId) ?? 999) -
-          (topicIndex.get(b.topicId) ?? 999) ||
-        Number(/More practice/.test(a.notes ?? '')) -
-          Number(/More practice/.test(b.notes ?? '')) ||
-        a.title.localeCompare(b.title),
-    );
-  const pages = Math.max(1, Math.ceil(sorted.length / PAGE));
-  const page = Math.min(pages, Math.max(1, Number(query.page) || 1));
-  const shown = sorted.slice((page - 1) * PAGE, page * PAGE);
-  const pageHref = (n: number) => {
-    const p = new URLSearchParams();
-    if (q) p.set('q', q);
-    if (status) p.set('status', status);
-    if (n > 1) p.set('page', String(n));
-    const qs = p.toString();
-    return `/dsa${qs ? `?${qs}` : ''}#library`;
-  };
+  // The library is grouped by pattern in topic order; inside a pattern, Easy → Medium → Hard,
+  // core problems before "more practice". Patterns open for the current topic, anything due,
+  // and everything while a filter is on.
+  const matched = problems.filter(matches);
+  const groups: Group[] = topics
+    .map((t) => {
+      const rows = matched
+        .filter((p) => p.topicId === t.id)
+        .sort(
+          (a, b) =>
+            levelRank[a.difficulty] - levelRank[b.difficulty] ||
+            Number(/More practice/.test(a.notes ?? '')) -
+              Number(/More practice/.test(b.notes ?? '')) ||
+            a.title.localeCompare(b.title),
+        );
+      return {
+        id: t.id,
+        name: t.name,
+        current: t.id === currentTopic?.id,
+        attempted: rows.filter((p) => p.attemptsCount > 0).length,
+        due: rows.filter((p) =>
+          ['due', 'overdue'].includes(learningState(p, day)),
+        ).length,
+        rows: rows.map((p) => {
+          const state = learningState(p, day);
+          return {
+            id: p.id,
+            title: p.title,
+            more: /More practice/.test(p.notes ?? ''),
+            difficulty: p.difficulty,
+            url: resourceUrl.safeParse(p.problemUrl).success
+              ? p.problemUrl
+              : null,
+            confidence: p.confidence,
+            attempted: p.attemptsCount > 0,
+            revision:
+              state === 'due' || state === 'overdue' || state === 'upcoming'
+                ? {
+                    state: state as 'due' | 'overdue' | 'upcoming',
+                    label: dateLabel(p.nextRevisionAt!),
+                  }
+                : null,
+          };
+        }),
+      };
+    })
+    .filter((g) => g.rows.length > 0);
+  const openIds = groups
+    .filter((g) => filtering || g.current || g.due > 0)
+    .map((g) => g.id);
   const counts = (items: typeof problems) =>
     (['GREEN', 'YELLOW', 'RED'] as const)
       .map((c) => [items.filter((p) => p.confidence === c).length, c] as const)
@@ -222,7 +245,7 @@ export default async function Dsa({
               <h2 id="library-heading">
                 All problems{' '}
                 <span className="muted">
-                  · {filtering ? `${sorted.length} of ` : ''}
+                  · {filtering ? `${matched.length} of ` : ''}
                   {problems.length}
                 </span>
               </h2>
@@ -234,122 +257,11 @@ export default async function Dsa({
                 import a roadmap.
               </p>
             )}
-            {shown.length > 0 && (
-              <div className="problem-table" role="table" aria-label="Problems">
-                <div className="problem-head" role="row">
-                  <span role="columnheader">Problem</span>
-                  <span role="columnheader">Pattern</span>
-                  <span role="columnheader">Complexity</span>
-                  <span role="columnheader">Status</span>
-                </div>
-                {shown.map((p, i) => {
-                  const state = learningState(p, day);
-                  const newGroup =
-                    i === 0 || shown[i - 1].topicId !== p.topicId;
-                  const inGroup = sorted.filter((x) => x.topicId === p.topicId);
-                  const more = /More practice/.test(p.notes ?? '');
-                  return (
-                    <div
-                      key={p.id}
-                      role="presentation"
-                      className="problem-group"
-                    >
-                      {newGroup && (
-                        <div className="problem-group-head" role="row">
-                          <span role="cell" id={`pattern-${p.topicId}`}>
-                            {p.topic.name}
-                            <span className="muted">
-                              {' '}
-                              ·{' '}
-                              {
-                                inGroup.filter((x) => x.attemptsCount > 0)
-                                  .length
-                              }{' '}
-                              of {inGroup.length} attempted
-                            </span>
-                            {p.topicId === currentTopic?.id && (
-                              <span className="pill success">Current</span>
-                            )}
-                          </span>
-                        </div>
-                      )}
-                      <div className="problem-line" role="row">
-                        <span role="cell" className="problem-cell-title">
-                          <Link className="problem-title" href={`/dsa/${p.id}`}>
-                            {p.title}
-                          </Link>
-                          {more && (
-                            <span className="muted problem-tag">
-                              more practice
-                            </span>
-                          )}
-                        </span>
-                        <span
-                          role="cell"
-                          className="muted problem-cell-pattern"
-                        >
-                          {p.topic.name}
-                        </span>
-                        <span
-                          role="cell"
-                          className={`problem-cell-level is-${p.difficulty.toLowerCase()}`}
-                        >
-                          {difficultyText[p.difficulty]}
-                        </span>
-                        <span role="cell" className="problem-cell-status">
-                          <span
-                            className={`pill ${p.attemptsCount ? tone[p.confidence] : ''}`}
-                          >
-                            {p.attemptsCount ? p.confidence : 'Unattempted'}
-                          </span>
-                          {state === 'overdue' && (
-                            <span className="problem-date is-overdue">
-                              overdue · {dateLabel(p.nextRevisionAt!)}
-                            </span>
-                          )}
-                          {state === 'due' && (
-                            <span className="problem-date is-due">
-                              due today
-                            </span>
-                          )}
-                          {state === 'upcoming' && (
-                            <span className="problem-date">
-                              {dateLabel(p.nextRevisionAt!)}
-                            </span>
-                          )}
-                        </span>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
+            {groups.length > 0 && (
+              <PatternGroups groups={groups} openIds={openIds} />
             )}
-            {!sorted.length && problems.length > 0 && (
+            {!matched.length && problems.length > 0 && (
               <p className="muted">No matching problems.</p>
-            )}
-            {pages > 1 && (
-              <nav className="pager" aria-label="Pages">
-                {page > 1 && (
-                  <Link
-                    className="button secondary small"
-                    href={pageHref(page - 1)}
-                  >
-                    ← Previous
-                  </Link>
-                )}
-                <span className="muted">
-                  {(page - 1) * PAGE + 1}–{Math.min(page * PAGE, sorted.length)}{' '}
-                  of {sorted.length} · page {page} of {pages}
-                </span>
-                {page < pages && (
-                  <Link
-                    className="button secondary small"
-                    href={pageHref(page + 1)}
-                  >
-                    Next →
-                  </Link>
-                )}
-              </nav>
             )}
           </section>
           <section
