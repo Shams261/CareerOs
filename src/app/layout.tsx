@@ -12,6 +12,7 @@ import './globals.css';
 import type { Viewport } from 'next';
 import { currentSession } from '@/server/session';
 import { signOutAction } from '@/features/auth/actions';
+import { NavigationProgress } from '@/components/progress-bar-top';
 export const metadata: Metadata = {
   title: { default: 'Silsila', template: '%s · Silsila' },
   description:
@@ -63,6 +64,9 @@ export default async function RootLayout({
         <a href="#main" className="skip">
           Skip to content
         </a>
+        <Suspense fallback={null}>
+          <NavigationProgress />
+        </Suspense>
         <div className="shell">
           <aside className="sidebar" aria-label="Workspace">
             <div>

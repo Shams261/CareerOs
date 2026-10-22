@@ -59,6 +59,17 @@ export default async function RoadmapDetail({
     };
   });
   const due = revisionQueue(roadmap.items, today).length;
+  // "about N weeks at your pace": the last four weeks of Done, no quota and no score.
+  const fourWeeksAgo = new Date(+new Date() - 28 * 86400000);
+  const recentDone = roadmap.items.filter(
+    (i) =>
+      i.status === 'DONE' && i.completedAt && i.completedAt >= fourWeeksAgo,
+  ).length;
+  const left = roadmap.progress.total - roadmap.progress.done;
+  // Shown only once the pace means something: under a year at the recent rate.
+  const pace =
+    recentDone > 0 && left > 0 ? Math.ceil(left / (recentDone / 4)) : null;
+  const weeksLeft = pace !== null && pace <= 52 ? pace : null;
   const scenarios = (roadmap.scenarios as Scenario[] | null)?.length
     ? (roadmap.scenarios as Scenario[])
     : DEFAULT_SCENARIOS;
@@ -155,6 +166,11 @@ export default async function RoadmapDetail({
         <span>
           {roadmap.progress.done} of {roadmap.progress.total} done
         </span>
+        {weeksLeft !== null && (
+          <span>
+            about {weeksLeft} week{weeksLeft === 1 ? '' : 's'} at your pace
+          </span>
+        )}
         {roadmap.progress.asked > 0 && (
           <span>{roadmap.progress.asked} asked in interviews</span>
         )}
@@ -237,7 +253,7 @@ export default async function RoadmapDetail({
             )}
             <LinkOptionsProvider links={links}>
               <ItemList
-                key={`${selected}:${show}:${q}`}
+                key={`${selected}:${q}`}
                 roadmap={{
                   id: roadmap.id,
                   title: roadmap.title,

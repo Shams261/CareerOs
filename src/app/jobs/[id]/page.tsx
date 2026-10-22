@@ -16,6 +16,8 @@ import {
   nextRound,
   ownerLabel,
   roundEnd,
+  pipelineStages,
+  closedStages,
 } from '@/features/jobs/domain';
 import {
   DetailsForm,
@@ -23,17 +25,20 @@ import {
   FollowUpForm,
   NoteForm,
   PrepForm,
-  PrepToggle,
   RescheduleForm,
   ResultForm,
   RoundDetailsForm,
   RoundForm,
   ScheduleInterviewForm,
-  StageForm,
   ZoneOptions,
   type LinkOption,
 } from '@/features/jobs/forms';
-import { ArrowLeft, Check, Circle, AlertTriangle } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
+import { NextActionBox } from '@/features/jobs/next-action';
+import { PrepCheck } from '@/features/jobs/prep-check';
+import { randomUUID } from 'node:crypto';
+import { ActionForm } from '@/components/action-form';
+import { stageAction } from '@/features/jobs/actions';
 export const metadata = { title: 'Jobs' };
 
 export default async function Application({
@@ -116,11 +121,52 @@ export default async function Application({
           : ''}
       </p>
       <h1>{app.role}</h1>
+      <ActionForm action={stageAction} className="stage-steps-form mb-4">
+        <input type="hidden" name="id" value={app.id} />
+        <input type="hidden" name="requestId" value={randomUUID()} />
+        <div className="stage-steps" role="group" aria-label="Stage">
+          {pipelineStages.map((s, i) => {
+            const at = pipelineStages.indexOf(
+              app.stage as (typeof pipelineStages)[number],
+            );
+            const state =
+              s === app.stage
+                ? 'is-current'
+                : at >= 0 && i < at
+                  ? 'is-done'
+                  : '';
+            return (
+              <button
+                key={s}
+                className={`stage-step ${state}`}
+                name="stage"
+                value={s}
+                disabled={s === app.stage}
+                aria-current={s === app.stage ? 'step' : undefined}
+                title={
+                  s === app.stage ? 'Current stage' : `Move to ${label(s)}`
+                }
+              >
+                {label(s)}
+              </button>
+            );
+          })}
+          <span className="stage-steps-closed">
+            {closedStages.map((s) => (
+              <button
+                key={s}
+                className={`stage-step is-closed${s === app.stage ? ' is-current' : ''}`}
+                name="stage"
+                value={s}
+                disabled={s === app.stage}
+              >
+                {label(s)}
+              </button>
+            ))}
+          </span>
+        </div>
+      </ActionForm>
       <div className="status-line summary-line mb-7">
-        <span className="pill">{label(app.stage)}</span>
-        <Disclosure variant="link" label="Change stage">
-          <StageForm app={app} />
-        </Disclosure>
         {(app.nextAction || app.nextActionDate) && (
           <span>
             <strong>{app.nextAction ?? 'Follow up'}</strong>
@@ -152,21 +198,23 @@ export default async function Application({
           <section className="card" aria-labelledby="next-heading">
             <h2 id="next-heading">Next action</h2>
             {app.nextAction || app.nextActionDate ? (
-              <>
-                <p>
-                  <strong>{app.nextAction ?? 'Follow up'}</strong>
-                </p>
-                <p className="muted">
-                  {follow.state === 'overdue'
-                    ? `Overdue by ${follow.days} day${follow.days === 1 ? '' : 's'} (due ${shortDate(follow.date)})`
+              <NextActionBox
+                id={app.id}
+                requestId={randomUUID()}
+                title={app.nextAction ?? 'Follow up'}
+                due={
+                  follow.state === 'overdue'
+                    ? `overdue by ${follow.days} day${follow.days === 1 ? '' : 's'} (due ${shortDate(follow.date)})`
                     : follow.state === 'today'
-                      ? 'Due today'
+                      ? 'due today'
                       : follow.state === 'upcoming'
-                        ? `Due ${shortDate(follow.date)}`
-                        : 'No due date'}{' '}
-                  · {ownerLabel(app.actionOwner)}
-                </p>
-              </>
+                        ? `due ${shortDate(follow.date)}`
+                        : 'no due date'
+                }
+                mine={app.actionOwner === 'ME'}
+                ownerText={ownerLabel(app.actionOwner)}
+                closed={!isOpen(app.stage)}
+              />
             ) : (
               <p className="muted">
                 No next action. {ownerLabel(app.actionOwner)}.
@@ -180,7 +228,7 @@ export default async function Application({
                 ...(app.nextAction || app.nextActionDate
                   ? [
                       {
-                        label: 'Mark done',
+                        label: 'Mark done with a note',
                         content: <FollowUpDoneForm app={app} />,
                       },
                     ]
@@ -195,181 +243,182 @@ export default async function Application({
 
           <section className="card" aria-labelledby="interviews-heading">
             <h2 id="interviews-heading">Interviews</h2>
+            <FeedbackOutlet channel="rounds" className="mb-3" />
             {!app.rounds.length && <p className="muted">No interviews yet.</p>}
             {app.rounds.map((r) => {
               const prep = r.prepItems.filter((p) => p.kind === 'PREP'),
                 gaps = r.prepItems.filter((p) => p.kind === 'GAP'),
                 awaitingResult = r.status === 'SCHEDULED' && roundEnd(r) <= now;
               return (
-                <article
-                  className="learning-history"
-                  id={`round-${r.id}`}
-                  key={r.id}
-                >
-                  <h3>
-                    {r.title}{' '}
-                    <span className="pill">
-                      {awaitingResult ? 'Result needed' : label(r.status)}
-                    </span>
-                  </h3>
-                  <p className="muted">
-                    {label(r.type)} · {interviewTime(r, zone)}
-                    {r.interviewers ? ` · With ${r.interviewers}` : ''}
-                    {r.location ? ` · ${r.location}` : ''}
-                  </p>
-                  {r.scheduleBlock ? (
+                <article className="round" id={`round-${r.id}`} key={r.id}>
+                  <div className="round-date" aria-hidden="true">
+                    <b>{formatInTimeZone(r.scheduledStart, zone, 'd')}</b>
+                    <small>
+                      {formatInTimeZone(r.scheduledStart, zone, 'MMM')}
+                    </small>
+                  </div>
+                  <div className="round-body">
+                    <h3>
+                      {r.title}{' '}
+                      <span className="pill">
+                        {awaitingResult ? 'Result needed' : label(r.status)}
+                      </span>
+                    </h3>
                     <p className="muted">
-                      On schedule ·{' '}
-                      <Link
-                        className="link"
-                        href={`/today?date=${dayKey(r.scheduleBlock.plannedStart, zone)}`}
-                      >
-                        {weekdayDate(
-                          dayKey(r.scheduleBlock.plannedStart, zone),
-                        )}
-                      </Link>
-                      {r.scheduleBlock.status === 'CANCELLED'
-                        ? ' (cancelled)'
-                        : ''}
+                      {label(r.type)} · {interviewTime(r, zone)}
+                      {r.interviewers ? ` · With ${r.interviewers}` : ''}
+                      {r.location ? ` · ${r.location}` : ''}
                     </p>
-                  ) : (
-                    r.status === 'SCHEDULED' && (
-                      <ScheduleInterviewForm roundId={r.id} />
-                    )
-                  )}
-                  {r.meetingUrl && (
-                    <p>
-                      <ResourceLink url={r.meetingUrl}>
-                        Meeting link
-                      </ResourceLink>
-                    </p>
-                  )}
-                  {r.notes && <p className="learning-notes">{r.notes}</p>}
-                  {(r.outcomeNotes ||
-                    r.topicsAsked ||
-                    r.wentWell ||
-                    r.toImprove) && (
-                    <dl className="job-facts">
-                      {[
-                        ['How it went', r.outcomeNotes],
-                        ['Topics asked', r.topicsAsked],
-                        ['Went well', r.wentWell],
-                        ['To improve', r.toImprove],
-                      ]
-                        .filter(([, v]) => v)
-                        .map(([k, v]) => (
-                          <div key={k}>
-                            <dt className="muted">{k}</dt>
-                            <dd className="learning-notes">{v}</dd>
-                          </div>
-                        ))}
-                    </dl>
-                  )}
-                  <h4 className="mt-4">Preparation</h4>
-                  {prep.length ? (
-                    <ul className="plain-list">
-                      {prep.map((p) => (
-                        <li className="prep-item" key={p.id}>
-                          <span>
-                            {p.completed ? (
-                              <Check size={14} aria-hidden="true" />
-                            ) : (
-                              <Circle size={14} aria-hidden="true" />
-                            )}{' '}
-                            {p.completed ? 'Done: ' : 'To do: '}
-                            {p.title}
-                            <PrepLink item={p} />
-                          </span>
-                          <PrepToggle
-                            id={p.id}
-                            completed={p.completed}
-                            title={p.title}
-                          />
-                        </li>
-                      ))}
-                    </ul>
-                  ) : (
-                    <p className="muted">No prep items.</p>
-                  )}
-                  {gaps.length > 0 && (
-                    <>
-                      <h4 className="mt-4">Weak areas to study</h4>
+                    {r.scheduleBlock ? (
+                      <p className="muted">
+                        On schedule ·{' '}
+                        <Link
+                          className="link"
+                          href={`/today?date=${dayKey(r.scheduleBlock.plannedStart, zone)}`}
+                        >
+                          {weekdayDate(
+                            dayKey(r.scheduleBlock.plannedStart, zone),
+                          )}
+                        </Link>
+                        {r.scheduleBlock.status === 'CANCELLED'
+                          ? ' (cancelled)'
+                          : ''}
+                      </p>
+                    ) : (
+                      r.status === 'SCHEDULED' && (
+                        <ScheduleInterviewForm roundId={r.id} />
+                      )
+                    )}
+                    {r.meetingUrl && (
+                      <p>
+                        <ResourceLink url={r.meetingUrl}>
+                          Meeting link
+                        </ResourceLink>
+                      </p>
+                    )}
+                    {r.notes && <p className="learning-notes">{r.notes}</p>}
+                    {(r.outcomeNotes ||
+                      r.topicsAsked ||
+                      r.wentWell ||
+                      r.toImprove) && (
+                      <dl className="job-facts">
+                        {[
+                          ['How it went', r.outcomeNotes],
+                          ['Topics asked', r.topicsAsked],
+                          ['Went well', r.wentWell],
+                          ['To improve', r.toImprove],
+                        ]
+                          .filter(([, v]) => v)
+                          .map(([k, v]) => (
+                            <div key={k}>
+                              <dt className="muted">{k}</dt>
+                              <dd className="learning-notes">{v}</dd>
+                            </div>
+                          ))}
+                      </dl>
+                    )}
+                    <h4 className="mt-4">Preparation</h4>
+                    {prep.length ? (
                       <ul className="plain-list">
-                        {gaps.map((p) => (
-                          <li className="prep-item" key={p.id}>
-                            <span>
-                              {p.completed ? (
-                                <Check size={14} aria-hidden="true" />
-                              ) : (
-                                <AlertTriangle size={14} aria-hidden="true" />
-                              )}{' '}
-                              {p.completed ? 'Addressed: ' : 'Open: '}
-                              {p.title}
-                              <PrepLink item={p} />
-                            </span>
-                            <PrepToggle
+                        {prep.map((p) => (
+                          <li
+                            className={`prep-item${p.completed ? ' is-done' : ''}`}
+                            key={p.id}
+                          >
+                            <PrepCheck
                               id={p.id}
                               completed={p.completed}
                               title={p.title}
-                            />
+                            >
+                              {p.title}
+                            </PrepCheck>
+                            <PrepLink item={p} />
                           </li>
                         ))}
                       </ul>
-                    </>
-                  )}
-                  <FeedbackOutlet channel={`round-${r.id}`} />
-                  {awaitingResult && (
-                    <Disclosure
-                      label="Log the result"
-                      variant="primary"
-                      defaultOpen
-                      className="mt-4"
-                    >
-                      <ResultForm round={r} stage={app.stage} />
-                    </Disclosure>
-                  )}
-                  <DisclosureTabs
-                    className="mt-3"
-                    items={[
-                      {
-                        label: 'Add prep item',
-                        content: (
-                          <PrepForm roundId={r.id} kind="PREP" links={links} />
-                        ),
-                      },
-                      {
-                        label: 'Add weak area',
-                        content: (
-                          <PrepForm roundId={r.id} kind="GAP" links={links} />
-                        ),
-                      },
-                      ...(awaitingResult
-                        ? []
-                        : [
-                            {
-                              label:
-                                r.status === 'COMPLETED'
-                                  ? 'Edit reflection'
-                                  : 'Log result',
-                              content: (
-                                <ResultForm round={r} stage={app.stage} />
-                              ),
-                            },
-                          ]),
-                      ...(r.status !== 'COMPLETED'
-                        ? [
-                            {
-                              label: 'Reschedule',
-                              content: <RescheduleForm round={r} />,
-                            },
-                          ]
-                        : []),
-                      {
-                        label: 'Edit details',
-                        content: <RoundDetailsForm round={r} />,
-                      },
-                    ]}
-                  />
+                    ) : (
+                      <p className="muted">No prep items.</p>
+                    )}
+                    {gaps.length > 0 && (
+                      <>
+                        <h4 className="mt-4">Weak areas to study</h4>
+                        <ul className="plain-list">
+                          {gaps.map((p) => (
+                            <li
+                              className={`prep-item${p.completed ? ' is-done' : ''}`}
+                              key={p.id}
+                            >
+                              <PrepCheck
+                                id={p.id}
+                                completed={p.completed}
+                                title={p.title}
+                              >
+                                {p.title}
+                              </PrepCheck>
+                              <PrepLink item={p} />
+                            </li>
+                          ))}
+                        </ul>
+                      </>
+                    )}
+                    <FeedbackOutlet channel={`round-${r.id}`} />
+                    {awaitingResult && (
+                      <Disclosure
+                        label="Log the result"
+                        variant="primary"
+                        defaultOpen
+                        className="mt-4"
+                      >
+                        <ResultForm round={r} stage={app.stage} />
+                      </Disclosure>
+                    )}
+                    <DisclosureTabs
+                      className="mt-3"
+                      items={[
+                        {
+                          label: 'Add prep item',
+                          content: (
+                            <PrepForm
+                              roundId={r.id}
+                              kind="PREP"
+                              links={links}
+                            />
+                          ),
+                        },
+                        {
+                          label: 'Add weak area',
+                          content: (
+                            <PrepForm roundId={r.id} kind="GAP" links={links} />
+                          ),
+                        },
+                        ...(awaitingResult
+                          ? []
+                          : [
+                              {
+                                label:
+                                  r.status === 'COMPLETED'
+                                    ? 'Edit reflection'
+                                    : 'Log result',
+                                content: (
+                                  <ResultForm round={r} stage={app.stage} />
+                                ),
+                              },
+                            ]),
+                        ...(r.status !== 'COMPLETED'
+                          ? [
+                              {
+                                label: 'Reschedule',
+                                content: <RescheduleForm round={r} />,
+                              },
+                            ]
+                          : []),
+                        {
+                          label: 'Edit details',
+                          content: <RoundDetailsForm round={r} />,
+                        },
+                      ]}
+                    />
+                  </div>
                 </article>
               );
             })}

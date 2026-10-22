@@ -392,6 +392,8 @@ export function RoundForm({
       label="Add interview"
       className="dsa-form"
       resetOnSuccess
+      broadcast="rounds"
+      closeOnSuccess
     >
       <input type="hidden" name="applicationId" value={applicationId} />
       <input type="hidden" name="requestId" value={randomUUID()} />

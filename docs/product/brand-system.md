@@ -14,19 +14,24 @@ Inter is used for product UI. Cormorant Garamond semibold appears only in the lo
 
 [design-tokens.css](../../src/app/design-tokens.css) is the runtime source of truth, with a matching [JSON handoff](../../src/assets/design-tokens.json). Keep both in sync. [globals.css](../../src/app/globals.css) consumes semantic variables; compatibility aliases keep existing components on the same token layer.
 
-| Role           | Light     | Dark      |
-| -------------- | --------- | --------- |
-| Canvas         | `#F6F3EC` | `#14130F` |
-| Surface        | `#FCFAF5` | `#1C1B17` |
-| Muted surface  | `#ECE7DD` | `#24221D` |
-| Text           | `#1B1A16` | `#F3EFE6` |
-| Accent/action  | `#1E6B5B` | `#4FB59F` |
-| Secondary text | `#6A655D` | `#BEB7AA` |
-| Border         | `#D9D3C7` | `#35322C` |
+| Role              | Light     | Dark      |
+| ----------------- | --------- | --------- |
+| Canvas            | `#F4F1EA` | `#14130F` |
+| Surface (cards)   | `#FFFFFF` | `#1F1E19` |
+| Secondary surface | `#FBF9F4` | `#1A1915` |
+| Muted surface     | `#ECE7DD` | `#24221D` |
+| Text              | `#1B1A16` | `#F3EFE6` |
+| Accent/action     | `#1E6B5B` | `#4FB59F` |
+| Secondary text    | `#4F4B44` | `#BEB7AA` |
+| Meta text         | `#716C63` | `#999286` |
+| Border            | `#E6E1D7` | `#35322C` |
+| Row divider       | `#EFEBE3` | `#2A2822` |
+
+Two surfaces give depth (WI-017): white cards on the ivory canvas, the secondary surface for the sidebar and inputs, one small shadow on cards and one larger shadow on anything that floats. Meta text (`--muted`) is for metadata only, never for essential content; secondary body copy uses `--ink-2`. A purple pair (`#5B3E8E` on `#EEE6F7`) marks P0 priority only.
 
 Tokens also cover elevated surfaces, borders, interaction states, focus, typography, radii, spacing, shadows, layout widths and motion. Light is always the default, independent of OS/browser appearance. Settings offers Light and Dark, saved per browser in the `silsila-theme` cookie for one year. The server renders the root class and theme-color from that cookie, including login, without a hydration-time theme switch. Missing or invalid cookies resolve to Light; System is not offered. Native controls use the selected color-scheme. The manifest and favicon default to Light. Teal is reserved for actions, selection and meaningful emphasis; calendar blocks remain neutral.
 
-Semantic base colors match the specification. On light tinted backgrounds, success, warning and info need darker text variants (`#2E7053`, `#80530F`, `#496979`) to meet 4.5:1; the base tokens remain unchanged. Dark primary actions use ink text. Status labels accompany colors. Focus remains visible, controls retain their minimum heights, and motion respects reduced-motion preferences.
+Semantic base colors match the specification. On light tinted backgrounds, success, warning and info need darker text variants (`#2E7053`, `#8A5A12`, `#496979`) to meet 4.5:1; the base tokens remain unchanged. Dark primary actions use ink text. Status labels accompany colors. Focus remains visible, controls retain their minimum heights, and motion respects reduced-motion preferences.
 
 ## Copy and component rules
 

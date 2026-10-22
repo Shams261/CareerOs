@@ -170,6 +170,7 @@ export function PriorityForm({
     <ActionForm
       action={priorityAction}
       label="Add priority"
+      broadcast="priorities"
       className="dsa-form"
       resetOnSuccess
     >

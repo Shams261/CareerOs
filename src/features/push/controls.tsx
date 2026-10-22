@@ -39,7 +39,14 @@ const standalone = () =>
   (navigator as { standalone?: boolean }).standalone === true;
 
 /** Explicit, one-device-at-a-time Web Push controls. Permission is requested only on click. */
-export function PushControls({ publicKey }: { publicKey: string }) {
+export function PushControls({
+  publicKey,
+  devices,
+}: {
+  publicKey: string;
+  /** Devices with push enabled in total, from the server. */
+  devices: number;
+}) {
   const [state, setState] = useState<State>('checking');
   const [message, setMessage] = useState('');
   const [busy, setBusy] = useState(false);
@@ -138,7 +145,11 @@ export function PushControls({ publicKey }: { publicKey: string }) {
   return (
     <div>
       <p>
-        <strong>This device:</strong> {status}
+        <strong>This device:</strong> {status}{' '}
+        <span className="muted">
+          · {devices} device{devices === 1 ? '' : 's'} enabled in total;
+          reminders always stay on Today.
+        </span>
       </p>
       <div className="actions">
         {state === 'off' && (

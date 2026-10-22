@@ -34,6 +34,11 @@ export function AttemptForm({
       label="Record attempt"
       className="dsa-form"
       resetOnSuccess
+      onSuccess={() => {
+        setHow(null);
+        setConfidence('');
+        setTouched(false);
+      }}
     >
       <input type="hidden" name="problemId" value={problemId} />
       <input type="hidden" name="requestId" value={requestId} />

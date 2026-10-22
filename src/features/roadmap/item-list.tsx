@@ -116,6 +116,51 @@ export function ItemList({
   // The icon pops once when a row turns done while the page is open.
   const statuses = useRef(new Map(rows.map((r) => [r.item.id, r.item.status])));
   const [popped, setPopped] = useState<string | null>(null);
+  // Optimistic marks (WI-017): the row flips as soon as Done, Start or Reopen is pressed and
+  // reconciles with the server's rows; a failed action puts the row back.
+  const [optimistic, setOptimistic] = useState<
+    Map<string, RoadmapItem['status']>
+  >(new Map());
+  const flip = (id: string, f: FormData) => {
+    const op = f.get('op');
+    const to =
+      op === 'done'
+        ? 'DONE'
+        : op === 'start' || op === 'reopen'
+          ? 'IN_PROGRESS'
+          : null;
+    if (!to) return;
+    setOptimistic((m) => new Map(m).set(id, to));
+    if (to === 'DONE') {
+      statuses.current.set(id, 'DONE');
+      setPopped(id);
+      setTimeout(() => setPopped((p) => (p === id ? null : p)), 900);
+    }
+  };
+  const settle = (id: string, ok: boolean | undefined) => {
+    if (ok) return;
+    setOptimistic((m) => {
+      const n = new Map(m);
+      n.delete(id);
+      return n;
+    });
+    statuses.current.set(
+      id,
+      rows.find((r) => r.item.id === id)?.item.status ?? 'NOT_STARTED',
+    );
+  };
+  // Server rows that caught up drop their optimistic entry (adjusted during render, so a
+  // row restored by Undo or another tab is never masked by a stale flip).
+  const [seenRows, setSeenRows] = useState(rows);
+  if (rows !== seenRows) {
+    setSeenRows(rows);
+    if (optimistic.size) {
+      const n = new Map(optimistic);
+      for (const r of rows)
+        if (n.get(r.item.id) === r.item.status) n.delete(r.item.id);
+      if (n.size !== optimistic.size) setOptimistic(n);
+    }
+  }
   useEffect(() => {
     const turned = rows.find(
       (r) =>
@@ -220,6 +265,7 @@ export function ItemList({
       <ol className="plain-list item-list" ref={listRef}>
         {rows.map(({ item, revision, revisionLabel, links }) => {
           const isOpen = open === item.id;
+          const status = optimistic.get(item.id) ?? item.status;
           const references = (item.references as Reference[] | null) ?? [];
           const meta = [
             item.estimateMinutes ? `${item.estimateMinutes} min` : null,
@@ -229,14 +275,14 @@ export function ItemList({
           ].filter(Boolean);
           const longScope = (item.scope?.length ?? 0) > SCOPE_CLAMP;
           const clamped = longScope && expandedScope !== item.id;
-          const next = item.status === 'DONE' ? nextAfter(item.id) : null;
+          const next = status === 'DONE' ? nextAfter(item.id) : null;
           return (
             <li
               key={item.id}
               id={`item-${item.id}`}
-              className={`item-row is-${item.status.toLowerCase().replace('_', '-')}${isOpen ? ' is-open' : ''}`}
+              className={`item-row is-${status.toLowerCase().replace('_', '-')}${isOpen ? ' is-open' : ''}`}
             >
-              <StatusIcon status={item.status} pop={popped === item.id} />
+              <StatusIcon status={status} pop={popped === item.id} />
               <button
                 type="button"
                 className="item-title"
@@ -245,7 +291,7 @@ export function ItemList({
                 onClick={() => toggle(item.id)}
                 title={item.title}
               >
-                <span className="sr-only">{statusText[item.status]}: </span>
+                <span className="sr-only">{statusText[status]}: </span>
                 {item.title}
               </button>
               <span className="item-meta">
@@ -261,9 +307,14 @@ export function ItemList({
                 {meta.length > 0 && <span>{meta.join(' · ')}</span>}
               </span>
               {!isOpen && (
-                <ActionForm action={itemOpAction} className="row-quick">
+                <ActionForm
+                  action={itemOpAction}
+                  className="row-quick"
+                  onPending={(f) => flip(item.id, f)}
+                  onSettled={(r) => settle(item.id, r.ok)}
+                >
                   <input type="hidden" name="id" value={item.id} />
-                  {item.status === 'DONE' &&
+                  {status === 'DONE' &&
                   (revision === 'due' || revision === 'overdue') ? (
                     <button
                       className="button secondary small"
@@ -274,7 +325,7 @@ export function ItemList({
                     >
                       <Check size={14} aria-hidden="true" /> Revised
                     </button>
-                  ) : item.status !== 'DONE' ? (
+                  ) : status !== 'DONE' ? (
                     <button
                       className="button secondary small"
                       name="op"
@@ -289,30 +340,17 @@ export function ItemList({
               )}
               {isOpen && (
                 <div id={`panel-${item.id}`} className="item-panel">
-                  <StudyPrompt
-                    roadmap={{ title: roadmap.title }}
-                    template={roadmap.promptTemplate}
-                    scenarios={scenarios}
-                    storageKey={`silsila-scenario:${roadmap.id}`}
-                    item={{
-                      title: item.title,
-                      section: item.section,
-                      scope: item.scope,
-                      checkpoint: item.checkpoint,
-                      priority: item.priority,
-                      estimateMinutes: item.estimateMinutes,
-                      references,
-                      notes: item.notes,
-                      url: item.url,
-                    }}
-                  />
                   {item.checkpoint && (
-                    <p className="item-checkpoint">
-                      <strong>Done when:</strong> {item.checkpoint}
-                    </p>
+                    <div className="item-checkpoint">
+                      <b>Done when</b>
+                      {item.checkpoint}
+                    </div>
                   )}
-                  {item.scope && (
+                  {(item.scope || item.priority === 1) && (
                     <p className={`item-scope${clamped ? ' is-clamped' : ''}`}>
+                      {item.priority === 1 && (
+                        <span className="pill priority">P0</span>
+                      )}
                       {item.scope}
                       {longScope && (
                         <>
@@ -335,15 +373,15 @@ export function ItemList({
                       {references.map((r) => (
                         <li key={r.url}>
                           <a
-                            className="link"
+                            className="reference-chip"
                             href={r.url}
                             target="_blank"
                             rel="noopener noreferrer"
+                            title={r.kind ? `${r.label} · ${r.kind}` : r.label}
                           >
                             {r.label}
                             <ExternalLink size={12} aria-hidden="true" />
                           </a>
-                          {r.kind && <span className="muted"> · {r.kind}</span>}
                         </li>
                       ))}
                     </ul>
@@ -410,6 +448,23 @@ export function ItemList({
                       )}
                     </p>
                   )}
+                  <StudyPrompt
+                    roadmap={{ title: roadmap.title }}
+                    template={roadmap.promptTemplate}
+                    scenarios={scenarios}
+                    storageKey={`silsila-scenario:${roadmap.id}`}
+                    item={{
+                      title: item.title,
+                      section: item.section,
+                      scope: item.scope,
+                      checkpoint: item.checkpoint,
+                      priority: item.priority,
+                      estimateMinutes: item.estimateMinutes,
+                      references,
+                      notes: item.notes,
+                      url: item.url,
+                    }}
+                  />
                   <ActionForm
                     action={noteAction}
                     label={`Note for ${item.title}`}
@@ -435,10 +490,16 @@ export function ItemList({
                     </label>
                     <Button className="secondary small">Save note</Button>
                   </ActionForm>
-                  <ActionForm action={itemOpAction} broadcast="roadmap-items">
+                  <ActionForm
+                    action={itemOpAction}
+                    broadcast="roadmap-items"
+                    className="item-actions-form"
+                    onPending={(f) => flip(item.id, f)}
+                    onSettled={(r) => settle(item.id, r.ok)}
+                  >
                     <input type="hidden" name="id" value={item.id} />
                     <div className="item-actions">
-                      {item.status === 'DONE' ? (
+                      {status === 'DONE' ? (
                         revision === 'due' || revision === 'overdue' ? (
                           <button
                             className="button small"
@@ -453,7 +514,7 @@ export function ItemList({
                           <Check size={14} aria-hidden="true" /> Done
                         </Button>
                       )}
-                      {item.status === 'NOT_STARTED' && (
+                      {status === 'NOT_STARTED' && (
                         <button
                           className="button secondary small"
                           name="op"
@@ -462,7 +523,7 @@ export function ItemList({
                           Start
                         </button>
                       )}
-                      {item.status === 'DONE' && (
+                      {status === 'DONE' && (
                         <button
                           className="button secondary small"
                           name="op"

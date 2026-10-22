@@ -7,6 +7,7 @@ import {
   useTransition,
   type ReactNode,
 } from 'react';
+import { startProgress, stopProgress } from './progress-bar-top';
 
 /**
  * A region whose filters and navigation run inside one React transition (WI-015). While the
@@ -43,7 +44,11 @@ export function PendingRegion({
   const pending = isPending || (startedFrom !== null && startedFrom === here);
   const start = (work: () => void) => {
     setStartedFrom(here);
-    setTimeout(() => setStartedFrom((s) => (s === here ? null : s)), STUCK_MS);
+    startProgress();
+    setTimeout(() => {
+      setStartedFrom((s) => (s === here ? null : s));
+      stopProgress();
+    }, STUCK_MS);
     startTransition(work);
   };
   return (

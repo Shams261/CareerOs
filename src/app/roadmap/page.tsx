@@ -5,6 +5,7 @@ import { dayKey } from '@/lib/time';
 import { Disclosure } from '@/components/disclosure';
 import { PageShortcuts } from '@/components/shortcuts';
 import { BrandMark } from '@/components/brand';
+import { RoadmapIllustration } from '@/components/illustrations';
 import { GoalForm, RoadmapForm } from '@/features/roadmap/forms';
 import { goalsOverview, roadmapList } from '@/features/roadmap/service';
 import { daysUntil, targetLabel } from '@/features/roadmap/domain';
@@ -157,11 +158,16 @@ export default async function RoadmapPage() {
             <h2 id="roadmaps-heading">Roadmaps</h2>
           </div>
           {!live.length && (
-            <p className="muted">
-              A roadmap is the list of topics and questions you want to be ready
-              for, in sections, with what you have covered and what came up in
-              interviews.
-            </p>
+            <div className="empty-state">
+              <RoadmapIllustration className="setup-illustration" />
+              <h3>Your first roadmap</h3>
+              <p className="muted">
+                A roadmap is the list of topics and questions you want to be
+                ready for, in sections, with what you have covered and what came
+                up in interviews. Import your study material, or start one with
+                New roadmap above.
+              </p>
+            </div>
           )}
           <ol className="plain-list">
             {live.map((r) => (

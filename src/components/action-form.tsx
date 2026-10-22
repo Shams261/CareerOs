@@ -13,6 +13,8 @@ import type { ActionState } from '@/features/schedule/actions';
 import { undoAction } from '@/features/undo/actions';
 import { publishFeedback } from './feedback-channel';
 import { Button } from '@/components/ui/button';
+import { useDisclosure } from './disclosure';
+import { startProgress, stopProgress } from './progress-bar-top';
 
 /** How long a success message stays beside the button before it clears. */
 export const SUCCESS_VISIBLE_MS = 3000;
@@ -26,6 +28,10 @@ export function ActionForm({
   label,
   resetOnSuccess = false,
   broadcast,
+  closeOnSuccess = false,
+  onSuccess,
+  onPending,
+  onSettled,
 }: {
   action: (state: ActionState, form: FormData) => Promise<ActionState>;
   children: React.ReactNode;
@@ -37,17 +43,34 @@ export function ActionForm({
    * inside this form, so it survives when the row holding the form disappears.
    */
   broadcast?: string;
+  /** Close the surrounding Disclosure after a successful save (pair with `broadcast`). */
+  closeOnSuccess?: boolean;
+  /** Called after a successful save, for client state the DOM reset cannot touch. */
+  onSuccess?: () => void;
+  /** Called with the submitted data before the action runs: flip the row optimistically. */
+  onPending?: (form: FormData) => void;
+  /** Called with the result: reconcile an optimistic flip (revert when `ok` is false). */
+  onSettled?: (result: ActionState) => void;
 }) {
+  const disclosure = useDisclosure();
   const [state, dispatch, pending] = useActionState(
     async (previous: ActionState, form: FormData) => {
       const result = await action(previous, form);
       // Published before React commits the refreshed page, which may unmount this form.
       if (broadcast && result.ok && result.message && !result.preview)
         publishFeedback(broadcast, result);
+      if (result.ok && !result.preview) {
+        onSuccess?.();
+        if (closeOnSuccess) disclosure?.close();
+      }
+      onSettled?.(result);
       return result;
     },
     { message: '' },
   );
+  // The first field the browser refused: shown as an inline message instead of its bubble.
+  const [invalid, setInvalid] = useState<string | null>(null);
+  const burst = useRef(false);
   // The result whose success message has already faded out.
   const [faded, setFaded] = useState<ActionState | null>(null);
   const formRef = useRef<HTMLFormElement>(null);
@@ -68,6 +91,12 @@ export function ActionForm({
   }, [state]);
   const shown =
     state.message && faded !== state && !(broadcast && state.ok) ? state : null;
+  // The top progress bar runs while the action is on its way (also across a redirect).
+  useEffect(() => {
+    if (!pending) return;
+    startProgress();
+    return () => stopProgress();
+  }, [pending]);
   // The button that was pressed shows the pending state; the others only disable.
   useEffect(() => {
     const el = submitter.current;
@@ -88,10 +117,31 @@ export function ActionForm({
       className={className}
       onSubmit={(event) => {
         event.preventDefault();
+        setInvalid(null);
+        event.currentTarget
+          .querySelectorAll('.is-invalid')
+          .forEach((el) => el.classList.remove('is-invalid'));
         const button = (event.nativeEvent as SubmitEvent).submitter;
         submitter.current = button;
         const form = new FormData(event.currentTarget, button);
+        onPending?.(form);
         startTransition(() => dispatch(form));
+      }}
+      onInvalidCapture={(event) => {
+        // One message for the first refused field; the field itself is focused and marked.
+        event.preventDefault();
+        if (burst.current) return;
+        burst.current = true;
+        setTimeout(() => {
+          burst.current = false;
+        }, 0);
+        const el = event.target as HTMLInputElement;
+        event.currentTarget
+          .querySelectorAll('.is-invalid')
+          .forEach((n) => n.classList.remove('is-invalid'));
+        el.classList.add('is-invalid');
+        el.focus();
+        setInvalid(requiredMessage(el));
       }}
     >
       <fieldset disabled={pending} className="min-w-0">
@@ -116,6 +166,11 @@ export function ActionForm({
           Saving…
         </p>
       )}
+      {invalid && !pending && (
+        <p className="form-message" role="alert">
+          {invalid}
+        </p>
+      )}
       {shown?.message && !pending && (
         <p
           className={shown.ok ? 'form-success' : 'form-message'}
@@ -135,6 +190,33 @@ export function ActionForm({
       )}
     </form>
   );
+}
+
+/** "Role is required." from the field's label, or the fieldset's legend for a choice. */
+function requiredMessage(el: HTMLInputElement) {
+  const legend =
+    el.type === 'radio'
+      ? el.closest('fieldset')?.querySelector('legend')?.textContent?.trim()
+      : null;
+  if (legend) return `Answer “${legend}” first.`;
+  const label = el.labels?.[0];
+  const text =
+    (label
+      ? [...label.childNodes]
+          .filter((n) => n.nodeType === Node.TEXT_NODE)
+          .map((n) => n.textContent?.trim())
+          .find(Boolean)
+      : null) ??
+    el.getAttribute('aria-label') ??
+    el.getAttribute('placeholder') ??
+    'This field';
+  const name = text.replace(/\s*\((optional|required)\)\s*$/i, '').trim();
+  if (el.validity.valueMissing) return `${name} is required.`;
+  if (el.validity.typeMismatch || el.validity.patternMismatch)
+    return `${name} does not look right.`;
+  if (el.validity.rangeUnderflow || el.validity.rangeOverflow)
+    return `${name} is out of range.`;
+  return el.validationMessage || `${name} needs attention.`;
 }
 
 /** Reverses the action that produced the message; the page refreshes with the restored record. */
