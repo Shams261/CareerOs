@@ -13,7 +13,9 @@ import { ChevronDown } from 'lucide-react';
 import { hasDraft, subscribeDrafts } from './drafts';
 
 type Variant = 'primary' | 'secondary' | 'link';
-const DisclosureContext = createContext<{ close: () => void } | null>(null);
+export const DisclosureContext = createContext<{ close: () => void } | null>(
+  null,
+);
 /** The nearest Disclosure, so a form can close it after a successful save. */
 export const useDisclosure = () => useContext(DisclosureContext);
 

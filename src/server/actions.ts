@@ -2,6 +2,7 @@
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { db, owner } from './db';
+import { forgetAll } from './memo';
 import { localTime } from '@/lib/validation';
 type ActionState = { message: string; ok?: boolean };
 /** Form-state wrapper so Settings can show "Preference saved." like every other form. */
@@ -38,6 +39,21 @@ export async function saveReminder(form: FormData) {
     update: { enabled: form.get('enabled') === 'on', preferredTime: time },
   });
   revalidatePath('/settings');
+}
+/** The same, for `ActionForm`: several ids at once (a merged row), one confirmation. */
+export async function readNotificationAction(
+  _state: ActionState,
+  form: FormData,
+): Promise<ActionState> {
+  const ids = z.array(z.string().min(1)).min(1).parse(form.getAll('id'));
+  const user = await owner();
+  await db().notificationLog.updateMany({
+    where: { id: { in: ids }, userId: user.id, readAt: null },
+    data: { readAt: new Date() },
+  });
+  forgetAll();
+  revalidatePath('/today');
+  return { ok: true, message: 'Marked read.' };
 }
 export async function readNotification(form: FormData) {
   const id = z.string().min(1).parse(form.get('id'));

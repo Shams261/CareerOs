@@ -35,6 +35,7 @@ export function PageShortcuts({
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
       if (event.metaKey || event.ctrlKey || event.altKey) return;
+      if (document.documentElement.hasAttribute('data-panel-open')) return;
       const target = event.target as HTMLElement | null;
       if (
         target &&
