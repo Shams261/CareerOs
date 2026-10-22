@@ -305,17 +305,18 @@ export default async function Dsa({
                       </span>
                     </span>
                     <span className="topic-actions">
-                      {!isCurrent && (
-                        <ActionForm
-                          action={makeCurrentAction}
-                          label={`Make ${t.name} current`}
-                        >
+                      {
+                        <ActionForm action={makeCurrentAction}>
                           <input type="hidden" name="id" value={t.id} />
-                          <button className="button secondary small">
+                          <button
+                            className="button secondary small"
+                            disabled={isCurrent}
+                            aria-label={`Make ${t.name} current`}
+                          >
                             Make current
                           </button>
                         </ActionForm>
-                      )}
+                      }
                       <Disclosure variant="link" label="Edit">
                         <TopicForm topic={t} currentId={currentTopic?.id} />
                       </Disclosure>

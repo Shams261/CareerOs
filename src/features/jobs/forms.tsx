@@ -293,6 +293,7 @@ export function FollowUpDoneForm({ app }: { app: JobApplication }) {
       label="Complete next action"
       className="dsa-form"
       resetOnSuccess
+      broadcast="next-action"
     >
       <input type="hidden" name="id" value={app.id} />
       <input type="hidden" name="requestId" value={randomUUID()} />
@@ -507,6 +508,7 @@ export function ResultForm({
       action={resultAction}
       label="Log interview result"
       className="dsa-form"
+      broadcast={`round-${round.id}`}
     >
       <input type="hidden" name="id" value={round.id} />
       <input type="hidden" name="requestId" value={randomUUID()} />

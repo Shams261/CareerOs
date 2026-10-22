@@ -9,6 +9,7 @@ import {
   ExternalLink,
 } from 'lucide-react';
 import { ActionForm } from '@/components/action-form';
+import { FeedbackOutlet } from '@/components/feedback-outlet';
 import type { RoadmapItem } from '@/generated/prisma/client';
 import { askedNoteAction, itemOpAction, noteAction } from './actions';
 import { ItemForm } from './item-form';
@@ -208,6 +209,7 @@ export function ItemList({
           }}
         />
       </span>
+      <FeedbackOutlet channel="roadmap-items" className="mb-3" />
       <ol className="plain-list item-list" ref={listRef}>
         {rows.map(({ item, revision, revisionLabel, links }) => {
           const isOpen = open === item.id;
@@ -432,10 +434,7 @@ export function ItemList({
                       Save note
                     </button>
                   </ActionForm>
-                  <ActionForm
-                    action={itemOpAction}
-                    label={`Actions for ${item.title}`}
-                  >
+                  <ActionForm action={itemOpAction} broadcast="roadmap-items">
                     <input type="hidden" name="id" value={item.id} />
                     <div className="item-actions">
                       {item.status === 'DONE' ? (

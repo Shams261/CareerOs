@@ -1,4 +1,5 @@
 import { ActionForm } from '@/components/action-form';
+import { FeedbackOutlet } from '@/components/feedback-outlet';
 import type {
   NotificationPreference,
   WeeklyPriority,
@@ -68,54 +69,65 @@ export function PriorityList({
   priorities: WeeklyPriority[];
   editable: boolean;
 }) {
-  if (!priorities.length) return <p className="muted">No priorities yet.</p>;
+  if (!priorities.length)
+    return (
+      <>
+        <FeedbackOutlet channel="priorities" />
+        <p className="muted">No priorities yet.</p>
+      </>
+    );
   return (
-    <ol className="plain-list">
-      {priorities.map((p, i) => (
-        <li className="prep-item" key={p.id}>
-          <span>
-            {p.completedAt ? '✓ Done: ' : `${i + 1}. `}
-            {p.title}
-            {p.target
-              ? ` · target ${p.target}${p.targetUnit ? ` ${p.targetUnit}` : ''}`
-              : ''}
-            {p.category ? <span className="muted"> · {p.category}</span> : null}
-          </span>
-          <span className="actions">
-            {(editable
-              ? ([
-                  'up',
-                  'down',
-                  p.completedAt ? 'undo' : 'done',
-                  'remove',
-                ] as const)
-              : ([p.completedAt ? 'undo' : 'done'] as const)
-            )
-              .filter(
-                (op) =>
-                  !(op === 'up' && i === 0) &&
-                  !(op === 'down' && i === priorities.length - 1),
+    <>
+      <FeedbackOutlet channel="priorities" />
+      <ol className="plain-list">
+        {priorities.map((p, i) => (
+          <li className="prep-item" key={p.id}>
+            <span>
+              {p.completedAt ? '✓ Done: ' : `${i + 1}. `}
+              {p.title}
+              {p.target
+                ? ` · target ${p.target}${p.targetUnit ? ` ${p.targetUnit}` : ''}`
+                : ''}
+              {p.category ? (
+                <span className="muted"> · {p.category}</span>
+              ) : null}
+            </span>
+            <span className="actions">
+              {(editable
+                ? ([
+                    'up',
+                    'down',
+                    p.completedAt ? 'undo' : 'done',
+                    'remove',
+                  ] as const)
+                : ([p.completedAt ? 'undo' : 'done'] as const)
               )
-              .map((op) => (
-                <ActionForm
-                  key={op}
-                  action={priorityChangeAction}
-                  label={`${op} ${p.title}`}
-                >
-                  <input type="hidden" name="id" value={p.id} />
-                  <input type="hidden" name="op" value={op} />
-                  <button
-                    className="button secondary"
-                    aria-label={`${labels[op]}: ${p.title}`}
+                .filter(
+                  (op) =>
+                    !(op === 'up' && i === 0) &&
+                    !(op === 'down' && i === priorities.length - 1),
+                )
+                .map((op) => (
+                  <ActionForm
+                    key={op}
+                    action={priorityChangeAction}
+                    broadcast="priorities"
                   >
-                    {labels[op]}
-                  </button>
-                </ActionForm>
-              ))}
-          </span>
-        </li>
-      ))}
-    </ol>
+                    <input type="hidden" name="id" value={p.id} />
+                    <input type="hidden" name="op" value={op} />
+                    <button
+                      className="button secondary"
+                      aria-label={`${labels[op]}: ${p.title}`}
+                    >
+                      {labels[op]}
+                    </button>
+                  </ActionForm>
+                ))}
+            </span>
+          </li>
+        ))}
+      </ol>
+    </>
   );
 }
 const labels = {

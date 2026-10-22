@@ -28,7 +28,7 @@ async function perform(
   message: string,
 ): Promise<ActionState> {
   try {
-    await work();
+    const result = await work();
     forgetAll();
     syncSoon(await owner());
     revalidatePath('/jobs', 'layout');
@@ -36,7 +36,11 @@ async function perform(
     revalidatePath('/today');
     revalidatePath('/learn', 'layout');
     revalidatePath('/dsa', 'layout');
-    return { ok: true, message };
+    const undo =
+      result && typeof result === 'object' && 'undo' in result
+        ? (result as { undo: ActionState['undo'] }).undo
+        : undefined;
+    return { ok: true, message, ...(undo ? { undo } : {}) };
   } catch (error) {
     if (error instanceof PreviewRequired)
       return {
@@ -68,10 +72,18 @@ export async function detailsAction(_s: ActionState, f: FormData) {
   );
 }
 export async function stageAction(_s: ActionState, f: FormData) {
-  return perform(
-    async () => changeStage(await owner(), fields(f)),
-    'Stage updated. History recorded.',
-  );
+  return perform(async () => {
+    const activity = await changeStage(await owner(), fields(f));
+    // Undo moves the application back; history stays append-only (one more entry).
+    return activity.fromStage
+      ? {
+          undo: {
+            kind: 'restore-stage',
+            payload: { id: activity.applicationId, stage: activity.fromStage },
+          },
+        }
+      : {};
+  }, 'Stage updated. History recorded.');
 }
 export async function followUpAction(_s: ActionState, f: FormData) {
   return perform(

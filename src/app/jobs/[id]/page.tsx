@@ -5,6 +5,7 @@ import { db, owner } from '@/server/db';
 import { dayKey } from '@/lib/time';
 import { ResourceLink } from '@/components/resource-link';
 import { Disclosure, DisclosureTabs } from '@/components/disclosure';
+import { FeedbackOutlet } from '@/components/feedback-outlet';
 import { applicationDetail } from '@/features/jobs/service';
 import {
   calendarDate,
@@ -166,6 +167,7 @@ export default async function Application({
               </p>
             )}
             {!isOpen(app.stage) && <p className="muted">Closed application.</p>}
+            <FeedbackOutlet channel="next-action" />
             <DisclosureTabs
               className="mt-4"
               items={[
@@ -297,6 +299,7 @@ export default async function Application({
                       </ul>
                     </>
                   )}
+                  <FeedbackOutlet channel={`round-${r.id}`} />
                   {awaitingResult && (
                     <Disclosure
                       label="Log the result"

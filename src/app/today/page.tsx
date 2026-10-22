@@ -38,6 +38,7 @@ import { CategoryIcon } from '@/components/category-icon';
 import { Chain, TodayGoals, TodayRevision } from '@/features/roadmap/summary';
 import { openNotes } from '@/features/notes/service';
 import { NoteList } from '@/features/notes/forms';
+import { FeedbackOutlet } from '@/components/feedback-outlet';
 import { readNotification } from '@/server/actions';
 import { Button } from '@/components/ui/button';
 /** A quiet placeholder while an aside card is still loading. */
@@ -419,6 +420,7 @@ export default async function Today({
               </section>
             </section>
             <aside>
+              {day === today && <FeedbackOutlet channel="notes" />}
               {notes.length > 0 && day === today && (
                 <section className="card" aria-labelledby="notes-heading">
                   <h2 id="notes-heading">Notes to self</h2>

@@ -16,6 +16,7 @@ import {
 import { generatePlan } from '../src/features/schedule/service';
 import { saveBlock } from '../src/features/schedule/editing';
 import { execute } from '../src/features/execution/service';
+import { createApplication } from '../src/features/jobs/service';
 const url = process.env.TEST_DATABASE_URL;
 describe.skipIf(!url)('undo restores what a one-click action removed', () => {
   const prisma = new PrismaClient({ adapter: createPgAdapter(url!) });
@@ -79,6 +80,31 @@ describe.skipIf(!url)('undo restores what a one-click action removed', () => {
       ['CAP theorem', 'DONE', true],
     ]);
     expect(back[0].completedAt).not.toBeNull();
+  });
+  it('moves an application back to the stage it left, with history kept', async () => {
+    const app = await createApplication(user, {
+      requestId: randomUUID(),
+      company: 'Undo Labs',
+      role: 'Backend Engineer',
+    });
+    await prisma.jobApplication.update({
+      where: { id: app.id },
+      data: { stage: 'APPLIED' },
+    });
+    await expect(
+      restore(other, 'restore-stage', { id: app.id, stage: 'SAVED' }),
+    ).rejects.toThrow();
+    expect(
+      await restore(user, 'restore-stage', { id: app.id, stage: 'SAVED' }),
+    ).toBe('Stage restored.');
+    const back = await prisma.jobApplication.findUniqueOrThrow({
+      where: { id: app.id },
+      include: { activities: { where: { type: 'STAGE_CHANGED' } } },
+    });
+    expect(back.stage).toBe('SAVED');
+    expect(back.activities.map((a) => [a.fromStage, a.toStage])).toEqual([
+      ['APPLIED', 'SAVED'],
+    ]);
   });
   it('puts a reopened item back with its revision schedule, under the owner only', async () => {
     const roadmap = await saveRoadmap(user, { title: 'Reopen roadmap' });

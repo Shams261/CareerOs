@@ -10,11 +10,12 @@ import { Check } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import type { ActionState } from '@/features/schedule/actions';
 import { undoAction } from '@/features/undo/actions';
+import { publishFeedback } from './feedback-channel';
 
 /** How long a success message stays beside the button before it clears. */
-const SUCCESS_VISIBLE_MS = 3000;
+export const SUCCESS_VISIBLE_MS = 3000;
 /** A message that offers Undo stays longer, so the way back is never a race. */
-const UNDO_VISIBLE_MS = 8000;
+export const UNDO_VISIBLE_MS = 8000;
 
 export function ActionForm({
   action,
@@ -22,14 +23,29 @@ export function ActionForm({
   className = '',
   label,
   resetOnSuccess = false,
+  broadcast,
 }: {
   action: (state: ActionState, form: FormData) => Promise<ActionState>;
   children: React.ReactNode;
   className?: string;
   label?: string;
   resetOnSuccess?: boolean;
+  /**
+   * A `FeedbackOutlet` channel. The success message (and Undo) is shown there instead of
+   * inside this form, so it survives when the row holding the form disappears.
+   */
+  broadcast?: string;
 }) {
-  const [state, dispatch, pending] = useActionState(action, { message: '' });
+  const [state, dispatch, pending] = useActionState(
+    async (previous: ActionState, form: FormData) => {
+      const result = await action(previous, form);
+      // Published before React commits the refreshed page, which may unmount this form.
+      if (broadcast && result.ok && result.message && !result.preview)
+        publishFeedback(broadcast, result);
+      return result;
+    },
+    { message: '' },
+  );
   // The result whose success message has already faded out.
   const [faded, setFaded] = useState<ActionState | null>(null);
   const formRef = useRef<HTMLFormElement>(null);
@@ -48,7 +64,8 @@ export function ActionForm({
     );
     return () => clearTimeout(timer);
   }, [state]);
-  const shown = state.message && faded !== state ? state : null;
+  const shown =
+    state.message && faded !== state && !(broadcast && state.ok) ? state : null;
   // The button that was pressed shows the pending state; the others only disable.
   useEffect(() => {
     const el = submitter.current;
@@ -111,7 +128,7 @@ export function ActionForm({
 }
 
 /** Reverses the action that produced the message; the page refreshes with the restored record. */
-function UndoButton({
+export function UndoButton({
   undo,
   onDone,
 }: {
