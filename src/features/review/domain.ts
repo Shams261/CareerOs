@@ -443,7 +443,7 @@ export const reviewInput = z.object({
   lessons: text(1000),
   nextWeekChange: text(1000),
   carryForward: text(1000),
-  intent: z.enum(['draft', 'complete']).default('draft'),
+  intent: z.enum(['draft', 'next', 'complete']).default('draft'),
 });
 export const MAX_PRIORITIES = 5;
 export const priorityInput = z.object({

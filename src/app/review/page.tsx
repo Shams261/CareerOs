@@ -21,6 +21,7 @@ import {
   weekReview,
 } from '@/features/review/service';
 import {
+  CompleteReviewForm,
   PrepareNextWeekForm,
   PriorityForm,
   PriorityList,
@@ -332,11 +333,6 @@ export default async function Review({
           <section className="card" aria-labelledby="reflect-heading">
             <h2 id="reflect-heading">Reflection</h2>
             <ReviewForm key={monday} weekStart={monday} review={w.review} />
-            <div className="step-foot">
-              <Link className="button secondary" href={href('plan')}>
-                Next: Plan next week →
-              </Link>
-            </div>
           </section>
         </>
       )}
@@ -352,6 +348,21 @@ export default async function Review({
               weekStart={monday}
               count={w.review?.priorities.length ?? 0}
               goals={goals}
+            />
+            {!planning && (
+              <p className="status-line mt-5">
+                <span>
+                  The week after this one is already planned. Prepare is for the
+                  coming week.
+                </span>
+                <Link className="link" href={href('plan', thisWeek)}>
+                  Open this week&apos;s review →
+                </Link>
+              </p>
+            )}
+            <CompleteReviewForm
+              weekStart={monday}
+              completedAt={w.review?.completedAt ?? null}
             />
           </section>
           {next && (

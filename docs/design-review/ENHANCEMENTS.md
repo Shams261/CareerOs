@@ -68,6 +68,8 @@ Text wireframes in `concepts/`: [today-launcher.md](concepts/today-launcher.md) 
 
 ## F. Prioritised roadmap
 
+**Status 2026-10-22:** rows 1–10 are implemented (row 1 in WI-013, rows 2–10 in WI-014, see `docs/WI-014-HANDOFF.md`). Rows 11–15 remain.
+
 Order by (user impact × frequency) / effort. Each row is a small WI or a batch inside one.
 
 | #   | Item                                                                                                                                                   | Findings                           | Impact                                         | Effort | Suggested WI              |

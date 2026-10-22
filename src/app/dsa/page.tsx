@@ -127,6 +127,8 @@ export default async function Dsa({
   const openIds = groups
     .filter((g) => filtering || g.current || g.due > 0)
     .map((g) => g.id);
+  // Nothing current and nothing due: open the first pattern so there is a place to start.
+  if (!openIds.length && groups.length) openIds.push(groups[0].id);
   const counts = (items: typeof problems) =>
     (['GREEN', 'YELLOW', 'RED'] as const)
       .map((c) => [items.filter((p) => p.confidence === c).length, c] as const)
@@ -258,7 +260,11 @@ export default async function Dsa({
               </p>
             )}
             {groups.length > 0 && (
-              <PatternGroups groups={groups} openIds={openIds} />
+              <PatternGroups
+                key={`${q}|${status}`}
+                groups={groups}
+                openIds={openIds}
+              />
             )}
             {!matched.length && problems.length > 0 && (
               <p className="muted">No matching problems.</p>
@@ -299,17 +305,18 @@ export default async function Dsa({
                       </span>
                     </span>
                     <span className="topic-actions">
-                      {!isCurrent && (
-                        <ActionForm
-                          action={makeCurrentAction}
-                          label={`Make ${t.name} current`}
-                        >
+                      {
+                        <ActionForm action={makeCurrentAction}>
                           <input type="hidden" name="id" value={t.id} />
-                          <button className="button secondary small">
+                          <button
+                            className="button secondary small"
+                            disabled={isCurrent}
+                            aria-label={`Make ${t.name} current`}
+                          >
                             Make current
                           </button>
                         </ActionForm>
-                      )}
+                      }
                       <Disclosure variant="link" label="Edit">
                         <TopicForm topic={t} currentId={currentTopic?.id} />
                       </Disclosure>

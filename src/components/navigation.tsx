@@ -1,7 +1,7 @@
 'use client';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import {
   Sun,
   CalendarDays,
@@ -25,9 +25,14 @@ const items = [
   ['/review', 'Weekly review', ClipboardCheck],
   ['/settings', 'Settings', Settings],
 ] as const;
-const PRIMARY = 4;
+/** The phone bar: the places used daily; the rest sit behind More. */
+const PHONE = ['/today', '/roadmap', '/dsa', '/jobs'] as const;
+const bar = PHONE.map((href) => items.find((i) => i[0] === href)!);
+const rest = items.filter(
+  ([href]) => !(PHONE as readonly string[]).includes(href),
+);
 
-export function Navigation() {
+export function Navigation({ capture }: { capture?: ReactNode }) {
   const path = usePathname();
   const [more, setMore] = useState(false);
   // The sheet closes on navigation (derived from the previous path) and on Escape.
@@ -44,7 +49,7 @@ export function Navigation() {
   }, [more]);
   const current = (href: string) =>
     path === href || path.startsWith(`${href}/`) ? 'page' : undefined;
-  const moreIsCurrent = items.slice(PRIMARY).some(([href]) => current(href));
+  const moreIsCurrent = rest.some(([href]) => current(href));
   return (
     <>
       <nav className="nav" aria-label="Main navigation">
@@ -61,7 +66,7 @@ export function Navigation() {
         ))}
       </nav>
       <nav className="nav-bar" aria-label="Main navigation">
-        {items.slice(0, PRIMARY).map(([href, title, Icon]) => (
+        {bar.map(([href, title, Icon]) => (
           <Link
             key={href}
             href={href}
@@ -89,7 +94,8 @@ export function Navigation() {
       </nav>
       {more && (
         <div className="nav-more" id="nav-more" role="dialog" aria-label="More">
-          {items.slice(PRIMARY).map(([href, title, Icon]) => (
+          {capture}
+          {rest.map(([href, title, Icon]) => (
             <Link
               key={href}
               href={href}

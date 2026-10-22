@@ -55,12 +55,13 @@ export const label = (value: string) => {
   const text = value.toLowerCase().replaceAll('_', ' ');
   return text[0].toUpperCase() + text.slice(1);
 };
+/** One pair of words for who moves next, used everywhere the owner is shown. */
 export const ownerLabel = (o: string) =>
   o === 'ME'
-    ? 'Action required from me'
+    ? 'Your move'
     : o === 'COMPANY'
       ? 'Waiting on company'
-      : 'No owner set';
+      : 'No one yet';
 
 const optionalText = (max: number) =>
   z
@@ -126,7 +127,7 @@ export const followUpDoneInput = followUpInput.extend({
 export const roundInput = z.object({
   requestId,
   applicationId: z.string().min(1),
-  title: z.string().trim().min(1).max(120),
+  title: z.string().trim().max(120).optional(),
   type: z.enum(interviewTypes),
   date: dateInput,
   start: localTime,

@@ -280,15 +280,11 @@ export function RoutineForm({
           <label>
             Apply changes to
             <select name="scope" defaultValue="template">
-              <option value="template">Days not planned yet</option>
+              <option value="template">Only days not planned yet</option>
               <option value="future">
-                Also days already planned (preview first)
+                Also this week&apos;s planned days (preview first)
               </option>
             </select>
-          </label>
-          <label className="check">
-            <input type="checkbox" name="remove" /> Remove this routine (preview
-            first)
           </label>
         </>
       )}
@@ -298,13 +294,24 @@ export function RoutineForm({
           routines or blocks
         </label>
       )}
-      <button className="button mt-3">
-        {routine ? 'Save routine' : 'Add routine'}
-      </button>
+      <div className="actions mt-3">
+        <button className="button">
+          {routine ? 'Save routine' : 'Add routine'}
+        </button>
+        {routine && (
+          <button className="button destructive" name="remove" value="on">
+            Remove routine (preview first)
+          </button>
+        )}
+      </div>
     </ActionForm>
   );
 }
-/** `canStart` is false for days after today: sessions are recorded against the present. */
+/**
+ * `canStart` is false for any day but today: sessions are recorded against the present.
+ * Only the block happening now (`current`) or a running one gets the primary button;
+ * every other Start is secondary. A running block offers Stop and Complete only.
+ */
 export function ExecutionControls({
   block,
   canStart = true,
@@ -315,42 +322,47 @@ export function ExecutionControls({
   /** The block happening now: its Start answers the S shortcut. */
   current?: boolean;
 }) {
+  const running = block.status === 'IN_PROGRESS';
   return (
     <ActionForm action={executionAction} label={`Actions for ${block.title}`}>
       <input type="hidden" name="id" value={block.id} />
       <div className="actions">
         {['PLANNED', 'IN_PROGRESS'].includes(block.status) ? (
           <>
-            {(canStart || block.status === 'IN_PROGRESS') && (
+            {(canStart || running) && (
               <button
-                className="button"
+                className={current || running ? 'button' : 'button secondary'}
                 name="action"
-                value={block.status === 'IN_PROGRESS' ? 'stop' : 'start'}
-                data-shortcut={
-                  current && block.status !== 'IN_PROGRESS'
-                    ? 'start'
-                    : undefined
-                }
+                value={running ? 'stop' : 'start'}
+                data-shortcut={current && !running ? 'start' : undefined}
               >
-                {block.status === 'IN_PROGRESS' ? 'Stop session' : 'Start'}
+                {running ? 'Stop session' : 'Start'}
               </button>
             )}
             <button className="button secondary" name="action" value="complete">
               Complete
             </button>
-            <button className="button secondary" name="action" value="skip">
-              Skip
-            </button>
-            <button className="button secondary" name="action" value="cancel">
-              Cancel block
-            </button>
-            <input
-              className="reason"
-              name="reason"
-              maxLength={300}
-              aria-label="Skip reason (optional)"
-              placeholder="Skip reason (optional)"
-            />
+            {!running && (
+              <>
+                <button className="button secondary" name="action" value="skip">
+                  Skip
+                </button>
+                <button
+                  className="button secondary"
+                  name="action"
+                  value="cancel"
+                >
+                  Cancel block
+                </button>
+                <input
+                  className="reason"
+                  name="reason"
+                  maxLength={300}
+                  aria-label="Skip reason (optional)"
+                  placeholder="Skip reason (optional)"
+                />
+              </>
+            )}
           </>
         ) : (
           <button className="button secondary" name="action" value="reset">
@@ -454,7 +466,7 @@ export function ReviewForm({
           ))}
         </select>
       </label>
-      <button className="button">Save daily review</button>
+      <button className="button secondary">Save daily review</button>
     </ActionForm>
   );
 }

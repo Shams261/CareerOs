@@ -5,6 +5,7 @@ import { db, owner } from '@/server/db';
 import { dayKey } from '@/lib/time';
 import { ResourceLink } from '@/components/resource-link';
 import { Disclosure, DisclosureTabs } from '@/components/disclosure';
+import { FeedbackOutlet } from '@/components/feedback-outlet';
 import { applicationDetail } from '@/features/jobs/service';
 import {
   calendarDate,
@@ -113,8 +114,11 @@ export default async function Application({
           : ''}
       </p>
       <h1>{app.role}</h1>
-      <p className="status-line summary-line mb-7">
+      <div className="status-line summary-line mb-7">
         <span className="pill">{label(app.stage)}</span>
+        <Disclosure variant="link" label="Change stage">
+          <StageForm app={app} />
+        </Disclosure>
         {(app.nextAction || app.nextActionDate) && (
           <span>
             <strong>{app.nextAction ?? 'Follow up'}</strong>
@@ -139,7 +143,7 @@ export default async function Application({
         {app.jobUrl && (
           <ResourceLink url={app.jobUrl}>Job posting</ResourceLink>
         )}
-      </p>
+      </div>
       <div className="grid-main">
         <section>
           <section className="card" aria-labelledby="next-heading">
@@ -151,7 +155,7 @@ export default async function Application({
                 </p>
                 <p className="muted">
                   {follow.state === 'overdue'
-                    ? `OVERDUE BY ${follow.days} DAY${follow.days === 1 ? '' : 'S'} (due ${follow.date})`
+                    ? `Overdue by ${follow.days} day${follow.days === 1 ? '' : 's'} (due ${follow.date})`
                     : follow.state === 'today'
                       ? 'Due today'
                       : follow.state === 'upcoming'
@@ -166,6 +170,7 @@ export default async function Application({
               </p>
             )}
             {!isOpen(app.stage) && <p className="muted">Closed application.</p>}
+            <FeedbackOutlet channel="next-action" />
             <DisclosureTabs
               className="mt-4"
               items={[
@@ -297,6 +302,7 @@ export default async function Application({
                       </ul>
                     </>
                   )}
+                  <FeedbackOutlet channel={`round-${r.id}`} />
                   {awaitingResult && (
                     <Disclosure
                       label="Log the result"
@@ -381,13 +387,6 @@ export default async function Application({
           </section>
         </section>
         <aside>
-          <section className="card">
-            <h2>Stage</h2>
-            <p>
-              <span className="pill">{label(app.stage)}</span>
-            </p>
-            <StageForm app={app} />
-          </section>
           <section className="card flat">
             <h2>Contacts</h2>
             <p>Recruiter: {app.recruiterName ?? 'Not added'}</p>

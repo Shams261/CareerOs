@@ -6,6 +6,9 @@ import type { ScheduleUser } from '@/features/schedule/service';
 import { execute } from '@/features/execution/service';
 import { addNote } from '@/features/notes/service';
 import { addPriority } from '@/features/review/service';
+import { changeStage } from '@/features/jobs/service';
+import { stages } from '@/features/jobs/domain';
+import { randomUUID } from 'node:crypto';
 
 /**
  * Undo for destructive one-click actions (WI-011). Nothing is soft-deleted: an undo re-creates
@@ -46,6 +49,16 @@ const kinds = {
     learningTopicId: z.string().nullable().optional(),
     dsaProblemId: z.string().nullable().optional(),
     dsaTopicId: z.string().nullable().optional(),
+  }),
+  /** A stage change undone: the application goes back to the stage it left. */
+  'restore-stage': z.object({ id: z.string().min(1), stage: z.enum(stages) }),
+  /** Reopen undone: the item's status and revision schedule as they were. */
+  'restore-roadmap-state': z.object({
+    id: z.string().min(1),
+    status: z.enum(['NOT_STARTED', 'IN_PROGRESS', 'DONE']),
+    completedAt: z.string().nullable().optional(),
+    nextRevisionAt: z.string().nullable().optional(),
+    revisionStage: z.number().int().min(0),
   }),
 } as const;
 export type UndoKind = keyof typeof kinds;
@@ -134,6 +147,33 @@ export async function restore(
         },
       });
       return 'Item restored.';
+    }
+    case 'restore-stage': {
+      const p = kinds[k].parse(payload);
+      await changeStage(user, {
+        id: p.id,
+        stage: p.stage,
+        requestId: randomUUID(),
+        note: 'Stage change undone',
+      });
+      return 'Stage restored.';
+    }
+    case 'restore-roadmap-state': {
+      const p = kinds[k].parse(payload);
+      const item = await db().roadmapItem.findFirst({
+        where: { id: p.id, userId: user.id },
+      });
+      if (!item) throw new Error('The item no longer exists.');
+      await db().roadmapItem.update({
+        where: { id: item.id },
+        data: {
+          status: p.status,
+          completedAt: p.completedAt ? new Date(p.completedAt) : null,
+          nextRevisionAt: p.nextRevisionAt ? new Date(p.nextRevisionAt) : null,
+          revisionStage: p.revisionStage,
+        },
+      });
+      return 'Item restored with its revision schedule.';
     }
   }
 }

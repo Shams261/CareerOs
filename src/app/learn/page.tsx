@@ -9,7 +9,7 @@ import {
   reviewQueue,
   statusLabel,
 } from '@/features/learning/domain';
-import { SubjectForm, LearningReminderForm } from '@/features/learning/forms';
+import { SubjectForm } from '@/features/learning/forms';
 import { TopicList } from '@/features/learning/components';
 import { Disclosure } from '@/components/disclosure';
 export default async function Learn() {
@@ -211,15 +211,11 @@ export default async function Learn() {
               ))}
             </section>
           )}
-          <Disclosure
-            variant="link"
-            label="Reminder preferences"
-            className="mb-5"
-          >
-            <section className="card">
-              <LearningReminderForm pref={data.pref} />
-            </section>
-          </Disclosure>
+          <p className="status-line mb-5">
+            <Link className="link" href="/settings#notifications-heading">
+              Reminder settings
+            </Link>
+          </p>
         </>
       )}
     </>

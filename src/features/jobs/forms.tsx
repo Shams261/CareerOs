@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { ActionForm } from '@/components/action-form';
+import { Disclosure } from '@/components/disclosure';
 import type {
   InterviewRound,
   JobApplication,
@@ -58,30 +59,34 @@ export function QuickAddForm({ today }: { today: string }) {
           Role
           <input name="role" required maxLength={160} />
         </label>
-        <label>
-          Job URL (optional)
-          <input name="jobUrl" type="url" placeholder="https://" />
-        </label>
-        <label>
-          Source (optional)
-          <input
-            name="source"
-            maxLength={80}
-            list="job-sources"
-            placeholder="LinkedIn, Referral…"
-          />
-        </label>
-        <label>
-          Applied date
-          <input name="appliedAt" type="date" defaultValue={today} />
-        </label>
-        <label>
-          Current stage
-          <select name="stage" defaultValue="APPLIED">
-            <Options values={stages} />
-          </select>
-        </label>
       </div>
+      <Disclosure variant="link" label="More details" className="mt-3">
+        <div className="form-grid">
+          <label>
+            Job URL (optional)
+            <input name="jobUrl" type="url" placeholder="https://" />
+          </label>
+          <label>
+            Source (optional)
+            <input
+              name="source"
+              maxLength={80}
+              list="job-sources"
+              placeholder="LinkedIn, Referral…"
+            />
+          </label>
+          <label>
+            Applied date
+            <input name="appliedAt" type="date" defaultValue={today} />
+          </label>
+          <label>
+            Current stage
+            <select name="stage" defaultValue="APPLIED">
+              <Options values={stages} />
+            </select>
+          </label>
+        </div>
+      </Disclosure>
       <datalist id="job-sources">
         {[
           'LinkedIn',
@@ -197,7 +202,7 @@ export function DetailsForm({ app }: { app: JobApplication }) {
           defaultValue={app.jobDescription ?? ''}
         />
       </label>
-      <button className="button">Save details</button>
+      <button className="button secondary">Save details</button>
     </ActionForm>
   );
 }
@@ -235,7 +240,7 @@ export function StageForm({ app }: { app: JobApplication }) {
           placeholder="Recruiter reached out"
         />
       </label>
-      <button className="button">Change stage</button>
+      <button className="button secondary">Change stage</button>
     </ActionForm>
   );
 }
@@ -261,7 +266,7 @@ function FollowUpFields({ app }: { app?: JobApplication }) {
         />
       </label>
       <label>
-        Who acts next?
+        Whose move
         <select name="actionOwner" defaultValue={app?.actionOwner ?? 'ME'}>
           {owners.map((o) => (
             <option key={o} value={o}>
@@ -293,6 +298,7 @@ export function FollowUpDoneForm({ app }: { app: JobApplication }) {
       label="Complete next action"
       className="dsa-form"
       resetOnSuccess
+      broadcast="next-action"
     >
       <input type="hidden" name="id" value={app.id} />
       <input type="hidden" name="requestId" value={randomUUID()} />
@@ -390,40 +396,45 @@ export function RoundForm({
       <input type="hidden" name="requestId" value={randomUUID()} />
       <div className="form-grid">
         <label>
-          Title
-          <input
-            name="title"
-            required
-            maxLength={120}
-            placeholder="Coding round 1"
-          />
-        </label>
-        <label>
           Type
           <select name="type" defaultValue="CODING">
             <Options values={interviewTypes} />
           </select>
         </label>
+        <label>
+          Title (optional)
+          <input
+            name="title"
+            maxLength={120}
+            placeholder="Defaults to the type"
+          />
+        </label>
       </div>
       <WhenFields zone={zone} />
-      <div className="form-grid">
-        <label>
-          Interviewers (optional)
-          <input name="interviewers" maxLength={300} />
-        </label>
-        <label>
-          Meeting URL (optional)
-          <input name="meetingUrl" type="url" placeholder="https://" />
-        </label>
-        <label>
-          Location (optional)
-          <input name="location" maxLength={200} />
-        </label>
-      </div>
-      <label>
-        Notes (optional)
-        <textarea name="notes" rows={2} maxLength={4000} />
+      <label className="check">
+        <input type="checkbox" name="addToSchedule" defaultChecked /> Add to my
+        schedule (Today and the calendar)
       </label>
+      <Disclosure variant="link" label="More details" className="mt-3">
+        <div className="form-grid">
+          <label>
+            Interviewers (optional)
+            <input name="interviewers" maxLength={300} />
+          </label>
+          <label>
+            Meeting URL (optional)
+            <input name="meetingUrl" type="url" placeholder="https://" />
+          </label>
+          <label>
+            Location (optional)
+            <input name="location" maxLength={200} />
+          </label>
+        </div>
+        <label>
+          Notes (optional)
+          <textarea name="notes" rows={2} maxLength={4000} />
+        </label>
+      </Disclosure>
       <button className="button">Schedule interview</button>
     </ActionForm>
   );
@@ -507,6 +518,7 @@ export function ResultForm({
       action={resultAction}
       label="Log interview result"
       className="dsa-form"
+      broadcast={`round-${round.id}`}
     >
       <input type="hidden" name="id" value={round.id} />
       <input type="hidden" name="requestId" value={randomUUID()} />
@@ -691,7 +703,7 @@ export function JobReminderForm({
         Follow-up reminder (once per planned date)
       </label>
       <label>
-        Follow-up reminder time
+        Follow-up time
         <input
           name="followUpTime"
           type="time"
@@ -718,7 +730,7 @@ export function JobReminderForm({
           defaultValue={interview?.offsetMinutes ?? 60}
         />
       </label>
-      <button className="button">Save reminders</button>
+      <button className="button secondary">Save</button>
     </ActionForm>
   );
 }

@@ -132,7 +132,7 @@ export async function GoogleCalendarPanel({
             Google account. Only that calendar is ever touched.
           </p>
           <form action={connectCalendarAction}>
-            <Button>Connect Google Calendar</Button>
+            <Button className="secondary">Connect Google Calendar</Button>
           </form>
         </>
       ) : (

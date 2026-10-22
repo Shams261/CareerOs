@@ -16,6 +16,7 @@ import {
 import { generatePlan } from '../src/features/schedule/service';
 import { saveBlock } from '../src/features/schedule/editing';
 import { execute } from '../src/features/execution/service';
+import { createApplication } from '../src/features/jobs/service';
 const url = process.env.TEST_DATABASE_URL;
 describe.skipIf(!url)('undo restores what a one-click action removed', () => {
   const prisma = new PrismaClient({ adapter: createPgAdapter(url!) });
@@ -79,6 +80,70 @@ describe.skipIf(!url)('undo restores what a one-click action removed', () => {
       ['CAP theorem', 'DONE', true],
     ]);
     expect(back[0].completedAt).not.toBeNull();
+  });
+  it('moves an application back to the stage it left, with history kept', async () => {
+    const app = await createApplication(user, {
+      requestId: randomUUID(),
+      company: 'Undo Labs',
+      role: 'Backend Engineer',
+    });
+    await prisma.jobApplication.update({
+      where: { id: app.id },
+      data: { stage: 'APPLIED' },
+    });
+    await expect(
+      restore(other, 'restore-stage', { id: app.id, stage: 'SAVED' }),
+    ).rejects.toThrow();
+    expect(
+      await restore(user, 'restore-stage', { id: app.id, stage: 'SAVED' }),
+    ).toBe('Stage restored.');
+    const back = await prisma.jobApplication.findUniqueOrThrow({
+      where: { id: app.id },
+      include: { activities: { where: { type: 'STAGE_CHANGED' } } },
+    });
+    expect(back.stage).toBe('SAVED');
+    expect(back.activities.map((a) => [a.fromStage, a.toStage])).toEqual([
+      ['APPLIED', 'SAVED'],
+    ]);
+  });
+  it('puts a reopened item back with its revision schedule, under the owner only', async () => {
+    const roadmap = await saveRoadmap(user, { title: 'Reopen roadmap' });
+    await addItems(user, {
+      roadmapId: roadmap.id,
+      section: 'Backend',
+      lines: 'Idempotency keys',
+    });
+    const item = (await roadmapDetail(user, roadmap.id))!.items[0];
+    await applyItemOp(user, { id: item.id, op: 'done' });
+    const { item: before } = await applyItemOp(user, {
+      id: item.id,
+      op: 'reopen',
+    });
+    const cleared = (await roadmapDetail(user, roadmap.id))!.items[0];
+    expect([
+      cleared.status,
+      cleared.nextRevisionAt,
+      cleared.revisionStage,
+    ]).toEqual(['IN_PROGRESS', null, 0]);
+    const payload = {
+      id: before.id,
+      status: before.status,
+      completedAt: before.completedAt?.toISOString() ?? null,
+      nextRevisionAt: before.nextRevisionAt?.toISOString().slice(0, 10) ?? null,
+      revisionStage: before.revisionStage,
+    };
+    await expect(
+      restore(other, 'restore-roadmap-state', payload),
+    ).rejects.toThrow('no longer exists');
+    expect(await restore(user, 'restore-roadmap-state', payload)).toBe(
+      'Item restored with its revision schedule.',
+    );
+    const back = (await roadmapDetail(user, roadmap.id))!.items[0];
+    expect([
+      back.status,
+      back.nextRevisionAt?.toISOString().slice(0, 10),
+      back.revisionStage,
+    ]).toEqual(['DONE', payload.nextRevisionAt, before.revisionStage]);
   });
   it('resets a skipped block to planned', async () => {
     await generatePlan(user, '2030-03-04');

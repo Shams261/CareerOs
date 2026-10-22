@@ -21,7 +21,7 @@ export async function WeeklyReviewPrompt({
     <section className="card" aria-label="Weekly review">
       <h2>Weekly review</h2>
       <p className="muted">Your weekly review is not completed.</p>
-      <Link className="button" href="/review">
+      <Link className="button secondary" href="/review">
         Review week
       </Link>
     </section>

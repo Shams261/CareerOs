@@ -31,7 +31,7 @@ export function NoteList({ notes }: { notes: QuickNote[] }) {
       {notes.map((n) => (
         <li className="note-row" key={n.id}>
           <p className="learning-notes">{n.body}</p>
-          <ActionForm action={noteOpAction} label={`Actions for note`}>
+          <ActionForm action={noteOpAction} broadcast="notes">
             <input type="hidden" name="id" value={n.id} />
             <div className="actions">
               <button className="button secondary" name="op" value="done">

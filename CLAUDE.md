@@ -10,7 +10,7 @@ If CLAUDE.md conflicts with the implementation, schema, tests, migrations or an 
 
 ## Current product state
 
-Latest completed work item: **WI-013** (the three P0s from the whole-app design review, 2026-10-21: Monday review week, Jobs view links, Revise-today links), after WI-012 (the Roadmap as the single study tracker, 2026-10-21), WI-011 (undo, summaries, phone navigation, shortcuts overlay), WI-010 (week chart, motion, notes to self, snapshot cache), WI-009 (UX simplification, roadmap and goals), WI-008 (personal production launch, live since 2026-10-20) and the brand system.
+Latest completed work item: **WI-014** (design review rows 2–10, 2026-10-22: Done/Revised/Reopen loop, Practice bands, feedback that survives the row with `FeedbackOutlet`, Today hierarchy, reminders in Settings, Jobs forms and vocabulary, review save-and-continue, phone shell, row recipe), after WI-013 (the three P0s, 2026-10-21), WI-012 (the Roadmap as the single study tracker, 2026-10-21), WI-011 (undo, summaries, phone navigation, shortcuts overlay), WI-010 (week chart, motion, notes to self, snapshot cache), WI-009 (UX simplification, roadmap and goals), WI-008 (personal production launch, live since 2026-10-20) and the brand system.
 
 - **Schedule and execution (WI-001/002):** weekly RoutineBlocks, idempotent DailyPlan/TimeBlock generation, per-occurrence overrides, start/stop/resume/complete/skip/cancel, manual sessions, one running session per owner, daily check-in.
 - **DSA (WI-003):** topics, problems, append-only attempts, RED/YELLOW/GREEN confidence, spaced revision dates, due/overdue queue.
@@ -30,7 +30,7 @@ Latest completed work item: **WI-013** (the three P0s from the whole-app design 
 - Next.js 16 App Router, React 19, strict TypeScript, Tailwind 4, Zod 4, date-fns/date-fns-tz, pnpm, Vitest. Build uses `next build --webpack`.
 - PostgreSQL 17 via Prisma 7 and `@prisma/adapter-pg`. Migrations are versioned SQL in `prisma/migrations`.
 - **Server Components by default.** Client components only for navigation state, form feedback, push controls and error recovery. No client data stores.
-- Forms use Server Actions and native controls with Zod validation. React Hook Form is not used.
+- Forms use Server Actions and native controls with Zod validation. React Hook Form is not used. `ActionForm` shows the result beside the button; a form whose row disappears after its action passes `broadcast="<channel>"` and a `FeedbackOutlet` mounted outside the row shows the message and Undo (WI-014).
 - Layout: `src/app` routes and API handlers; `src/features/<domain>` with `domain.ts` (pure rules) and `service.ts` (orchestration and DB writes); `src/server` for db client, sessions, `owner()`, security headers, rate limits, health, jobs, export; `src/lib` for env, time, crypto and validation helpers.
 - **Owner scoping:** every page, action and private API calls `owner()` from `src/server/db.ts`, which resolves the signed-in user from the session cookie. Queries are scoped by that id.
 - **Notifications:** `NotificationLog` is the durable inbox, filled by `POST /api/notifications/process` (cron). Web Push is a delivery channel on top of it, not a separate engine; the inbox row survives push failure.
@@ -147,7 +147,7 @@ Feature development is intentionally paused. Priority order:
 
 1. After the WI-012 merge, the owner runs the one-time runbook from the workstation: verified backup (`PATH=/opt/homebrew/opt/libpq/bin:$PATH pnpm db:backup` + Docker PostgreSQL 17 restore check) → clear the TEST routine and blocks in the app and Sync now → `scripts/reset-owner-data.sql` → deploy → `pnpm db:deploy` → `pnpm roadmap:bundle` → `pnpm roadmap:import` (`docs/engineering/backup-restore.md`, `docs/engineering/operations.md`).
 2. Use Silsila daily as the single tracker for 7–14 days and collect friction; verify Web Push on real devices; connect Google Calendar; weekly backup.
-3. Design review follow-ups in the order of `docs/design-review/ENHANCEMENTS.md` section F (WI-013 covered row 1; next are rows 2–3: Done keeps its confirmation and Next, Revised only when due, Reopen undo; Practice bands follow the filter, valid ARIA, a starting point, no preselected outcome), each as a small WI after real usage has confirmed the priority.
+3. Design review follow-ups: rows 1–10 of `docs/design-review/ENHANCEMENTS.md` section F are done (WI-013, WI-014). Left: row 11 (copy and formats: dates, eyebrows, page titles, raw keys, explanatory paragraphs), row 12 (accessibility: focus restore, landmarks, shortcut switch, chain targets, glyphs to icons), row 13 (buttons and tokens), row 14 (transitions), row 15 (error and not-found pages, login copy). Take them after real usage, as small WIs.
 4. Small follow-up WI when convenient: a `/privacy` page so the Google app can be published (removes the seven-day Calendar reconnect).
 5. AI preparation suggestions were designed and then deferred by the owner (2026-10-21); revisit only after real usage.
 
@@ -158,7 +158,7 @@ Update this section when the phase changes.
 - Schema: `prisma/schema.prisma`; migrations: `prisma/migrations/`
 - Architecture and decisions: `docs/architecture/overview.md`, `docs/architecture/decisions.md`, `docs/architecture/data-flows.md`
 - Handbook index: `docs/README.md`
-- WI handoffs: `docs/WI-0xx-HANDOFF.md` (latest `docs/WI-013-HANDOFF.md`); whole-app design review: `docs/design-review/REPORT.md` and `ENHANCEMENTS.md`
+- WI handoffs: `docs/WI-0xx-HANDOFF.md` (latest `docs/WI-014-HANDOFF.md`); whole-app design review: `docs/design-review/REPORT.md` and `ENHANCEMENTS.md`
 - Security: `docs/engineering/security.md`, `SECURITY.md`
 - Product flows and stories: `docs/product/user-flows.md`, `docs/product/user-stories.md`
 - Brand: `docs/product/brand-system.md`, `public/brand/README.md`

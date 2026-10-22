@@ -90,7 +90,7 @@ export async function routineAction(_state: ActionState, form: FormData) {
       return added ? `Routine added to ${days(added)}.` : 'Routine added.';
     return changed
       ? `Routine saved. ${days(changed)} updated.`
-      : 'Routine saved.';
+      : 'Routine saved. Days already planned keep their times.';
   });
 }
 export async function executionAction(_state: ActionState, form: FormData) {

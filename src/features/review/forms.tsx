@@ -1,4 +1,5 @@
 import { ActionForm } from '@/components/action-form';
+import { FeedbackOutlet } from '@/components/feedback-outlet';
 import type {
   NotificationPreference,
   WeeklyPriority,
@@ -6,6 +7,7 @@ import type {
 } from '@/generated/prisma/client';
 import {
   prepareNextWeekAction,
+  completeReviewAction,
   priorityAction,
   priorityChangeAction,
   reviewAction,
@@ -53,8 +55,8 @@ export function ReviewForm({
         <button className="button secondary" name="intent" value="draft">
           Save draft
         </button>
-        <button className="button" name="intent" value="complete">
-          {review?.completedAt ? 'Save completed review' : 'Complete review'}
+        <button className="button" name="intent" value="next">
+          Save and continue →
         </button>
       </div>
     </ActionForm>
@@ -68,54 +70,65 @@ export function PriorityList({
   priorities: WeeklyPriority[];
   editable: boolean;
 }) {
-  if (!priorities.length) return <p className="muted">No priorities yet.</p>;
+  if (!priorities.length)
+    return (
+      <>
+        <FeedbackOutlet channel="priorities" />
+        <p className="muted">No priorities yet.</p>
+      </>
+    );
   return (
-    <ol className="plain-list">
-      {priorities.map((p, i) => (
-        <li className="prep-item" key={p.id}>
-          <span>
-            {p.completedAt ? '✓ Done: ' : `${i + 1}. `}
-            {p.title}
-            {p.target
-              ? ` · target ${p.target}${p.targetUnit ? ` ${p.targetUnit}` : ''}`
-              : ''}
-            {p.category ? <span className="muted"> · {p.category}</span> : null}
-          </span>
-          <span className="actions">
-            {(editable
-              ? ([
-                  'up',
-                  'down',
-                  p.completedAt ? 'undo' : 'done',
-                  'remove',
-                ] as const)
-              : ([p.completedAt ? 'undo' : 'done'] as const)
-            )
-              .filter(
-                (op) =>
-                  !(op === 'up' && i === 0) &&
-                  !(op === 'down' && i === priorities.length - 1),
+    <>
+      <FeedbackOutlet channel="priorities" />
+      <ol className="plain-list">
+        {priorities.map((p, i) => (
+          <li className="prep-item" key={p.id}>
+            <span>
+              {p.completedAt ? '✓ Done: ' : `${i + 1}. `}
+              {p.title}
+              {p.target
+                ? ` · target ${p.target}${p.targetUnit ? ` ${p.targetUnit}` : ''}`
+                : ''}
+              {p.category ? (
+                <span className="muted"> · {p.category}</span>
+              ) : null}
+            </span>
+            <span className="actions">
+              {(editable
+                ? ([
+                    'up',
+                    'down',
+                    p.completedAt ? 'undo' : 'done',
+                    'remove',
+                  ] as const)
+                : ([p.completedAt ? 'undo' : 'done'] as const)
               )
-              .map((op) => (
-                <ActionForm
-                  key={op}
-                  action={priorityChangeAction}
-                  label={`${op} ${p.title}`}
-                >
-                  <input type="hidden" name="id" value={p.id} />
-                  <input type="hidden" name="op" value={op} />
-                  <button
-                    className="button secondary"
-                    aria-label={`${labels[op]}: ${p.title}`}
+                .filter(
+                  (op) =>
+                    !(op === 'up' && i === 0) &&
+                    !(op === 'down' && i === priorities.length - 1),
+                )
+                .map((op) => (
+                  <ActionForm
+                    key={op}
+                    action={priorityChangeAction}
+                    broadcast="priorities"
                   >
-                    {labels[op]}
-                  </button>
-                </ActionForm>
-              ))}
-          </span>
-        </li>
-      ))}
-    </ol>
+                    <input type="hidden" name="id" value={p.id} />
+                    <input type="hidden" name="op" value={op} />
+                    <button
+                      className="button secondary"
+                      aria-label={`${labels[op]}: ${p.title}`}
+                    >
+                      {labels[op]}
+                    </button>
+                  </ActionForm>
+                ))}
+            </span>
+          </li>
+        ))}
+      </ol>
+    </>
   );
 }
 const labels = {
@@ -194,11 +207,28 @@ export function PrepareNextWeekForm({ monday }: { monday: string }) {
   return (
     <ActionForm action={prepareNextWeekAction} label="Prepare next week">
       <input type="hidden" name="monday" value={monday} />
-      <p className="muted">
-        Plans next week from your routines. Days already planned stay as they
-        are.
-      </p>
-      <button className="button">Prepare next week</button>
+      <button className="button">Prepare next week from my routines</button>
+    </ActionForm>
+  );
+}
+/** Step three's closing action: the review is complete once priorities are set. */
+export function CompleteReviewForm({
+  weekStart,
+  completedAt,
+}: {
+  weekStart: string;
+  completedAt: Date | null;
+}) {
+  return (
+    <ActionForm action={completeReviewAction} label="Complete review">
+      <input type="hidden" name="weekStart" value={weekStart} />
+      <div className="step-foot">
+        {completedAt ? (
+          <span className="pill success">Completed</span>
+        ) : (
+          <button className="button">Complete review</button>
+        )}
+      </div>
     </ActionForm>
   );
 }

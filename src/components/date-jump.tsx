@@ -1,7 +1,10 @@
 'use client';
 import { useRouter } from 'next/navigation';
 
-/** A bare date field that opens the chosen day or week as soon as it changes. */
+/**
+ * A bare date field that opens the chosen day or week once a full date is typed.
+ * Mount it with `key={value}` so it follows the arrows and the shortcuts.
+ */
 export function DateJump({
   value,
   path,
@@ -20,8 +23,10 @@ export function DateJump({
         aria-label={label}
         defaultValue={value}
         onChange={(event) => {
-          if (event.target.value)
-            router.push(`${path}?date=${event.target.value}`);
+          // A year still being typed ("0002") must not open the year 2.
+          const value = event.target.value;
+          if (value && Number(value.slice(0, 4)) >= 2000)
+            router.push(`${path}?date=${value}`);
         }}
       />
     </label>

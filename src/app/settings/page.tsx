@@ -12,6 +12,7 @@ import { activeDevices } from '@/features/push/service';
 import { PushControls } from '@/features/push/controls';
 import { GoogleCalendarPanel } from '@/features/calendar/panel';
 import { LearningReminderForm } from '@/features/learning/forms';
+import { JobReminderForm } from '@/features/jobs/forms';
 import { signOutAction } from '@/features/auth/actions';
 import { currentWeek } from '@/features/review/domain';
 import { shiftDay } from '@/features/schedule/domain';
@@ -36,35 +37,39 @@ export default async function Settings({
     }
   })();
   const nextMonday = shiftDay(currentWeek(now, user.timezone), 7);
-  const [
-    pref,
-    devices,
-    health,
-    calendar,
-    jobs,
-    routines,
-    nextWeekPlans,
-    revisionPref,
-  ] = await Promise.all([
-    db().notificationPreference.findUnique({
-      where: { userId_type: { userId: user.id, type: 'DAILY_PROGRESS' } },
-    }),
-    activeDevices(user.id),
-    healthCheck(),
-    db().calendarConnection.findUnique({ where: { userId: user.id } }),
-    db().jobRun.findMany(),
-    db().routineBlock.count({ where: { userId: user.id, enabled: true } }),
-    db().dailyPlan.count({
-      where: {
-        userId: user.id,
-        generatedAt: { not: null },
-        date: { gte: new Date(nextMonday) },
-      },
-    }),
-    db().notificationPreference.findUnique({
-      where: { userId_type: { userId: user.id, type: 'TECHNICAL_REVIEW' } },
-    }),
-  ]);
+  const [prefs, devices, health, calendar, jobs, routines, nextWeekPlans] =
+    await Promise.all([
+      db().notificationPreference.findMany({
+        where: {
+          userId: user.id,
+          type: {
+            in: [
+              'DAILY_PROGRESS',
+              'TECHNICAL_REVIEW',
+              'JOB_FOLLOW_UP',
+              'INTERVIEW',
+            ],
+          },
+        },
+      }),
+      activeDevices(user.id),
+      healthCheck(),
+      db().calendarConnection.findUnique({ where: { userId: user.id } }),
+      db().jobRun.findMany(),
+      db().routineBlock.count({ where: { userId: user.id, enabled: true } }),
+      db().dailyPlan.count({
+        where: {
+          userId: user.id,
+          generatedAt: { not: null },
+          date: { gte: new Date(nextMonday) },
+        },
+      }),
+    ]);
+  const prefOf = (type: string) => prefs.find((p) => p.type === type) ?? null;
+  const pref = prefOf('DAILY_PROGRESS'),
+    revisionPref = prefOf('TECHNICAL_REVIEW'),
+    followUpPref = prefOf('JOB_FOLLOW_UP'),
+    interviewPref = prefOf('INTERVIEW');
   const job = (name: string) => jobs.find((j) => j.name === name);
   // The checklist disappears once everything on it is done.
   const steps: [string, boolean, string][] = [
@@ -104,27 +109,32 @@ export default async function Settings({
       >
         <h2 id="notifications-heading">Notifications</h2>
         {push ? (
-          <PushControls publicKey={push.publicKey} />
+          <>
+            <PushControls publicKey={push.publicKey} />
+            <p className="muted">
+              Enabled on {devices} device{devices === 1 ? '' : 's'}. Reminders
+              always stay on Today; push is an extra channel.
+              {devices === 0
+                ? ' On iPhone or iPad, add Silsila to the Home Screen first.'
+                : ''}
+            </p>
+          </>
         ) : (
           <p className="muted">
-            Push is not configured on this server. Reminders still appear on
-            Today.
+            Push is not configured on this server; reminders stay on Today.
           </p>
         )}
-        <p className="muted">
-          Enabled on {devices} device{devices === 1 ? '' : 's'}. Reminders
-          always stay on Today; push is an extra channel.
-          {devices === 0
-            ? ' On iPhone or iPad, add Silsila to the Home Screen first.'
-            : ''}
-        </p>
         <h3 className="mt-4">Daily reminder</h3>
-        <ActionForm action={reminderAction} label="Daily reminder">
+        <ActionForm
+          action={reminderAction}
+          label="Daily reminder"
+          className="dsa-form"
+        >
           <label className="check">
             <input
               type="checkbox"
               name="enabled"
-              defaultChecked={pref?.enabled ?? true}
+              defaultChecked={pref?.enabled ?? false}
             />
             Remind me when I haven’t reviewed my day
           </label>
@@ -137,10 +147,12 @@ export default async function Settings({
               defaultValue={pref?.preferredTime ?? '21:30'}
             />
           </label>
-          <Button className="mt-3">Save</Button>
+          <Button className="secondary">Save</Button>
         </ActionForm>
         <h3 className="mt-4">Revision reminder</h3>
         <LearningReminderForm pref={revisionPref} />
+        <h3 className="mt-4">Job reminders</h3>
+        <JobReminderForm followUp={followUpPref} interview={interviewPref} />
       </section>
 
       <GoogleCalendarPanel user={user} flash={flash} />
@@ -153,7 +165,7 @@ export default async function Settings({
             <option value="light">Light</option>
             <option value="dark">Dark</option>
           </select>
-          <Button className="mt-3">Save</Button>
+          <Button className="secondary mt-3">Save</Button>
         </form>
       </section>
 

@@ -38,6 +38,7 @@ import { CategoryIcon } from '@/components/category-icon';
 import { Chain, TodayGoals, TodayRevision } from '@/features/roadmap/summary';
 import { openNotes } from '@/features/notes/service';
 import { NoteList } from '@/features/notes/forms';
+import { FeedbackOutlet } from '@/components/feedback-outlet';
 import { readNotification } from '@/server/actions';
 import { Button } from '@/components/ui/button';
 /** A quiet placeholder while an aside card is still loading. */
@@ -167,7 +168,7 @@ export default async function Today({
           >
             <ChevronRight size={18} aria-hidden="true" />
           </Link>
-          <DateJump value={day} path="/today" label="Open a date" />
+          <DateJump key={day} value={day} path="/today" label="Open a date" />
           <span className="kbd-hint muted" aria-hidden="true">
             N add · S start · ? help
           </span>
@@ -237,7 +238,7 @@ export default async function Today({
         </section>
       ) : (
         <>
-          {blocks.length > 0 && (
+          {blocks.length > 0 && day === today && (
             <section
               className={`card today-focus${summary.current ? ' is-live' : ''}`}
             >
@@ -252,6 +253,9 @@ export default async function Today({
                       {clock(summary.current.plannedStart, user.timezone)}–
                       {clock(summary.current.plannedEnd, user.timezone)}
                     </p>
+                  )}
+                  {summary.current && (
+                    <ExecutionControls block={summary.current} current />
                   )}
                 </div>
                 <div>
@@ -311,7 +315,7 @@ export default async function Today({
                         ? 'Nothing was planned for this day.'
                         : 'Nothing planned yet.'}{' '}
                     <Link className="link" href="/calendar">
-                      Routines →
+                      Set up routines on Plan →
                     </Link>
                   </p>
                 )}
@@ -359,8 +363,7 @@ export default async function Today({
                       )}
                       <ExecutionControls
                         block={block}
-                        canStart={day <= today}
-                        current={summary.current?.id === block.id}
+                        canStart={day === today}
                       />
                       {block.sessions.map((s) => (
                         <p className="recorded" key={s.id}>
@@ -417,6 +420,7 @@ export default async function Today({
               </section>
             </section>
             <aside>
+              {day === today && <FeedbackOutlet channel="notes" />}
               {notes.length > 0 && day === today && (
                 <section className="card" aria-labelledby="notes-heading">
                   <h2 id="notes-heading">Notes to self</h2>
@@ -437,7 +441,7 @@ export default async function Today({
               )}
               {plan?.reviewedAt && plan.checkIn ? (
                 <section
-                  className="card day-closed"
+                  className="card day-closed daily-review"
                   aria-labelledby="review-heading"
                 >
                   <p className="eyebrow">Day closed</p>
@@ -468,7 +472,10 @@ export default async function Today({
                   </Disclosure>
                 </section>
               ) : (
-                <section className="card" aria-labelledby="review-heading">
+                <section
+                  className="card daily-review"
+                  aria-labelledby="review-heading"
+                >
                   <h2 id="review-heading">Daily review</h2>
                   <ReviewForm day={day} review={plan?.checkIn} />
                 </section>

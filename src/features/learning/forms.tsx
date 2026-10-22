@@ -347,7 +347,7 @@ export function LearningReminderForm({
         Remind me when roadmap items or topics are due for revision
       </label>
       <label>
-        Local reminder time
+        Time
         <input
           name="preferredTime"
           type="time"
@@ -355,7 +355,7 @@ export function LearningReminderForm({
           defaultValue={pref?.preferredTime ?? '18:00'}
         />
       </label>
-      <button className="button">Save reminder</button>
+      <button className="button secondary">Save</button>
     </ActionForm>
   );
 }

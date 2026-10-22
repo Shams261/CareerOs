@@ -9,6 +9,7 @@ import {
   ExternalLink,
 } from 'lucide-react';
 import { ActionForm } from '@/components/action-form';
+import { FeedbackOutlet } from '@/components/feedback-outlet';
 import type { RoadmapItem } from '@/generated/prisma/client';
 import { askedNoteAction, itemOpAction, noteAction } from './actions';
 import { ItemForm } from './item-form';
@@ -208,6 +209,7 @@ export function ItemList({
           }}
         />
       </span>
+      <FeedbackOutlet channel="roadmap-items" className="mb-3" />
       <ol className="plain-list item-list" ref={listRef}>
         {rows.map(({ item, revision, revisionLabel, links }) => {
           const isOpen = open === item.id;
@@ -258,13 +260,14 @@ export function ItemList({
                   className="row-quick"
                 >
                   <input type="hidden" name="id" value={item.id} />
-                  {item.status === 'DONE' && item.nextRevisionAt ? (
+                  {item.status === 'DONE' &&
+                  (revision === 'due' || revision === 'overdue') ? (
                     <button
                       className="button secondary small"
                       name="op"
                       value="revised"
-                      aria-label={`Revised: ${item.title}`}
-                      title="Revised"
+                      aria-label={`Mark revised: ${item.title}`}
+                      title="Mark revised"
                     >
                       <Check size={14} aria-hidden="true" /> Revised
                     </button>
@@ -431,20 +434,19 @@ export function ItemList({
                       Save note
                     </button>
                   </ActionForm>
-                  <ActionForm
-                    action={itemOpAction}
-                    label={`Actions for ${item.title}`}
-                  >
+                  <ActionForm action={itemOpAction} broadcast="roadmap-items">
                     <input type="hidden" name="id" value={item.id} />
                     <div className="item-actions">
-                      {item.status === 'DONE' && item.nextRevisionAt ? (
-                        <button
-                          className="button small"
-                          name="op"
-                          value="revised"
-                        >
-                          <Check size={14} aria-hidden="true" /> Revised
-                        </button>
+                      {item.status === 'DONE' ? (
+                        revision === 'due' || revision === 'overdue' ? (
+                          <button
+                            className="button small"
+                            name="op"
+                            value="revised"
+                          >
+                            <Check size={14} aria-hidden="true" /> Mark revised
+                          </button>
+                        ) : null
                       ) : (
                         <button className="button small" name="op" value="done">
                           <Check size={14} aria-hidden="true" /> Done

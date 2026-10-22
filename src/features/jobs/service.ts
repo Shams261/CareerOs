@@ -8,26 +8,27 @@ import { dayBounds, dayKey } from '@/lib/time';
 import { localTime } from '@/lib/validation';
 import type { Prisma } from '@/generated/prisma/client';
 import {
+  attentionQueue,
   detailsInput,
   duplicateKey,
   followUpDoneInput,
   followUpInput,
+  followUpState,
   interviewInterval,
+  isOpen,
+  label,
+  needsAction,
+  nextRound,
   noteInput,
   prepInput,
   quickAddInput,
   rescheduleInput,
   resultInput,
   roundDetailsInput,
+  roundEnd,
   roundInput,
   stageInput,
   weeklyJobSummary,
-  isOpen,
-  roundEnd,
-  attentionQueue,
-  followUpState,
-  needsAction,
-  nextRound,
 } from './domain';
 
 type Tx = Prisma.TransactionClient;
@@ -298,7 +299,8 @@ export async function scheduleRound(
       data: {
         userId: user.id,
         applicationId: app.id,
-        title: input.title,
+        // The type is the title unless the owner wrote one ("Coding", "System design").
+        title: input.title || label(input.type),
         type: input.type,
         timezone: input.timezone,
         interviewers: input.interviewers,
