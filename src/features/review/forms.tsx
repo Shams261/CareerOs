@@ -38,6 +38,7 @@ export function ReviewForm({
       action={reviewAction}
       label="Weekly reflection"
       className="dsa-form"
+      draft={`reflection:${weekStart}`}
     >
       <input type="hidden" name="weekStart" value={weekStart} />
       <div className="form-grid">
@@ -173,6 +174,7 @@ export function PriorityForm({
       broadcast="priorities"
       className="dsa-form"
       resetOnSuccess
+      draft={`priority:${weekStart}`}
     >
       <input type="hidden" name="weekStart" value={weekStart} />
       <div className="form-grid">

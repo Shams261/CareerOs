@@ -34,6 +34,7 @@ export function GoalForm({
       label={goal ? `Edit goal ${goal.title}` : 'Add goal'}
       className="dsa-form"
       resetOnSuccess={!goal}
+      draft={goal ? undefined : 'goal:new'}
     >
       <input type="hidden" name="id" value={goal?.id ?? ''} />
       <div className="form-grid">
@@ -116,6 +117,7 @@ export function RoadmapForm({
       label={roadmap ? `Edit roadmap ${roadmap.title}` : 'New roadmap'}
       className="dsa-form"
       resetOnSuccess={!roadmap}
+      draft={roadmap ? undefined : 'roadmap:new'}
     >
       <input type="hidden" name="id" value={roadmap?.id ?? ''} />
       <div className="form-grid">
@@ -209,6 +211,7 @@ export function BulkItemsForm({
       label="Add items"
       className="dsa-form"
       resetOnSuccess
+      draft={`items:${roadmapId}`}
     >
       <input type="hidden" name="roadmapId" value={roadmapId} />
       <label>

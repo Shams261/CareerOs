@@ -1,4 +1,5 @@
 import { ActionForm } from '@/components/action-form';
+import { FormMore } from '@/components/form-more';
 import {
   blockAction,
   routineAction,
@@ -134,6 +135,7 @@ export function BlockForm({
       resetOnSuccess={!block}
       broadcast="blocks"
       closeOnSuccess
+      draft={block ? undefined : `block:${day}`}
     >
       <input type="hidden" name="id" value={block?.id ?? ''} />
       <input
@@ -216,11 +218,20 @@ export function RoutineForm({
   goals: GoalOption[];
   compact?: boolean;
 }) {
+  // The short form: title, days and time. Everything else sits behind More and opens by
+  // itself when an existing routine uses any of it.
+  const moreOpen =
+    !!routine &&
+    (!!routine.description ||
+      !!routine.goalId ||
+      routine.priority !== 2 ||
+      !routine.enabled);
   return (
     <ActionForm
       action={routineAction}
       label={routine ? `Edit routine ${routine.title}` : 'Add routine'}
       resetOnSuccess={!routine}
+      draft={routine ? undefined : 'routine:new'}
     >
       <input type="hidden" name="id" value={routine?.id ?? ''} />
       <input
@@ -228,7 +239,16 @@ export function RoutineForm({
         name="version"
         value={routine?.updatedAt.toISOString() ?? ''}
       />
-      <CommonFields goals={goals} value={routine} compact={compact} />
+      <label>
+        Title
+        <input
+          name="title"
+          required
+          maxLength={160}
+          defaultValue={routine?.title}
+          placeholder="DSA practice"
+        />
+      </label>
       <fieldset>
         <legend>Repeat on</legend>
         <div className="weekday-picker">
@@ -267,37 +287,77 @@ export function RoutineForm({
           />
         </label>
       </div>
-      {compact ? (
-        <input type="hidden" name="enabled" value="on" />
-      ) : (
-        <label className="check">
-          <input
-            type="checkbox"
-            name="enabled"
-            defaultChecked={routine?.enabled ?? true}
-          />{' '}
-          Active
+      {routine && (
+        <label>
+          Apply changes to
+          <select name="scope" defaultValue="template">
+            <option value="template">Only days not planned yet</option>
+            <option value="future">
+              Also this week&apos;s planned days (preview first)
+            </option>
+          </select>
         </label>
       )}
-      {routine && (
-        <>
+      <FormMore
+        label="More: category, goal, priority, notes"
+        defaultOpen={moreOpen}
+      >
+        <div className="form-grid">
           <label>
-            Apply changes to
-            <select name="scope" defaultValue="template">
-              <option value="template">Only days not planned yet</option>
-              <option value="future">
-                Also this week&apos;s planned days (preview first)
-              </option>
+            Category
+            <input
+              name="category"
+              required
+              maxLength={80}
+              list="activity-categories"
+              defaultValue={routine?.category ?? 'DSA'}
+            />
+          </label>
+          <label>
+            Goal
+            <select name="goalId" defaultValue={routine?.goalId ?? ''}>
+              <option value="">No goal</option>
+              {goals.map((g) => (
+                <option key={g.id} value={g.id}>
+                  {g.title}
+                </option>
+              ))}
             </select>
           </label>
-        </>
-      )}
-      {!compact && (
+          <label>
+            Priority
+            <select name="priority" defaultValue={routine?.priority ?? 2}>
+              <option value={1}>High</option>
+              <option value={2}>Normal</option>
+              <option value={3}>Low</option>
+            </select>
+          </label>
+        </div>
+        <label>
+          Notes
+          <textarea
+            name="description"
+            maxLength={1000}
+            defaultValue={routine?.description ?? ''}
+          />
+        </label>
+        {compact ? (
+          <input type="hidden" name="enabled" value="on" />
+        ) : (
+          <label className="check">
+            <input
+              type="checkbox"
+              name="enabled"
+              defaultChecked={routine?.enabled ?? true}
+            />{' '}
+            Active
+          </label>
+        )}
         <label className="check">
           <input type="checkbox" name="allowOverlap" /> Allow overlap with other
           routines or blocks
         </label>
-      )}
+      </FormMore>
       <div className="actions mt-3">
         <Button>{routine ? 'Save routine' : 'Add routine'}</Button>
         {routine && (
@@ -430,7 +490,11 @@ export function ReviewForm({
   review?: DailyCheckIn | null;
 }) {
   return (
-    <ActionForm action={reviewAction} label="Daily review">
+    <ActionForm
+      action={reviewAction}
+      label="Daily review"
+      draft={`daily-review:${day}`}
+    >
       <input type="hidden" name="day" value={day} />
       <label>
         What went well? (optional)

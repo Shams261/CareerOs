@@ -131,6 +131,7 @@ export default async function Calendar({
           variant={routines.length ? 'secondary' : 'primary'}
           defaultOpen={!routines.length}
           shortcut="add-routine"
+          draft="routine:new"
         >
           <RoutineForm goals={goals} />
         </Disclosure>

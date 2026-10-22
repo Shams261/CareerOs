@@ -294,7 +294,11 @@ export default async function Today({
           </p>
           <RoutineForm goals={goals} compact />
           <div className="mt-5">
-            <Disclosure variant="link" label="Just today? Add a one-time block">
+            <Disclosure
+              variant="link"
+              label="Just today? Add a one-time block"
+              draft={`block:${day}`}
+            >
               <BlockForm day={day} zone={user.timezone} goals={goals} />
             </Disclosure>
           </div>
@@ -398,6 +402,7 @@ export default async function Today({
                   label="Add a block"
                   variant={blocks.length ? 'secondary' : 'primary'}
                   shortcut="add-block"
+                  draft={`block:${day}`}
                 >
                   <BlockForm day={day} zone={user.timezone} goals={goals} />
                 </Disclosure>

@@ -89,7 +89,11 @@ export default async function Jobs({
       <div className="page-head">
         <h1>Jobs</h1>
         {apps.length > 0 && (
-          <Disclosure label="Add application" variant="primary">
+          <Disclosure
+            label="Add application"
+            variant="primary"
+            draft="application:new"
+          >
             <QuickAddForm today={today} />
           </Disclosure>
         )}
