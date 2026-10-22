@@ -237,7 +237,7 @@ export default async function Today({
         </section>
       ) : (
         <>
-          {blocks.length > 0 && (
+          {blocks.length > 0 && day === today && (
             <section
               className={`card today-focus${summary.current ? ' is-live' : ''}`}
             >
@@ -252,6 +252,9 @@ export default async function Today({
                       {clock(summary.current.plannedStart, user.timezone)}–
                       {clock(summary.current.plannedEnd, user.timezone)}
                     </p>
+                  )}
+                  {summary.current && (
+                    <ExecutionControls block={summary.current} current />
                   )}
                 </div>
                 <div>
@@ -311,7 +314,7 @@ export default async function Today({
                         ? 'Nothing was planned for this day.'
                         : 'Nothing planned yet.'}{' '}
                     <Link className="link" href="/calendar">
-                      Routines →
+                      Set up routines on Plan →
                     </Link>
                   </p>
                 )}
@@ -359,8 +362,7 @@ export default async function Today({
                       )}
                       <ExecutionControls
                         block={block}
-                        canStart={day <= today}
-                        current={summary.current?.id === block.id}
+                        canStart={day === today}
                       />
                       {block.sessions.map((s) => (
                         <p className="recorded" key={s.id}>

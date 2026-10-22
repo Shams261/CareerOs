@@ -691,7 +691,7 @@ export function JobReminderForm({
         Follow-up reminder (once per planned date)
       </label>
       <label>
-        Follow-up reminder time
+        Follow-up time
         <input
           name="followUpTime"
           type="time"
@@ -718,7 +718,7 @@ export function JobReminderForm({
           defaultValue={interview?.offsetMinutes ?? 60}
         />
       </label>
-      <button className="button">Save reminders</button>
+      <button className="button secondary">Save</button>
     </ActionForm>
   );
 }

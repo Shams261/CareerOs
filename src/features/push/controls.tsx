@@ -66,9 +66,11 @@ export function PushControls({ publicKey }: { publicKey: string }) {
     setBusy(true);
     try {
       await work();
-    } catch {
+    } catch (error) {
       setMessage(
-        'Something went wrong. Check that the site is open over HTTPS and try again.',
+        error instanceof Error && error.message === 'Timed out'
+          ? 'The browser did not answer in time. Reload the page and try again.'
+          : 'Something went wrong. Check that the site is open over HTTPS and try again.',
       );
     } finally {
       setBusy(false);
@@ -124,7 +126,8 @@ export function PushControls({ publicKey }: { publicKey: string }) {
     });
   const status = {
     checking: 'Checking this browser…',
-    unsupported: 'Not supported in this browser.',
+    unsupported:
+      'Not supported in this browser. Try Chrome, Edge, Firefox, or Safari 16.4 or later.',
     install:
       'On iPhone/iPad, add Silsila to the Home Screen (Share → Add to Home Screen), open it from there, then enable notifications.',
     denied:

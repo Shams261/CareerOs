@@ -19,7 +19,7 @@ import {
   views,
 } from '@/features/jobs/domain';
 import { ApplicationRow, attentionText } from '@/features/jobs/components';
-import { JobReminderForm, QuickAddForm } from '@/features/jobs/forms';
+import { QuickAddForm } from '@/features/jobs/forms';
 import { Disclosure } from '@/components/disclosure';
 
 const FILTER_THRESHOLD = 8;
@@ -357,14 +357,11 @@ export default async function Jobs({
                   <p className="muted">Nothing recorded this week yet.</p>
                 )}
               </section>
-              <Disclosure variant="link" label="Reminder preferences">
-                <section className="card">
-                  <JobReminderForm
-                    followUp={data.followUpPref}
-                    interview={data.interviewPref}
-                  />
-                </section>
-              </Disclosure>
+              <p className="status-line">
+                <Link className="link" href="/settings#notifications-heading">
+                  Reminder settings
+                </Link>
+              </p>
             </aside>
           </div>
         </>
