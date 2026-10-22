@@ -387,6 +387,7 @@ export function ExecutionControls({
   launcher = false,
   hideStart = false,
   more = false,
+  primaryOnly = false,
 }: {
   block: TimeBlock;
   canStart?: boolean;
@@ -395,6 +396,8 @@ export function ExecutionControls({
   launcher?: boolean;
   hideStart?: boolean;
   more?: boolean;
+  /** Only the primary Start or Stop; the row keeps the secondary actions. */
+  primaryOnly?: boolean;
 }) {
   const running = block.status === 'IN_PROGRESS';
   return (
@@ -424,32 +427,39 @@ export function ExecutionControls({
                 <span className="sr-only">: {block.title}</span>
               </button>
             )}
-            <SecondaryActions title={block.title} always={more}>
-              {more && !current && canStart && !hideStart && !running && (
-                <Button className="secondary small" name="action" value="start">
-                  Start<span className="sr-only">: {block.title}</span>
-                </Button>
-              )}
-              <Button
-                className={`secondary${more ? ' small' : ''}`}
-                name="action"
-                value="complete"
-              >
-                Complete<span className="sr-only">: {block.title}</span>
-              </Button>
-              {!running && (
-                <>
-                  <SkipStep title={block.title} small={more} />
+            {!primaryOnly && (
+              <SecondaryActions title={block.title} always={more}>
+                {more && !current && canStart && !hideStart && !running && (
                   <Button
-                    className={`secondary${more ? ' small' : ''}`}
+                    className="secondary small"
                     name="action"
-                    value="cancel"
+                    value="start"
                   >
-                    Cancel block<span className="sr-only">: {block.title}</span>
+                    Start<span className="sr-only">: {block.title}</span>
                   </Button>
-                </>
-              )}
-            </SecondaryActions>
+                )}
+                <Button
+                  className={`secondary${more ? ' small' : ''}`}
+                  name="action"
+                  value="complete"
+                >
+                  Complete<span className="sr-only">: {block.title}</span>
+                </Button>
+                {!running && (
+                  <>
+                    <SkipStep title={block.title} small={more} />
+                    <Button
+                      className={`secondary${more ? ' small' : ''}`}
+                      name="action"
+                      value="cancel"
+                    >
+                      Cancel block
+                      <span className="sr-only">: {block.title}</span>
+                    </Button>
+                  </>
+                )}
+              </SecondaryActions>
+            )}
           </>
         ) : (
           <Button

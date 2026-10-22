@@ -29,7 +29,7 @@ export function AttentionRow({ item }: { item: AttentionItem }) {
   const body = (
     <>
       <span className="attention-icon" aria-hidden="true">
-        <Icon size={18} />
+        <Icon size={22} />
       </span>
       <span className="attention-main">
         <span className="attention-label">{item.label}</span>

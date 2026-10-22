@@ -87,15 +87,15 @@ export function TodayHeader({
             </PanelButton>
           )}
           {isToday && (
-            <PanelButton panel="notes" className="button secondary small">
+            <PanelButton panel="notes" className="link-button today-util">
               Notes{noteCount ? ` · ${noteCount}` : ''}
             </PanelButton>
           )}
-          <PressButton press="add-block" className="button secondary small">
+          <PressButton press="add-block" className="button secondary">
             <Plus size={14} aria-hidden="true" /> Add
           </PressButton>
           {reviewed !== null && (
-            <PanelButton panel="review" className="button secondary small">
+            <PanelButton panel="review" className="button secondary">
               {reviewed ? 'Edit review' : 'Review day'}
             </PanelButton>
           )}

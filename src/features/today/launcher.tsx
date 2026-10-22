@@ -86,7 +86,7 @@ export function Launcher({
         block={{ ...block, status: 'IN_PROGRESS' }}
         current
         launcher
-        more
+        primaryOnly
       />
     ) : (
       <ActionForm action={stopUnlinkedAction}>
@@ -117,7 +117,7 @@ export function Launcher({
         {round && <> · {prepLink(round)}</>}
       </>
     );
-    action = <ExecutionControls block={block} current launcher more />;
+    action = <ExecutionControls block={block} current launcher primaryOnly />;
     if (state.kind === 'current' && state.next)
       next = `Next: ${state.next.title} · ${clock(state.next.plannedStart, zone)}`;
   } else if (state.kind === 'reconcile') {

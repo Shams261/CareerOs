@@ -3284,9 +3284,11 @@ span > svg {
 }
 .today-title h1 {
   margin: 0;
+  font-size: 36px;
+  letter-spacing: -0.02em;
 }
 .today-date {
-  font-size: 17px;
+  font-size: 18px;
   color: var(--ink-2);
 }
 .today-title .day-nav {
@@ -3296,14 +3298,30 @@ span > svg {
   margin: 0;
 }
 .day-nav-step {
-  min-width: 32px;
-  min-height: 32px;
-  padding: 0 6px;
+  min-width: 28px;
+  min-height: 28px;
+  padding: 0 4px;
+  border-color: transparent;
+  background: transparent;
+  color: var(--muted);
+}
+.day-nav-step:hover {
+  color: var(--primary);
+  background: var(--subtle);
 }
 .today-title .date-jump input {
-  min-height: 32px;
-  padding: 4px 8px;
-  font-size: 13px;
+  min-height: 28px;
+  padding: 2px 6px;
+  font-size: 12px;
+  color: var(--muted);
+  border-color: transparent;
+  background: transparent;
+  width: auto;
+}
+.today-title .date-jump input:hover,
+.today-title .date-jump input:focus {
+  border-color: var(--border);
+  background: var(--surface);
 }
 .today-utils {
   display: flex;
@@ -3321,16 +3339,26 @@ span > svg {
   flex-wrap: wrap;
 }
 .today-util {
-  font-size: 14px;
+  font-size: 16px;
+  font-weight: 500;
   text-decoration: none;
-  margin-right: 4px;
+  margin-right: 8px;
+  color: var(--ink-2);
+}
+.today-util:hover {
+  color: var(--primary);
+}
+.today-utils-items .button.secondary {
+  min-height: 44px;
+  padding: 0 18px;
+  font-size: 15px;
 }
 .today-util svg {
   vertical-align: -0.1em;
 }
 .today-summary {
-  margin: 8px 0 0;
-  font-size: 14px;
+  margin: 10px 0 0;
+  font-size: 16px;
   color: var(--ink-2);
   display: flex;
   gap: 10px;
@@ -3373,8 +3401,8 @@ span > svg {
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 14px;
-  padding: 18px 22px;
-  margin-bottom: 28px;
+  padding: 22px 26px;
+  margin-bottom: 36px;
 }
 .launcher-main {
   min-width: 0;
@@ -3398,14 +3426,14 @@ span > svg {
   color: var(--primary);
 }
 .launcher h2 {
-  font-size: 24px;
+  font-size: 28px;
   margin: 4px 0 2px;
   letter-spacing: -0.01em;
   overflow-wrap: anywhere;
 }
 .launcher-meta {
   margin: 0;
-  font-size: 15px;
+  font-size: 17px;
   color: var(--ink-2);
 }
 .launcher-meta .link {
@@ -3413,10 +3441,10 @@ span > svg {
   font-weight: 600;
 }
 .launcher-next {
-  margin: 12px 0 0;
-  padding-top: 10px;
+  margin: 14px 0 0;
+  padding-top: 12px;
   border-top: 1px solid var(--border-subtle);
-  font-size: 14px;
+  font-size: 16px;
   color: var(--ink-2);
 }
 .launcher-next:empty {
@@ -3430,7 +3458,7 @@ span > svg {
 }
 .launcher-timer {
   display: block;
-  font-size: 38px;
+  font-size: 44px;
   line-height: 1.1;
   font-weight: 600;
   letter-spacing: -0.01em;
@@ -3443,9 +3471,9 @@ span > svg {
   justify-content: flex-end;
 }
 .launcher .actions .button:not(.secondary) {
-  min-height: 46px;
-  padding: 0 22px;
-  font-size: 15px;
+  min-height: 48px;
+  padding: 0 24px;
+  font-size: 17px;
 }
 .launcher.is-live {
   border-color: var(--primary);
@@ -3459,8 +3487,13 @@ span > svg {
   margin-bottom: 6px;
 }
 .agenda-heading {
-  font-size: 22px;
+  font-size: 28px;
+  letter-spacing: -0.01em;
   margin: 0;
+}
+.agenda-add > .disclosure-link {
+  font-size: 17px;
+  font-weight: 500;
 }
 .agenda-add > .disclosure-panel {
   background: var(--surface);
@@ -3473,7 +3506,7 @@ span > svg {
   margin: 0;
 }
 .agenda-label {
-  font-size: 11px;
+  font-size: 13px;
   letter-spacing: 0.1em;
   text-transform: uppercase;
   font-weight: 700;
@@ -3505,17 +3538,17 @@ span > svg {
   position: absolute;
   top: 0;
   bottom: 0;
-  left: 104px;
+  left: 124px;
   width: 2px;
   background: var(--border);
 }
 .agenda-row {
   position: relative;
   display: grid;
-  grid-template-columns: 72px 24px minmax(0, 1fr) auto;
-  gap: 0 16px;
+  grid-template-columns: 92px 24px minmax(0, 1fr) auto;
+  gap: 0 18px;
   align-items: center;
-  padding: 14px 12px 14px 12px;
+  padding: 18px 12px 18px 12px;
   margin: 0 -12px;
   border-top: 1px solid var(--border-subtle);
   border-left: 3px solid transparent;
@@ -3531,7 +3564,8 @@ span > svg {
 }
 .agenda-time {
   font-variant-numeric: tabular-nums;
-  font-size: 14px;
+  font-size: 16px;
+  white-space: nowrap;
   color: var(--ink-2);
   text-align: right;
 }
@@ -3564,7 +3598,7 @@ span > svg {
 }
 .agenda-title {
   margin: 0;
-  font-size: 16px;
+  font-size: 19px;
   font-weight: 600;
   overflow-wrap: anywhere;
 }
@@ -3586,8 +3620,8 @@ span > svg {
   color: var(--primary);
 }
 .agenda-meta {
-  margin: 2px 0 0;
-  font-size: 14px;
+  margin: 3px 0 0;
+  font-size: 16px;
   color: var(--muted);
   overflow-wrap: anywhere;
 }
@@ -3604,7 +3638,7 @@ span > svg {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  font-size: 14px;
+  font-size: 16px;
   font-weight: 500;
   color: var(--ink-2);
   white-space: nowrap;
@@ -3644,7 +3678,7 @@ span > svg {
   display: contents;
 }
 .agenda-actions .link-button {
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 500;
   text-decoration: none;
   color: var(--ink-2);
@@ -3662,9 +3696,8 @@ span > svg {
 .agenda-actions .exec-more-always {
   border: 0;
   background: none;
-  color: var(--ink-2);
+  color: var(--muted);
   padding: 0 4px;
-  font-size: 14px;
   min-height: 28px;
 }
 .agenda-actions .exec-more-always:hover {
@@ -3722,8 +3755,8 @@ span > svg {
   margin-bottom: 12px;
 }
 .agenda-foot {
-  margin: 18px 0 0;
-  font-size: 15px;
+  margin: 22px 0 0;
+  font-size: 17px;
 }
 .agenda-foot .link {
   color: var(--primary);
@@ -3737,12 +3770,13 @@ span > svg {
   margin-bottom: 6px;
 }
 .attention-head h2 {
-  font-size: 22px;
+  font-size: 26px;
+  letter-spacing: -0.01em;
   margin: 0;
 }
 .attention-head .muted,
 .attention-head .skeleton-line {
-  font-size: 14px;
+  font-size: 16px;
 }
 .attention-list {
   margin: 0;
@@ -3756,10 +3790,10 @@ span > svg {
 }
 .attention-link {
   display: grid;
-  grid-template-columns: 24px minmax(0, 1fr) auto;
-  gap: 0 14px;
+  grid-template-columns: 48px minmax(0, 1fr) auto;
+  gap: 0 18px;
   align-items: center;
-  padding: 10px 0;
+  padding: 14px 0;
   border-radius: 10px;
   color: inherit;
 }
@@ -3767,8 +3801,10 @@ a.attention-link:hover .attention-title {
   color: var(--primary);
 }
 .attention-icon {
-  width: 24px;
-  height: 24px;
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  background: var(--tint);
   color: var(--primary);
   display: inline-flex;
   align-items: center;
@@ -3783,27 +3819,27 @@ a.attention-link:hover .attention-title {
   min-width: 0;
 }
 .attention-label {
-  font-size: 11px;
+  font-size: 13px;
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--muted);
   font-weight: 600;
 }
 .attention-title {
-  font-size: 15px;
+  font-size: 18px;
   font-weight: 600;
   color: var(--foreground);
   overflow-wrap: anywhere;
 }
 .attention-context {
-  font-size: 14px;
+  font-size: 16px;
   color: var(--ink-2);
 }
 .attention-chevron {
   color: var(--muted);
 }
 .attention-read {
-  padding: 0 0 6px 38px;
+  padding: 0 0 8px 66px;
 }
 .attention-read fieldset {
   border: 0;
@@ -3816,8 +3852,8 @@ a.attention-link:hover .attention-title {
   margin: 8px 0;
 }
 .attention-more {
-  margin: 12px 0 0;
-  font-size: 15px;
+  margin: 16px 0 0;
+  font-size: 17px;
 }
 .attention-more .link-button {
   text-decoration: none;
@@ -4011,7 +4047,7 @@ a.attention-link:hover .attention-title {
     flex: 1 1 auto;
   }
   .agenda-rows::before {
-    left: 66px;
+    left: 70px;
   }
   .agenda-row {
     grid-template-columns: 48px 20px minmax(0, 1fr);

@@ -26,8 +26,7 @@ export function SecondaryActions({
         aria-label={`More actions for ${title}`}
         onClick={() => setOpen((o) => !o)}
       >
-        <Ellipsis size={16} aria-hidden="true" />
-        {always && ' More'}
+        <Ellipsis size={18} aria-hidden="true" />
       </button>
       <div
         className={`exec-secondary${open ? ' is-open' : ''}${always ? ' is-always' : ''}`}
