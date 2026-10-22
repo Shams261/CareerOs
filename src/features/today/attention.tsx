@@ -1,3 +1,4 @@
+import { ArrowRight } from 'lucide-react';
 import { FeedbackOutlet } from '@/components/feedback-outlet';
 import { dsaSnapshot } from '@/features/dsa/service';
 import { revisionQueue } from '@/features/dsa/domain';
@@ -108,7 +109,7 @@ export async function Attention({
       {items.length > 0 && (
         <p className="attention-more">
           <PanelButton panel="attention" className="link-button">
-            View all {items.length}
+            View all {items.length} <ArrowRight size={14} aria-hidden="true" />
           </PanelButton>
         </p>
       )}

@@ -1,26 +1,57 @@
 'use client';
 import { useState } from 'react';
 import Link from 'next/link';
+import {
+  Bell,
+  Briefcase,
+  ChevronRight,
+  ClipboardCheck,
+  Code2,
+  Route,
+} from 'lucide-react';
 import { ActionForm } from '@/components/action-form';
 import { Button } from '@/components/ui/button';
 import { readNotificationAction } from '@/server/actions';
 import { attentionPage, type AttentionItem } from './domain';
 
-/** One attention row: category label, title, due context, one destination or Mark read. */
+const icons = {
+  'interview-prep': Briefcase,
+  job: Briefcase,
+  practice: Code2,
+  roadmap: Route,
+  notification: Bell,
+  weekly: ClipboardCheck,
+} as const;
+
+/** One attention row: a neutral icon tile, the category label, title, due context, one way on. */
 export function AttentionRow({ item }: { item: AttentionItem }) {
-  return (
-    <li className="attention-row" data-source={item.source}>
-      <span className="attention-label">{item.label}</span>
+  const Icon = icons[item.source];
+  const body = (
+    <>
+      <span className="attention-icon" aria-hidden="true">
+        <Icon size={18} />
+      </span>
       <span className="attention-main">
-        {item.href ? (
-          <Link className="attention-title" href={item.href} prefetch={false}>
-            {item.title}
-          </Link>
-        ) : (
-          <span className="attention-title">{item.title}</span>
-        )}
+        <span className="attention-label">{item.label}</span>
+        <span className="attention-title">{item.title}</span>
         <span className="attention-context">{item.context}</span>
       </span>
+    </>
+  );
+  return (
+    <li className="attention-row" data-source={item.source}>
+      {item.href ? (
+        <Link className="attention-link" href={item.href} prefetch={false}>
+          {body}
+          <ChevronRight
+            size={18}
+            aria-hidden="true"
+            className="attention-chevron"
+          />
+        </Link>
+      ) : (
+        <span className="attention-link is-static">{body}</span>
+      )}
       {item.notificationIds.length > 0 && (
         <ActionForm
           action={readNotificationAction}
@@ -31,8 +62,7 @@ export function AttentionRow({ item }: { item: AttentionItem }) {
             <input key={id} type="hidden" name="id" value={id} />
           ))}
           <Button
-            variant="secondary"
-            className="small"
+            variant="link"
             aria-label={`Mark the reminder read: ${item.title}`}
           >
             Mark read

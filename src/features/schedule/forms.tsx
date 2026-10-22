@@ -403,7 +403,7 @@ export function ExecutionControls({
       <div className="actions">
         {['PLANNED', 'IN_PROGRESS'].includes(block.status) ? (
           <>
-            {(canStart || running) && !hideStart && (
+            {(canStart || running) && !hideStart && !(more && !current) && (
               <button
                 className={
                   current || running
@@ -425,6 +425,11 @@ export function ExecutionControls({
               </button>
             )}
             <SecondaryActions title={block.title} always={more}>
+              {more && !current && canStart && !hideStart && !running && (
+                <Button className="secondary small" name="action" value="start">
+                  Start<span className="sr-only">: {block.title}</span>
+                </Button>
+              )}
               <Button
                 className={`secondary${more ? ' small' : ''}`}
                 name="action"

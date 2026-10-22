@@ -1,18 +1,16 @@
 import Link from 'next/link';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ArrowUpRight, ChevronLeft, ChevronRight } from 'lucide-react';
 import { formatInTimeZone } from 'date-fns-tz';
 import { DateJump } from '@/components/date-jump';
-import { Disclosure } from '@/components/disclosure';
 import { FeedbackOutlet } from '@/components/feedback-outlet';
 import { shiftDay } from '@/features/schedule/domain';
-import { BlockForm } from '@/features/schedule/forms';
 import { PanelButton } from './panels';
 import { UtilityMenu } from './utility-menu';
-import type { ReactNode } from 'react';
 
 /**
- * The Today header: heading and date, day navigation, the utilities (Activity, Notes, Add,
- * Review day) and one factual summary line. Narrow screens fold the utilities into More.
+ * The Today header: the heading with the date beside it and compact day navigation, the
+ * utilities (Activity, Notes, Review day; behind More on narrow screens) and one factual
+ * summary line. "Add a block" lives in the agenda heading.
  */
 export function TodayHeader({
   day,
@@ -22,8 +20,6 @@ export function TodayHeader({
   summary,
   noteCount,
   reviewed,
-  goals,
-  utilitiesExtra,
 }: {
   day: string;
   today: string;
@@ -33,8 +29,6 @@ export function TodayHeader({
   noteCount: number;
   /** null when the day cannot be reviewed yet (a future date). */
   reviewed: boolean | null;
-  goals: { id: string; title: string }[];
-  utilitiesExtra?: ReactNode;
 }) {
   const isToday = day === today;
   return (
@@ -44,38 +38,42 @@ export function TodayHeader({
           <h1>
             {isToday ? 'Today' : day < today ? 'Past day' : 'Upcoming day'}
           </h1>
-          <p className="today-date">
-            {formatInTimeZone(bounds.start, zone, 'EEEE, MMMM d')}
-          </p>
-        </div>
-        <nav className="day-nav" aria-label="Day navigation">
-          <Link
-            className="button secondary"
-            href={`/today?date=${shiftDay(day, -1)}`}
-            aria-label="Previous day"
-            prefetch={false}
-          >
-            <ChevronLeft size={18} aria-hidden="true" />
-          </Link>
-          {!isToday && (
-            <Link className="button secondary" href="/today" prefetch={false}>
-              Today
+          <span className="today-date">
+            {formatInTimeZone(bounds.start, zone, 'EEEE, d MMMM')}
+          </span>
+          <nav className="day-nav" aria-label="Day navigation">
+            <Link
+              className="button secondary small day-nav-step"
+              href={`/today?date=${shiftDay(day, -1)}`}
+              aria-label="Previous day"
+              prefetch={false}
+            >
+              <ChevronLeft size={16} aria-hidden="true" />
             </Link>
-          )}
-          <Link
-            className="button secondary"
-            href={`/today?date=${shiftDay(day, 1)}`}
-            aria-label="Next day"
-            prefetch={false}
-          >
-            <ChevronRight size={18} aria-hidden="true" />
-          </Link>
-          <DateJump key={day} value={day} path="/today" label="Open a date" />
-        </nav>
+            <Link
+              className="button secondary small day-nav-step"
+              href={`/today?date=${shiftDay(day, 1)}`}
+              aria-label="Next day"
+              prefetch={false}
+            >
+              <ChevronRight size={16} aria-hidden="true" />
+            </Link>
+            {!isToday && (
+              <Link
+                className="button secondary small"
+                href="/today"
+                prefetch={false}
+              >
+                Today
+              </Link>
+            )}
+            <DateJump key={day} value={day} path="/today" label="Open a date" />
+          </nav>
+        </div>
         <UtilityMenu>
           {isToday && (
-            <PanelButton panel="activity" className="button secondary small">
-              Activity
+            <PanelButton panel="activity" className="link-button today-util">
+              Activity <ArrowUpRight size={14} aria-hidden="true" />
             </PanelButton>
           )}
           {isToday && (
@@ -88,7 +86,6 @@ export function TodayHeader({
               {reviewed ? 'Edit review' : 'Review day'}
             </PanelButton>
           )}
-          {utilitiesExtra}
         </UtilityMenu>
       </div>
       <p className="today-summary">
@@ -96,15 +93,6 @@ export function TodayHeader({
         {reviewed && <span className="pill success">Reviewed</span>}
       </p>
       <FeedbackOutlet channel="review" className="mt-2" />
-      <Disclosure
-        label="Add a block"
-        variant="secondary"
-        shortcut="add-block"
-        draft={`block:${day}`}
-        className="today-add"
-      >
-        <BlockForm day={day} zone={zone} goals={goals} />
-      </Disclosure>
     </header>
   );
 }

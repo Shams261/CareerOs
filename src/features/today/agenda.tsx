@@ -1,5 +1,12 @@
 import Link from 'next/link';
-import { ArrowRight, Briefcase } from 'lucide-react';
+import {
+  ArrowRight,
+  Briefcase,
+  Check,
+  ChevronRight,
+  Circle,
+  CircleDot,
+} from 'lucide-react';
 import { formatInTimeZone } from 'date-fns-tz';
 import { Disclosure } from '@/components/disclosure';
 import { FeedbackOutlet } from '@/components/feedback-outlet';
@@ -45,9 +52,9 @@ const origin = (b: TimeBlock) =>
       : 'Routine'
     : 'Added for this day';
 
-/** The day as an open list: a time gutter, Earlier / Now / Later, cancelled blocks apart. */
+/** The day as an open list with a timeline rail: Earlier / Now / Later, cancelled apart. */
 export function Agenda(props: Props) {
-  const { entries, day, today, now } = props;
+  const { entries, day, today, now, zone, goals } = props;
   const isToday = day === today;
   const groups = groupAgenda(entries, now, isToday);
   const sections: [string, AgendaEntry[]][] = isToday
@@ -59,9 +66,20 @@ export function Agenda(props: Props) {
     : [['', groups.later]];
   return (
     <section className="agenda" aria-labelledby="agenda-heading">
-      <h2 id="agenda-heading" className="agenda-heading">
-        Agenda
-      </h2>
+      <div className="agenda-head">
+        <h2 id="agenda-heading" className="agenda-heading">
+          Your day
+        </h2>
+        <Disclosure
+          label="Add a block"
+          variant="link"
+          shortcut="add-block"
+          draft={`block:${day}`}
+          className="agenda-add"
+        >
+          <BlockForm day={day} zone={zone} goals={goals} />
+        </Disclosure>
+      </div>
       <FeedbackOutlet channel="blocks" className="mb-3" />
       {!entries.length && (
         <p className="empty">
@@ -86,7 +104,7 @@ export function Agenda(props: Props) {
                   {label}
                 </p>
               )}
-              <ol className="plain-list">
+              <ol className="plain-list agenda-rows">
                 {list.map((entry) =>
                   entry.kind === 'block' ? (
                     <BlockRow key={entry.key} entry={entry} {...props} />
@@ -109,7 +127,7 @@ export function Agenda(props: Props) {
           label={`Cancelled · ${groups.cancelled.length}`}
           className="agenda-cancelled"
         >
-          <ol className="plain-list">
+          <ol className="plain-list agenda-rows is-cancelled-list">
             {groups.cancelled.map((entry) =>
               entry.kind === 'block' ? (
                 <BlockRow key={entry.key} entry={entry} {...props} />
@@ -118,6 +136,11 @@ export function Agenda(props: Props) {
           </ol>
         </Disclosure>
       )}
+      <p className="agenda-foot">
+        <Link className="link" href="/calendar" prefetch={false}>
+          View full schedule <ArrowRight size={14} aria-hidden="true" />
+        </Link>
+      </p>
     </section>
   );
 }
@@ -125,19 +148,25 @@ export function Agenda(props: Props) {
 function RoundRow({ round, zone }: { round: RoundLike; zone: string }) {
   return (
     <li className="agenda-row is-interview">
-      <div className="agenda-time">
-        <strong>{clock(round.scheduledStart, zone)}</strong>
-        {round.scheduledEnd && <span>{clock(round.scheduledEnd, zone)}</span>}
-      </div>
+      <span className="agenda-time">{clock(round.scheduledStart, zone)}</span>
+      <span className="agenda-dot" aria-hidden="true" />
       <div className="agenda-body">
         <h3 className="agenda-title">
           <Briefcase size={16} aria-hidden="true" className="category-icon" />
           {round.company} — {round.title}
         </h3>
-        <p className="agenda-meta">Interview · not on your schedule</p>
+        <p className="agenda-meta">
+          Interview
+          {round.scheduledEnd
+            ? ` · Until ${clock(round.scheduledEnd, zone)}`
+            : ''}
+          {' · not on your schedule'}
+        </p>
+      </div>
+      <div className="agenda-side">
         <div className="agenda-actions">
           <Link
-            className="button secondary small"
+            className="link-button"
             href={`/jobs/${round.applicationId}#round-${round.id}`}
             prefetch={false}
           >
@@ -150,6 +179,15 @@ function RoundRow({ round, zone }: { round: RoundLike; zone: string }) {
       </div>
     </li>
   );
+}
+
+function StatusIcon({ resolution }: { resolution: string }) {
+  if (resolution === 'done') return <Check size={15} aria-hidden="true" />;
+  if (resolution === 'current' || resolution === 'in-progress')
+    return <CircleDot size={12} aria-hidden="true" />;
+  if (resolution === 'not-recorded' || resolution === 'needs-update')
+    return <Circle size={12} aria-hidden="true" />;
+  return null;
 }
 
 function BlockRow({
@@ -172,57 +210,66 @@ function BlockRow({
     (n, s) => n + minutes(s.startedAt, s.endedAt ?? now),
     0,
   );
-  const meta = [
+  const planned = minutes(block.plannedStart, block.plannedEnd);
+  const context = round
+    ? `${round.company}`
+    : block.description?.trim() || categoryGroup(block.category);
+  const meta =
+    resolution === 'done'
+      ? block.sessions.length
+        ? `${sessionLength(recorded, true)} recorded`
+        : 'Completed'
+      : resolution === 'not-recorded'
+        ? 'No session recorded'
+        : resolution === 'needs-update'
+          ? `${sessionLength(
+              recorded,
+              block.sessions.every((s) => s.endedAt),
+            )} recorded`
+          : resolution === 'skipped'
+            ? `Skipped${block.skipReason ? `: ${block.skipReason}` : ''}`
+            : resolution === 'current' || resolution === 'in-progress'
+              ? `${context} · Until ${clock(block.plannedEnd, zone)}`
+              : `${context} · ${formatDuration(planned)}`;
+  const panelMeta = [
     round ? `${round.company} · Interview` : categoryGroup(block.category),
     origin(block),
-    block.sessions.length
-      ? `${sessionLength(
-          recorded,
-          block.sessions.every((s) => s.endedAt),
-        )} recorded`
-      : null,
-    block.skipReason ? `Skipped: ${block.skipReason}` : null,
-  ]
-    .filter(Boolean)
-    .join(' · ');
+  ].join(' · ');
   return (
     <li
       id={`block-${block.id}`}
       className={`agenda-row is-${resolution}${unresolved ? ' is-unresolved' : ''}`}
     >
-      <div className="agenda-time">
-        <strong>{clock(block.plannedStart, zone)}</strong>
-        <span>
-          {formatInTimeZone(
-            block.plannedEnd,
-            zone,
-            dayKey(block.plannedEnd, zone) === day ? 'h:mm a' : 'MMM d, h:mm a',
-          )}
-        </span>
-      </div>
-      <div className="agenda-body">
-        <div className="agenda-head">
-          <h3 className="agenda-title">
-            {round ? (
-              <Briefcase
-                size={16}
-                aria-hidden="true"
-                className="category-icon"
-              />
-            ) : (
-              <CategoryIcon category={block.category} />
-            )}
-            {block.title}
-          </h3>
-          <span className={`agenda-status is-${resolution}`}>
-            {resolutionText[resolution]}
+      <span className="agenda-time">
+        {clock(block.plannedStart, zone)}
+        {dayKey(block.plannedEnd, zone) !== day && (
+          <span className="sr-only">
+            {' '}
+            to {formatInTimeZone(block.plannedEnd, zone, 'MMM d, h:mm a')}
           </span>
-        </div>
+        )}
+      </span>
+      <span className="agenda-dot" aria-hidden="true" />
+      <div className="agenda-body">
+        <h3 className="agenda-title">
+          {round ? (
+            <Briefcase size={16} aria-hidden="true" className="category-icon" />
+          ) : (
+            <CategoryIcon category={block.category} size={16} />
+          )}
+          {block.title}
+        </h3>
         <p className="agenda-meta">{meta}</p>
+      </div>
+      <div className="agenda-side">
+        <span className={`agenda-status is-${resolution}`}>
+          <StatusIcon resolution={resolution} />
+          {resolutionText[resolution]}
+        </span>
         <div className="agenda-actions">
           {round && (
             <Link
-              className="button secondary small"
+              className="link-button"
               href={`/jobs/${round.applicationId}#round-${round.id}`}
               prefetch={false}
             >
@@ -231,18 +278,10 @@ function BlockRow({
           )}
           {unresolved && (
             <>
-              <PanelButton
-                panel={panelId}
-                focus="log"
-                className="button secondary small"
-              >
+              <PanelButton panel={panelId} focus="log" className="link-button">
                 Log time
               </PanelButton>
-              <PanelButton
-                panel={panelId}
-                focus="edit"
-                className="button secondary small"
-              >
+              <PanelButton panel={panelId} focus="edit" className="link-button">
                 Reschedule
               </PanelButton>
             </>
@@ -253,17 +292,24 @@ function BlockRow({
             hideStart={launcherBlockId === block.id}
             more
           />
-          <PanelButton panel={panelId} className="button secondary small">
-            Details
-          </PanelButton>
         </div>
+        <PanelButton
+          panel={panelId}
+          className="agenda-details"
+          aria-label={`Details: ${block.title}`}
+        >
+          <ChevronRight size={18} aria-hidden="true" />
+        </PanelButton>
       </div>
       <SidePanel id={panelId} title={block.title}>
         <p className="muted">
           {clock(block.plannedStart, zone)}–{clock(block.plannedEnd, zone)} ·{' '}
-          {meta}
+          {panelMeta}
         </p>
         {block.description && <p>{block.description}</p>}
+        {block.skipReason && (
+          <p className="muted">Skipped: {block.skipReason}</p>
+        )}
         {block.sessions.length > 0 && (
           <ul className="plain-list panel-sessions">
             {block.sessions.map((s) => (

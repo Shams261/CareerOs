@@ -201,7 +201,6 @@ export default async function Today({
             summary={summaryLine(summary)}
             noteCount={notes.length}
             reviewed={day > today ? null : reviewed}
-            goals={goals}
           />
           {generationError && (
             <p role="alert" className="form-message mb-5">

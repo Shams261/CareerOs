@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { ArrowRight } from 'lucide-react';
 import { ActionForm } from '@/components/action-form';
 import { Button } from '@/components/ui/button';
 import { LiveTimer } from '@/features/execution/live';
@@ -18,8 +19,9 @@ const startsIn = (d: Date, now: Date) => {
 };
 
 /**
- * The compact focus launcher: one surface, one primary action. Its child order never
- * changes between states so a save re-renders it in place.
+ * The compact focus launcher: one surface, one primary action on the right, the timer
+ * above it while a session runs. Its child order never changes between states so a save
+ * re-renders it in place.
  */
 export function Launcher({
   state,
@@ -43,15 +45,37 @@ export function Launcher({
     title = '',
     context: React.ReactNode = null,
     action: React.ReactNode = null,
-    next: React.ReactNode = null;
+    next: React.ReactNode = null,
+    timer: React.ReactNode = null;
+  const prepLink = (round: RoundLike) => (
+    <Link
+      className="link"
+      href={`/jobs/${round.applicationId}#round-${round.id}`}
+      prefetch={false}
+    >
+      Open prep{round.openPrep ? ` (${round.openPrep} open)` : ''}{' '}
+      <ArrowRight size={14} aria-hidden="true" />
+    </Link>
+  );
   if (state.kind === 'running') {
     const block = state.block ? full(state.block.id) : null;
+    const round = roundOf(block);
     eyebrow = `In session · Since ${clock(state.session.startedAt, zone)}`;
     title =
       state.session.title ??
       block?.title ??
       categoryGroup(state.session.category);
     context = (
+      <>
+        {round
+          ? `${round.company} · Interview`
+          : block
+            ? categoryGroup(block.category)
+            : categoryGroup(state.session.category)}
+        {round && <> · {prepLink(round)}</>}
+      </>
+    );
+    timer = (
       <LiveTimer
         startedAt={state.session.startedAt.toISOString()}
         className="launcher-timer"
@@ -70,6 +94,16 @@ export function Launcher({
         <Button>Stop session</Button>
       </ActionForm>
     );
+    const after = blocks
+      .filter(
+        (b) =>
+          ['PLANNED', 'IN_PROGRESS'].includes(b.status) &&
+          b.id !== block?.id &&
+          b.plannedStart > now,
+      )
+      .sort((a, b) => +a.plannedStart - +b.plannedStart)[0];
+    if (after)
+      next = `Next: ${after.title} · ${clock(after.plannedStart, zone)}`;
   } else if (state.kind === 'current' || state.kind === 'next') {
     const block = full(state.block.id)!;
     const round = roundOf(block);
@@ -80,23 +114,12 @@ export function Launcher({
         {round ? `${round.company} · Interview` : categoryGroup(block.category)}
         {state.kind === 'next' &&
           ` · Starts in ${startsIn(block.plannedStart, now)}`}
-        {round && (
-          <>
-            {' · '}
-            <Link
-              className="link"
-              href={`/jobs/${round.applicationId}#round-${round.id}`}
-              prefetch={false}
-            >
-              Open prep{round.openPrep ? ` (${round.openPrep} open)` : ''}
-            </Link>
-          </>
-        )}
+        {round && <> · {prepLink(round)}</>}
       </>
     );
     action = <ExecutionControls block={block} current launcher more />;
     if (state.kind === 'current' && state.next)
-      next = `Next: ${state.next.title} at ${clock(state.next.plannedStart, zone)}`;
+      next = `Next: ${state.next.title} · ${clock(state.next.plannedStart, zone)}`;
   } else if (state.kind === 'reconcile') {
     eyebrow = 'Earlier today';
     title = 'Update earlier blocks';
@@ -112,18 +135,25 @@ export function Launcher({
     context = 'Add a block if something comes up; the review is in the header.';
     action = <PressButton press="add-block">Add a block</PressButton>;
   }
+  const live = state.kind === 'running';
   return (
     <section
-      className={`launcher${state.kind === 'running' ? ' is-live' : ''}`}
+      className={`launcher${live ? ' is-live' : ''}`}
       aria-label="Current focus"
     >
       <div className="launcher-main">
-        <p className="eyebrow">{eyebrow}</p>
+        <p className="eyebrow launcher-eyebrow">
+          <span className="launcher-dot" aria-hidden="true" />
+          {eyebrow}
+        </p>
         <h2>{title}</h2>
         <p className="launcher-meta">{context}</p>
         <p className="launcher-next">{next}</p>
       </div>
-      <div className="launcher-action">{action}</div>
+      <div className="launcher-side">
+        {timer}
+        <div className="launcher-action">{action}</div>
+      </div>
     </section>
   );
 }
