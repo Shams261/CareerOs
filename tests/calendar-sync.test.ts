@@ -659,16 +659,18 @@ describe.skipIf(!url)(
 
     it('serialises concurrent syncs with a lease and never duplicates events', async () => {
       const { fake, deps, user, calendarId } = await setup();
-      const blocks = await Promise.all(
-        ['07:00', '09:00', '11:00'].map((t) =>
-          block(
+      // The blocks share one DailyPlan; created one after another so the helper's
+      // upsert (find-then-create) cannot race itself. The syncs below stay concurrent.
+      const blocks = [];
+      for (const t of ['07:00', '09:00', '11:00'])
+        blocks.push(
+          await block(
             user.id,
             '2026-09-25',
             t,
             t.replace(/^(\d\d)/, (h) => String(Number(h) + 1).padStart(2, '0')),
           ),
-        ),
-      );
+        );
       const results = await Promise.all([
         syncCalendar(user, deps),
         syncCalendar(user, deps),
