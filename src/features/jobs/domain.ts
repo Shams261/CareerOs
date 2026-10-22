@@ -338,6 +338,7 @@ export const needsAction = (app: { stage: string; actionOwner: string }) =>
 export const views = [
   'active',
   'offer',
+  'closed',
   'rejected',
   'withdrawn',
   'all',
@@ -361,6 +362,7 @@ export function filterApplications<
     (a) =>
       (view === 'all' ||
         (view === 'active' && isOpen(a.stage) && a.stage !== 'OFFER') ||
+        (view === 'closed' && !isOpen(a.stage)) ||
         a.stage === view!.toUpperCase()) &&
       (!q || `${a.company} ${a.role}`.toLowerCase().includes(q)) &&
       (!f.stage || a.stage === f.stage) &&

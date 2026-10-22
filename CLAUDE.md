@@ -10,7 +10,7 @@ If CLAUDE.md conflicts with the implementation, schema, tests, migrations or an 
 
 ## Current product state
 
-Latest completed work item: **WI-012** (the Roadmap as the single study tracker, 2026-10-21), after WI-011 (undo, summaries, phone navigation, shortcuts overlay), WI-010 (week chart, motion, notes to self, snapshot cache), WI-009 (UX simplification, roadmap and goals), WI-008 (personal production launch, live since 2026-10-20) and the brand system.
+Latest completed work item: **WI-013** (the three P0s from the whole-app design review, 2026-10-21: Monday review week, Jobs view links, Revise-today links), after WI-012 (the Roadmap as the single study tracker, 2026-10-21), WI-011 (undo, summaries, phone navigation, shortcuts overlay), WI-010 (week chart, motion, notes to self, snapshot cache), WI-009 (UX simplification, roadmap and goals), WI-008 (personal production launch, live since 2026-10-20) and the brand system.
 
 - **Schedule and execution (WI-001/002):** weekly RoutineBlocks, idempotent DailyPlan/TimeBlock generation, per-occurrence overrides, start/stop/resume/complete/skip/cancel, manual sessions, one running session per owner, daily check-in.
 - **DSA (WI-003):** topics, problems, append-only attempts, RED/YELLOW/GREEN confidence, spaced revision dates, due/overdue queue.
@@ -147,8 +147,9 @@ Feature development is intentionally paused. Priority order:
 
 1. After the WI-012 merge, the owner runs the one-time runbook from the workstation: verified backup (`PATH=/opt/homebrew/opt/libpq/bin:$PATH pnpm db:backup` + Docker PostgreSQL 17 restore check) → clear the TEST routine and blocks in the app and Sync now → `scripts/reset-owner-data.sql` → deploy → `pnpm db:deploy` → `pnpm roadmap:bundle` → `pnpm roadmap:import` (`docs/engineering/backup-restore.md`, `docs/engineering/operations.md`).
 2. Use Silsila daily as the single tracker for 7–14 days and collect friction; verify Web Push on real devices; connect Google Calendar; weekly backup.
-3. Small follow-up WI when convenient: a `/privacy` page so the Google app can be published (removes the seven-day Calendar reconnect).
-4. AI preparation suggestions were designed and then deferred by the owner (2026-10-21); revisit only after real usage.
+3. Design review follow-ups in the order of `docs/design-review/ENHANCEMENTS.md` section F (WI-013 covered row 1; next are rows 2–3: Done keeps its confirmation and Next, Revised only when due, Reopen undo; Practice bands follow the filter, valid ARIA, a starting point, no preselected outcome), each as a small WI after real usage has confirmed the priority.
+4. Small follow-up WI when convenient: a `/privacy` page so the Google app can be published (removes the seven-day Calendar reconnect).
+5. AI preparation suggestions were designed and then deferred by the owner (2026-10-21); revisit only after real usage.
 
 Update this section when the phase changes.
 
@@ -157,7 +158,7 @@ Update this section when the phase changes.
 - Schema: `prisma/schema.prisma`; migrations: `prisma/migrations/`
 - Architecture and decisions: `docs/architecture/overview.md`, `docs/architecture/decisions.md`, `docs/architecture/data-flows.md`
 - Handbook index: `docs/README.md`
-- WI handoffs: `docs/WI-0xx-HANDOFF.md` (latest `docs/WI-010-HANDOFF.md`)
+- WI handoffs: `docs/WI-0xx-HANDOFF.md` (latest `docs/WI-013-HANDOFF.md`); whole-app design review: `docs/design-review/REPORT.md` and `ENHANCEMENTS.md`
 - Security: `docs/engineering/security.md`, `SECURITY.md`
 - Product flows and stories: `docs/product/user-flows.md`, `docs/product/user-stories.md`
 - Brand: `docs/product/brand-system.md`, `public/brand/README.md`

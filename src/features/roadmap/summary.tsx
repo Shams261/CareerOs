@@ -121,7 +121,7 @@ export async function TodayRevision({
           <li key={i.id}>
             <Link
               className="link"
-              href={`/roadmap/${i.roadmap.id}#item-${i.id}`}
+              href={`/roadmap/${i.roadmap.id}?section=${encodeURIComponent(i.section)}&show=revision#item-${i.id}`}
             >
               {i.title}
             </Link>

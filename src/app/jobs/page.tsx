@@ -9,6 +9,7 @@ import {
   filterApplications,
   inProcessStages,
   interviewTime,
+  isOpen,
   isWaiting,
   label,
   needsAction,
@@ -47,15 +48,11 @@ export default async function Jobs({
         return r ? [{ app: a, round: r }] : [];
       })
       .sort((a, b) => +a.round.scheduledStart - +b.round.scheduledStart),
+    // The view links above the list are always there; the full form appears
+    // with enough applications or once a finer filter is in use.
     filtering =
       apps.length > FILTER_THRESHOLD ||
-      !!(
-        filter.q ||
-        filter.stage ||
-        filter.focus ||
-        filter.source ||
-        filter.view
-      ),
+      !!(filter.q || filter.stage || filter.focus || filter.source),
     visible = filterApplications(apps, filter, now, zone),
     view = views.includes(filter.view as (typeof views)[number])
       ? filter.view
@@ -66,6 +63,7 @@ export default async function Jobs({
     active: apps.filter((a) => inProcessStages.includes(a.stage)).length,
     interviews: upcoming.length,
     offers: apps.filter((a) => a.stage === 'OFFER').length,
+    closed: apps.filter((a) => !isOpen(a.stage)).length,
     waiting: apps.filter(isWaiting).length,
     action: apps.filter(needsAction).length,
   };
@@ -183,9 +181,36 @@ export default async function Jobs({
               <section className="card flat" aria-labelledby="pipeline-heading">
                 <div className="section-head">
                   <h2 id="pipeline-heading">
-                    Applications <span className="muted">· {apps.length}</span>
+                    Applications{' '}
+                    <span className="muted">
+                      ·{' '}
+                      {visible.length === apps.length
+                        ? apps.length
+                        : `${visible.length} of ${apps.length}`}
+                    </span>
                   </h2>
                 </div>
+                <nav className="status-line view-links mb-4" aria-label="Show">
+                  {(
+                    [
+                      ['active', 'Active', counts.active],
+                      ['offer', 'Offers', counts.offers],
+                      ['closed', 'Closed', counts.closed],
+                      ['all', 'All', apps.length],
+                    ] as const
+                  )
+                    .filter(([v, , n]) => n > 0 || view === v)
+                    .map(([v, text, n]) => (
+                      <Link
+                        key={v}
+                        className="link"
+                        href={v === 'active' ? '/jobs' : `/jobs?view=${v}`}
+                        aria-current={view === v ? 'page' : undefined}
+                      >
+                        {text} · {n}
+                      </Link>
+                    ))}
+                </nav>
                 {filtering && (
                   <form className="dsa-filters mb-5">
                     <label>
@@ -251,11 +276,6 @@ export default async function Jobs({
                     </div>
                   </form>
                 )}
-                {filtering && (
-                  <p className="muted">
-                    {visible.length} of {apps.length}
-                  </p>
-                )}
                 {grouped ? (
                   [...pipelineStages, 'REJECTED' as const, 'WITHDRAWN' as const]
                     .map((stage) => ({
@@ -298,7 +318,9 @@ export default async function Jobs({
                   <p className="muted">
                     {view === 'active'
                       ? 'No active applications.'
-                      : 'No applications match this view.'}
+                      : view === 'closed'
+                        ? 'No closed applications.'
+                        : 'No applications match this view.'}
                   </p>
                 )}
               </section>

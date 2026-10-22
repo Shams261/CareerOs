@@ -4,9 +4,11 @@ import { formatInTimeZone } from 'date-fns-tz';
 import { db, owner } from '@/server/db';
 import { Disclosure } from '@/components/disclosure';
 import { remindersPreview } from '@/features/notifications/preview';
+import { dayKey } from '@/lib/time';
 import { shiftDay } from '@/features/schedule/domain';
 import {
   currentWeek,
+  defaultReviewWeek,
   formatMinutes,
   isMonday,
   weekOf,
@@ -100,13 +102,30 @@ export default async function Review({
     now = new Date(),
     zone = user.timezone,
     query = await searchParams;
-  const thisWeek = currentWeek(now, zone);
+  const thisWeek = currentWeek(now, zone),
+    today = dayKey(now, zone);
+  // On a Monday with last week's review still open, the page opens on last week.
+  const lastWeekCompleted =
+    !query.week && isMonday(today)
+      ? !!(
+          await db().weeklyReview.findUnique({
+            where: {
+              userId_weekStart: {
+                userId: user.id,
+                weekStart: new Date(shiftDay(thisWeek, -7)),
+              },
+            },
+            select: { completedAt: true },
+          })
+        )?.completedAt
+      : true;
   const monday =
     query.week && /^\d{4}-\d{2}-\d{2}$/.test(query.week)
       ? isMonday(query.week)
         ? query.week
         : weekOf(query.week)
-      : thisWeek;
+      : defaultReviewWeek(today, lastWeekCompleted);
+  const openLastWeek = !query.week && monday !== thisWeek;
   const step: Step = (['week', 'reflect', 'plan', 'details'] as const).includes(
     query.step as Step,
   )
@@ -173,7 +192,9 @@ export default async function Review({
           ? 'This week'
           : monday > thisWeek
             ? 'Upcoming week'
-            : 'Past week'}{' '}
+            : openLastWeek
+              ? 'Last week, not yet reviewed'
+              : 'Past week'}{' '}
         · {zone}
       </p>
       <div className="page-head">

@@ -181,6 +181,7 @@ describe('filters', () => {
     expect(ids({ view: 'offer' })).toEqual(['offer']);
     expect(ids({ view: 'rejected' })).toEqual(['rejected']);
     expect(ids({ view: 'withdrawn' })).toEqual(['withdrawn']);
+    expect(ids({ view: 'closed' })).toEqual(['rejected', 'withdrawn']);
     expect(ids({ view: 'all' })).toHaveLength(6);
   });
   it('filters by search, stage, source, waiting, action and interview', () => {
