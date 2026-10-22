@@ -1,10 +1,11 @@
 import Link from 'next/link';
-import { ArrowUpRight, ChevronLeft, ChevronRight } from 'lucide-react';
+import { ArrowUpRight, ChevronLeft, ChevronRight, Plus } from 'lucide-react';
 import { formatInTimeZone } from 'date-fns-tz';
 import { DateJump } from '@/components/date-jump';
 import { FeedbackOutlet } from '@/components/feedback-outlet';
 import { shiftDay } from '@/features/schedule/domain';
-import { PanelButton } from './panels';
+import { PanelButton, PressButton } from './panels';
+import { LiveSummary } from './live-summary';
 import { UtilityMenu } from './utility-menu';
 
 /**
@@ -18,6 +19,8 @@ export function TodayHeader({
   zone,
   bounds,
   summary,
+  running,
+  renderedAt,
   noteCount,
   reviewed,
 }: {
@@ -25,7 +28,14 @@ export function TodayHeader({
   today: string;
   zone: string;
   bounds: { start: Date };
-  summary: string;
+  summary: {
+    completed: number;
+    planned: number;
+    plannedMinutes: number;
+    recordedMinutes: number;
+  };
+  running: boolean;
+  renderedAt: string;
   noteCount: number;
   /** null when the day cannot be reviewed yet (a future date). */
   reviewed: boolean | null;
@@ -81,6 +91,9 @@ export function TodayHeader({
               Notes{noteCount ? ` · ${noteCount}` : ''}
             </PanelButton>
           )}
+          <PressButton press="add-block" className="button secondary small">
+            <Plus size={14} aria-hidden="true" /> Add
+          </PressButton>
           {reviewed !== null && (
             <PanelButton panel="review" className="button secondary small">
               {reviewed ? 'Edit review' : 'Review day'}
@@ -89,7 +102,7 @@ export function TodayHeader({
         </UtilityMenu>
       </div>
       <p className="today-summary">
-        {summary}
+        <LiveSummary {...summary} running={running} renderedAt={renderedAt} />
         {reviewed && <span className="pill success">Reviewed</span>}
       </p>
       <FeedbackOutlet channel="review" className="mt-2" />

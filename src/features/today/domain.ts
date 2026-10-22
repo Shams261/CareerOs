@@ -324,10 +324,18 @@ export function attentionItems(input: AttentionInput): AttentionItem[] {
   const { now, zone } = input;
   const today = dayKey(now, zone);
   const items: AttentionItem[] = [];
+  // Interview rows by round id (prep, result, upcoming) and follow-up rows by application id:
+  // a reminder merges only into the row that is about the same action.
   const byRound = new Map<string, AttentionItem>();
-  const byApp = new Map<string, AttentionItem>();
-  for (const r of input.interviews)
-    if (r.openPrep > 0 && dayKey(r.scheduledStart, zone) === today) {
+  const followUpByApp = new Map<string, AttentionItem>();
+  for (const r of input.interviews) {
+    const end = r.scheduledEnd ?? new Date(+r.scheduledStart + 60 * 60000);
+    // Prep is only worth a row while the interview is still ahead; afterwards the result is.
+    if (
+      r.openPrep > 0 &&
+      end > now &&
+      dayKey(r.scheduledStart, zone) === today
+    ) {
       const item: AttentionItem = {
         id: `prep:${r.id}`,
         source: 'interview-prep',
@@ -342,78 +350,83 @@ export function attentionItems(input: AttentionInput): AttentionItem[] {
       items.push(item);
       byRound.set(r.id, item);
     }
+  }
   for (const { app, reasons } of input.jobs) {
-    const reason = reasons[0];
-    if (!reason) continue;
-    let item: AttentionItem | null = null;
-    if (reason.kind === 'FOLLOW_UP_OVERDUE' && app.nextActionDate)
-      item = {
-        id: `job:${app.id}`,
-        source: 'job',
-        label: 'Follow-up',
-        title: `${app.nextAction ?? 'Follow up'} · ${app.company}`,
-        context: dueContext(dateLabel(app.nextActionDate), today),
-        href: `/jobs/${app.id}`,
-        tier: 2,
-        due: +app.nextActionDate,
-        notificationIds: [],
-      };
-    else if (reason.kind === 'RESULT_NEEDED') {
-      if (byRound.has(reason.round.id)) continue;
-      item = {
-        id: `result:${reason.round.id}`,
-        source: 'job',
-        label: 'Interview result',
-        title: `Log the result · ${app.company} — ${reason.round.title}`,
-        context: `Interview ended ${weekdayDate(dayKey(reason.round.scheduledStart, zone))}`,
-        href: `/jobs/${app.id}#round-${reason.round.id}`,
-        tier: 2,
-        due: +reason.round.scheduledStart,
-        notificationIds: [],
-      };
-      byRound.set(reason.round.id, item);
-    } else if (reason.kind === 'FOLLOW_UP_TODAY' && app.nextActionDate)
-      item = {
-        id: `job:${app.id}`,
-        source: 'job',
-        label: 'Follow-up',
-        title: `${app.nextAction ?? 'Follow up'} · ${app.company}`,
-        context: 'Due today',
-        href: `/jobs/${app.id}`,
-        tier: 3,
-        due: +app.nextActionDate,
-        notificationIds: [],
-      };
-    else if (reason.kind === 'INTERVIEW_SOON') {
-      if (byRound.has(reason.round.id)) continue;
-      const isToday = dayKey(reason.round.scheduledStart, zone) === today;
-      item = {
-        id: `interview:${reason.round.id}`,
-        source: 'job',
-        label: 'Interview',
-        title: `${app.company} — ${reason.round.title}`,
-        context: `${isToday ? 'Today' : 'Tomorrow'} at ${clock(reason.round.scheduledStart, zone)}`,
-        href: `/jobs/${app.id}#round-${reason.round.id}`,
-        tier: isToday ? 3 : 4,
-        due: +reason.round.scheduledStart,
-        notificationIds: [],
-      };
-      byRound.set(reason.round.id, item);
-    } else if (reason.kind === 'ACTION_REQUIRED')
-      item = {
-        id: `job:${app.id}`,
-        source: 'job',
-        label: 'Your move',
-        title: `${app.nextAction ?? 'Decide the next step'} · ${app.company}`,
-        context: 'No date set',
-        href: `/jobs/${app.id}`,
-        tier: 4,
-        due: Number.MAX_SAFE_INTEGER,
-        notificationIds: [],
-      };
-    if (!item) continue;
-    items.push(item);
-    if (!byApp.has(app.id)) byApp.set(app.id, item);
+    // Every reason counts: an interview tomorrow never hides a follow-up due today.
+    for (const reason of reasons) {
+      let item: AttentionItem | null = null;
+      if (reason.kind === 'FOLLOW_UP_OVERDUE' && app.nextActionDate)
+        item = {
+          id: `job:${app.id}`,
+          source: 'job',
+          label: 'Follow-up',
+          title: `${app.nextAction ?? 'Follow up'} · ${app.company}`,
+          context: dueContext(dateLabel(app.nextActionDate), today),
+          href: `/jobs/${app.id}`,
+          tier: 2,
+          due: +app.nextActionDate,
+          notificationIds: [],
+        };
+      else if (reason.kind === 'RESULT_NEEDED') {
+        if (byRound.has(reason.round.id)) continue;
+        item = {
+          id: `result:${reason.round.id}`,
+          source: 'job',
+          label: 'Interview result',
+          title: `Log the result · ${app.company} — ${reason.round.title}`,
+          context: `Interview ended ${weekdayDate(dayKey(reason.round.scheduledStart, zone))}`,
+          href: `/jobs/${app.id}#round-${reason.round.id}`,
+          tier: 2,
+          due: +reason.round.scheduledStart,
+          notificationIds: [],
+        };
+        byRound.set(reason.round.id, item);
+      } else if (reason.kind === 'FOLLOW_UP_TODAY' && app.nextActionDate)
+        item = {
+          id: `job:${app.id}`,
+          source: 'job',
+          label: 'Follow-up',
+          title: `${app.nextAction ?? 'Follow up'} · ${app.company}`,
+          context: 'Due today',
+          href: `/jobs/${app.id}`,
+          tier: 3,
+          due: +app.nextActionDate,
+          notificationIds: [],
+        };
+      else if (reason.kind === 'INTERVIEW_SOON') {
+        if (byRound.has(reason.round.id)) continue;
+        const isToday = dayKey(reason.round.scheduledStart, zone) === today;
+        item = {
+          id: `interview:${reason.round.id}`,
+          source: 'job',
+          label: 'Interview',
+          title: `${app.company} — ${reason.round.title}`,
+          context: `${isToday ? 'Today' : 'Tomorrow'} at ${clock(reason.round.scheduledStart, zone)}`,
+          href: `/jobs/${app.id}#round-${reason.round.id}`,
+          tier: isToday ? 3 : 4,
+          due: +reason.round.scheduledStart,
+          notificationIds: [],
+        };
+        byRound.set(reason.round.id, item);
+      } else if (reason.kind === 'ACTION_REQUIRED')
+        item = {
+          id: `job:${app.id}`,
+          source: 'job',
+          label: 'Your move',
+          title: `${app.nextAction ?? 'Decide the next step'} · ${app.company}`,
+          context: 'No date set',
+          href: `/jobs/${app.id}`,
+          tier: 4,
+          due: Number.MAX_SAFE_INTEGER,
+          notificationIds: [],
+        };
+      if (!item) continue;
+      if (item.id === `job:${app.id}`) {
+        if (followUpByApp.has(app.id)) continue;
+        followUpByApp.set(app.id, item);
+      }
+      items.push(item);
+    }
   }
   for (const p of input.practice)
     if (p.nextRevisionAt)
@@ -447,7 +460,7 @@ export function attentionItems(input: AttentionInput): AttentionItem[] {
       n.type === 'INTERVIEW'
         ? byRound.get(entity)
         : n.type === 'JOB_FOLLOW_UP'
-          ? byApp.get(entity)
+          ? followUpByApp.get(entity)
           : undefined;
     if (host) {
       host.notificationIds.push(n.id);

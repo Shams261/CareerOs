@@ -7,11 +7,14 @@ import { revisionDue } from '@/features/roadmap/service';
 import { weeklyReviewOpen } from '@/features/review/service';
 import type { ScheduleUser } from '@/features/schedule/service';
 import { dayKey } from '@/lib/time';
+import { db } from '@/server/db';
 import { attentionItems, type RoundLike } from './domain';
 import { AttentionPages, AttentionRow } from './attention-rows';
 import { PanelButton, SidePanel } from './panels';
 
 const PREVIEW = 5;
+/** Phones show two rows; the label says so (CSS picks the right one). */
+const PHONE_PREVIEW = 2;
 
 /**
  * "Needs attention": one flat, bounded list from the memoized snapshots. Each source loads
@@ -22,30 +25,36 @@ export async function Attention({
   user,
   now,
   interviews,
-  notifications,
 }: {
   user: ScheduleUser;
   now: Date;
   interviews: RoundLike[];
-  notifications: {
-    id: string;
-    type: string;
-    title: string;
-    scheduledFor: Date;
-    dedupeKey: string;
-  }[];
 }) {
-  const [jobs, roadmap, practice, weekly] = await Promise.allSettled([
-    jobTodaySummary(user, now),
-    revisionDue(user, now),
-    dsaSnapshot(user),
-    weeklyReviewOpen(user, now),
-  ]);
+  const [jobs, roadmap, practice, weekly, reminders] = await Promise.allSettled(
+    [
+      jobTodaySummary(user, now),
+      revisionDue(user, now),
+      dsaSnapshot(user),
+      weeklyReviewOpen(user, now),
+      db().notificationLog.findMany({
+        where: { userId: user.id, readAt: null, scheduledFor: { lte: now } },
+        orderBy: { scheduledFor: 'desc' },
+        select: {
+          id: true,
+          type: true,
+          title: true,
+          scheduledFor: true,
+          dedupeKey: true,
+        },
+      }),
+    ],
+  );
   const failed = [
     jobs.status === 'rejected' ? 'Jobs' : null,
     roadmap.status === 'rejected' ? 'Roadmap' : null,
     practice.status === 'rejected' ? 'Practice' : null,
     weekly.status === 'rejected' ? 'Weekly review' : null,
+    reminders.status === 'rejected' ? 'Reminders' : null,
   ].filter((x): x is string => !!x);
   const items = attentionItems({
     now,
@@ -76,7 +85,7 @@ export async function Attention({
             nextRevisionAt: p.nextRevisionAt,
           }))
         : [],
-    notifications,
+    notifications: reminders.status === 'fulfilled' ? reminders.value : [],
     weeklyDue: weekly.status === 'fulfilled' && weekly.value,
   });
   const preview = items.slice(0, PREVIEW);
@@ -85,8 +94,13 @@ export async function Attention({
       <div className="attention-head">
         <h2 id="attention-heading">Needs attention</h2>
         {items.length > PREVIEW && (
-          <span className="muted">
+          <span className="muted attention-count is-wide">
             Showing {PREVIEW} of {items.length}
+          </span>
+        )}
+        {items.length > PHONE_PREVIEW && (
+          <span className="muted attention-count is-phone">
+            Showing {Math.min(PHONE_PREVIEW, items.length)} of {items.length}
           </span>
         )}
       </div>

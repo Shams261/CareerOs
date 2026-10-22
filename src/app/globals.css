@@ -3756,7 +3756,7 @@ span > svg {
 }
 .attention-link {
   display: grid;
-  grid-template-columns: 40px minmax(0, 1fr) auto;
+  grid-template-columns: 24px minmax(0, 1fr) auto;
   gap: 0 14px;
   align-items: center;
   padding: 10px 0;
@@ -3767,18 +3767,15 @@ a.attention-link:hover .attention-title {
   color: var(--primary);
 }
 .attention-icon {
-  width: 40px;
-  height: 40px;
-  border-radius: 10px;
-  background: var(--tint);
+  width: 24px;
+  height: 24px;
   color: var(--primary);
   display: inline-flex;
   align-items: center;
   justify-content: center;
 }
-.attention-row[data-source='notification'] .attention-icon {
-  background: var(--warning-bg);
-  color: var(--warning-text);
+.attention-count.is-phone {
+  display: none;
 }
 .attention-main {
   display: grid;
@@ -3806,7 +3803,7 @@ a.attention-link:hover .attention-title {
   color: var(--muted);
 }
 .attention-read {
-  padding: 0 0 6px 54px;
+  padding: 0 0 6px 38px;
 }
 .attention-read fieldset {
   border: 0;
@@ -3982,13 +3979,17 @@ a.attention-link:hover .attention-title {
   .today-utils.is-open .today-utils-items {
     display: flex;
   }
-  .attention-preview {
+  .attention-preview,
+  .attention-count {
     display: none;
   }
 }
 @media (max-width: 700px) {
   .attention-preview {
     display: block;
+  }
+  .attention-count.is-phone {
+    display: inline;
   }
   .attention-preview > li:nth-child(n + 3) {
     display: none;

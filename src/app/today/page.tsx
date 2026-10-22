@@ -58,58 +58,37 @@ export default async function Today({
       generationError =
         error instanceof Error ? error.message : 'Unable to plan this week.';
     }
-  const [
-    plan,
-    sessions,
-    running,
-    goals,
-    routines,
-    interviews,
-    notes,
-    notifications,
-  ] = await Promise.all([
-    db().dailyPlan.findUnique({
-      where: { userId_date: { userId: user.id, date: new Date(day) } },
-      include: {
-        blocks: {
-          orderBy: { plannedStart: 'asc' },
-          include: { sessions: { orderBy: { startedAt: 'asc' } } },
-        },
-        checkIn: true,
-      },
-    }),
-    db().actualSession.findMany({
-      where: {
-        userId: user.id,
-        startedAt: { lt: bounds.end },
-        OR: [{ endedAt: null }, { endedAt: { gt: bounds.start } }],
-      },
-    }),
-    db().actualSession.findFirst({
-      where: { userId: user.id, endedAt: null },
-      include: { task: true },
-    }),
-    db().goal.findMany({
-      where: { userId: user.id },
-      select: { id: true, title: true },
-    }),
-    db().routineBlock.count({ where: { userId: user.id } }),
-    todaysInterviews(user, day),
-    isToday ? openNotes(user.id) : Promise.resolve([]),
-    isToday
-      ? db().notificationLog.findMany({
-          where: { userId: user.id, readAt: null, scheduledFor: { lte: now } },
-          orderBy: { scheduledFor: 'desc' },
-          select: {
-            id: true,
-            type: true,
-            title: true,
-            scheduledFor: true,
-            dedupeKey: true,
+  const [plan, sessions, running, goals, routines, interviews, notes] =
+    await Promise.all([
+      db().dailyPlan.findUnique({
+        where: { userId_date: { userId: user.id, date: new Date(day) } },
+        include: {
+          blocks: {
+            orderBy: { plannedStart: 'asc' },
+            include: { sessions: { orderBy: { startedAt: 'asc' } } },
           },
-        })
-      : Promise.resolve([]),
-  ]);
+          checkIn: true,
+        },
+      }),
+      db().actualSession.findMany({
+        where: {
+          userId: user.id,
+          startedAt: { lt: bounds.end },
+          OR: [{ endedAt: null }, { endedAt: { gt: bounds.start } }],
+        },
+      }),
+      db().actualSession.findFirst({
+        where: { userId: user.id, endedAt: null },
+        include: { task: true },
+      }),
+      db().goal.findMany({
+        where: { userId: user.id },
+        select: { id: true, title: true },
+      }),
+      db().routineBlock.count({ where: { userId: user.id } }),
+      todaysInterviews(user, day),
+      isToday ? openNotes(user.id) : Promise.resolve([]),
+    ]);
   const blocks = plan?.blocks ?? [];
   const rounds: RoundLike[] = interviews.map((r) => ({
     id: r.id,
@@ -198,7 +177,9 @@ export default async function Today({
             today={today}
             zone={user.timezone}
             bounds={bounds}
-            summary={summaryLine(summary)}
+            summary={summary}
+            running={!!running}
+            renderedAt={now.toISOString()}
             noteCount={notes.length}
             reviewed={day > today ? null : reviewed}
           />
@@ -235,12 +216,7 @@ export default async function Today({
               <aside className="today-rail" aria-labelledby="attention-heading">
                 <AttentionBoundary>
                   <Suspense fallback={<AttentionSkeleton />}>
-                    <Attention
-                      user={user}
-                      now={now}
-                      interviews={rounds}
-                      notifications={notifications}
-                    />
+                    <Attention user={user} now={now} interviews={rounds} />
                   </Suspense>
                 </AttentionBoundary>
               </aside>

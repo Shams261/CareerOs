@@ -435,6 +435,124 @@ describe('needs attention', () => {
       notificationEntity(`u:INTERVIEW:r9:${at('16:00').toISOString()}:day`),
     ).toBe('r9');
   });
+  it('keeps every reason of an application: an interview tomorrow never hides a follow-up today', () => {
+    const tomorrow = round({
+      id: 'rt',
+      scheduledStart: at('10:00', '2026-10-23'),
+      scheduledEnd: at('11:00', '2026-10-23'),
+    });
+    const items = attentionItems({
+      ...base,
+      jobs: [
+        {
+          app: {
+            id: 'a1',
+            company: 'Both Co',
+            nextAction: 'Send thank-you',
+            nextActionDate: new Date('2026-10-22T00:00:00Z'),
+          },
+          reasons: [
+            {
+              kind: 'INTERVIEW_SOON',
+              round: { ...tomorrow, status: 'SCHEDULED', timezone: zone },
+            },
+            { kind: 'FOLLOW_UP_TODAY' },
+          ],
+        },
+      ],
+    });
+    expect(items.map((i) => i.id)).toEqual(['job:a1', 'interview:rt']);
+    expect(items[0].context).toBe('Due today');
+  });
+  it('drops the prep row once the interview has ended, so the result row shows', () => {
+    const ended = round({
+      id: 're',
+      scheduledStart: at('09:00'),
+      scheduledEnd: at('10:00'),
+      openPrep: 3,
+    });
+    const items = attentionItems({
+      ...base,
+      interviews: [ended],
+      jobs: [
+        {
+          app: {
+            id: 'a1',
+            company: 'Done Co',
+            nextAction: null,
+            nextActionDate: null,
+          },
+          reasons: [
+            {
+              kind: 'RESULT_NEEDED',
+              round: { ...ended, status: 'SCHEDULED', timezone: zone },
+            },
+          ],
+        },
+      ],
+    });
+    expect(items.map((i) => i.id)).toEqual(['result:re']);
+    const open = round({
+      id: 'ro',
+      scheduledStart: at('11:30'),
+      scheduledEnd: null,
+      openPrep: 1,
+    });
+    expect(
+      attentionItems({ ...base, interviews: [open] }).map((i) => i.id),
+    ).toEqual(['prep:ro']);
+    expect(
+      attentionItems({ ...base, now: at('12:31'), interviews: [open] }),
+    ).toEqual([]);
+  });
+  it('merges a follow-up reminder into the follow-up row, never into the interview row', () => {
+    const tomorrow = round({
+      id: 'rt',
+      applicationId: 'a1',
+      scheduledStart: at('10:00', '2026-10-23'),
+      scheduledEnd: at('11:00', '2026-10-23'),
+    });
+    const items = attentionItems({
+      ...base,
+      jobs: [
+        {
+          app: {
+            id: 'a1',
+            company: 'Both Co',
+            nextAction: 'Reply',
+            nextActionDate: new Date('2026-10-22T00:00:00Z'),
+          },
+          reasons: [
+            {
+              kind: 'INTERVIEW_SOON',
+              round: { ...tomorrow, status: 'SCHEDULED', timezone: zone },
+            },
+            { kind: 'FOLLOW_UP_TODAY' },
+          ],
+        },
+      ],
+      notifications: [
+        {
+          id: 'n-follow',
+          type: 'JOB_FOLLOW_UP',
+          title: 'Follow up',
+          scheduledFor: at('09:00'),
+          dedupeKey: 'u:JOB_FOLLOW_UP:a1:2026-10-22',
+        },
+        {
+          id: 'n-int',
+          type: 'INTERVIEW',
+          title: 'Interview tomorrow',
+          scheduledFor: at('09:00'),
+          dedupeKey: `u:INTERVIEW:rt:${at('10:00', '2026-10-23').toISOString()}:day`,
+        },
+      ],
+    });
+    const follow = items.find((i) => i.id === 'job:a1')!;
+    const interview = items.find((i) => i.id === 'interview:rt')!;
+    expect(follow.notificationIds).toEqual(['n-follow']);
+    expect(interview.notificationIds).toEqual(['n-int']);
+  });
   it('never merges a Practice revision with a roadmap item of the same title', () => {
     const items = attentionItems({
       ...base,
@@ -458,7 +576,7 @@ describe('needs attention', () => {
     });
     expect(items).toHaveLength(2);
   });
-  it('does not list a result-needed round twice when its prep row exists, and pages by twenty', () => {
+  it('shows an ended round once, as the result row, and pages by twenty', () => {
     const r = round({
       id: 'rr',
       scheduledStart: at('09:00'),
@@ -485,7 +603,7 @@ describe('needs attention', () => {
         },
       ],
     });
-    expect(items.map((i) => i.id)).toEqual(['prep:rr']);
+    expect(items.map((i) => i.id)).toEqual(['result:rr']);
     const many = Array.from({ length: 45 }, (_, i) => i);
     expect(attentionPage(many, 1)).toMatchObject({ page: 1, pages: 3 });
     expect(attentionPage(many, 3).items).toEqual([40, 41, 42, 43, 44]);
