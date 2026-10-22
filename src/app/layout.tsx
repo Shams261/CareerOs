@@ -64,7 +64,7 @@ export default async function RootLayout({
           Skip to content
         </a>
         <div className="shell">
-          <aside className="sidebar">
+          <aside className="sidebar" aria-label="Workspace">
             <div>
               <Link
                 href="/today"

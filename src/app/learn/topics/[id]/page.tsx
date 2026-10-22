@@ -17,6 +17,8 @@ import {
   statusLabel,
   calendarDate,
 } from '@/features/learning/domain';
+import { ArrowLeft } from 'lucide-react';
+export const metadata = { title: 'Learn' };
 export default async function Topic({
   params,
 }: {
@@ -45,7 +47,7 @@ export default async function Topic({
   return (
     <>
       <Link className="link" href={`/learn/subjects/${topic.subjectId}`}>
-        ← {topic.subject.name}
+        <ArrowLeft size={14} aria-hidden="true" /> {topic.subject.name}
       </Link>
       <p className="eyebrow mt-4">{statusLabel(topic.status)}</p>
       <h1>{topic.title}</h1>
@@ -116,7 +118,7 @@ export default async function Topic({
                   .join(' · ') || 'No assessment changes'}
               </p>
               <p className="muted">
-                {statusLabel(a.statusBefore)} → {statusLabel(a.statusAfter)}
+                {statusLabel(a.statusBefore)} to {statusLabel(a.statusAfter)}
                 {a.durationMinutes ? ` · ${a.durationMinutes} min` : ''}
                 {a.actualSessionId ? ' · Linked to a recorded session' : ''}
               </p>

@@ -7,6 +7,9 @@ import { dueState, statuses, statusLabel } from '@/features/learning/domain';
 import { SubjectForm, LearningTopicForm } from '@/features/learning/forms';
 import { TopicList } from '@/features/learning/components';
 import { Disclosure } from '@/components/disclosure';
+import { ArrowLeft } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+export const metadata = { title: 'Learn' };
 
 const FILTER_THRESHOLD = 8;
 export default async function Subject({
@@ -36,7 +39,7 @@ export default async function Subject({
   return (
     <>
       <Link className="link" href="/learn">
-        ← Learning
+        <ArrowLeft size={14} aria-hidden="true" /> Learning
       </Link>
       <p className="eyebrow mt-4">
         {statusLabel(subject.status)}
@@ -83,7 +86,7 @@ export default async function Subject({
               Due reviews only
             </label>
             <div className="actions">
-              <button className="button secondary">Filter</button>
+              <Button className="secondary">Filter</Button>
               <Link className="link" href={`/learn/subjects/${id}`}>
                 Clear
               </Link>

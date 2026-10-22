@@ -9,6 +9,7 @@ import {
   type AppLike,
   type Attention,
 } from './domain';
+import { shortDate } from '@/lib/time';
 
 type RowApp = AppLike & {
   company: string;
@@ -29,7 +30,7 @@ export function nextLine(app: RowApp, now: Date, zone: string, today: string) {
     parts.push(`${action} — overdue by ${plural(follow.days, 'day')}`);
   else if (follow.state === 'today') parts.push(`${action} — due today`);
   else if (follow.state === 'upcoming')
-    parts.push(`${action} — due ${follow.date}`);
+    parts.push(`${action} — due ${shortDate(follow.date)}`);
   else if (app.nextAction) parts.push(app.nextAction);
   if (app.actionOwner === 'COMPANY') {
     const days = lastActivityDays(app.lastActivityAt, now, zone);

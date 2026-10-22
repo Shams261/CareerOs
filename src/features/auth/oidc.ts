@@ -32,7 +32,7 @@ export const authErrorMessages: Record<AuthErrorCode, string> = {
   email_unverified: 'That Google account email is not verified.',
   not_owner: 'This Silsila workspace is private. That account is not allowed.',
   owner_mismatch:
-    'This database already belongs to a different owner email. Set OWNER_EMAIL to it, or update the stored owner email (see the migration checklist).',
+    'This database belongs to a different owner. Set OWNER_EMAIL to that address, or update the stored owner email (migration checklist in docs/engineering/backup-restore.md).',
   rate_limited: 'Too many sign-in attempts. Wait a minute and try again.',
 };
 

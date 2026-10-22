@@ -7,7 +7,7 @@ import { isDsa } from '@/features/dsa/domain';
 import Link from 'next/link';
 import { BrandMark } from '@/components/brand';
 import { Suspense } from 'react';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ArrowRight } from 'lucide-react';
 import { ActionForm } from '@/components/action-form';
 import { Disclosure, DisclosureTabs } from '@/components/disclosure';
 import { DateJump } from '@/components/date-jump';
@@ -41,6 +41,8 @@ import { NoteList } from '@/features/notes/forms';
 import { FeedbackOutlet } from '@/components/feedback-outlet';
 import { readNotification } from '@/server/actions';
 import { Button } from '@/components/ui/button';
+import { categoryGroup } from '@/features/review/domain';
+export const metadata = { title: 'Today' };
 /** A quiet placeholder while an aside card is still loading. */
 const CardSkeleton = () => (
   <section className="card skeleton" aria-hidden="true">
@@ -143,8 +145,7 @@ export default async function Today({
       />
       <CategoryOptions />
       <p className="eyebrow">
-        {day === today ? 'Today' : day < today ? 'Past day' : 'Upcoming day'} ·{' '}
-        {user.timezone}
+        {day === today ? 'Today' : day < today ? 'Past day' : 'Upcoming day'}
       </p>
       <div className="page-head">
         <h1>{formatInTimeZone(bounds.start, user.timezone, 'EEEE, MMMM d')}</h1>
@@ -193,7 +194,7 @@ export default async function Today({
         <section className="hero">
           <div>
             <p className="eyebrow">Running now</p>
-            <h2>{running.task?.title ?? running.category}</h2>
+            <h2>{running.task?.title ?? categoryGroup(running.category)}</h2>
             <LiveTimer
               startedAt={running.startedAt.toISOString()}
               className="live-timer-hero"
@@ -209,7 +210,7 @@ export default async function Today({
             {!running.task && (
               <ActionForm action={stopUnlinkedAction}>
                 <input type="hidden" name="id" value={running.id} />
-                <button className="button">Stop session</button>
+                <Button>Stop session</Button>
               </ActionForm>
             )}
             {running.task && (
@@ -315,7 +316,8 @@ export default async function Today({
                         ? 'Nothing was planned for this day.'
                         : 'Nothing planned yet.'}{' '}
                     <Link className="link" href="/calendar">
-                      Set up routines on Plan →
+                      Set up routines on Plan{' '}
+                      <ArrowRight size={14} aria-hidden="true" />
                     </Link>
                   </p>
                 )}
@@ -346,7 +348,7 @@ export default async function Today({
                             {block.title}
                           </h3>
                           <p className="muted block-origin">
-                            {block.category} · {origin(block)}
+                            {categoryGroup(block.category)} · {origin(block)}
                           </p>
                         </div>
                         <span

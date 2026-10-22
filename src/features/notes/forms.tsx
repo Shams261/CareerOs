@@ -34,14 +34,19 @@ export function NoteList({ notes }: { notes: QuickNote[] }) {
           <ActionForm action={noteOpAction} broadcast="notes">
             <input type="hidden" name="id" value={n.id} />
             <div className="actions">
-              <button className="button secondary" name="op" value="done">
+              <button
+                className="button secondary"
+                name="op"
+                value="done"
+                aria-label={`Done: ${n.body.slice(0, 60)}`}
+              >
                 Done
               </button>
               <button
                 className="button secondary"
                 name="op"
                 value="remove"
-                aria-label="Remove note"
+                aria-label={`Remove note: ${n.body.slice(0, 60)}`}
               >
                 Remove
               </button>

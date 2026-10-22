@@ -29,6 +29,7 @@ export function BrandLogo({ stacked = false }: { stacked?: boolean }) {
   return (
     <span
       className={`brand-logo${stacked ? ' brand-logo-stacked' : ''}`}
+      role="img"
       aria-label="Silsila"
     >
       <BrandMark />

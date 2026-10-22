@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { dsaSnapshot } from './service';
 import { todayDsaSummary } from './domain';
 import type { ScheduleUser } from '@/features/schedule/service';
+import { ArrowRight } from 'lucide-react';
 export async function TodayDsa({
   user,
   now,
@@ -37,7 +38,7 @@ export async function TodayDsa({
       </ol>
       {!queue.length && <p className="muted">No revisions due.</p>}
       <Link className="link" href="/dsa#revision-queue">
-        Open Practice →
+        Open Practice <ArrowRight size={14} aria-hidden="true" />
       </Link>
     </section>
   );

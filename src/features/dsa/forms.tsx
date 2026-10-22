@@ -2,6 +2,7 @@ import { ActionForm } from '@/components/action-form';
 import { topicAction, problemAction, revisionAction } from './actions';
 import type { DsaTopic, DsaProblem } from '@/generated/prisma/client';
 import { revisionDay } from './domain';
+import { Button } from '@/components/ui/button';
 /** `compact` is the first-run form: a name, saved as the current topic. */
 export function TopicForm({
   topic,
@@ -24,7 +25,7 @@ export function TopicForm({
           Topic
           <input name="name" required maxLength={100} placeholder="Arrays" />
         </label>
-        <button className="button">Add topic</button>
+        <Button>Add topic</Button>
       </ActionForm>
     );
   return (
@@ -81,7 +82,7 @@ export function TopicForm({
         />
         Current topic
       </label>
-      <button className="button">{topic ? 'Save topic' : 'Add topic'}</button>
+      <Button>{topic ? 'Save topic' : 'Add topic'}</Button>
     </ActionForm>
   );
 }
@@ -165,9 +166,9 @@ export function ProblemForm({
           defaultValue={problem?.notes ?? ''}
         />
       </label>
-      <button className="button" disabled={!topics.length}>
+      <Button disabled={!topics.length}>
         {problem ? 'Save problem' : 'Add problem'}
-      </button>
+      </Button>
       {!topics.length && <p className="muted">Add a topic first.</p>}
     </ActionForm>
   );
@@ -191,7 +192,7 @@ export function RevisionForm({ problem }: { problem: DsaProblem }) {
           }
         />
       </label>
-      <button className="button">Save revision date</button>
+      <Button>Save revision date</Button>
     </ActionForm>
   );
 }

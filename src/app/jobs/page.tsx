@@ -21,6 +21,8 @@ import {
 import { ApplicationRow, attentionText } from '@/features/jobs/components';
 import { QuickAddForm } from '@/features/jobs/forms';
 import { Disclosure } from '@/components/disclosure';
+import { Button } from '@/components/ui/button';
+export const metadata = { title: 'Jobs' };
 
 const FILTER_THRESHOLD = 8;
 export default async function Jobs({
@@ -269,7 +271,7 @@ export default async function Jobs({
                       </label>
                     )}
                     <div className="actions">
-                      <button className="button secondary">Filter</button>
+                      <Button className="secondary">Filter</Button>
                       <Link className="link" href="/jobs">
                         Clear
                       </Link>

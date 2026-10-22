@@ -8,7 +8,7 @@ import { DateJump } from '@/components/date-jump';
 import { getConnection } from '@/features/calendar/service';
 import { blockSyncView } from '@/features/calendar/domain';
 import { db, owner } from '@/server/db';
-import { dayKey, clock } from '@/lib/time';
+import { dayKey, clock, shortDate } from '@/lib/time';
 import { generateThroughSunday } from '@/features/schedule/service';
 import {
   dateInput,
@@ -19,6 +19,7 @@ import {
 } from '@/features/schedule/domain';
 import { RoutineForm, CategoryOptions } from '@/features/schedule/forms';
 import { PrepareNextWeekForm } from '@/features/review/forms';
+export const metadata = { title: 'Plan' };
 
 const WEEKDAY = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const label = (day: string, pattern: string) =>
@@ -82,7 +83,7 @@ export default async function Calendar({
         prev={`/calendar?date=${shiftDay(days[0], -7)}`}
         next={`/calendar?date=${shiftDay(days[0], 7)}`}
       />
-      <p className="eyebrow">Plan · {user.timezone}</p>
+      <p className="eyebrow">Plan</p>
       <div className="page-head">
         <h1>
           Week of {label(days[0], 'MMM d')} – {label(days[6], 'MMM d, yyyy')}
@@ -166,7 +167,7 @@ export default async function Calendar({
               aria-current={day === today ? 'date' : undefined}
             >
               <Link className="link" href={`/today?date=${day}`}>
-                {WEEKDAY[(index + 1) % 7]} · {day.slice(5)}
+                {WEEKDAY[(index + 1) % 7]} · {shortDate(day)}
               </Link>
               {plan?.blocks.length ? (
                 plan.blocks.map((b) => {

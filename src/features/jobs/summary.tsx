@@ -6,6 +6,7 @@ import { ResourceLink } from '@/components/resource-link';
 import { interviewTime, label } from './domain';
 import { PrepToggle } from './forms';
 import { jobTodaySummary, todaysInterviews } from './service';
+import { ArrowRight, Circle } from 'lucide-react';
 
 /** Interviews scheduled for this owner-calendar day. Never edits TimeBlocks. */
 export async function TodayInterview({
@@ -38,7 +39,9 @@ export async function TodayInterview({
                   .filter((p) => p.kind === 'PREP' && !p.completed)
                   .map((p) => (
                     <li className="prep-item" key={p.id}>
-                      <span>○ {p.title}</span>
+                      <span>
+                        <Circle size={12} aria-hidden="true" /> {p.title}
+                      </span>
                       <PrepToggle id={p.id} completed={false} title={p.title} />
                     </li>
                   ))}
@@ -110,7 +113,7 @@ export async function TodayJobs({
         </ul>
       )}
       <Link className="link" href="/jobs">
-        Open job search →
+        Open job search <ArrowRight size={14} aria-hidden="true" />
       </Link>
     </section>
   );
@@ -140,10 +143,6 @@ export async function InterviewMentions({
   return (
     <section className="card" aria-label="Interview mentions">
       <h2>Interview mentions</h2>
-      <p className="muted">
-        Linked from interview prep or reflections. Mastery and attempts are only
-        changed by what you record here.
-      </p>
       <ul className="plain-list">
         {items.map((i) => (
           <li className="dsa-item" key={i.id}>

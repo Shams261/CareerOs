@@ -14,6 +14,8 @@ import {
   weeklyReminderAction,
 } from './actions';
 import { MAX_PRIORITIES } from './domain';
+import { ArrowRight, Check, ChevronUp, ChevronDown } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 const prompts = [
   ['biggestWin', 'What went well?'],
@@ -52,12 +54,12 @@ export function ReviewForm({
         ))}
       </div>
       <div className="actions">
-        <button className="button secondary" name="intent" value="draft">
+        <Button className="secondary" name="intent" value="draft">
           Save draft
-        </button>
-        <button className="button" name="intent" value="next">
-          Save and continue →
-        </button>
+        </Button>
+        <Button name="intent" value="next">
+          Save and continue <ArrowRight size={14} aria-hidden="true" />
+        </Button>
       </div>
     </ActionForm>
   );
@@ -84,7 +86,13 @@ export function PriorityList({
         {priorities.map((p, i) => (
           <li className="prep-item" key={p.id}>
             <span>
-              {p.completedAt ? '✓ Done: ' : `${i + 1}. `}
+              {p.completedAt ? (
+                <>
+                  <Check size={14} aria-hidden="true" /> Done:{' '}
+                </>
+              ) : (
+                `${i + 1}. `
+              )}
               {p.title}
               {p.target
                 ? ` · target ${p.target}${p.targetUnit ? ` ${p.targetUnit}` : ''}`
@@ -120,7 +128,7 @@ export function PriorityList({
                       className="button secondary"
                       aria-label={`${labels[op]}: ${p.title}`}
                     >
-                      {labels[op]}
+                      {glyphs[op] ?? labels[op]}
                     </button>
                   </ActionForm>
                 ))}
@@ -132,12 +140,16 @@ export function PriorityList({
   );
 }
 const labels = {
-  up: '↑',
-  down: '↓',
+  up: 'Move up',
+  down: 'Move down',
   done: 'Mark done',
   undo: 'Reopen',
   remove: 'Remove',
 } as const;
+const glyphs: Partial<Record<keyof typeof labels, React.ReactNode>> = {
+  up: <ChevronUp size={16} aria-hidden="true" />,
+  down: <ChevronDown size={16} aria-hidden="true" />,
+};
 
 export function PriorityForm({
   weekStart,
@@ -198,7 +210,7 @@ export function PriorityForm({
           </label>
         )}
       </div>
-      <button className="button secondary">Add priority</button>
+      <Button className="secondary">Add priority</Button>
     </ActionForm>
   );
 }
@@ -207,7 +219,7 @@ export function PrepareNextWeekForm({ monday }: { monday: string }) {
   return (
     <ActionForm action={prepareNextWeekAction} label="Prepare next week">
       <input type="hidden" name="monday" value={monday} />
-      <button className="button">Prepare next week from my routines</button>
+      <Button>Prepare next week from my routines</Button>
     </ActionForm>
   );
 }
@@ -226,7 +238,7 @@ export function CompleteReviewForm({
         {completedAt ? (
           <span className="pill success">Completed</span>
         ) : (
-          <button className="button">Complete review</button>
+          <Button>Complete review</Button>
         )}
       </div>
     </ActionForm>
@@ -261,7 +273,7 @@ export function WeeklyReminderForm({
           defaultValue={pref?.preferredTime ?? '18:00'}
         />
       </label>
-      <button className="button secondary">Save reminder</button>
+      <Button className="secondary">Save reminder</Button>
     </ActionForm>
   );
 }

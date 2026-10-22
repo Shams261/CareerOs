@@ -6,6 +6,8 @@ import {
   stopUnlinkedAction,
 } from '@/features/schedule/actions';
 import { LiveTimer } from './live';
+import { categoryGroup } from '@/features/review/domain';
+import { Button } from '@/components/ui/button';
 
 /** The running session, shown in the shell on every page so it is never lost. */
 export async function RunningNow() {
@@ -19,15 +21,15 @@ export async function RunningNow() {
     <aside className="running-now" aria-label="Running session">
       <p className="eyebrow">Running</p>
       <Link className="running-title" href="/today">
-        {running.task?.title ?? running.category}
+        {running.task?.title ?? categoryGroup(running.category)}
       </Link>
       <LiveTimer startedAt={running.startedAt.toISOString()} />
       {running.task ? (
         <ActionForm action={executionAction} label="Stop the running session">
           <input type="hidden" name="id" value={running.task.id} />
-          <button className="button secondary" name="action" value="stop">
+          <Button className="secondary" name="action" value="stop">
             Stop
-          </button>
+          </Button>
         </ActionForm>
       ) : (
         <ActionForm
@@ -35,7 +37,7 @@ export async function RunningNow() {
           label="Stop the running session"
         >
           <input type="hidden" name="id" value={running.id} />
-          <button className="button secondary">Stop</button>
+          <Button className="secondary">Stop</Button>
         </ActionForm>
       )}
     </aside>

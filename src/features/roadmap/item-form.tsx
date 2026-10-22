@@ -5,6 +5,7 @@ import type { RoadmapItem } from '@/generated/prisma/client';
 import { referenceLines, type Reference } from './domain';
 import { itemAction } from './actions';
 import type { LinkOption } from './forms';
+import { Button } from '@/components/ui/button';
 
 /**
  * The per-item edit form is a client component so a closed form costs the page only its
@@ -168,7 +169,7 @@ export function ItemForm({
       {item.sourceRef && (
         <p className="muted">Imported from: {item.sourceRef}</p>
       )}
-      <button className="button">Save item</button>
+      <Button>Save item</Button>
     </ActionForm>
   );
 }

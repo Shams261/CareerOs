@@ -6,6 +6,7 @@ import {
   type Scenario,
 } from './domain';
 import { bulkItemsAction, goalAction, roadmapAction } from './actions';
+import { Button } from '@/components/ui/button';
 
 export type LinkOption = { value: string; label: string };
 const GOAL_CATEGORIES = [
@@ -97,7 +98,7 @@ export function GoalForm({
           <option key={c} value={c} />
         ))}
       </datalist>
-      <button className="button">{goal ? 'Save goal' : 'Add goal'}</button>
+      <Button>{goal ? 'Save goal' : 'Add goal'}</Button>
     </ActionForm>
   );
 }
@@ -151,7 +152,11 @@ export function RoadmapForm({
       {roadmap && (
         <>
           <label>
-            Study prompt template
+            Study prompt template (empty = built-in; placeholders{' '}
+            {
+              '{{topic}} {{section}} {{scope}} {{checkpoint}} {{priority}} {{references}} {{notes}} {{scenario}} {{extra}}'
+            }
+            )
             <textarea
               name="promptTemplate"
               rows={8}
@@ -160,14 +165,9 @@ export function RoadmapForm({
               placeholder={DEFAULT_PROMPT_TEMPLATE.slice(0, 160) + '…'}
             />
           </label>
-          <p className="muted">
-            Leave empty for the built-in template. Placeholders:{' '}
-            {
-              '{{topic}} {{section}} {{roadmap}} {{scope}} {{checkpoint}} {{priority}} {{estimate}} {{references}} {{notes}} {{scenario}} {{extra}}'
-            }
-          </p>
           <label>
-            Scenarios, one per line as <code>id | Name | instruction</code>
+            Scenarios, one per line as <code>id | Name | instruction</code>{' '}
+            (empty = built-in)
             <textarea
               name="scenarios"
               rows={5}
@@ -178,7 +178,6 @@ export function RoadmapForm({
               placeholder="start | Start or continue | Teach this topic directly…"
             />
           </label>
-          <p className="muted">Leave empty for the built-in scenarios.</p>
           <label className="check">
             <input
               type="checkbox"
@@ -189,9 +188,7 @@ export function RoadmapForm({
           </label>
         </>
       )}
-      <button className="button">
-        {roadmap ? 'Save roadmap' : 'Create roadmap'}
-      </button>
+      <Button>{roadmap ? 'Save roadmap' : 'Create roadmap'}</Button>
     </ActionForm>
   );
 }
@@ -231,7 +228,7 @@ export function BulkItemsForm({
         ))}
       </datalist>
       <label>
-        Items, one per line
+        Items, one per line (start a line with ? for a question)
         <textarea
           name="lines"
           required
@@ -242,8 +239,7 @@ export function BulkItemsForm({
           }
         />
       </label>
-      <p className="muted">Start a line with ? to mark a question.</p>
-      <button className="button">Add items</button>
+      <Button>Add items</Button>
     </ActionForm>
   );
 }

@@ -11,6 +11,7 @@ import { useRouter } from 'next/navigation';
 import type { ActionState } from '@/features/schedule/actions';
 import { undoAction } from '@/features/undo/actions';
 import { publishFeedback } from './feedback-channel';
+import { Button } from '@/components/ui/button';
 
 /** How long a success message stays beside the button before it clears. */
 export const SUCCESS_VISIBLE_MS = 3000;
@@ -73,6 +74,9 @@ export function ActionForm({
     if (pending) el.setAttribute('aria-busy', 'true');
     else {
       el.removeAttribute('aria-busy');
+      // The disabled fieldset dropped focus to the body; put it back where it was.
+      if (el.isConnected && document.activeElement === document.body)
+        el.focus();
       submitter.current = null;
     }
   }, [pending]);
@@ -100,9 +104,9 @@ export function ActionForm({
                 <li key={i}>{line}</li>
               ))}
             </ul>
-            <button className="button mt-3" type="submit">
+            <Button className="mt-3" type="submit">
               Confirm these changes
-            </button>
+            </Button>
           </div>
         )}
       </fieldset>

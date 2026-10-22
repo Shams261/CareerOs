@@ -8,6 +8,7 @@ import { GoalForm, RoadmapForm } from '@/features/roadmap/forms';
 import { goalsOverview, roadmapList } from '@/features/roadmap/service';
 import { daysUntil, targetLabel } from '@/features/roadmap/domain';
 import { ProgressBar } from '@/components/progress-bar';
+export const metadata = { title: 'Roadmap' };
 
 const hours = (minutes: number) =>
   `${Math.floor(minutes / 60)}h ${Math.round(minutes % 60)}m`;
@@ -33,7 +34,7 @@ function paceLine(
     : null;
   const pace =
     days && days > 0 && left > 0
-      ? ` · ${left} left, ${days} days to the target: about ${Math.ceil(left / days)} a day`
+      ? ` · ${left} left, ${days} days to the target`
       : '';
   return `${g.doneThisWeek} done this week${pace}`;
 }
