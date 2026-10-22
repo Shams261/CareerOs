@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   categoryGroup,
+  defaultReviewWeek,
   dsaWeek,
   formatMinutes,
   jobWeek,
@@ -46,6 +47,15 @@ describe('owner-local weeks', () => {
       '2026-10-31',
       '2026-11-01',
     ]);
+  });
+});
+
+describe('default review week', () => {
+  it('opens on last week on a Monday while that review is still open', () => {
+    expect(defaultReviewWeek('2026-10-19', false)).toBe('2026-10-12');
+    expect(defaultReviewWeek('2026-10-19', true)).toBe('2026-10-19');
+    expect(defaultReviewWeek('2026-10-20', false)).toBe('2026-10-19');
+    expect(defaultReviewWeek('2026-10-25', false)).toBe('2026-10-19');
   });
 });
 

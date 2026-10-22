@@ -26,6 +26,15 @@ export const currentWeek = (now: Date, zone: string) =>
 export const isMonday = (day: string) =>
   dateInput.safeParse(day).success &&
   new Date(`${day}T12:00:00Z`).getUTCDay() === 1;
+/**
+ * The week the review opens on when none is asked for: this week, except on a
+ * Monday while last week's review is still open. The Monday review is last
+ * week's review; the new week has nothing to look back on yet.
+ */
+export const defaultReviewWeek = (today: string, lastWeekCompleted: boolean) =>
+  isMonday(today) && !lastWeekCompleted
+    ? shiftDay(weekOf(today), -7)
+    : weekOf(today);
 /** Instants of the owner's week: 168h normally, 167h/169h across DST changes. */
 export function weekBounds(monday: string, zone: string) {
   if (!isMonday(monday)) throw new Error('A week starts on Monday.');

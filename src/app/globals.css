@@ -1113,6 +1113,11 @@ summary {
   font-size: 13px;
   color: var(--muted);
 }
+.view-links a[aria-current='page'] {
+  color: var(--foreground);
+  font-weight: 600;
+  text-decoration: none;
+}
 .step-foot {
   display: flex;
   justify-content: flex-end;

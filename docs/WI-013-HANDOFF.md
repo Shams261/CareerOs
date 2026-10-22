@@ -1,0 +1,43 @@
+# WI-013 handoff — daily loop fixes (the three P0s)
+
+Branch `feat/wi-013-daily-loop-fixes`, cut from `feat/wi-012-roadmap-tracker` (unmerged at the time) because the fixes build on WI-012. Scope: the three P0 findings of the whole-app design review (`docs/design-review/REPORT.md`, F-01, F-02, F-03). Nothing else from the review was implemented; the order for the rest is `docs/design-review/ENHANCEMENTS.md` section F.
+
+## 1. Outcome
+
+- **Monday review opens on last week (F-01).** `defaultReviewWeek(today, lastWeekCompleted)` in `src/features/review/domain.ts` returns last week's Monday when today is a Monday and last week's review has no `completedAt`; otherwise this week. The review page runs one extra statement on Mondays only (a `findUnique` on `WeeklyReview` by `userId_weekStart`) and never when `?week=` is given. The eyebrow reads "Last week, not yet reviewed" in that case; the existing "This week" button is the way forward. Reflection, priorities (`nextMonday`) and Prepare now target the weeks the owner means on a Monday.
+- **Jobs never hides applications (F-02).** A `nav.view-links` line sits above the list on every visit: Active · Offers · Closed · All with counts, the current one marked `aria-current="page"` (a link with a zero count is shown only while it is the current view). The heading counts "shown of total" when they differ. A `closed` view (REJECTED and WITHDRAWN, via `isOpen`) joins `views` in `src/features/jobs/domain.ts`; the full filter form still appears above eight applications or when search, stage, focus or source is in use, but no longer just because a view was chosen. The old "N of M" muted line under the form is gone (the heading carries it).
+- **Revise today opens the right item (F-03).** `TodayRevision` links carry `?section=<item section>&show=revision#item-<id>`, so the roadmap page shows the due items of that section with the clicked one open, instead of the Continue item's section with done items hidden.
+
+## 2. Changes
+
+| Area    | Files                                                                                                                                                                                                      |
+| ------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Review  | `src/features/review/domain.ts` (`defaultReviewWeek`), `src/app/review/page.tsx` (Monday lookup, eyebrow)                                                                                                  |
+| Jobs    | `src/features/jobs/domain.ts` (`closed` view), `src/app/jobs/page.tsx` (view links, heading count, filter trigger, empty copy), `src/app/globals.css` (`.view-links a[aria-current]`)                      |
+| Roadmap | `src/features/roadmap/summary.tsx` (link)                                                                                                                                                                  |
+| Tests   | `tests/review-domain.test.ts` (default week), `tests/jobs-domain.test.ts` (closed view)                                                                                                                    |
+| Docs    | `CHANGELOG.md`, `CLAUDE.md` (state, next steps, handbook pointer), this file; the review itself under `docs/design-review/` (report, enhancements, IA, three findings files, two concepts, 50 screenshots) |
+
+No schema change, no migration, no new dependency.
+
+## 3. Verification
+
+| Check                                          | Result                                                                                                                                                                                                                                                                                                                                    |
+| ---------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `prettier --check` on tracked sources and docs | Verified (the only errors are files Prettier has no parser for: fonts and the SQL script)                                                                                                                                                                                                                                                 |
+| `eslint` on the changed files                  | Verified                                                                                                                                                                                                                                                                                                                                  |
+| `tsc --noEmit` (repository sources)            | Verified                                                                                                                                                                                                                                                                                                                                  |
+| `pnpm test:ci` against `silsila_wi012_test`    | Verified: 40 files, 266 tests passed                                                                                                                                                                                                                                                                                                      |
+| `next build` on a clean `git archive` export   | Verified                                                                                                                                                                                                                                                                                                                                  |
+| `pnpm docs:check` on the export                | Verified (47 Markdown files)                                                                                                                                                                                                                                                                                                              |
+| `git diff --check`                             | Verified                                                                                                                                                                                                                                                                                                                                  |
+| Browser, 1440 and 390                          | Verified: Today's Revise today link lands on "HTTP semantics" with the revision filter and the item open; Jobs with the seeded application moved to Offer shows "Applications · 0 of 1", "Offers · 1 · All · 1" and no filter form, `?view=offer` lists it with Offers current; the review page on a Wednesday is unchanged ("This week") |
+| Monday path                                    | Needs manual verification on a Monday (the helper is unit-tested; the page query is a single `findUnique`)                                                                                                                                                                                                                                |
+
+Plain `pnpm lint`, `pnpm typecheck`, `pnpm build` and `pnpm docs:check` still fail on this workstation only because of the untracked `docs/audit/` folder (a stale app copy with its own `node_modules`, excluded from git). Verification ran on tracked files and on a clean export, as for WI-012.
+
+## 4. Risks and follow-ups
+
+- On a Monday the review page opens on last week until that review is completed. If the owner wants to look at the new week, "This week" is one click. If this turns out to be the wrong default after real use, the change is one line in `page.tsx`.
+- The Jobs view links replace the hidden `?view=` knowledge; the Show select inside the full filter form remains for the >8 case and now also lists Closed.
+- Next from the review, in order: Done keeps its confirmation and Next, Revised only when due, Reopen undo (ENHANCEMENTS F.2); Practice bands follow the filter, valid ARIA, a starting point, no preselected outcome (F.3).
