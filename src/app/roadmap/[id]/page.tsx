@@ -50,7 +50,9 @@ export default async function RoadmapDetail({
       name,
       total: items.length,
       done: items.filter((i) => i.status === 'DONE').length,
+      inProgress: items.filter((i) => i.status === 'IN_PROGRESS').length,
       due: revisionQueue(items, today).length,
+      isContinue: roadmap.next?.section === name,
     };
   });
   const due = revisionQueue(roadmap.items, today).length;
@@ -94,7 +96,17 @@ export default async function RoadmapDetail({
               subject: item.learningTopic.subject.name,
             }
           : null,
-        dsaProblem: item.dsaProblem,
+        dsaProblem: item.dsaProblem
+          ? {
+              id: item.dsaProblem.id,
+              title: item.dsaProblem.title,
+              confidence: item.dsaProblem.confidence,
+              attemptsCount: item.dsaProblem.attemptsCount,
+              nextRevision: item.dsaProblem.nextRevisionAt
+                ? dateLabel(item.dsaProblem.nextRevisionAt)
+                : null,
+            }
+          : null,
         dsaTopic: item.dsaTopic,
       },
     }));
@@ -103,7 +115,18 @@ export default async function RoadmapDetail({
   return (
     <>
       <PageShortcuts
-        shortcuts={[{ key: 'n', label: 'Add items', press: 'add-items' }]}
+        shortcuts={[
+          { key: 'n', label: 'Add items', press: 'add-items' },
+          { key: 'j', label: 'Next item', press: 'row-next' },
+          { key: 'k', label: 'Previous item', press: 'row-prev' },
+          {
+            key: 'd',
+            label: 'Mark the item done (or revised)',
+            press: 'row-done',
+          },
+          { key: 'c', label: 'Copy the study prompt', press: 'row-copy' },
+          { key: 'Escape', label: 'Close the open item', press: 'row-close' },
+        ]}
       />
       <Link className="link" href="/roadmap">
         ← Roadmap
@@ -181,9 +204,19 @@ export default async function RoadmapDetail({
                   · {current?.done ?? 0} of {current?.total ?? 0}
                 </span>
               </h2>
-              {(current?.total ?? 0) > 5 && (
-                <ItemFilters q={query.q ?? ''} show={show} />
-              )}
+              <span className="section-tools">
+                {(current?.due ?? 0) > 0 && show !== 'revision' && (
+                  <Link
+                    className="pill warning pill-link"
+                    href={`/roadmap/${roadmap.id}?section=${encodeURIComponent(selected)}&show=revision`}
+                  >
+                    Due · {current!.due}
+                  </Link>
+                )}
+                {(current?.total ?? 0) > 5 && (
+                  <ItemFilters q={query.q ?? ''} show={show} />
+                )}
+              </span>
             </div>
             {show === 'open' && !query.show && (current?.done ?? 0) > 0 && (
               <p className="muted mb-3">

@@ -2,12 +2,16 @@
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { ProgressBar } from '@/components/progress-bar';
 
 export type SectionSummary = {
   name: string;
   total: number;
   done: number;
+  inProgress: number;
   due: number;
+  /** The section that holds the Continue item. */
+  isContinue: boolean;
 };
 
 /** Sections as a list on wide screens and a select on phones; the URL carries the choice. */
@@ -47,7 +51,23 @@ export function SectionNav({
               className={s.name === selected ? 'is-on' : ''}
               aria-current={s.name === selected ? 'true' : undefined}
             >
-              <span className="section-nav-name">{s.name}</span>
+              <span className="section-nav-main">
+                <span className="section-nav-name">
+                  {s.isContinue && (
+                    <span
+                      className="section-nav-marker"
+                      title="Continue here"
+                      aria-label="Continue here"
+                    />
+                  )}
+                  {s.name}
+                </span>
+                <ProgressBar
+                  done={s.done}
+                  inProgress={s.inProgress}
+                  total={s.total}
+                />
+              </span>
               <span className="section-nav-count">
                 {s.due > 0 && (
                   <span

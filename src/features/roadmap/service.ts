@@ -26,7 +26,15 @@ const itemInclude = {
   learningTopic: {
     select: { id: true, title: true, subject: { select: { name: true } } },
   },
-  dsaProblem: { select: { id: true, title: true } },
+  dsaProblem: {
+    select: {
+      id: true,
+      title: true,
+      confidence: true,
+      attemptsCount: true,
+      nextRevisionAt: true,
+    },
+  },
   dsaTopic: { select: { id: true, name: true } },
 } satisfies Prisma.RoadmapItemInclude;
 
@@ -172,6 +180,20 @@ export async function saveItem(user: ScheduleUser, raw: unknown) {
   });
 }
 
+/** "Asked at": the short where-it-came-up note beside the Asked mark. */
+export async function saveItemAskedNote(user: ScheduleUser, raw: unknown) {
+  const input = z
+    .object({ id: z.string().min(1), askedNote: z.string().max(200) })
+    .parse(raw);
+  return locked(user.id, async (tx) => {
+    const item = await ownedItem(tx, user.id, input.id);
+    return tx.roadmapItem.update({
+      where: { id: item.id },
+      data: { askedNote: input.askedNote.trim() || null },
+    });
+  });
+}
+
 /** The one-field note from the Study panel; everything else on the item stays as it is. */
 export async function saveItemNotes(user: ScheduleUser, raw: unknown) {
   const input = z
@@ -283,7 +305,11 @@ async function goalWeek(user: ScheduleUser, now: Date) {
 }
 
 async function loadGoalsOverview(user: ScheduleUser, now = new Date()) {
-  const [goals, roadmaps, subjects, week] = await Promise.all([
+  const today = dayKey(now, user.timezone),
+    days = weekDays(today),
+    weekFrom = dayBounds(days[0], user.timezone).start,
+    weekTo = dayBounds(days[6], user.timezone).end;
+  const [goals, roadmaps, subjects, week, doneRows] = await Promise.all([
     db().goal.findMany({
       where: { userId: user.id },
       orderBy: [{ status: 'asc' }, { priority: 'asc' }, { createdAt: 'asc' }],
@@ -298,9 +324,19 @@ async function loadGoalsOverview(user: ScheduleUser, now = new Date()) {
       include: { topics: { select: { status: true } } },
     }),
     goalWeek(user, now),
+    db().roadmapItem.findMany({
+      where: {
+        userId: user.id,
+        status: 'DONE',
+        completedAt: { gte: weekFrom, lte: weekTo },
+      },
+      select: { roadmapId: true },
+    }),
   ]);
   return goals.map((g) => {
     const own = roadmaps.filter((r) => r.goalId === g.id && !r.archivedAt);
+    const ownIds = new Set(own.map((r) => r.id));
+    const doneThisWeek = doneRows.filter((d) => ownIds.has(d.roadmapId)).length;
     const topics = subjects
       .filter((s) => s.goalId === g.id)
       .flatMap((s) => s.topics);
@@ -311,6 +347,20 @@ async function loadGoalsOverview(user: ScheduleUser, now = new Date()) {
       ...g,
       week: week.get(g.id) ?? { planned: 0, actual: 0 },
       roadmap: roadmapProgress(own.flatMap((r) => r.items)),
+      doneThisWeek,
+      upNext: own
+        .map((r) => ({
+          roadmapId: r.id,
+          roadmapTitle: r.title,
+          item: nextItem(r.items),
+        }))
+        .filter((n) => n.item)
+        .slice(0, 3)
+        .map((n) => ({
+          roadmapId: n.roadmapId,
+          roadmapTitle: n.roadmapTitle,
+          ...n.item!,
+        })),
       next: next
         ? {
             roadmapId: next.roadmap.id,

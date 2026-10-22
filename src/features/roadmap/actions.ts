@@ -10,6 +10,7 @@ import {
   applyItemOp,
   saveGoal,
   saveItem,
+  saveItemAskedNote,
   saveItemNotes,
   saveRoadmap,
 } from './service';
@@ -70,6 +71,15 @@ export async function noteAction(_s: ActionState, f: FormData) {
       notes: f.get('notes') ?? '',
     });
     return 'Note saved.';
+  });
+}
+export async function askedNoteAction(_s: ActionState, f: FormData) {
+  return perform(async () => {
+    await saveItemAskedNote(await owner(), {
+      id: f.get('id'),
+      askedNote: f.get('askedNote') ?? '',
+    });
+    return 'Saved.';
   });
 }
 export async function itemOpAction(_s: ActionState, f: FormData) {

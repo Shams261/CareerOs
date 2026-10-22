@@ -41,17 +41,26 @@ export async function TodayGoals({
               ? ` · roadmap ${g.roadmap.done} of ${g.roadmap.total}`
               : ''}
           </p>
-          {g.next && (
+          {g.roadmap.total > 0 && (
             <p className="muted">
-              Next:{' '}
-              <Link
-                className="link"
-                href={`/roadmap/${g.next.roadmapId}#item-${g.next.id}`}
-              >
-                {g.next.title}
-              </Link>{' '}
-              · {g.next.roadmapTitle}
+              {g.doneThisWeek} roadmap item{g.doneThisWeek === 1 ? '' : 's'}{' '}
+              done this week
             </p>
+          )}
+          {g.upNext.length > 0 && (
+            <ol className="plain-list goal-upnext-list">
+              {g.upNext.map((n) => (
+                <li key={n.id}>
+                  <Link
+                    className="link"
+                    href={`/roadmap/${n.roadmapId}?section=${encodeURIComponent(n.section)}#item-${n.id}`}
+                  >
+                    {n.title}
+                  </Link>
+                  <span className="muted"> · {n.roadmapTitle}</span>
+                </li>
+              ))}
+            </ol>
           )}
         </div>
       ))}

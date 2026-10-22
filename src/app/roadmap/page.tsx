@@ -6,7 +6,8 @@ import { PageShortcuts } from '@/components/shortcuts';
 import { BrandMark } from '@/components/brand';
 import { GoalForm, RoadmapForm } from '@/features/roadmap/forms';
 import { goalsOverview, roadmapList } from '@/features/roadmap/service';
-import { targetLabel } from '@/features/roadmap/domain';
+import { daysUntil, targetLabel } from '@/features/roadmap/domain';
+import { ProgressBar } from '@/components/progress-bar';
 
 const hours = (minutes: number) =>
   `${Math.floor(minutes / 60)}h ${Math.round(minutes % 60)}m`;
@@ -16,6 +17,26 @@ const statusText = {
   COMPLETED: 'Completed',
   ARCHIVED: 'Archived',
 } as const;
+
+/** "12 done this week · 704 left, 70 days to the target: about 10 a day". A fact, not a score. */
+function paceLine(
+  g: {
+    doneThisWeek: number;
+    roadmap: { total: number; done: number };
+    targetDate: Date | null;
+  },
+  today: string,
+) {
+  const left = g.roadmap.total - g.roadmap.done;
+  const days = g.targetDate
+    ? daysUntil(g.targetDate.toISOString().slice(0, 10), today)
+    : null;
+  const pace =
+    days && days > 0 && left > 0
+      ? ` · ${left} left, ${days} days to the target: about ${Math.ceil(left / days)} a day`
+      : '';
+  return `${g.doneThisWeek} done this week${pace}`;
+}
 
 export default async function RoadmapPage() {
   const user = await owner(),
@@ -78,6 +99,25 @@ export default async function RoadmapPage() {
                     ? ` · ${hours(g.week.actual)} of ${hours(g.week.planned)} this week`
                     : ''}
                 </p>
+                {g.roadmap.total > 0 && (
+                  <p className="muted goal-pace">{paceLine(g, today)}</p>
+                )}
+                {g.upNext.length > 0 && (
+                  <p className="goal-upnext">
+                    <span className="muted">Up next:</span>{' '}
+                    {g.upNext.map((n, i) => (
+                      <span key={n.id}>
+                        {i > 0 && <span className="muted"> · </span>}
+                        <Link
+                          className="link"
+                          href={`/roadmap/${n.roadmapId}?section=${encodeURIComponent(n.section)}#item-${n.id}`}
+                        >
+                          {n.title}
+                        </Link>
+                      </span>
+                    ))}
+                  </p>
+                )}
               </div>
               <Disclosure variant="link" label="Edit goal">
                 <GoalForm goal={g} />
@@ -135,6 +175,11 @@ export default async function RoadmapPage() {
                 >
                   <span className="roadmap-row-main">
                     <span className="roadmap-row-title">{r.title}</span>
+                    <ProgressBar
+                      done={r.progress.done}
+                      inProgress={r.progress.inProgress}
+                      total={r.progress.total}
+                    />
                     <span className="muted">
                       {r.next
                         ? `Continue: ${r.next.title} · ${r.next.section}`

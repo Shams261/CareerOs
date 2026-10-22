@@ -1,6 +1,6 @@
 'use client';
 import Link from 'next/link';
-import { useEffect, useState, useSyncExternalStore } from 'react';
+import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import {
   Check,
   Circle,
@@ -10,14 +10,21 @@ import {
 } from 'lucide-react';
 import { ActionForm } from '@/components/action-form';
 import type { RoadmapItem } from '@/generated/prisma/client';
-import { itemOpAction, noteAction } from './actions';
+import { askedNoteAction, itemOpAction, noteAction } from './actions';
 import { ItemForm } from './item-form';
 import { StudyPrompt } from './study-prompt';
 import type { Reference, Scenario } from './domain';
 
 export type RowLinks = {
   learningTopic: { id: string; title: string; subject: string } | null;
-  dsaProblem: { id: string; title: string } | null;
+  dsaProblem: {
+    id: string;
+    title: string;
+    confidence: 'RED' | 'YELLOW' | 'GREEN';
+    attemptsCount: number;
+    /** "Oct 28" when a revision is scheduled. */
+    nextRevision: string | null;
+  } | null;
   dsaTopic: { id: string; name: string } | null;
 };
 export type Row = {
@@ -28,29 +35,42 @@ export type Row = {
   links: RowLinks;
 };
 
-function subscribeHash(onChange: () => void) {
-  window.addEventListener('hashchange', onChange);
-  return () => window.removeEventListener('hashchange', onChange);
-}
-
 const statusText = {
   NOT_STARTED: 'Not started',
   IN_PROGRESS: 'In progress',
   DONE: 'Done',
 } as const;
+const tone = { RED: 'danger', YELLOW: 'warning', GREEN: 'success' } as const;
+/** Scope longer than this is clamped to two lines with Read more. */
+const SCOPE_CLAMP = 220;
 
-function StatusIcon({ status }: { status: RoadmapItem['status'] }) {
-  const common = { size: 18, 'aria-hidden': true as const, strokeWidth: 2 };
-  if (status === 'DONE')
-    return <CircleCheck {...common} className="item-icon is-done" />;
-  if (status === 'IN_PROGRESS')
-    return <CircleDot {...common} className="item-icon is-active" />;
-  return <Circle {...common} className="item-icon" />;
+function subscribeHash(onChange: () => void) {
+  window.addEventListener('hashchange', onChange);
+  return () => window.removeEventListener('hashchange', onChange);
+}
+
+function StatusIcon({
+  status,
+  pop,
+}: {
+  status: RoadmapItem['status'];
+  pop: boolean;
+}) {
+  const common = {
+    size: 18,
+    'aria-hidden': true as const,
+    strokeWidth: 2,
+    className: `item-icon${status === 'DONE' ? ' is-done' : status === 'IN_PROGRESS' ? ' is-active' : ''}${pop ? ' is-pop' : ''}`,
+  };
+  if (status === 'DONE') return <CircleCheck {...common} />;
+  if (status === 'IN_PROGRESS') return <CircleDot {...common} />;
+  return <Circle {...common} />;
 }
 
 /**
  * The section's items, one open at a time. A row is an icon, the title and a quiet meta
- * column; the open row carries the study material, a note, the prompt and the actions.
+ * column; the open row carries the prompt, the study material, a note and the actions.
+ * Keys: J and K move, Enter opens, D marks done, C copies the prompt, Esc closes.
  */
 export function ItemList({
   roadmap,
@@ -65,8 +85,6 @@ export function ItemList({
   rows: Row[];
   initialOpen: string | null;
 }) {
-  // A link from Today or the overview names the item in the hash; until the owner clicks,
-  // that item (else the Continue item) is the open one.
   const hashId = useSyncExternalStore(
     subscribeHash,
     () => window.location.hash.replace('#item-', ''),
@@ -74,6 +92,7 @@ export function ItemList({
   );
   const [chosen, setChosen] = useState<string | null | undefined>(undefined);
   const [editing, setEditing] = useState<string | null>(null);
+  const [expandedScope, setExpandedScope] = useState<string | null>(null);
   const open =
     chosen !== undefined
       ? chosen
@@ -86,263 +105,447 @@ export function ItemList({
         .getElementById(`item-${hashId}`)
         ?.scrollIntoView({ block: 'center' });
   }, [chosen, hashId]);
+  // The icon pops once when a row turns done while the page is open.
+  const statuses = useRef(new Map(rows.map((r) => [r.item.id, r.item.status])));
+  const [popped, setPopped] = useState<string | null>(null);
+  useEffect(() => {
+    const turned = rows.find(
+      (r) =>
+        r.item.status === 'DONE' &&
+        statuses.current.get(r.item.id) &&
+        statuses.current.get(r.item.id) !== 'DONE',
+    );
+    statuses.current = new Map(rows.map((r) => [r.item.id, r.item.status]));
+    if (!turned) return;
+    const id = turned.item.id;
+    const timer = setTimeout(
+      () => setPopped((p) => (p === id ? null : p)),
+      900,
+    );
+    setPopped(id);
+    return () => clearTimeout(timer);
+  }, [rows]);
   const toggle = (id: string) => {
     setChosen(open === id ? null : id);
     setEditing(null);
   };
+  // Keyboard: the page's shortcut list presses these hidden buttons.
+  const listRef = useRef<HTMLOListElement>(null);
+  const titles = () => [
+    ...(listRef.current?.querySelectorAll<HTMLButtonElement>('.item-title') ??
+      []),
+  ];
+  const move = (delta: 1 | -1) => {
+    const all = titles();
+    if (!all.length) return;
+    const focused = all.findIndex((b) => b === document.activeElement);
+    const current =
+      focused >= 0
+        ? focused
+        : all.findIndex((b) => b.closest('.item-row')?.id === `item-${open}`);
+    const next = Math.min(
+      all.length - 1,
+      Math.max(0, (current < 0 ? -1 : current) + delta),
+    );
+    all[next].focus();
+    all[next].scrollIntoView({ block: 'nearest' });
+  };
+  const activeRow = () => {
+    const focused = document.activeElement?.closest('.item-row');
+    return focused ?? (open ? document.getElementById(`item-${open}`) : null);
+  };
+  const pressInRow = (selector: string) =>
+    activeRow()?.querySelector<HTMLElement>(selector)?.click();
+  const nextAfter = (id: string) => {
+    const i = rows.findIndex((r) => r.item.id === id);
+    return rows.slice(i + 1).find((r) => r.item.status !== 'DONE') ?? null;
+  };
   return (
-    <ol className="plain-list item-list">
-      {rows.map(({ item, revision, revisionLabel, links }) => {
-        const isOpen = open === item.id;
-        const references = (item.references as Reference[] | null) ?? [];
-        const meta = [
-          item.kind === 'QUESTION' && item.estimateMinutes
-            ? `${item.estimateMinutes} min`
-            : null,
-          item.kind !== 'QUESTION' && item.estimateMinutes
-            ? `${item.estimateMinutes} min`
-            : null,
-          revision === 'upcoming' && revisionLabel
-            ? `Revise ${revisionLabel}`
-            : null,
-        ].filter(Boolean);
-        return (
-          <li
-            key={item.id}
-            id={`item-${item.id}`}
-            className={`item-row is-${item.status.toLowerCase().replace('_', '-')}${isOpen ? ' is-open' : ''}`}
-          >
-            <StatusIcon status={item.status} />
-            <button
-              type="button"
-              className="item-title"
-              aria-expanded={isOpen}
-              aria-controls={`panel-${item.id}`}
-              onClick={() => toggle(item.id)}
-              title={item.title}
+    <>
+      <span hidden>
+        <button
+          type="button"
+          data-shortcut="row-next"
+          onClick={() => move(1)}
+          tabIndex={-1}
+        />
+        <button
+          type="button"
+          data-shortcut="row-prev"
+          onClick={() => move(-1)}
+          tabIndex={-1}
+        />
+        <button
+          type="button"
+          data-shortcut="row-done"
+          tabIndex={-1}
+          onClick={() =>
+            pressInRow('button[value="done"], button[value="revised"]')
+          }
+        />
+        <button
+          type="button"
+          data-shortcut="row-copy"
+          tabIndex={-1}
+          onClick={() => {
+            const row = activeRow();
+            if (row && row.id !== `item-${open}`)
+              setChosen(row.id.replace('item-', ''));
+            setTimeout(() => pressInRow('.study-prompt button'), 50);
+          }}
+        />
+        <button
+          type="button"
+          data-shortcut="row-close"
+          tabIndex={-1}
+          onClick={() => {
+            if (open)
+              titles()
+                .find((b) => b.closest('.item-row')?.id === `item-${open}`)
+                ?.focus();
+            setChosen(null);
+            setEditing(null);
+          }}
+        />
+      </span>
+      <ol className="plain-list item-list" ref={listRef}>
+        {rows.map(({ item, revision, revisionLabel, links }) => {
+          const isOpen = open === item.id;
+          const references = (item.references as Reference[] | null) ?? [];
+          const meta = [
+            item.estimateMinutes ? `${item.estimateMinutes} min` : null,
+            revision === 'upcoming' && revisionLabel
+              ? `Revise ${revisionLabel}`
+              : null,
+          ].filter(Boolean);
+          const longScope = (item.scope?.length ?? 0) > SCOPE_CLAMP;
+          const clamped = longScope && expandedScope !== item.id;
+          const next = item.status === 'DONE' ? nextAfter(item.id) : null;
+          return (
+            <li
+              key={item.id}
+              id={`item-${item.id}`}
+              className={`item-row is-${item.status.toLowerCase().replace('_', '-')}${isOpen ? ' is-open' : ''}`}
             >
-              <span className="sr-only">{statusText[item.status]}: </span>
-              {item.title}
-            </button>
-            <span className="item-meta">
-              {item.askedInInterview && (
-                <span className="pill success">Asked</span>
-              )}
-              {revision === 'due' && (
-                <span className="pill warning">Revise today</span>
-              )}
-              {revision === 'overdue' && (
-                <span className="pill danger">Overdue · {revisionLabel}</span>
-              )}
-              {meta.length > 0 && <span>{meta.join(' · ')}</span>}
-            </span>
-            {!isOpen && (
-              <ActionForm
-                action={itemOpAction}
-                label={`Quick action for ${item.title}`}
-                className="row-quick"
+              <StatusIcon status={item.status} pop={popped === item.id} />
+              <button
+                type="button"
+                className="item-title"
+                aria-expanded={isOpen}
+                aria-controls={`panel-${item.id}`}
+                onClick={() => toggle(item.id)}
+                title={item.title}
               >
-                <input type="hidden" name="id" value={item.id} />
-                {item.status === 'DONE' && item.nextRevisionAt ? (
-                  <button
-                    className="button secondary small"
-                    name="op"
-                    value="revised"
-                    aria-label={`Revised: ${item.title}`}
-                    title="Revised"
-                  >
-                    <Check size={14} aria-hidden="true" /> Revised
-                  </button>
-                ) : item.status !== 'DONE' ? (
-                  <button
-                    className="button secondary small"
-                    name="op"
-                    value="done"
-                    aria-label={`Done: ${item.title}`}
-                    title="Done"
-                  >
-                    <Check size={14} aria-hidden="true" /> Done
-                  </button>
-                ) : null}
-              </ActionForm>
-            )}
-            {isOpen && (
-              <div id={`panel-${item.id}`} className="item-panel">
-                {item.scope && <p className="item-scope">{item.scope}</p>}
-                {item.checkpoint && (
-                  <p>
-                    <strong>Done means.</strong> {item.checkpoint}
-                  </p>
+                <span className="sr-only">{statusText[item.status]}: </span>
+                {item.title}
+              </button>
+              <span className="item-meta">
+                {item.askedInInterview && (
+                  <span className="pill success">Asked</span>
                 )}
-                {references.length > 0 && (
-                  <ul className="plain-list reference-list">
-                    {references.map((r) => (
-                      <li key={r.url}>
-                        <a
-                          className="link"
-                          href={r.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                        >
-                          {r.label}
-                          <ExternalLink size={12} aria-hidden="true" />
-                        </a>
-                        {r.kind && <span className="muted"> · {r.kind}</span>}
-                      </li>
-                    ))}
-                  </ul>
+                {revision === 'due' && (
+                  <span className="pill warning">Revise today</span>
                 )}
-                {(item.url ||
-                  links.dsaProblem ||
-                  links.learningTopic ||
-                  links.dsaTopic) && (
-                  <p className="item-links">
-                    {item.url && (
-                      <a
-                        className="link"
-                        href={item.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                      >
-                        Open link
-                        <ExternalLink size={12} aria-hidden="true" />
-                      </a>
-                    )}
-                    {links.dsaProblem && (
-                      <Link
-                        className="link"
-                        href={`/dsa/${links.dsaProblem.id}?from=${item.id}`}
-                      >
-                        Record an attempt
-                      </Link>
-                    )}
-                    {links.learningTopic && (
-                      <Link
-                        className="link"
-                        href={`/learn/topics/${links.learningTopic.id}`}
-                      >
-                        {links.learningTopic.subject} —{' '}
-                        {links.learningTopic.title}
-                      </Link>
-                    )}
-                    {links.dsaTopic && (
-                      <span className="muted">
-                        Practice topic: {links.dsaTopic.name}
-                      </span>
-                    )}
-                  </p>
+                {revision === 'overdue' && (
+                  <span className="pill danger">Overdue · {revisionLabel}</span>
                 )}
-                <ActionForm
-                  action={noteAction}
-                  label={`Note for ${item.title}`}
-                  className="note-form"
-                >
-                  <input type="hidden" name="id" value={item.id} />
-                  <label>
-                    My note
-                    <textarea
-                      name="notes"
-                      rows={2}
-                      maxLength={20000}
-                      defaultValue={item.notes ?? ''}
-                      placeholder="What tripped me up, a link, a reminder for next time"
-                    />
-                  </label>
-                  <button className="button secondary small">Save note</button>
-                </ActionForm>
-                <StudyPrompt
-                  roadmap={{ title: roadmap.title }}
-                  template={roadmap.promptTemplate}
-                  scenarios={scenarios}
-                  storageKey={`silsila-scenario:${roadmap.id}`}
-                  item={{
-                    title: item.title,
-                    section: item.section,
-                    scope: item.scope,
-                    checkpoint: item.checkpoint,
-                    priority: item.priority,
-                    estimateMinutes: item.estimateMinutes,
-                    references,
-                    notes: item.notes,
-                    url: item.url,
-                  }}
-                />
+                {meta.length > 0 && <span>{meta.join(' · ')}</span>}
+              </span>
+              {!isOpen && (
                 <ActionForm
                   action={itemOpAction}
-                  label={`Actions for ${item.title}`}
+                  label={`Quick action for ${item.title}`}
+                  className="row-quick"
                 >
                   <input type="hidden" name="id" value={item.id} />
-                  <div className="item-actions">
-                    {item.status === 'DONE' && item.nextRevisionAt ? (
-                      <button
-                        className="button small"
-                        name="op"
-                        value="revised"
-                      >
-                        <Check size={14} aria-hidden="true" /> Revised
-                      </button>
-                    ) : (
-                      <button className="button small" name="op" value="done">
-                        <Check size={14} aria-hidden="true" /> Done
-                      </button>
-                    )}
-                    {item.status === 'NOT_STARTED' && (
-                      <button
-                        className="button secondary small"
-                        name="op"
-                        value="start"
-                      >
-                        Start
-                      </button>
-                    )}
-                    {item.status === 'DONE' && (
-                      <button
-                        className="button secondary small"
-                        name="op"
-                        value="reopen"
-                      >
-                        Reopen
-                      </button>
-                    )}
+                  {item.status === 'DONE' && item.nextRevisionAt ? (
                     <button
                       className="button secondary small"
                       name="op"
-                      value={item.askedInInterview ? 'unasked' : 'asked'}
-                      aria-pressed={item.askedInInterview}
+                      value="revised"
+                      aria-label={`Revised: ${item.title}`}
+                      title="Revised"
                     >
-                      {item.askedInInterview ? 'Asked ✓' : 'Asked in interview'}
+                      <Check size={14} aria-hidden="true" /> Revised
                     </button>
-                    <span className="item-actions-spacer" />
+                  ) : item.status !== 'DONE' ? (
                     <button
-                      type="button"
-                      className="link-button"
-                      aria-expanded={editing === item.id}
-                      onClick={() =>
-                        setEditing((e) => (e === item.id ? null : item.id))
-                      }
-                    >
-                      Edit
-                    </button>
-                    <button
-                      className="link-button danger"
+                      className="button secondary small"
                       name="op"
-                      value="remove"
+                      value="done"
+                      aria-label={`Done: ${item.title}`}
+                      title="Done"
                     >
-                      Remove
+                      <Check size={14} aria-hidden="true" /> Done
                     </button>
-                  </div>
+                  ) : null}
                 </ActionForm>
-                {editing === item.id && (
-                  <div className="item-edit">
-                    <ItemForm item={item} sections={sections} />
-                  </div>
-                )}
-              </div>
-            )}
-          </li>
-        );
-      })}
-      {!rows.length && <li className="muted">Nothing matches here.</li>}
-    </ol>
+              )}
+              {isOpen && (
+                <div id={`panel-${item.id}`} className="item-panel">
+                  <StudyPrompt
+                    roadmap={{ title: roadmap.title }}
+                    template={roadmap.promptTemplate}
+                    scenarios={scenarios}
+                    storageKey={`silsila-scenario:${roadmap.id}`}
+                    item={{
+                      title: item.title,
+                      section: item.section,
+                      scope: item.scope,
+                      checkpoint: item.checkpoint,
+                      priority: item.priority,
+                      estimateMinutes: item.estimateMinutes,
+                      references,
+                      notes: item.notes,
+                      url: item.url,
+                    }}
+                  />
+                  {item.checkpoint && (
+                    <p className="item-checkpoint">
+                      <strong>Done means.</strong> {item.checkpoint}
+                    </p>
+                  )}
+                  {item.scope && (
+                    <p className={`item-scope${clamped ? ' is-clamped' : ''}`}>
+                      {item.scope}
+                      {longScope && (
+                        <>
+                          {' '}
+                          <button
+                            type="button"
+                            className="link-button"
+                            onClick={() =>
+                              setExpandedScope(clamped ? item.id : null)
+                            }
+                          >
+                            {clamped ? 'Read more' : 'Show less'}
+                          </button>
+                        </>
+                      )}
+                    </p>
+                  )}
+                  {references.length > 0 && (
+                    <ul className="plain-list reference-list">
+                      {references.map((r) => (
+                        <li key={r.url}>
+                          <a
+                            className="link"
+                            href={r.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                          >
+                            {r.label}
+                            <ExternalLink size={12} aria-hidden="true" />
+                          </a>
+                          {r.kind && <span className="muted"> · {r.kind}</span>}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                  {(item.url ||
+                    links.dsaProblem ||
+                    links.learningTopic ||
+                    links.dsaTopic) && (
+                    <p className="item-links">
+                      {item.url && (
+                        <a
+                          className="link"
+                          href={item.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          Open link
+                          <ExternalLink size={12} aria-hidden="true" />
+                        </a>
+                      )}
+                      {links.dsaProblem && (
+                        <>
+                          <Link
+                            className="link"
+                            href={`/dsa/${links.dsaProblem.id}?from=${item.id}`}
+                          >
+                            Record an attempt
+                          </Link>
+                          <span className="item-practice">
+                            <span
+                              className={`pill ${links.dsaProblem.attemptsCount ? tone[links.dsaProblem.confidence] : ''}`}
+                            >
+                              {links.dsaProblem.attemptsCount
+                                ? links.dsaProblem.confidence
+                                : 'Unattempted'}
+                            </span>
+                            {links.dsaProblem.attemptsCount > 0 && (
+                              <span className="muted">
+                                {links.dsaProblem.attemptsCount} attempt
+                                {links.dsaProblem.attemptsCount === 1
+                                  ? ''
+                                  : 's'}
+                                {links.dsaProblem.nextRevision
+                                  ? ` · next revision ${links.dsaProblem.nextRevision}`
+                                  : ''}
+                              </span>
+                            )}
+                          </span>
+                        </>
+                      )}
+                      {links.learningTopic && (
+                        <Link
+                          className="link"
+                          href={`/learn/topics/${links.learningTopic.id}`}
+                        >
+                          {links.learningTopic.subject} —{' '}
+                          {links.learningTopic.title}
+                        </Link>
+                      )}
+                      {links.dsaTopic && (
+                        <span className="muted">
+                          Practice topic: {links.dsaTopic.name}
+                        </span>
+                      )}
+                    </p>
+                  )}
+                  <ActionForm
+                    action={noteAction}
+                    label={`Note for ${item.title}`}
+                    className="note-form"
+                  >
+                    <input type="hidden" name="id" value={item.id} />
+                    <label>
+                      My note{' '}
+                      <span className="muted">
+                        (saves when you leave the field)
+                      </span>
+                      <textarea
+                        name="notes"
+                        rows={2}
+                        maxLength={20000}
+                        defaultValue={item.notes ?? ''}
+                        placeholder="What tripped me up, a link, a reminder for next time"
+                        onBlur={(e) => {
+                          if (e.currentTarget.value !== (item.notes ?? ''))
+                            e.currentTarget.form?.requestSubmit();
+                        }}
+                      />
+                    </label>
+                    <button className="button secondary small">
+                      Save note
+                    </button>
+                  </ActionForm>
+                  <ActionForm
+                    action={itemOpAction}
+                    label={`Actions for ${item.title}`}
+                  >
+                    <input type="hidden" name="id" value={item.id} />
+                    <div className="item-actions">
+                      {item.status === 'DONE' && item.nextRevisionAt ? (
+                        <button
+                          className="button small"
+                          name="op"
+                          value="revised"
+                        >
+                          <Check size={14} aria-hidden="true" /> Revised
+                        </button>
+                      ) : (
+                        <button className="button small" name="op" value="done">
+                          <Check size={14} aria-hidden="true" /> Done
+                        </button>
+                      )}
+                      {item.status === 'NOT_STARTED' && (
+                        <button
+                          className="button secondary small"
+                          name="op"
+                          value="start"
+                        >
+                          Start
+                        </button>
+                      )}
+                      {item.status === 'DONE' && (
+                        <button
+                          className="button secondary small"
+                          name="op"
+                          value="reopen"
+                        >
+                          Reopen
+                        </button>
+                      )}
+                      <button
+                        className="button secondary small"
+                        name="op"
+                        value={item.askedInInterview ? 'unasked' : 'asked'}
+                        aria-pressed={item.askedInInterview}
+                      >
+                        {item.askedInInterview
+                          ? 'Asked ✓'
+                          : 'Asked in interview'}
+                      </button>
+                      <span className="item-actions-spacer" />
+                      <button
+                        type="button"
+                        className="link-button"
+                        aria-expanded={editing === item.id}
+                        onClick={() =>
+                          setEditing((e) => (e === item.id ? null : item.id))
+                        }
+                      >
+                        Edit
+                      </button>
+                      <button
+                        className="link-button danger"
+                        name="op"
+                        value="remove"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  </ActionForm>
+                  {item.askedInInterview && (
+                    <ActionForm
+                      action={askedNoteAction}
+                      label={`Where ${item.title} came up`}
+                      className="asked-form"
+                    >
+                      <input type="hidden" name="id" value={item.id} />
+                      <label>
+                        Asked at
+                        <input
+                          name="askedNote"
+                          maxLength={200}
+                          defaultValue={item.askedNote ?? ''}
+                          placeholder="Amazon phone screen, Oct 2026"
+                          onBlur={(e) => {
+                            if (
+                              e.currentTarget.value !== (item.askedNote ?? '')
+                            )
+                              e.currentTarget.form?.requestSubmit();
+                          }}
+                        />
+                      </label>
+                    </ActionForm>
+                  )}
+                  {next && (
+                    <p className="item-next">
+                      Next:{' '}
+                      <button
+                        type="button"
+                        className="link-button"
+                        onClick={() => toggle(next.item.id)}
+                      >
+                        {next.item.title} →
+                      </button>
+                    </p>
+                  )}
+                  {editing === item.id && (
+                    <div className="item-edit">
+                      <ItemForm item={item} sections={sections} />
+                    </div>
+                  )}
+                </div>
+              )}
+            </li>
+          );
+        })}
+        {!rows.length && <li className="muted">Nothing matches here.</li>}
+      </ol>
+    </>
   );
 }
