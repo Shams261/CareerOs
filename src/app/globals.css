@@ -2453,3 +2453,136 @@ a.problem-title:hover {
     opacity: 1;
   }
 }
+
+/* Practice library: four aligned columns, grouped by pattern, paged. */
+.problem-table {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 200px 96px 200px;
+  gap: 0 20px;
+  align-items: center;
+}
+.problem-head,
+.problem-group,
+.problem-group-head,
+.problem-line {
+  display: grid;
+  grid-template-columns: subgrid;
+  grid-column: 1 / -1;
+  align-items: center;
+}
+.problem-head {
+  padding: 6px 0 10px;
+  border-bottom: 1px solid var(--border);
+  font-size: 11px;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  font-weight: 700;
+  color: var(--muted);
+  position: sticky;
+  top: 0;
+  background: var(--background);
+  z-index: 1;
+}
+.problem-group-head {
+  padding: 20px 0 6px;
+  font-weight: 600;
+}
+.problem-group-head > span {
+  grid-column: 1 / -1;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.problem-group-head .muted {
+  font-weight: 400;
+}
+.problem-line {
+  padding: 10px 0;
+  border-top: 1px solid var(--border-subtle);
+}
+.problem-cell-title {
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+  min-width: 0;
+}
+.problem-tag {
+  font-size: 12px;
+  white-space: nowrap;
+}
+.problem-cell-pattern,
+.problem-cell-level {
+  font-size: 13px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.problem-cell-level.is-easy {
+  color: var(--success-text);
+}
+.problem-cell-level.is-medium {
+  color: var(--warning-text);
+}
+.problem-cell-level.is-hard {
+  color: var(--error);
+}
+.problem-cell-status {
+  display: inline-flex;
+  gap: 10px;
+  align-items: center;
+  white-space: nowrap;
+}
+.problem-cell-status .problem-date {
+  min-width: 0;
+  text-align: left;
+}
+.problem-date.is-due {
+  color: var(--warning-text);
+  font-weight: 600;
+}
+.pager {
+  display: flex;
+  gap: 12px 16px;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+  font-size: 13px;
+}
+@media (max-width: 900px) {
+  .problem-table {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+  .problem-head {
+    display: none;
+  }
+  .problem-line {
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 2px 12px;
+  }
+  .problem-cell-title {
+    grid-column: 1;
+  }
+  .problem-cell-status {
+    grid-column: 2;
+    grid-row: 1 / span 2;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 2px;
+  }
+  /* The group heading already names the pattern on a phone. */
+  .problem-cell-pattern {
+    display: none;
+  }
+  .problem-cell-level {
+    grid-column: 1;
+    grid-row: 2;
+    font-size: 12px;
+  }
+  .problem-cell-title {
+    flex-wrap: wrap;
+  }
+}

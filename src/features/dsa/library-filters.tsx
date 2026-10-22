@@ -1,55 +1,42 @@
 'use client';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { Disclosure } from '@/components/disclosure';
+import { STATUS_FILTERS } from './domain';
 
-/** Search and topic apply as you type or choose; the rarer filters sit behind More filters. */
-export function LibraryFilters({
-  topics,
-  current,
-}: {
-  topics: { id: string; name: string }[];
-  current: {
-    q: string;
-    topic: string;
-    confidence: string;
-    difficulty: string;
-    state: string;
-  };
-}) {
+/** Search and one status filter; both apply as you type or choose, through the URL. */
+export function LibraryFilters({ q, status }: { q: string; status: string }) {
   const router = useRouter();
   const params = useSearchParams();
-  const [q, setQ] = useState(current.q);
-  // The URL is the source of truth; a new URL value replaces the draft (derived state, no effect).
-  const [seen, setSeen] = useState(current.q);
-  if (current.q !== seen) {
-    setSeen(current.q);
-    setQ(current.q);
+  const [text, setText] = useState(q);
+  const [seen, setSeen] = useState(q);
+  if (q !== seen) {
+    setSeen(q);
+    setText(q);
   }
-  const apply = (next: Partial<typeof current>) => {
+  const apply = (next: { q?: string; status?: string }) => {
     const p = new URLSearchParams(params.toString());
-    const merged = { ...current, q, ...next };
-    for (const [k, v] of Object.entries(merged)) {
-      if (v) p.set(k, v);
-      else p.delete(k);
-    }
-    p.delete('all');
+    const nq = next.q ?? text;
+    const ns = next.status ?? status;
+    if (nq) p.set('q', nq);
+    else p.delete('q');
+    if (ns) p.set('status', ns);
+    else p.delete('status');
+    p.delete('page');
     router.replace(`?${p.toString()}#library`, { scroll: false });
   };
   useEffect(() => {
-    if (q === current.q) return;
-    const t = setTimeout(() => apply({ q }), 300);
+    if (text === q) return;
+    const t = setTimeout(() => apply({ q: text }), 300);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [q]);
-  const more = current.confidence || current.difficulty || current.state;
+  }, [text]);
   return (
     <form
       className="item-filters"
       role="search"
       onSubmit={(e) => {
         e.preventDefault();
-        apply({ q });
+        apply({ q: text });
       }}
     >
       <label>
@@ -57,88 +44,23 @@ export function LibraryFilters({
         <input
           type="search"
           placeholder="Search"
-          value={q}
-          onChange={(e) => setQ(e.target.value)}
+          value={text}
+          onChange={(e) => setText(e.target.value)}
         />
       </label>
       <label>
-        <span className="sr-only">Topic</span>
+        <span className="sr-only">Status</span>
         <select
-          value={current.topic}
-          onChange={(e) => apply({ topic: e.target.value })}
+          value={status}
+          onChange={(e) => apply({ status: e.target.value })}
         >
-          <option value="">All topics</option>
-          {topics.map((t) => (
-            <option key={t.id} value={t.id}>
-              {t.name}
+          {Object.entries(STATUS_FILTERS).map(([k, v]) => (
+            <option key={k} value={k}>
+              {v}
             </option>
           ))}
         </select>
       </label>
-      <Disclosure
-        variant="link"
-        label={more ? 'More filters · on' : 'More filters'}
-        defaultOpen={!!more}
-      >
-        <div className="item-filters">
-          <label>
-            <span className="sr-only">Confidence</span>
-            <select
-              value={current.confidence}
-              onChange={(e) => apply({ confidence: e.target.value })}
-            >
-              <option value="">Any confidence</option>
-              <option value="RED">Red</option>
-              <option value="YELLOW">Yellow</option>
-              <option value="GREEN">Green</option>
-            </select>
-          </label>
-          <label>
-            <span className="sr-only">Difficulty</span>
-            <select
-              value={current.difficulty}
-              onChange={(e) => apply({ difficulty: e.target.value })}
-            >
-              <option value="">Any difficulty</option>
-              <option value="EASY">Easy</option>
-              <option value="MEDIUM">Medium</option>
-              <option value="HARD">Hard</option>
-            </select>
-          </label>
-          <label>
-            <span className="sr-only">Revision</span>
-            <select
-              value={current.state}
-              onChange={(e) => apply({ state: e.target.value })}
-            >
-              <option value="">Any revision state</option>
-              <option value="due">Due</option>
-              <option value="overdue">Overdue</option>
-              <option value="upcoming">Upcoming</option>
-              <option value="unattempted">Unattempted</option>
-              <option value="unscheduled">Unscheduled</option>
-            </select>
-          </label>
-          {(q || current.topic || more) && (
-            <button
-              type="button"
-              className="link-button"
-              onClick={() => {
-                setQ('');
-                apply({
-                  q: '',
-                  topic: '',
-                  confidence: '',
-                  difficulty: '',
-                  state: '',
-                });
-              }}
-            >
-              Clear
-            </button>
-          )}
-        </div>
-      </Disclosure>
     </form>
   );
 }
