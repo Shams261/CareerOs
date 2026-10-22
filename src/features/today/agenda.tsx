@@ -18,12 +18,13 @@ import {
   ManualSessionForm,
 } from '@/features/schedule/forms';
 import { categoryGroup } from '@/features/review/domain';
-import { clock, dayKey, minutes } from '@/lib/time';
+import { dayKey, minutes } from '@/lib/time';
 import type { ActualSession, TimeBlock } from '@/generated/prisma/client';
 import {
   blockResolution,
   formatDuration,
   groupAgenda,
+  hhmm,
   resolutionText,
   type AgendaEntry,
   type RoundLike,
@@ -148,7 +149,7 @@ export function Agenda(props: Props) {
 function RoundRow({ round, zone }: { round: RoundLike; zone: string }) {
   return (
     <li className="agenda-row is-interview">
-      <span className="agenda-time">{clock(round.scheduledStart, zone)}</span>
+      <span className="agenda-time">{hhmm(round.scheduledStart, zone)}</span>
       <span className="agenda-dot" aria-hidden="true" />
       <div className="agenda-body">
         <h3 className="agenda-title">
@@ -158,7 +159,7 @@ function RoundRow({ round, zone }: { round: RoundLike; zone: string }) {
         <p className="agenda-meta">
           Interview
           {round.scheduledEnd
-            ? ` · Until ${clock(round.scheduledEnd, zone)}`
+            ? ` · Until ${hhmm(round.scheduledEnd, zone)}`
             : ''}
           {' · not on your schedule'}
         </p>
@@ -229,7 +230,7 @@ function BlockRow({
           : resolution === 'skipped'
             ? `Skipped${block.skipReason ? `: ${block.skipReason}` : ''}`
             : resolution === 'current' || resolution === 'in-progress'
-              ? `${context} · Until ${clock(block.plannedEnd, zone)}`
+              ? `${context} · Until ${hhmm(block.plannedEnd, zone)}`
               : `${context} · ${formatDuration(planned)}`;
   const panelMeta = [
     round ? `${round.company} · Interview` : categoryGroup(block.category),
@@ -241,7 +242,7 @@ function BlockRow({
       className={`agenda-row is-${resolution}${unresolved ? ' is-unresolved' : ''}`}
     >
       <span className="agenda-time">
-        {clock(block.plannedStart, zone)}
+        {hhmm(block.plannedStart, zone)}
         {dayKey(block.plannedEnd, zone) !== day && (
           <span className="sr-only">
             {' '}
@@ -303,7 +304,7 @@ function BlockRow({
       </div>
       <SidePanel id={panelId} title={block.title}>
         <p className="muted">
-          {clock(block.plannedStart, zone)}–{clock(block.plannedEnd, zone)} ·{' '}
+          {hhmm(block.plannedStart, zone)}–{hhmm(block.plannedEnd, zone)} ·{' '}
           {panelMeta}
         </p>
         {block.description && <p>{block.description}</p>}

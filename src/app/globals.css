@@ -3288,7 +3288,8 @@ span > svg {
   letter-spacing: -0.02em;
 }
 .today-date {
-  font-size: 18px;
+  font-size: 20px;
+  font-weight: 400;
   color: var(--ink-2);
 }
 .today-title .day-nav {
@@ -3804,14 +3805,35 @@ a.attention-link:hover .attention-title {
   width: 48px;
   height: 48px;
   border-radius: 12px;
-  background: var(--tint);
-  color: var(--primary);
+  background: var(--tile-bg, var(--tint));
+  color: var(--tile-fg, var(--primary));
   display: inline-flex;
   align-items: center;
   justify-content: center;
 }
 .attention-count.is-phone {
   display: none;
+}
+/* One tint per source, as the owner's reference colours them. */
+.attention-row[data-source='practice'] {
+  --tile-bg: #eee6f7;
+  --tile-fg: #5b3e8e;
+}
+.attention-row[data-source='roadmap'] {
+  --tile-bg: var(--info-bg);
+  --tile-fg: var(--info-text);
+}
+.attention-row[data-source='notification'] {
+  --tile-bg: var(--warning-bg);
+  --tile-fg: var(--warning-text);
+}
+.attention-row[data-source='weekly'] {
+  --tile-bg: var(--success-bg);
+  --tile-fg: var(--success-text);
+}
+.dark .attention-row[data-source='practice'] {
+  --tile-bg: #2b2338;
+  --tile-fg: #b9a3dc;
 }
 .attention-main {
   display: grid;

@@ -6,9 +6,9 @@ import { LiveTimer } from '@/features/execution/live';
 import { stopUnlinkedAction } from '@/features/schedule/actions';
 import { ExecutionControls } from '@/features/schedule/forms';
 import { categoryGroup } from '@/features/review/domain';
-import { clock } from '@/lib/time';
+
 import type { TimeBlock } from '@/generated/prisma/client';
-import type { LauncherState, RoundLike } from './domain';
+import { hhmm, type LauncherState, type RoundLike } from './domain';
 import { PressButton } from './panels';
 
 const startsIn = (d: Date, now: Date) => {
@@ -60,7 +60,7 @@ export function Launcher({
   if (state.kind === 'running') {
     const block = state.block ? full(state.block.id) : null;
     const round = roundOf(block);
-    eyebrow = `In session · Since ${clock(state.session.startedAt, zone)}`;
+    eyebrow = `In session · Since ${hhmm(state.session.startedAt, zone)}`;
     title =
       state.session.title ??
       block?.title ??
@@ -103,11 +103,11 @@ export function Launcher({
       )
       .sort((a, b) => +a.plannedStart - +b.plannedStart)[0];
     if (after)
-      next = `Next: ${after.title} · ${clock(after.plannedStart, zone)}`;
+      next = `Next: ${after.title} · ${hhmm(after.plannedStart, zone)}`;
   } else if (state.kind === 'current' || state.kind === 'next') {
     const block = full(state.block.id)!;
     const round = roundOf(block);
-    eyebrow = `${state.kind === 'current' ? 'Now' : 'Next'} · ${clock(block.plannedStart, zone)}–${clock(block.plannedEnd, zone)}`;
+    eyebrow = `${state.kind === 'current' ? 'Now' : 'Next'} · ${hhmm(block.plannedStart, zone)}–${hhmm(block.plannedEnd, zone)}`;
     title = block.title;
     context = (
       <>
@@ -119,7 +119,7 @@ export function Launcher({
     );
     action = <ExecutionControls block={block} current launcher primaryOnly />;
     if (state.kind === 'current' && state.next)
-      next = `Next: ${state.next.title} · ${clock(state.next.plannedStart, zone)}`;
+      next = `Next: ${state.next.title} · ${hhmm(state.next.plannedStart, zone)}`;
   } else if (state.kind === 'reconcile') {
     eyebrow = 'Earlier today';
     title = 'Update earlier blocks';

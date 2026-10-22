@@ -3,7 +3,12 @@
  * with their linked-interview identity, and the "needs attention" queue. No I/O, no
  * component code; everything here is covered by tests/today-domain.test.ts.
  */
-import { clock, dayKey, minutes, shortDate, weekdayDate } from '@/lib/time';
+import { dayKey, minutes, shortDate, weekdayDate } from '@/lib/time';
+import { formatInTimeZone } from 'date-fns-tz';
+
+/** Today reads times as "06:00" and "19:30", as the reference does. */
+export const hhmm = (date: Date, zone: string) =>
+  formatInTimeZone(date, zone, 'HH:mm');
 import type { Attention } from '@/features/jobs/domain';
 
 export type SessionLike = { id: string; startedAt: Date; endedAt: Date | null };
@@ -341,7 +346,7 @@ export function attentionItems(input: AttentionInput): AttentionItem[] {
         source: 'interview-prep',
         label: 'Interview prep',
         title: `${r.company} — ${r.title}`,
-        context: `Today at ${clock(r.scheduledStart, zone)} · ${r.openPrep} prep item${r.openPrep === 1 ? '' : 's'} open`,
+        context: `Today at ${hhmm(r.scheduledStart, zone)} · ${r.openPrep} prep item${r.openPrep === 1 ? '' : 's'} open`,
         href: `/jobs/${r.applicationId}#round-${r.id}`,
         tier: 1,
         due: +r.scheduledStart,
@@ -401,7 +406,7 @@ export function attentionItems(input: AttentionInput): AttentionItem[] {
           source: 'job',
           label: 'Interview',
           title: `${app.company} — ${reason.round.title}`,
-          context: `${isToday ? 'Today' : 'Tomorrow'} at ${clock(reason.round.scheduledStart, zone)}`,
+          context: `${isToday ? 'Today' : 'Tomorrow'} at ${hhmm(reason.round.scheduledStart, zone)}`,
           href: `/jobs/${app.id}#round-${reason.round.id}`,
           tier: isToday ? 3 : 4,
           due: +reason.round.scheduledStart,
@@ -471,7 +476,7 @@ export function attentionItems(input: AttentionInput): AttentionItem[] {
       source: 'notification',
       label: 'Reminder',
       title: n.title,
-      context: `${weekdayDate(dayKey(n.scheduledFor, zone))} · ${clock(n.scheduledFor, zone)}`,
+      context: `${weekdayDate(dayKey(n.scheduledFor, zone))} · ${hhmm(n.scheduledFor, zone)}`,
       href: null,
       tier: 3,
       due: +n.scheduledFor,

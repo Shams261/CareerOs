@@ -376,7 +376,7 @@ describe('needs attention', () => {
     expect(items[1].context).toBe('Overdue by 2 days');
     expect(items[2].context).toBe('Overdue by 1 day · Yellow');
     expect(items[4].context).toBe('Due today · Backend');
-    expect(items[0].context).toBe('Today at 4:00 PM · 2 prep items open');
+    expect(items[0].context).toBe('Today at 16:00 · 2 prep items open');
   });
   it('merges a reminder into the row keyed on the same entity and keeps its id', () => {
     const prep = round({
