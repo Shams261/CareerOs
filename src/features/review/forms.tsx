@@ -7,6 +7,7 @@ import type {
 } from '@/generated/prisma/client';
 import {
   prepareNextWeekAction,
+  completeReviewAction,
   priorityAction,
   priorityChangeAction,
   reviewAction,
@@ -54,8 +55,8 @@ export function ReviewForm({
         <button className="button secondary" name="intent" value="draft">
           Save draft
         </button>
-        <button className="button" name="intent" value="complete">
-          {review?.completedAt ? 'Save completed review' : 'Complete review'}
+        <button className="button" name="intent" value="next">
+          Save and continue →
         </button>
       </div>
     </ActionForm>
@@ -206,11 +207,28 @@ export function PrepareNextWeekForm({ monday }: { monday: string }) {
   return (
     <ActionForm action={prepareNextWeekAction} label="Prepare next week">
       <input type="hidden" name="monday" value={monday} />
-      <p className="muted">
-        Plans next week from your routines. Days already planned stay as they
-        are.
-      </p>
-      <button className="button">Prepare next week</button>
+      <button className="button">Prepare next week from my routines</button>
+    </ActionForm>
+  );
+}
+/** Step three's closing action: the review is complete once priorities are set. */
+export function CompleteReviewForm({
+  weekStart,
+  completedAt,
+}: {
+  weekStart: string;
+  completedAt: Date | null;
+}) {
+  return (
+    <ActionForm action={completeReviewAction} label="Complete review">
+      <input type="hidden" name="weekStart" value={weekStart} />
+      <div className="step-foot">
+        {completedAt ? (
+          <span className="pill success">Completed</span>
+        ) : (
+          <button className="button">Complete review</button>
+        )}
+      </div>
     </ActionForm>
   );
 }

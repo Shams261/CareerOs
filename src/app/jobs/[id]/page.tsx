@@ -152,7 +152,7 @@ export default async function Application({
                 </p>
                 <p className="muted">
                   {follow.state === 'overdue'
-                    ? `OVERDUE BY ${follow.days} DAY${follow.days === 1 ? '' : 'S'} (due ${follow.date})`
+                    ? `Overdue by ${follow.days} day${follow.days === 1 ? '' : 's'} (due ${follow.date})`
                     : follow.state === 'today'
                       ? 'Due today'
                       : follow.state === 'upcoming'

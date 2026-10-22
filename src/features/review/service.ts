@@ -17,6 +17,7 @@ import { isFocusCategory } from '@/features/schedule/domain';
 import { z } from 'zod';
 import {
   dsaWeek,
+  isMonday,
   jobWeek,
   learningWeek,
   MAX_PRIORITIES,
@@ -24,8 +25,8 @@ import {
   reviewInput,
   routinePreview,
   scheduleWeek,
-  weekBounds,
   type WeekBounds,
+  weekBounds,
 } from './domain';
 
 const date = (d: string) => new Date(d);
@@ -491,6 +492,22 @@ export async function saveReview(
           ? { completedAt: now }
           : {}),
       },
+    });
+  });
+}
+/** Marks the week's review completed without touching the reflection text. */
+export async function completeReview(
+  user: ScheduleUser,
+  weekStart: string,
+  now = new Date(),
+) {
+  if (!isMonday(weekStart)) throw new Error('A week starts on Monday.');
+  return locked(user.id, async (tx) => {
+    const review = await ensureReview(tx, user.id, weekStart);
+    if (review.completedAt) return review;
+    return tx.weeklyReview.update({
+      where: { id: review.id },
+      data: { completedAt: now },
     });
   });
 }

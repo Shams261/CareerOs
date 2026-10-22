@@ -280,15 +280,11 @@ export function RoutineForm({
           <label>
             Apply changes to
             <select name="scope" defaultValue="template">
-              <option value="template">Days not planned yet</option>
+              <option value="template">Only days not planned yet</option>
               <option value="future">
-                Also days already planned (preview first)
+                Also this week&apos;s planned days (preview first)
               </option>
             </select>
-          </label>
-          <label className="check">
-            <input type="checkbox" name="remove" /> Remove this routine (preview
-            first)
           </label>
         </>
       )}
@@ -298,9 +294,16 @@ export function RoutineForm({
           routines or blocks
         </label>
       )}
-      <button className="button mt-3">
-        {routine ? 'Save routine' : 'Add routine'}
-      </button>
+      <div className="actions mt-3">
+        <button className="button">
+          {routine ? 'Save routine' : 'Add routine'}
+        </button>
+        {routine && (
+          <button className="button destructive" name="remove" value="on">
+            Remove routine (preview first)
+          </button>
+        )}
+      </div>
     </ActionForm>
   );
 }

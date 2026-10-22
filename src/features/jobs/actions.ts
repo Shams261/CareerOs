@@ -98,9 +98,16 @@ export async function followUpDoneAction(_s: ActionState, f: FormData) {
   );
 }
 export async function roundAction(_s: ActionState, f: FormData) {
+  const onCalendar = f.get('addToSchedule') === 'on';
   return perform(
-    async () => scheduleRound(await owner(), fields(f)),
-    'Interview scheduled.',
+    async () => {
+      const user = await owner();
+      const round = await scheduleRound(user, fields(f));
+      if (onCalendar) await addInterviewToSchedule(user, round.id);
+    },
+    onCalendar
+      ? 'Interview scheduled and added to your schedule.'
+      : 'Interview scheduled.',
   );
 }
 export async function roundDetailsAction(_s: ActionState, f: FormData) {

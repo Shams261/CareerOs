@@ -18,6 +18,7 @@ import {
   shiftDay,
 } from '@/features/schedule/domain';
 import { RoutineForm, CategoryOptions } from '@/features/schedule/forms';
+import { PrepareNextWeekForm } from '@/features/review/forms';
 
 const WEEKDAY = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const label = (day: string, pattern: string) =>
@@ -107,6 +108,7 @@ export default async function Calendar({
             <ChevronRight size={18} aria-hidden="true" />
           </Link>
           <DateJump
+            key={selected}
             value={selected}
             path="/calendar"
             label="Open the week containing a date"
@@ -209,13 +211,9 @@ export default async function Calendar({
         })}
       </section>
       {unplanned && (
-        <p className="muted mb-5">
-          Next week is planned from{' '}
-          <Link className="link" href="/review?step=plan">
-            Weekly review → Prepare next week
-          </Link>
-          .
-        </p>
+        <div className="mb-5">
+          <PrepareNextWeekForm monday={days[0]} />
+        </div>
       )}
       <p className="status-line">
         <span>

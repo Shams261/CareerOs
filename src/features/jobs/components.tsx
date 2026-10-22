@@ -36,8 +36,7 @@ export function nextLine(app: RowApp, now: Date, zone: string, today: string) {
     parts.push(
       `Waiting on company · last activity ${days ? `${plural(days, 'day')} ago` : 'today'}`,
     );
-  } else if (app.actionOwner === 'ME' && !parts.length)
-    parts.push('Action required');
+  } else if (app.actionOwner === 'ME' && !parts.length) parts.push('Your move');
   return parts.join(' · ') || 'No next step set';
 }
 export function attentionText(a: Attention, zone: string) {
@@ -51,7 +50,7 @@ export function attentionText(a: Attention, zone: string) {
     case 'INTERVIEW_SOON':
       return `Interview: ${a.round.title} — ${interviewTime(a.round, zone)}`;
     case 'ACTION_REQUIRED':
-      return 'Action required (no date set)';
+      return 'Your move (no date set)';
   }
 }
 export function ApplicationRow({

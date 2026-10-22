@@ -168,7 +168,7 @@ export default async function Today({
           >
             <ChevronRight size={18} aria-hidden="true" />
           </Link>
-          <DateJump value={day} path="/today" label="Open a date" />
+          <DateJump key={day} value={day} path="/today" label="Open a date" />
           <span className="kbd-hint muted" aria-hidden="true">
             N add · S start · ? help
           </span>
