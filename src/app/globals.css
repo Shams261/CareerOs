@@ -4524,6 +4524,7 @@ button.attention-link {
   background: var(--surface);
 }
 .theme-switch label {
+  position: relative;
   padding: 5px 12px;
   border-radius: 999px;
   font-size: 13px;
@@ -4536,10 +4537,14 @@ button.attention-link {
   color: var(--on-primary, #fff);
 }
 .theme-switch input {
+  /* Contained in its label: an uncontained absolute input widened the page. */
   position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
   opacity: 0;
-  width: 1px;
-  height: 1px;
+  cursor: pointer;
 }
 .theme-switch label:has(input:focus-visible) {
   outline: 2px solid var(--primary);
