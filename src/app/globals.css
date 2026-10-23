@@ -4455,3 +4455,17 @@ a.attention-link:hover .attention-title {
     grid-column: 1;
   }
 }
+
+/* A header whose primary stays visible beside the More menu on narrow screens. */
+.today-head-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+.today-head-actions > .button {
+  max-width: 100%;
+  white-space: normal;
+  text-align: left;
+}

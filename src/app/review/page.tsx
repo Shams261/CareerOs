@@ -4,6 +4,7 @@ import { formatInTimeZone } from 'date-fns-tz';
 import { db, owner } from '@/server/db';
 import { CategoryIcon } from '@/components/category-icon';
 import { PageShortcuts } from '@/components/shortcuts';
+import { UtilityMenu } from '@/features/today/utility-menu';
 import { remindersPreview } from '@/features/notifications/preview';
 import { dayKey, hhmm, weekdayDate } from '@/lib/time';
 import { shiftDay } from '@/features/schedule/domain';
@@ -231,18 +232,16 @@ export default async function Review({
               )}
             </nav>
           </div>
-          <div className="today-utils">
-            <div className="today-utils-items">
-              <Link
-                className="link-button today-util"
-                href={href('details')}
-                aria-current={step === 'details' ? 'page' : undefined}
-                prefetch={false}
-              >
-                Details
-              </Link>
-            </div>
-          </div>
+          <UtilityMenu>
+            <Link
+              className="link-button today-util"
+              href={href('details')}
+              aria-current={step === 'details' ? 'page' : undefined}
+              prefetch={false}
+            >
+              Details
+            </Link>
+          </UtilityMenu>
         </div>
         <p className="today-summary">
           {weekWord} · {reviewSummaryLine(status, s.totals, s.focus.actual)}

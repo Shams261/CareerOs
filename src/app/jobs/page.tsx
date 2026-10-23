@@ -27,6 +27,7 @@ import { QuickAddForm } from '@/features/jobs/forms';
 import { AttentionPages, AttentionRow } from '@/features/today/attention-rows';
 import { PanelButton, SidePanel } from '@/components/side-panel';
 import { Disclosure } from '@/components/disclosure';
+import { UtilityMenu } from '@/features/today/utility-menu';
 import { FeedbackOutlet } from '@/components/feedback-outlet';
 import { Button } from '@/components/ui/button';
 export const metadata = { title: 'Jobs' };
@@ -148,17 +149,15 @@ export default async function Jobs({
             <h1>Jobs</h1>
           </div>
           {apps.length > 0 && (
-            <div className="today-utils">
-              <div className="today-utils-items">
-                <Link
-                  className="link-button today-util"
-                  href="/settings#notifications-heading"
-                  prefetch={false}
-                >
-                  Reminder settings
-                </Link>
-              </div>
-            </div>
+            <UtilityMenu>
+              <Link
+                className="link-button today-util"
+                href="/settings#notifications-heading"
+                prefetch={false}
+              >
+                Reminder settings
+              </Link>
+            </UtilityMenu>
           )}
         </div>
         {apps.length > 0 && <p className="today-summary">{summary}</p>}
