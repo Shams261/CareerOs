@@ -439,36 +439,6 @@ details[open] > summary {
   padding: 16px 0;
   border-top: 1px solid var(--border);
 }
-.week-grid {
-  display: grid;
-  grid-template-columns: repeat(7, minmax(0, 1fr));
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  background: var(--surface);
-  margin: 24px 0;
-  overflow: hidden;
-}
-.week-day {
-  padding: 15px 10px;
-  border-right: 1px solid var(--border);
-  min-width: 0;
-}
-.week-day:last-child {
-  border: 0;
-}
-.week-block {
-  display: grid;
-  gap: 5px;
-  margin-top: 14px;
-  padding: 10px 8px;
-  background: var(--surface-muted);
-  border-radius: 6px;
-  font-size: 12px;
-  overflow-wrap: anywhere;
-}
-.week-block strong {
-  font-weight: 600;
-}
 .hero input {
   color: var(--foreground);
 }
@@ -479,24 +449,12 @@ details[open] > summary {
 .hero .button.secondary {
   background: var(--surface);
 }
-@media (max-width: 1100px) {
-  .week-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-  .week-day {
-    border-bottom: 1px solid var(--border);
-  }
-}
 @media (max-width: 700px) {
-  .week-grid,
   .form-grid {
     grid-template-columns: 1fr;
   }
   .weekday-picker {
     gap: 8px;
-  }
-  .week-day {
-    border-right: 0;
   }
   .actions > label {
     flex: 1;
@@ -1155,13 +1113,6 @@ summary {
 .block-body h3 {
   margin: 0;
 }
-.week-day.is-today {
-  background: var(--tint);
-  box-shadow: inset 0 3px 0 var(--primary);
-}
-.week-day.is-today > .link {
-  color: var(--primary);
-}
 .actions > .reason {
   flex: 1 1 180px;
   max-width: 300px;
@@ -1184,25 +1135,6 @@ summary {
   }
   .block-time .muted::before {
     content: '– ';
-  }
-}
-
-/* A block that is happening now is the hero of the page. */
-.week-block {
-  transition:
-    transform var(--motion-fast) var(--motion-easing),
-    box-shadow var(--motion-fast) var(--motion-easing);
-}
-.week-block:hover {
-  transform: translateY(-1px);
-  box-shadow: var(--shadow-md);
-}
-@media (prefers-reduced-motion: reduce) {
-  .week-block {
-    transition: none;
-  }
-  .week-block:hover {
-    transform: none;
   }
 }
 
@@ -1684,28 +1616,12 @@ summary {
   text-decoration: line-through;
   opacity: 0.75;
 }
-.execution-block.is-cancelled h3,
-.week-block.is-cancelled strong {
+.execution-block.is-cancelled h3 {
   text-decoration: line-through;
   color: var(--muted);
 }
 .execution-block.is-green h3 {
   color: var(--muted);
-}
-.week-block {
-  border-left: 3px solid transparent;
-}
-.week-block.is-green {
-  border-left-color: var(--success);
-}
-.week-block.is-yellow {
-  border-left-color: var(--warning);
-}
-.week-block.is-red {
-  border-left-color: var(--danger);
-}
-.week-block.is-info {
-  border-left-color: var(--primary);
 }
 
 /* WI-011: shortcuts overlay, category glyphs, empty-state mark, reminder lines. */
@@ -4104,5 +4020,145 @@ a.attention-link:hover .attention-title {
   }
   .today-workspace {
     padding-bottom: 16px;
+  }
+}
+
+/* WI-021: Plan as days. The header, rows and rail come from Today; the strip and the day
+   sections are Plan's own. */
+/* Between a phone and a laptop the status column may wrap so the title keeps its room. */
+@media (min-width: 861px) and (max-width: 1099px) {
+  .agenda-row {
+    grid-template-columns: 92px 24px minmax(0, 1fr) minmax(0, 42%);
+  }
+  .agenda-side {
+    justify-self: end;
+  }
+  .agenda-status {
+    white-space: normal;
+    text-align: right;
+  }
+}
+/* Tablets take the phone row: the status and actions sit under the title. */
+@media (min-width: 701px) and (max-width: 860px) {
+  .agenda-rows::before {
+    left: 70px;
+  }
+  .agenda-row {
+    grid-template-columns: 48px 20px minmax(0, 1fr);
+    gap: 2px 10px;
+    align-items: start;
+  }
+  .agenda-time {
+    font-size: 13px;
+    padding-top: 2px;
+  }
+  .agenda-dot {
+    margin-top: 5px;
+  }
+  .agenda-side {
+    grid-column: 3;
+    justify-items: start;
+    grid-template-columns: 1fr auto;
+  }
+  .agenda-actions {
+    justify-content: flex-start;
+  }
+}
+.week-strip {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin: 2px 0 6px;
+}
+.week-chip {
+  display: inline-flex;
+  gap: 6px;
+  align-items: baseline;
+  padding: 6px 12px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--foreground);
+  font-size: 13px;
+  text-decoration: none;
+  transition: border-color var(--motion-fast) var(--motion-easing);
+}
+.week-chip:hover {
+  border-color: var(--primary);
+}
+.week-chip .muted {
+  font-size: 12px;
+}
+.week-chip.is-today {
+  border-color: var(--primary);
+  background: var(--tint);
+  color: var(--primary);
+}
+.week-chip.is-today .muted {
+  color: var(--primary);
+}
+.week-day-section {
+  margin-top: 26px;
+  scroll-margin-top: 16px;
+}
+.week-day-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border);
+}
+.week-day-head h2 {
+  margin: 0;
+  font-size: 20px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.week-day-head h2 a {
+  color: inherit;
+  text-decoration: none;
+}
+.week-day-head h2 a:hover {
+  color: var(--primary);
+}
+.week-day-section.is-today .week-day-head {
+  border-bottom-color: var(--primary);
+}
+.week-day-section.is-today .week-day-head h2 a {
+  color: var(--primary);
+}
+.week-day-head .muted {
+  font-size: 13px;
+  white-space: nowrap;
+}
+.week-day-section > .empty {
+  margin: 12px 0 0;
+  font-size: 14px;
+  color: var(--muted);
+}
+.week-day-section .agenda-details {
+  text-decoration: none;
+}
+.week-prepare {
+  margin-top: 28px;
+}
+.routines-panel .routine-row:first-of-type {
+  margin-top: 16px;
+}
+@media (max-width: 700px) {
+  .week-strip {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    padding-bottom: 4px;
+    scrollbar-width: none;
+  }
+  .week-chip {
+    flex: 0 0 auto;
+  }
+  .week-day-head .muted {
+    white-space: normal;
+    text-align: right;
   }
 }
