@@ -3,12 +3,14 @@ import Link from 'next/link';
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import {
   Check,
+  ChevronDown,
   Circle,
   CircleCheck,
   CircleDot,
   ExternalLink,
   ArrowRight,
 } from 'lucide-react';
+import { PanelButton, SidePanel } from '@/components/side-panel';
 import { ActionForm } from '@/components/action-form';
 import { FeedbackOutlet } from '@/components/feedback-outlet';
 import type { RoadmapItem } from '@/generated/prisma/client';
@@ -35,6 +37,8 @@ export type Row = {
   revision: 'none' | 'upcoming' | 'due' | 'overdue';
   /** "Oct 28" for the meta column; set when a revision is scheduled. */
   revisionLabel: string | null;
+  /** "Revision due today", "Revision overdue by 2 days", "Revision due Oct 28" (WI-023). */
+  revisionText: string | null;
   links: RowLinks;
 };
 
@@ -104,7 +108,6 @@ export function ItemList({
     () => '',
   );
   const [chosen, setChosen] = useState<string | null | undefined>(undefined);
-  const [editing, setEditing] = useState<string | null>(null);
   const [expandedScope, setExpandedScope] = useState<string | null>(null);
   const open =
     chosen !== undefined
@@ -185,7 +188,6 @@ export function ItemList({
   }, [rows]);
   const toggle = (id: string) => {
     setChosen(open === id ? null : id);
-    setEditing(null);
   };
   // Keyboard: the page's shortcut list presses these hidden buttons.
   const listRef = useRef<HTMLOListElement>(null);
@@ -262,21 +264,18 @@ export function ItemList({
                 .find((b) => b.closest('.item-row')?.id === `item-${open}`)
                 ?.focus();
             setChosen(null);
-            setEditing(null);
           }}
         />
       </span>
       <FeedbackOutlet channel="roadmap-items" className="mb-3" />
       <ol className="plain-list item-list" ref={listRef}>
-        {rows.map(({ item, revision, revisionLabel, links }) => {
+        {rows.map(({ item, revision, revisionText, links }) => {
           const isOpen = open === item.id;
           const status = optimistic.get(item.id) ?? item.status;
           const references = (item.references as Reference[] | null) ?? [];
           const meta = [
             item.estimateMinutes ? `${item.estimateMinutes} min` : null,
-            revision === 'upcoming' && revisionLabel
-              ? `Revise ${revisionLabel}`
-              : null,
+            revision === 'upcoming' && revisionText ? revisionText : null,
           ].filter(Boolean);
           const longScope = (item.scope?.length ?? 0) > SCOPE_CLAMP;
           const clamped = longScope && expandedScope !== item.id;
@@ -303,13 +302,18 @@ export function ItemList({
                 {item.askedInInterview && (
                   <span className="pill success">Asked</span>
                 )}
-                {revision === 'due' && (
-                  <span className="pill warning">Revise today</span>
+                {revision === 'due' && revisionText && (
+                  <span className="pill warning">{revisionText}</span>
                 )}
-                {revision === 'overdue' && (
-                  <span className="pill danger">Overdue · {revisionLabel}</span>
+                {revision === 'overdue' && revisionText && (
+                  <span className="pill danger">{revisionText}</span>
                 )}
                 {meta.length > 0 && <span>{meta.join(' · ')}</span>}
+                <ChevronDown
+                  size={16}
+                  aria-hidden="true"
+                  className={`item-chevron${isOpen ? ' is-open' : ''}`}
+                />
               </span>
               {!isOpen && (
                 <ActionForm
@@ -552,16 +556,12 @@ export function ItemList({
                         )}
                       </button>
                       <span className="item-actions-spacer" />
-                      <Button
-                        type="button"
-                        variant="link"
-                        aria-expanded={editing === item.id}
-                        onClick={() =>
-                          setEditing((e) => (e === item.id ? null : item.id))
-                        }
+                      <PanelButton
+                        panel={`item-edit:${item.id}`}
+                        className="link-button"
                       >
                         Edit
-                      </Button>
+                      </PanelButton>
                       <Button
                         variant="link"
                         className="danger"
@@ -609,11 +609,12 @@ export function ItemList({
                       </Button>
                     </p>
                   )}
-                  {editing === item.id && (
-                    <div className="item-edit">
-                      <ItemForm item={item} sections={sections} />
-                    </div>
-                  )}
+                  <SidePanel
+                    id={`item-edit:${item.id}`}
+                    title={`Edit ${item.title}`}
+                  >
+                    <ItemForm item={item} sections={sections} />
+                  </SidePanel>
                 </div>
               )}
             </li>

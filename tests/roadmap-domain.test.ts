@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import {
   DEFAULT_SCENARIOS,
+  continueTarget,
   daysUntil,
+  goalLine,
   nextItem,
   nextStatus,
   parseBulkLines,
@@ -233,5 +235,57 @@ describe('roadmap revision', () => {
       'b',
       'a',
     ]);
+  });
+});
+
+describe('overview lines (WI-023)', () => {
+  it('reads a goal as one record line without a pace', () => {
+    const line = goalLine(
+      {
+        title: 'Offer from a product company',
+        targetDate: new Date('2026-12-20T00:00:00Z'),
+        roadmap: { total: 716, done: 41 },
+        week: { actual: 370 },
+      },
+      '2026-10-23',
+      (m) => `${Math.floor(m / 60)}h ${m % 60}m`,
+    );
+    expect(line).toBe(
+      'Offer from a product company · 8 weeks left · 41 of 716 items done · 6h 10m this week',
+    );
+    expect(
+      goalLine(
+        {
+          title: 'Gym',
+          targetDate: null,
+          roadmap: { total: 0, done: 0 },
+          week: { actual: 0 },
+        },
+        '2026-10-23',
+        String,
+      ),
+    ).toBe('Gym · No target date');
+  });
+  it('picks the first live roadmap with something to continue', () => {
+    expect(
+      continueTarget([
+        {
+          id: 'a',
+          archivedAt: new Date(),
+          next: { id: 'i0', title: 'Old', section: 'S' },
+        },
+        { id: 'b', archivedAt: null, next: null },
+        {
+          id: 'c',
+          archivedAt: null,
+          next: { id: 'i1', title: 'Two pointers', section: 'Week 1' },
+        },
+      ]),
+    ).toEqual({
+      roadmapId: 'c',
+      title: 'Two pointers',
+      href: '/roadmap/c?section=Week%201#item-i1',
+    });
+    expect(continueTarget([])).toBeNull();
   });
 });

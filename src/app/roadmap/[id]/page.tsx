@@ -2,6 +2,8 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { owner, db } from '@/server/db';
 import { Disclosure } from '@/components/disclosure';
+import { PanelButton, SidePanel } from '@/components/side-panel';
+import { revisionContext } from '@/features/attention/domain';
 import { PageShortcuts } from '@/components/shortcuts';
 import { BulkItemsForm, RoadmapForm } from '@/features/roadmap/forms';
 import { LinkOptionsProvider } from '@/features/roadmap/item-form';
@@ -59,17 +61,7 @@ export default async function RoadmapDetail({
     };
   });
   const due = revisionQueue(roadmap.items, today).length;
-  // "about N weeks at your pace": the last four weeks of Done, no quota and no score.
-  const fourWeeksAgo = new Date(+new Date() - 28 * 86400000);
-  const recentDone = roadmap.items.filter(
-    (i) =>
-      i.status === 'DONE' && i.completedAt && i.completedAt >= fourWeeksAgo,
-  ).length;
   const left = roadmap.progress.total - roadmap.progress.done;
-  // Shown only once the pace means something: under a year at the recent rate.
-  const pace =
-    recentDone > 0 && left > 0 ? Math.ceil(left / (recentDone / 4)) : null;
-  const weeksLeft = pace !== null && pace <= 52 ? pace : null;
   const scenarios = (roadmap.scenarios as Scenario[] | null)?.length
     ? (roadmap.scenarios as Scenario[])
     : DEFAULT_SCENARIOS;
@@ -105,6 +97,10 @@ export default async function RoadmapDetail({
       revisionLabel: item.nextRevisionAt
         ? dateLabel(item.nextRevisionAt)
         : null,
+      revisionText:
+        item.status === 'DONE' && item.nextRevisionAt
+          ? revisionContext(revisionDay(item.nextRevisionAt), today)
+          : null,
       links: {
         learningTopic: item.learningTopic
           ? {
@@ -168,7 +164,7 @@ export default async function RoadmapDetail({
         <h1>{roadmap.title}</h1>
         <Disclosure
           label="Add items"
-          variant="primary"
+          variant="secondary"
           shortcut="add-items"
           draft={`items:${roadmap.id}`}
         >
@@ -181,13 +177,8 @@ export default async function RoadmapDetail({
       </div>
       <div className="status-line mb-7">
         <span>
-          {roadmap.progress.done} of {roadmap.progress.total} done
+          {roadmap.progress.done} done · {left} left
         </span>
-        {weeksLeft !== null && (
-          <span>
-            about {weeksLeft} week{weeksLeft === 1 ? '' : 's'} at your pace
-          </span>
-        )}
         {roadmap.progress.asked > 0 && (
           <span>{roadmap.progress.asked} asked in interviews</span>
         )}
@@ -214,13 +205,16 @@ export default async function RoadmapDetail({
             </Link>
           </span>
         )}
-        <Disclosure variant="link" label="Edit roadmap">
-          <RoadmapForm roadmap={roadmap} goals={goals} />
-        </Disclosure>
+        <PanelButton panel="roadmap-edit" className="link-button">
+          Edit roadmap
+        </PanelButton>
       </div>
+      <SidePanel id="roadmap-edit" title={`Edit ${roadmap.title}`}>
+        <RoadmapForm roadmap={roadmap} goals={goals} />
+      </SidePanel>
       {!roadmap.items.length ? (
         <section className="card">
-          <p className="muted">
+          <p className="empty">
             Nothing here yet. Add items above: paste an outline, one line per
             item, and start a line with ? for a question.
           </p>
@@ -240,7 +234,8 @@ export default async function RoadmapDetail({
               <h2 id="section-heading">
                 {selected}{' '}
                 <span className="muted">
-                  · {current?.done ?? 0} of {current?.total ?? 0}
+                  · {current?.done ?? 0} done ·{' '}
+                  {(current?.total ?? 0) - (current?.done ?? 0)} left
                 </span>
               </h2>
               <span className="section-tools">

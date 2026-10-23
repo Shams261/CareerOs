@@ -100,7 +100,7 @@ export function StudyPrompt({
         </label>
       </div>
       <p className="actions">
-        <button type="button" className="button" onClick={copy}>
+        <button type="button" className="button secondary" onClick={copy}>
           <Copy size={16} aria-hidden="true" /> Copy prompt
         </button>
         {state === 'copied' && (
