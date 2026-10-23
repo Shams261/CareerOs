@@ -3097,10 +3097,12 @@ span > svg {
 }
 @media (max-width: 1100px) {
   .settings-layout {
-    grid-template-columns: 1fr;
+    /* minmax(0, 1fr): the pill row's unbroken width must never widen the column. */
+    grid-template-columns: minmax(0, 1fr);
     gap: 16px;
   }
   .settings-index {
+    min-width: 0;
     position: sticky;
     top: 0;
     z-index: 5;
