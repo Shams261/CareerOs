@@ -55,3 +55,5 @@ See the [WI-020 handoff](WI-020-HANDOFF.md) for Today as an agenda: the launcher
 See the [WI-021 handoff](WI-021-HANDOFF.md) for Plan as days: the shared block row, the week strip, the Routines panel and the switch to 24-hour times.
 
 See the [WI-022 handoff](WI-022-HANDOFF.md) for Jobs as moves: application rows and the attention rail in Today's words, one primary per application page, round forms in panels, and the interview-block fixes.
+
+See the [WI-023 handoff](WI-023-HANDOFF.md) for Roadmap as rows: Continue as the primary, goal record lines, roadmap rows, the Due for revision rail and the detail page without bars.

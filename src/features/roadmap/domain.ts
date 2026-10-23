@@ -423,3 +423,44 @@ export function revisionQueue<T extends RevisionItem & { id: string }>(
         +a.nextRevisionAt! - +b.nextRevisionAt! || a.id.localeCompare(b.id),
     );
 }
+
+/**
+ * One record line per goal for the Roadmap overview (WI-023): the target, the items done
+ * and the week's recorded time. Counts, never a pace or a score.
+ */
+export function goalLine(
+  g: {
+    title: string;
+    targetDate: Date | null;
+    roadmap: { total: number; done: number };
+    week: { actual: number };
+  },
+  today: string,
+  duration: (minutes: number) => string,
+) {
+  const parts = [
+    g.title,
+    targetLabel(g.targetDate?.toISOString().slice(0, 10) ?? null, today),
+  ];
+  if (g.roadmap.total)
+    parts.push(`${g.roadmap.done} of ${g.roadmap.total} items done`);
+  if (g.week.actual > 0) parts.push(`${duration(g.week.actual)} this week`);
+  return parts.join(' · ');
+}
+/** The first live roadmap with something to continue; the overview's one primary. */
+export function continueTarget<
+  T extends {
+    id: string;
+    archivedAt: Date | null;
+    next: { id: string; title: string; section: string } | null;
+  },
+>(roadmaps: T[]) {
+  const r = roadmaps.find((x) => !x.archivedAt && x.next);
+  return r && r.next
+    ? {
+        roadmapId: r.id,
+        title: r.next.title,
+        href: `/roadmap/${r.id}?section=${encodeURIComponent(r.next.section)}#item-${r.next.id}`,
+      }
+    : null;
+}

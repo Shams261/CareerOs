@@ -2,7 +2,6 @@
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { ProgressBar } from '@/components/progress-bar';
 import { usePendingRegion } from '@/components/pending-region';
 
 export type SectionSummary = {
@@ -42,7 +41,7 @@ export function SectionNav({
         >
           {sections.map((s) => (
             <option key={s.name} value={s.name}>
-              {s.name} · {s.done} of {s.total}
+              {s.name} · {s.total - s.done} left
             </option>
           ))}
         </select>
@@ -72,11 +71,6 @@ export function SectionNav({
                   )}
                   {s.name}
                 </span>
-                <ProgressBar
-                  done={s.done}
-                  inProgress={s.inProgress}
-                  total={s.total}
-                />
               </span>
               <span className="section-nav-count">
                 {s.due > 0 && (
@@ -87,7 +81,7 @@ export function SectionNav({
                     {s.due} due
                   </span>
                 )}
-                {s.done}/{s.total}
+                {s.total - s.done ? `${s.total - s.done} left` : 'Done'}
               </span>
             </Link>
           </li>

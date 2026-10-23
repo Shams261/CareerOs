@@ -21,6 +21,8 @@ Paths are relative to /Users/shamstabrez/Desktop/FullStack/CareerOs. I traced ev
 | RO-9  | Overview | UI   | P3       | page.tsx:105-120 (goal "Up next") and :184 (row "Continue") show the same item.                                                                                                                              | Two entry points for one action make the page noisier.                                                                                | Hide "Up next" when there is only one live roadmap.                                                                                                                | S      |
 | RO-10 | Overview | UI   | P3       | globals.css:2182-2246 uses literal 16/18/24px spacing and a 17px font. The whole WI-012 block (1875-2823) uses no `--space-*` tokens.                                                                        | Spacing drifts from the token scale.                                                                                                  | Swap in `--space-4`, `--space-5` and `--space-6`.                                                                                                                  | S      |
 
+Closed in WI-023 (2026-10-23): RO-1 (roadmaps show without a goal), RO-3 (Continue is the overview's primary and each row's link), RO-4 (stable heading ids), RO-5 (no progress bars), RO-6 (`formatDuration`), RO-9 ("Up next" removed; rows carry the continue item).
+
 **Nielsen (violations only; every other heuristic scored 2; total 17/20)**
 
 | Heuristic      | Score | Evidence                                                                                           |
