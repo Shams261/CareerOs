@@ -113,8 +113,12 @@ export function DetailsForm({ app }: { app: JobApplication }) {
       action={detailsAction}
       label="Edit details"
       className="dsa-form"
+      closeOnSuccess
     >
       <input type="hidden" name="id" value={app.id} />
+      <h3 className="form-section" data-panel-focus="basics" tabIndex={-1}>
+        Basics
+      </h3>
       <div className="form-grid">
         <label>
           Company
@@ -166,6 +170,11 @@ export function DetailsForm({ app }: { app: JobApplication }) {
             <option value="3">Low</option>
           </select>
         </label>
+      </div>
+      <h3 className="form-section" data-panel-focus="contacts" tabIndex={-1}>
+        Contacts
+      </h3>
+      <div className="form-grid">
         <label>
           Recruiter
           <input name="recruiterName" defaultValue={app.recruiterName ?? ''} />
@@ -183,6 +192,9 @@ export function DetailsForm({ app }: { app: JobApplication }) {
           <input name="hiringContact" defaultValue={app.hiringContact ?? ''} />
         </label>
       </div>
+      <h3 className="form-section" data-panel-focus="notes" tabIndex={-1}>
+        Notes
+      </h3>
       <label>
         Notes
         <textarea name="notes" rows={4} defaultValue={app.notes ?? ''} />
@@ -286,6 +298,8 @@ export function FollowUpForm({ app }: { app: JobApplication }) {
       action={followUpAction}
       label="Edit next action"
       className="dsa-form"
+      broadcast="next-action"
+      closeOnSuccess
     >
       <input type="hidden" name="id" value={app.id} />
       <FollowUpFields app={app} />
@@ -301,6 +315,7 @@ export function FollowUpDoneForm({ app }: { app: JobApplication }) {
       className="dsa-form"
       resetOnSuccess
       broadcast="next-action"
+      closeOnSuccess
     >
       <input type="hidden" name="id" value={app.id} />
       <input type="hidden" name="requestId" value={randomUUID()} />
@@ -312,7 +327,6 @@ export function FollowUpDoneForm({ app }: { app: JobApplication }) {
           placeholder="Sent follow-up email"
         />
       </label>
-      <h4 className="mt-3">What comes next (leave blank for none)</h4>
       <FollowUpFields />
       <Button>Mark done</Button>
     </ActionForm>
@@ -450,6 +464,7 @@ export function RoundDetailsForm({ round }: { round: InterviewRound }) {
       action={roundDetailsAction}
       label="Edit interview"
       className="dsa-form"
+      closeOnSuccess
     >
       <input type="hidden" name="id" value={round.id} />
       <div className="form-grid">
@@ -494,6 +509,7 @@ export function RescheduleForm({ round }: { round: InterviewRound }) {
       action={rescheduleAction}
       label="Reschedule interview"
       className="dsa-form"
+      closeOnSuccess
     >
       <input type="hidden" name="id" value={round.id} />
       <input type="hidden" name="requestId" value={randomUUID()} />
@@ -524,6 +540,7 @@ export function ResultForm({
       label="Log interview result"
       className="dsa-form"
       broadcast={`round-${round.id}`}
+      closeOnSuccess
     >
       <input type="hidden" name="id" value={round.id} />
       <input type="hidden" name="requestId" value={randomUUID()} />
@@ -741,14 +758,17 @@ export function JobReminderForm({
     </ActionForm>
   );
 }
-export function ScheduleInterviewForm({ roundId }: { roundId: string }) {
+export function ScheduleInterviewForm({
+  roundId,
+  label: text = 'Add interview to schedule',
+}: {
+  roundId: string;
+  label?: string;
+}) {
   return (
-    <ActionForm
-      action={scheduleInterviewAction}
-      label="Add interview to schedule"
-    >
+    <ActionForm action={scheduleInterviewAction} label={text}>
       <input type="hidden" name="id" value={roundId} />
-      <Button className="secondary">Add interview to schedule</Button>
+      <Button variant="link">{text}</Button>
     </ActionForm>
   );
 }
