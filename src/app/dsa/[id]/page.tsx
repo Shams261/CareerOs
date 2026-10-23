@@ -49,7 +49,7 @@ export default async function Problem({
     }),
   ]);
   const date = (d: Date | null) =>
-    d ? formatInTimeZone(d, user.timezone, 'MMM d, yyyy · h:mm a') : 'Not yet';
+    d ? formatInTimeZone(d, user.timezone, 'MMM d, yyyy · HH:mm') : 'Not yet';
   const legacy = p.attemptsCount - p.attempts.length;
   const defaultMinutes =
     running && isDsa(running.category)

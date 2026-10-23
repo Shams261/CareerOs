@@ -504,7 +504,7 @@ describe.skipIf(!url)('job pipeline PostgreSQL integrity', () => {
       where: interviews,
     });
     expect(dayReminder.title).toBe(
-      'Your Reminder Co Coding round interview is tomorrow, Fri, Sep 25 at 9:00 AM. 1 prep item open.',
+      'Your Reminder Co Coding round interview is tomorrow, Fri, Sep 25 at 09:00. 1 prep item open.',
     );
     // Next day while overdue: no repeat for the same planned date.
     await processNotifications(new Date('2026-09-25T12:30:00Z'));

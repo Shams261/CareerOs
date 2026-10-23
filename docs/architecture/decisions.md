@@ -268,3 +268,20 @@ Attention is derived, not stored: overdue follow-up, result needed, interview be
 **Alternatives rejected:** a recorded-versus-planned ring in the launcher (the owner chose the factual line; progress that "starts" on Start would be fabricated); the review as the last agenda row (it would occupy agenda space every day); per-source Suspense boundaries in the rail (the list would reflow row by row); a Today-scoped palette from the specification's colour table (two palettes in one app; the global tokens already meet the contrast targets); deleting the services behind the removed cards (Learn, Practice, Jobs and the Roadmap still use them).
 
 **Consequences:** `src/features/today/` holds the view models and the presentation; `src/app/today/page.tsx` only loads data and composes. The old Today-only summary components are gone. Today's statements drop (no applications count, no learning or DSA snapshot for its own cards; revisions, notes and reminders load on today only). The panel primitive is reusable but lives under Today until a second page needs it.
+
+## ADR-020 — Plan and the Weekly review share Today's block row; clock times are 24-hour
+
+**Status:** Accepted (2026-10-23, WI-021).
+
+**Context:** After WI-020, Today's rows, statuses and vocabulary ("Done", "Not recorded", "Recorded · Needs update", never "overdue" or "missed") existed only on Today. Plan still drew a 7-column grid of 12-hour cards from `executionLabel`, and the Weekly review had its own day lines and "Completed". The owner chose to make the other pages read like Today, one work item each, and decided that the app shows one time format and keeps counts as records without bars or ratios.
+
+**Decision:**
+
+- **One block row.** The resolution, its words, the title rule for a linked interview and the meta line live in `src/features/schedule/row.ts`; the row skeleton in `src/features/schedule/block-row.tsx`. Today, Plan and (from WI-024) the Weekly review render blocks through them. A page may add its own side content (Today: actions, Details, a panel; Plan: a link to Today) but never its own status words.
+- **Plan is the week as days**, not a grid: one facts line, a strip of day chips, seven stacked day sections whose heading is the single link to that day on Today. Acting on a block (start, log, reschedule, skip) stays on Today; Plan links there. Routines are a panel, so the week is first on every screen.
+- **24-hour time everywhere.** `hhmm` in `src/lib/time.ts` is the only clock formatter; `clock` is a deprecated alias until WI-024 removes it. Dates keep `shortDate` / `weekdayDate`.
+- **Counts are records.** Pages may state "12 done · 53 left"; they do not draw progress bars, ratios ("3 / 5 completed") or pace estimates.
+
+**Alternatives rejected:** keeping the 7-column grid with Today's row inside each column (at 1440 with the sidebar a column is about 150 px, too narrow for `time | dot | title | status`); a 12-hour Today with 24-hour elsewhere (the owner wanted one format); a separate "week row" component for Plan (two row recipes to keep in step).
+
+**Consequences:** `src/features/today/domain.ts` re-exports the moved names, so its tests are the regression contract for the shared module. Plan loads block sessions (one statement) and linked rounds when they exist. `executionLabel` and `executionTone` remain for `tests/execution-domain.test.ts` and have no page consumer after WI-021.

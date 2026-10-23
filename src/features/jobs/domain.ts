@@ -382,14 +382,14 @@ export function interviewTime(
   r: { scheduledStart: Date; scheduledEnd: Date | null; timezone: string },
   ownerZone: string,
 ) {
-  const local = `${formatInTimeZone(r.scheduledStart, ownerZone, 'EEE, MMM d · h:mm a')}${
+  const local = `${formatInTimeZone(r.scheduledStart, ownerZone, 'EEE, MMM d · HH:mm')}${
     r.scheduledEnd
-      ? `–${formatInTimeZone(r.scheduledEnd, ownerZone, 'h:mm a')}`
+      ? `–${formatInTimeZone(r.scheduledEnd, ownerZone, 'HH:mm')}`
       : ''
   }`;
   return r.timezone === ownerZone
     ? local
-    : `${local} (${formatInTimeZone(r.scheduledStart, r.timezone, 'h:mm a')} ${r.timezone})`;
+    : `${local} (${formatInTimeZone(r.scheduledStart, r.timezone, 'HH:mm')} ${r.timezone})`;
 }
 export const lastActivityDays = (last: Date, now: Date, zone: string) =>
   daysBetween(dayKey(last, zone), dayKey(now, zone));

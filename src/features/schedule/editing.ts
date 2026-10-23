@@ -81,7 +81,7 @@ export async function saveBlock(
     );
     if (collisions.length && !allowOverlap)
       throw new Error(
-        `Overlap: ${collisions.map((b) => `${b.title} (${formatInTimeZone(b.plannedStart, user.timezone, 'MMM d, h:mm a')}–${formatInTimeZone(b.plannedEnd, user.timezone, 'h:mm a')})`).join('; ')}. Check “Allow this overlap” to proceed intentionally.`,
+        `Overlap: ${collisions.map((b) => `${b.title} (${formatInTimeZone(b.plannedStart, user.timezone, 'MMM d, HH:mm')}–${formatInTimeZone(b.plannedEnd, user.timezone, 'HH:mm')})`).join('; ')}. Check “Allow this overlap” to proceed intentionally.`,
       );
     const plan = await tx.dailyPlan.upsert({
       where: { userId_date: { userId: user.id, date: new Date(input.day) } },
@@ -258,7 +258,7 @@ export async function saveRoutine(
       : [];
     const lines = changes.map(
       (p) =>
-        `${p.day}: ${p.kind} ${p.title}${p.start ? ` → ${formatInTimeZone(p.start, user.timezone, 'h:mm a')}–${formatInTimeZone(p.end!, user.timezone, 'h:mm a')}` : ''}`,
+        `${p.day}: ${p.kind} ${p.title}${p.start ? ` → ${formatInTimeZone(p.start, user.timezone, 'HH:mm')}–${formatInTimeZone(p.end!, user.timezone, 'HH:mm')}` : ''}`,
     );
     const token = fingerprint({
       input: candidate,

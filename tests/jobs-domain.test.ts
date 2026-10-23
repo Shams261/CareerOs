@@ -246,7 +246,7 @@ describe('validation and time', () => {
     );
     expect(
       interviewTime({ ...interval, timezone: 'America/Vancouver' }, zone),
-    ).toBe('Sat, Oct 10 · 5:00 PM–6:00 PM (2:00 PM America/Vancouver)');
+    ).toBe('Sat, Oct 10 · 17:00–18:00 (14:00 America/Vancouver)');
     expect(() =>
       interviewInterval({
         date: '2026-10-10',

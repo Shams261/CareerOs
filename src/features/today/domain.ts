@@ -3,24 +3,28 @@
  * with their linked-interview identity, and the "needs attention" queue. No I/O, no
  * component code; everything here is covered by tests/today-domain.test.ts.
  */
-import { dayKey, minutes, shortDate, weekdayDate } from '@/lib/time';
-import { formatInTimeZone } from 'date-fns-tz';
-
-/** Today reads times as "06:00" and "19:30", as the reference does. */
-export const hhmm = (date: Date, zone: string) =>
-  formatInTimeZone(date, zone, 'HH:mm');
+import { dayKey, hhmm, minutes, shortDate, weekdayDate } from '@/lib/time';
 import type { Attention } from '@/features/jobs/domain';
+import {
+  blockResolution,
+  blockTitle,
+  formatDuration,
+  resolutionText,
+  type BlockLike,
+  type Resolution,
+  type SessionLike,
+} from '@/features/schedule/row';
 
-export type SessionLike = { id: string; startedAt: Date; endedAt: Date | null };
-export type BlockLike = {
-  id: string;
-  title: string;
-  category: string;
-  status: string;
-  plannedStart: Date;
-  plannedEnd: Date;
-  interviewRoundId: string | null;
-  sessions: SessionLike[];
+// The block row's pieces live in schedule/row.ts since WI-021 (Plan shares them).
+export {
+  hhmm,
+  blockResolution,
+  blockTitle,
+  formatDuration,
+  resolutionText,
+  type BlockLike,
+  type Resolution,
+  type SessionLike,
 };
 export type RoundLike = {
   id: string;
@@ -45,14 +49,6 @@ const ELIGIBLE = ['PLANNED', 'IN_PROGRESS'];
 /** Minutes of [start, end) that fall inside [from, to). */
 const clip = (start: Date, end: Date, from: Date, to: Date) =>
   minutes(new Date(Math.max(+start, +from)), new Date(Math.min(+end, +to)));
-
-/** "59 min", "2h", "2h 15m": minutes as the owner reads them. */
-export function formatDuration(n: number) {
-  if (n < 60) return `${n} min`;
-  const h = Math.floor(n / 60),
-    m = n % 60;
-  return m ? `${h}h ${m}m` : `${h}h`;
-}
 
 /**
  * The selected day's facts. Planned covers every non-cancelled block, recorded every unique
@@ -214,51 +210,6 @@ export function groupAgenda(
     later: live.filter((e) => e.at > now),
     cancelled,
   };
-}
-
-export type Resolution =
-  | 'upcoming'
-  | 'current'
-  | 'in-progress'
-  | 'done'
-  | 'skipped'
-  | 'cancelled'
-  | 'not-recorded'
-  | 'needs-update';
-/** A past block without a decision is "not recorded" or "recorded, needs update", never missed. */
-export function blockResolution(block: BlockLike, now: Date): Resolution {
-  if (block.status === 'COMPLETED') return 'done';
-  if (block.status === 'SKIPPED') return 'skipped';
-  if (block.status === 'CANCELLED') return 'cancelled';
-  if (block.status === 'IN_PROGRESS') return 'in-progress';
-  if (block.plannedEnd <= now)
-    return block.sessions.length ? 'needs-update' : 'not-recorded';
-  if (block.plannedStart <= now) return 'current';
-  return 'upcoming';
-}
-export const resolutionText: Record<Resolution, string> = {
-  upcoming: 'Upcoming',
-  current: 'Now',
-  'in-progress': 'In session',
-  done: 'Done',
-  skipped: 'Skipped',
-  cancelled: 'Cancelled',
-  'not-recorded': 'Not recorded',
-  'needs-update': 'Recorded · Needs update',
-};
-
-/**
- * The title Today shows for a block. A block the Jobs round form created is named
- * "Company — Round"; with the company already on the meta line, the row and the launcher
- * show the round's title. A title the owner wrote stays as written.
- */
-export function blockTitle(
-  block: { title: string; interviewRoundId?: string | null },
-  round: { title: string; company: string } | null | undefined,
-) {
-  return round && block.title === `${round.company} — ${round.title}`
-    ? round.title
-    : block.title;
 }
 
 /* ---------- Needs attention ---------- */

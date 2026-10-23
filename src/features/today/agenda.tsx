@@ -1,12 +1,5 @@
 import Link from 'next/link';
-import {
-  ArrowRight,
-  Briefcase,
-  Check,
-  ChevronRight,
-  Circle,
-  CircleDot,
-} from 'lucide-react';
+import { ArrowRight, Briefcase, ChevronRight } from 'lucide-react';
 import { formatInTimeZone } from 'date-fns-tz';
 import { Disclosure } from '@/components/disclosure';
 import { FeedbackOutlet } from '@/components/feedback-outlet';
@@ -17,6 +10,8 @@ import {
   ExecutionControls,
   ManualSessionForm,
 } from '@/features/schedule/forms';
+import { BlockRowShell } from '@/features/schedule/block-row';
+import { rowMeta } from '@/features/schedule/row';
 import { categoryGroup } from '@/features/review/domain';
 import { dayKey, minutes } from '@/lib/time';
 import type { ActualSession, TimeBlock } from '@/generated/prisma/client';
@@ -183,15 +178,6 @@ function RoundRow({ round, zone }: { round: RoundLike; zone: string }) {
   );
 }
 
-function StatusIcon({ resolution }: { resolution: string }) {
-  if (resolution === 'done') return <Check size={15} aria-hidden="true" />;
-  if (resolution === 'current' || resolution === 'in-progress')
-    return <CircleDot size={12} aria-hidden="true" />;
-  if (resolution === 'not-recorded' || resolution === 'needs-update')
-    return <Circle size={12} aria-hidden="true" />;
-  return null;
-}
-
 function BlockRow({
   entry,
   blocks,
@@ -208,102 +194,85 @@ function BlockRow({
   const unresolved =
     resolution === 'not-recorded' || resolution === 'needs-update';
   const panelId = `block:${block.id}`;
-  const recorded = block.sessions.reduce(
-    (n, s) => n + minutes(s.startedAt, s.endedAt ?? now),
-    0,
-  );
-  const planned = minutes(block.plannedStart, block.plannedEnd);
-  const context = round
-    ? `${round.company}`
-    : block.description?.trim() || categoryGroup(block.category);
-  const meta =
-    resolution === 'done'
-      ? block.sessions.length
-        ? `${sessionLength(recorded, true)} recorded`
-        : 'Completed'
-      : resolution === 'not-recorded'
-        ? 'No session recorded'
-        : resolution === 'needs-update'
-          ? `${sessionLength(
-              recorded,
-              block.sessions.every((s) => s.endedAt),
-            )} recorded`
-          : resolution === 'skipped'
-            ? `Skipped${block.skipReason ? `: ${block.skipReason}` : ''}`
-            : resolution === 'current' || resolution === 'in-progress'
-              ? `${context} · Until ${hhmm(block.plannedEnd, zone)}`
-              : `${context} · ${formatDuration(planned)}`;
+  const meta = rowMeta(block, round, now, zone);
   const title = blockTitle(block, round);
   const panelMeta = [
     round ? `${round.company} · Interview` : categoryGroup(block.category),
     origin(block),
   ].join(' · ');
   return (
-    <li
+    <BlockRowShell
       id={`block-${block.id}`}
-      className={`agenda-row is-${resolution}${unresolved ? ' is-unresolved' : ''}`}
+      resolution={resolution}
+      unresolved={unresolved}
+      time={
+        <>
+          {hhmm(block.plannedStart, zone)}
+          {dayKey(block.plannedEnd, zone) !== day && (
+            <span className="sr-only">
+              {' '}
+              to {formatInTimeZone(block.plannedEnd, zone, 'MMM d, HH:mm')}
+            </span>
+          )}
+        </>
+      }
+      icon={
+        round ? (
+          <Briefcase size={16} aria-hidden="true" className="category-icon" />
+        ) : (
+          <CategoryIcon category={block.category} size={16} />
+        )
+      }
+      title={title}
+      meta={meta}
+      status={resolutionText[resolution]}
+      side={
+        <>
+          <div className="agenda-actions">
+            {round && (
+              <Link
+                className="link-button"
+                href={`/jobs/${round.applicationId}#round-${round.id}`}
+                prefetch={false}
+              >
+                Open prep{round.openPrep ? ` (${round.openPrep} open)` : ''}
+              </Link>
+            )}
+            {unresolved && (
+              <>
+                <PanelButton
+                  panel={panelId}
+                  focus="log"
+                  className="link-button"
+                >
+                  Log time
+                </PanelButton>
+                <PanelButton
+                  panel={panelId}
+                  focus="edit"
+                  className="link-button"
+                >
+                  Reschedule
+                </PanelButton>
+              </>
+            )}
+            <ExecutionControls
+              block={block}
+              canStart={day === today}
+              hideStart={launcherBlockId === block.id}
+              more
+            />
+          </div>
+          <PanelButton
+            panel={panelId}
+            className="agenda-details"
+            aria-label={`Details: ${title}`}
+          >
+            <ChevronRight size={18} aria-hidden="true" />
+          </PanelButton>
+        </>
+      }
     >
-      <span className="agenda-time">
-        {hhmm(block.plannedStart, zone)}
-        {dayKey(block.plannedEnd, zone) !== day && (
-          <span className="sr-only">
-            {' '}
-            to {formatInTimeZone(block.plannedEnd, zone, 'MMM d, h:mm a')}
-          </span>
-        )}
-      </span>
-      <span className="agenda-dot" aria-hidden="true" />
-      <div className="agenda-body">
-        <h3 className="agenda-title">
-          {round ? (
-            <Briefcase size={16} aria-hidden="true" className="category-icon" />
-          ) : (
-            <CategoryIcon category={block.category} size={16} />
-          )}
-          {title}
-        </h3>
-        <p className="agenda-meta">{meta}</p>
-      </div>
-      <div className="agenda-side">
-        <span className={`agenda-status is-${resolution}`}>
-          <StatusIcon resolution={resolution} />
-          {resolutionText[resolution]}
-        </span>
-        <div className="agenda-actions">
-          {round && (
-            <Link
-              className="link-button"
-              href={`/jobs/${round.applicationId}#round-${round.id}`}
-              prefetch={false}
-            >
-              Open prep{round.openPrep ? ` (${round.openPrep} open)` : ''}
-            </Link>
-          )}
-          {unresolved && (
-            <>
-              <PanelButton panel={panelId} focus="log" className="link-button">
-                Log time
-              </PanelButton>
-              <PanelButton panel={panelId} focus="edit" className="link-button">
-                Reschedule
-              </PanelButton>
-            </>
-          )}
-          <ExecutionControls
-            block={block}
-            canStart={day === today}
-            hideStart={launcherBlockId === block.id}
-            more
-          />
-        </div>
-        <PanelButton
-          panel={panelId}
-          className="agenda-details"
-          aria-label={`Details: ${title}`}
-        >
-          <ChevronRight size={18} aria-hidden="true" />
-        </PanelButton>
-      </div>
       <SidePanel id={panelId} title={title}>
         <p className="muted">
           {hhmm(block.plannedStart, zone)}–{hhmm(block.plannedEnd, zone)} ·{' '}
@@ -317,9 +286,9 @@ function BlockRow({
           <ul className="plain-list panel-sessions">
             {block.sessions.map((s) => (
               <li className="recorded" key={s.id}>
-                Recorded {formatInTimeZone(s.startedAt, zone, 'MMM d, h:mm a')}–
+                Recorded {formatInTimeZone(s.startedAt, zone, 'MMM d, HH:mm')}–
                 {s.endedAt
-                  ? formatInTimeZone(s.endedAt, zone, 'MMM d, h:mm a')
+                  ? formatInTimeZone(s.endedAt, zone, 'MMM d, HH:mm')
                   : 'running'}{' '}
                 ·{' '}
                 {sessionLength(
@@ -340,6 +309,6 @@ function BlockRow({
         </h3>
         <BlockForm block={block} day={day} zone={zone} goals={goals} />
       </SidePanel>
-    </li>
+    </BlockRowShell>
   );
 }

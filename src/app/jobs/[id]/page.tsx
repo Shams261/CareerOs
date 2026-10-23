@@ -55,7 +55,7 @@ export default async function Application({
     today = dayKey(now, zone),
     follow = followUpState(app, today),
     upcoming = nextRound(app.rounds, now),
-    at = (d: Date) => formatInTimeZone(d, zone, 'MMM d, h:mm a');
+    at = (d: Date) => formatInTimeZone(d, zone, 'MMM d, HH:mm');
   const [topics, problems, dsaTopics] = await Promise.all([
     db().learningTopic.findMany({
       where: { userId: user.id, subject: { status: { not: 'ARCHIVED' } } },

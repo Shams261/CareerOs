@@ -111,7 +111,7 @@ export async function remindersPreview(user: ScheduleUser, monday: string) {
         ? `About a day before and ${pref('INTERVIEW')?.offsetMinutes ?? 60} minutes before: ${interviews
             .map(
               (r) =>
-                `${formatInTimeZone(r.scheduledStart, user.timezone, 'EEE h:mm a')} ${r.application.company}`,
+                `${formatInTimeZone(r.scheduledStart, user.timezone, 'EEE HH:mm')} ${r.application.company}`,
             )
             .join(', ')}.`
         : 'No interviews scheduled this week.',

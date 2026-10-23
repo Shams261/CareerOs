@@ -163,7 +163,7 @@ export function blockSyncView(
 export function snapshotLabel(s: Snapshot, zone: string) {
   if (s.cancelled || !s.start || !s.end)
     return `${s.title || 'Event'} · deleted`;
-  return `${s.title} · ${formatInTimeZone(new Date(s.start), zone, 'EEE MMM d, h:mm')}–${formatInTimeZone(new Date(s.end), zone, 'h:mm a')}`;
+  return `${s.title} · ${formatInTimeZone(new Date(s.start), zone, 'EEE MMM d, HH:mm')}–${formatInTimeZone(new Date(s.end), zone, 'HH:mm')}`;
 }
 /** httpOnly cookie carrying the encrypted OAuth state + PKCE verifier between redirects. */
 export const OAUTH_COOKIE = 'careeros_google_oauth';

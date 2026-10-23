@@ -339,12 +339,12 @@ export default async function Jobs({
                     {formatInTimeZone(
                       data.block.plannedStart,
                       zone,
-                      'EEEE, MMM d · h:mm a',
+                      'EEEE, MMM d · HH:mm',
                     )}
                   </p>
                   <p className="muted">
                     {data.block.title} · until{' '}
-                    {formatInTimeZone(data.block.plannedEnd, zone, 'h:mm a')}
+                    {formatInTimeZone(data.block.plannedEnd, zone, 'HH:mm')}
                   </p>
                 </section>
               )}
