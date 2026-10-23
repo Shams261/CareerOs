@@ -31,6 +31,7 @@ export function Disclosure({
   className = '',
   shortcut,
   draft,
+  srLabel,
 }: {
   label: string;
   children: ReactNode;
@@ -41,6 +42,8 @@ export function Disclosure({
   shortcut?: string;
   /** The form inside keeps a draft under this key: the panel opens while one exists. */
   draft?: string;
+  /** A fuller name for assistive tech when the visible label is just "Edit". */
+  srLabel?: string;
 }) {
   const kept = useSyncExternalStore(
     subscribeDrafts,
@@ -74,6 +77,7 @@ export function Disclosure({
         }
         aria-expanded={open}
         aria-controls={id}
+        aria-label={srLabel}
         data-shortcut={shortcut}
         onClick={() => {
           setUserOpened(true);

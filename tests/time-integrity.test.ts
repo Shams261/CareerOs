@@ -318,12 +318,12 @@ describe.skipIf(!url)('database time integrity (ADR-009)', () => {
     });
     expect([r.scheduledStart, r.scheduledEnd]).toEqual([JUL, minutes(60, JUL)]);
     expect(interviewTime(r, 'America/Toronto')).toBe(
-      'Wed, Jul 15 · 10:00 AM–11:00 AM',
+      'Wed, Jul 15 · 10:00–11:00',
     );
     const b = await pinned.timeBlock.findUniqueOrThrow({
       where: { id: block.id },
     });
-    expect(clock(b.plannedStart, 'America/Toronto')).toBe('9:00 AM');
+    expect(clock(b.plannedStart, 'America/Toronto')).toBe('09:00');
     const activity = await pinned.jobActivity.findFirstOrThrow({
       where: { applicationId: app.id },
     });

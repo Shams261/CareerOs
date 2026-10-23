@@ -381,7 +381,7 @@ export default async function Review({
                         >
                           {i.company} — {i.title}
                         </Link>{' '}
-                        · {formatInTimeZone(i.start, zone, 'EEE h:mm a')} · Prep{' '}
+                        · {formatInTimeZone(i.start, zone, 'EEE HH:mm')} · Prep{' '}
                         {i.prepDone} / {i.prepTotal}
                       </p>
                     ))}
@@ -704,8 +704,8 @@ export default async function Review({
                     <ul className="plain-list">
                       {d.items.map((i, n) => (
                         <li key={n}>
-                          {formatInTimeZone(i.start, zone, 'h:mm')}–
-                          {formatInTimeZone(i.end, zone, 'h:mm a')} {i.title}
+                          {formatInTimeZone(i.start, zone, 'HH:mm')}–
+                          {formatInTimeZone(i.end, zone, 'HH:mm')} {i.title}
                         </li>
                       ))}
                       {!d.items.length && (
