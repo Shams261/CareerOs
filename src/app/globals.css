@@ -4469,3 +4469,90 @@ a.attention-link:hover .attention-title {
   white-space: normal;
   text-align: left;
 }
+
+/* WI-025: Settings as rows. */
+.settings-group + .settings-group {
+  margin-top: 32px;
+}
+.settings-group > .agenda-head {
+  margin-bottom: 4px;
+}
+.settings-device {
+  margin: 4px 0 12px;
+  font-size: 14px;
+}
+.settings-device .actions {
+  margin-top: 8px;
+}
+button.attention-link {
+  width: 100%;
+  background: none;
+  border: 0;
+  padding: 16px 0;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+.setting-row .attention-link,
+.settings-main .attention-link {
+  grid-template-columns: 48px minmax(0, 1fr) auto;
+}
+.setting-row .attention-link.is-static {
+  cursor: default;
+}
+.setting-row .attention-link.is-static:hover {
+  background: none;
+}
+.setting-control {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+}
+.setting-control .check {
+  margin: 0;
+  font-size: 14px;
+}
+.theme-switch {
+  display: inline-flex;
+  padding: 3px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+}
+.theme-switch label {
+  padding: 5px 12px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--muted);
+  cursor: pointer;
+}
+.theme-switch label.is-on {
+  background: var(--primary);
+  color: var(--on-primary, #fff);
+}
+.theme-switch input {
+  position: absolute;
+  opacity: 0;
+  width: 1px;
+  height: 1px;
+}
+.theme-switch label:has(input:focus-visible) {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+@media (max-width: 700px) {
+  .setting-row .attention-link,
+  .settings-main .attention-link {
+    grid-template-columns: 48px minmax(0, 1fr);
+  }
+  .setting-row .attention-link .attention-chevron {
+    display: none;
+  }
+  .setting-control {
+    grid-column: 2;
+    justify-self: start;
+  }
+}

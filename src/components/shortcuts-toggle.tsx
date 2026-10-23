@@ -22,10 +22,16 @@ const subscribe = (fn: () => void) => {
 export const useShortcutsEnabled = () =>
   useSyncExternalStore(subscribe, read, () => true);
 
-export function ShortcutsToggle() {
+export function ShortcutsToggle({
+  label = 'Single-key shortcuts on this device (N, S, J, K, D, C; ? always lists them)',
+  className = 'check mt-3',
+}: {
+  label?: string;
+  className?: string;
+}) {
   const enabled = useShortcutsEnabled();
   return (
-    <label className="check mt-3">
+    <label className={className}>
       <input
         type="checkbox"
         checked={enabled}
@@ -39,8 +45,7 @@ export function ShortcutsToggle() {
           for (const fn of listeners) fn();
         }}
       />
-      Single-key shortcuts on this device (N, S, J, K, D, C; ? always lists
-      them)
+      {label}
     </label>
   );
 }

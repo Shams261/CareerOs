@@ -338,6 +338,7 @@ export function LearningReminderForm({
       action={learningReminderAction}
       label="Learning reminder"
       className="dsa-form"
+      closeOnSuccess
     >
       <label className="check">
         <input
