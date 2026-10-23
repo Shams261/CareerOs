@@ -6,6 +6,7 @@ vi.mock('server-only', () => ({}));
 const { client } = vi.hoisted(() => ({ client: { value: null as unknown } }));
 vi.mock('@/server/db', () => ({ db: () => client.value }));
 import {
+  addInterviewToSchedule,
   addPrepItem,
   changeStage,
   completeFollowUp,
@@ -21,6 +22,7 @@ import {
   setPrepItemDone,
   todaysInterviews,
   updateDetails,
+  updateRoundDetails,
 } from '../src/features/jobs/service';
 import { PreviewRequired } from '../src/features/schedule/editing';
 import { processNotifications } from '../src/features/notifications/service';
@@ -326,6 +328,103 @@ describe.skipIf(!url)('job pipeline PostgreSQL integrity', () => {
     expect(
       await prisma.interviewRound.count({ where: { applicationId: a.id } }),
     ).toBe(1);
+  });
+  it('keeps the interview block in step: settled by the result, revived on reschedule, renamed with the round', async () => {
+    const a = await add({ stage: 'TECHNICAL', company: 'Block Co' });
+    const r = await interview(a.id, { title: 'Onsite' });
+    const block = await addInterviewToSchedule(user, r.id);
+    expect(block).toMatchObject({
+      title: 'Block Co — Onsite',
+      status: 'PLANNED',
+      interviewRoundId: r.id,
+    });
+    // A cancelled interview cancels its block; Today and Plan stop asking about it.
+    await recordRoundResult(
+      user,
+      { requestId: randomUUID(), id: r.id, status: 'CANCELLED' },
+      now,
+    );
+    expect(
+      await prisma.timeBlock.findUniqueOrThrow({ where: { id: block.id } }),
+    ).toMatchObject({ status: 'CANCELLED', isOverride: true });
+    // Rescheduling brings the same block back on the new time.
+    await rescheduleRound(
+      user,
+      {
+        requestId: randomUUID(),
+        id: r.id,
+        date: '2026-09-26',
+        start: '09:00',
+        end: '10:00',
+        timezone: 'America/Toronto',
+      },
+      now,
+    );
+    expect(
+      await prisma.timeBlock.findUniqueOrThrow({ where: { id: block.id } }),
+    ).toMatchObject({
+      status: 'PLANNED',
+      plannedStart: new Date('2026-09-26T13:00:00Z'),
+      plannedEnd: new Date('2026-09-26T14:00:00Z'),
+    });
+    // Adding back a cancelled block revives it in place instead of returning it cancelled.
+    await prisma.timeBlock.update({
+      where: { id: block.id },
+      data: { status: 'CANCELLED' },
+    });
+    expect(await addInterviewToSchedule(user, r.id)).toMatchObject({
+      id: block.id,
+      status: 'PLANNED',
+    });
+    expect(
+      await prisma.timeBlock.count({ where: { interviewRoundId: r.id } }),
+    ).toBe(1);
+    // Renaming the round or the company follows into a block still carrying the service's name.
+    await updateRoundDetails(user, {
+      id: r.id,
+      title: 'Onsite loop',
+      type: 'CODING',
+    });
+    expect(
+      await prisma.timeBlock.findUniqueOrThrow({ where: { id: block.id } }),
+    ).toMatchObject({ title: 'Block Co — Onsite loop' });
+    await updateDetails(user, {
+      id: a.id,
+      company: 'Block Corp',
+      role: 'Backend Engineer',
+      workArrangement: 'UNKNOWN',
+      priority: 2,
+    });
+    expect(
+      await prisma.timeBlock.findUniqueOrThrow({ where: { id: block.id } }),
+    ).toMatchObject({ title: 'Block Corp — Onsite loop' });
+    // A title the owner wrote on the block is never touched.
+    await prisma.timeBlock.update({
+      where: { id: block.id },
+      data: { title: 'Prep and travel' },
+    });
+    await updateRoundDetails(user, {
+      id: r.id,
+      title: 'Onsite',
+      type: 'CODING',
+    });
+    expect(
+      await prisma.timeBlock.findUniqueOrThrow({ where: { id: block.id } }),
+    ).toMatchObject({ title: 'Prep and travel' });
+    // A completed interview completes a still-planned block.
+    const r2 = await interview(a.id, {
+      title: 'Follow-up chat',
+      date: '2026-09-23',
+    });
+    const b2 = await addInterviewToSchedule(user, r2.id);
+    await recordRoundResult(
+      user,
+      { requestId: randomUUID(), id: r2.id, status: 'COMPLETED' },
+      now,
+    );
+    expect(
+      await prisma.timeBlock.findUniqueOrThrow({ where: { id: b2.id } }),
+    ).toMatchObject({ status: 'COMPLETED', completedAt: now });
   });
   it('links prep items by reference only and toggles idempotently', async () => {
     const a = await add({ stage: 'TECHNICAL' });

@@ -1,7 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import {
+  applicationMove,
   attention,
   attentionQueue,
+  pagePrimary,
+  scheduleBlockTitle,
   duplicateKey,
   filterApplications,
   followUpReminderDue,
@@ -386,5 +389,108 @@ describe('weekly summary', () => {
       offers: 1,
       loggedInSessions: 1,
     });
+  });
+});
+
+describe('the next move and the page primary (WI-022)', () => {
+  const base = {
+    id: 'a1',
+    stage: 'TECHNICAL',
+    actionOwner: 'ME',
+    nextAction: null as string | null,
+    nextActionDate: null as Date | null,
+    rounds: [] as ReturnType<typeof round>[],
+    role: 'Backend Engineer',
+    lastActivityAt: new Date('2026-09-21T14:00:00Z'),
+  };
+  it("names the move in Today's words, most urgent first", () => {
+    expect(
+      applicationMove(
+        {
+          ...base,
+          nextAction: 'Send follow-up',
+          nextActionDate: new Date('2026-09-22T00:00:00Z'),
+        },
+        now,
+        zone,
+      ),
+    ).toMatchObject({
+      title: 'Send follow-up',
+      context: 'Backend Engineer · Overdue by 2 days',
+      urgent: true,
+    });
+    expect(
+      applicationMove(
+        { ...base, rounds: [round('Coding', '2026-09-24T12:00:00Z')] },
+        now,
+        zone,
+      ),
+    ).toMatchObject({ title: 'Log the Coding result', urgent: true });
+    expect(
+      applicationMove(
+        { ...base, rounds: [round('System design', '2026-09-25T14:00:00Z')] },
+        now,
+        zone,
+      ),
+    ).toMatchObject({
+      title: 'Prepare System design',
+      context: 'Backend Engineer · Tomorrow at 10:00',
+      urgent: false,
+    });
+    expect(
+      applicationMove(
+        { ...base, rounds: [round('Final', '2026-09-30T14:00:00Z')] },
+        now,
+        zone,
+      ),
+    ).toMatchObject({
+      title: 'Prepare Final',
+      context: 'Backend Engineer · Wed, Sep 30 at 10:00',
+    });
+    expect(
+      applicationMove({ ...base, actionOwner: 'COMPANY' }, now, zone),
+    ).toMatchObject({
+      title: 'Wait for the company',
+      context: 'Backend Engineer · Last activity 3 days ago',
+    });
+    expect(applicationMove(base, now, zone)).toMatchObject({
+      title: 'Decide the next step',
+      context: 'Backend Engineer · No date set',
+    });
+    expect(
+      applicationMove({ ...base, stage: 'REJECTED' }, now, zone),
+    ).toMatchObject({
+      title: 'Closed · Rejected',
+    });
+  });
+  it('picks one primary per page state', () => {
+    expect(
+      pagePrimary(
+        { ...base, rounds: [round('Coding', '2026-09-24T12:00:00Z')] },
+        now,
+        zone,
+      ),
+    ).toBe('log-result');
+    expect(
+      pagePrimary(
+        {
+          ...base,
+          nextAction: 'Reply',
+          nextActionDate: new Date('2026-09-24T00:00:00Z'),
+        },
+        now,
+        zone,
+      ),
+    ).toBe('mark-done');
+    expect(pagePrimary(base, now, zone)).toBe('set-next-action');
+    expect(pagePrimary({ ...base, actionOwner: 'COMPANY' }, now, zone)).toBe(
+      null,
+    );
+    expect(pagePrimary({ ...base, stage: 'WITHDRAWN' }, now, zone)).toBe(null);
+  });
+  it('names the schedule block "Company — Round"', () => {
+    expect(scheduleBlockTitle('Example Labs', 'Coding')).toBe(
+      'Example Labs — Coding',
+    );
   });
 });

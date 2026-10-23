@@ -27,6 +27,7 @@ import {
   roundDetailsInput,
   roundEnd,
   roundInput,
+  scheduleBlockTitle,
   stageInput,
   weeklyJobSummary,
 } from './domain';
@@ -129,8 +130,8 @@ export async function createApplication(
 export async function updateDetails(user: ScheduleUser, raw: unknown) {
   const { id, appliedAt, jobUrl, ...data } = detailsInput.parse(raw);
   return locked(user.id, async (tx) => {
-    await ownedApplication(tx, user.id, id);
-    return tx.jobApplication.update({
+    const before = await ownedApplication(tx, user.id, id);
+    const updated = await tx.jobApplication.update({
       where: { id },
       data: {
         ...data,
@@ -138,6 +139,65 @@ export async function updateDetails(user: ScheduleUser, raw: unknown) {
         appliedAt: appliedAt ? new Date(appliedAt) : null,
       },
     });
+    if (before.company !== updated.company) {
+      const rounds = await tx.interviewRound.findMany({
+        where: { applicationId: id, userId: user.id },
+        select: { id: true, title: true },
+      });
+      for (const r of rounds)
+        await renameScheduleBlock(
+          tx,
+          user,
+          r.id,
+          scheduleBlockTitle(before.company, r.title),
+          scheduleBlockTitle(updated.company, r.title),
+        );
+    }
+    return updated;
+  });
+}
+/**
+ * A block the round form named "Company — Round" follows a rename of the round or the
+ * company; a title the owner wrote on the block is never touched.
+ */
+async function renameScheduleBlock(
+  tx: Tx,
+  user: ScheduleUser,
+  roundId: string,
+  from: string,
+  to: string,
+) {
+  if (from === to) return;
+  await tx.timeBlock.updateMany({
+    where: {
+      interviewRoundId: roundId,
+      dailyPlan: { userId: user.id },
+      title: from,
+    },
+    data: { title: to },
+  });
+}
+/**
+ * The linked block follows the round's result: a cancelled or missed interview cancels
+ * its block (Today and Plan stop asking about it), a completed one completes it.
+ */
+async function settleScheduleBlock(
+  tx: Tx,
+  user: ScheduleUser,
+  roundId: string,
+  status: 'COMPLETED' | 'CANCELLED' | 'NO_SHOW',
+  now: Date,
+) {
+  const block = await tx.timeBlock.findFirst({
+    where: { interviewRoundId: roundId, dailyPlan: { userId: user.id } },
+  });
+  if (!block || !['PLANNED', 'IN_PROGRESS'].includes(block.status)) return;
+  await tx.timeBlock.update({
+    where: { id: block.id },
+    data:
+      status === 'COMPLETED'
+        ? { status: 'COMPLETED', completedAt: now, isOverride: true }
+        : { status: 'CANCELLED', isOverride: true },
   });
 }
 
@@ -328,11 +388,19 @@ export async function scheduleRound(
 export async function updateRoundDetails(user: ScheduleUser, raw: unknown) {
   const { id, meetingUrl, ...data } = roundDetailsInput.parse(raw);
   return locked(user.id, async (tx) => {
-    await ownedRound(tx, user.id, id);
-    return tx.interviewRound.update({
+    const before = await ownedRound(tx, user.id, id);
+    const updated = await tx.interviewRound.update({
       where: { id },
       data: { ...data, meetingUrl: meetingUrl ?? null },
     });
+    await renameScheduleBlock(
+      tx,
+      user,
+      id,
+      scheduleBlockTitle(before.application.company, before.title),
+      scheduleBlockTitle(before.application.company, updated.title),
+    );
+    return updated;
   });
 }
 /** Moves a scheduled or cancelled round; the previous time is preserved in the timeline. */
@@ -391,7 +459,7 @@ async function moveScheduleBlock(
   const block = await tx.timeBlock.findFirst({
     where: { interviewRoundId: roundId, dailyPlan: { userId: user.id } },
   });
-  if (!block || block.status === 'CANCELLED') return;
+  if (!block) return;
   const day = dayKey(interval.scheduledStart, user.timezone);
   const plan = await tx.dailyPlan.upsert({
     where: { userId_date: { userId: user.id, date: new Date(day) } },
@@ -406,6 +474,10 @@ async function moveScheduleBlock(
       plannedEnd:
         interval.scheduledEnd ?? new Date(+interval.scheduledStart + 3600000),
       isOverride: true,
+      // A rescheduled interview is on again: a cancelled or skipped block comes back.
+      ...(block.status === 'CANCELLED' || block.status === 'SKIPPED'
+        ? { status: 'PLANNED' as const, skipReason: null, completedAt: null }
+        : {}),
     },
   });
 }
@@ -423,11 +495,32 @@ export async function addInterviewToSchedule(
     const existing = await tx.timeBlock.findFirst({
       where: { interviewRoundId: round.id, dailyPlan: { userId: user.id } },
     });
-    if (existing) return existing;
     if (round.status !== 'SCHEDULED')
       throw new Error(
         'Only scheduled interviews can be added to the schedule.',
       );
+    if (existing) {
+      if (!['CANCELLED', 'SKIPPED'].includes(existing.status)) return existing;
+      // Added back after a cancellation: the same block, on the round's current time.
+      const day = dayKey(round.scheduledStart, user.timezone);
+      const plan = await tx.dailyPlan.upsert({
+        where: { userId_date: { userId: user.id, date: new Date(day) } },
+        create: { userId: user.id, date: new Date(day) },
+        update: {},
+      });
+      return tx.timeBlock.update({
+        where: { id: existing.id },
+        data: {
+          dailyPlanId: plan.id,
+          status: 'PLANNED',
+          skipReason: null,
+          completedAt: null,
+          plannedStart: round.scheduledStart,
+          plannedEnd: roundEnd(round),
+          isOverride: true,
+        },
+      });
+    }
     const day = dayKey(round.scheduledStart, user.timezone);
     const plan = await tx.dailyPlan.upsert({
       where: { userId_date: { userId: user.id, date: new Date(day) } },
@@ -437,7 +530,7 @@ export async function addInterviewToSchedule(
     return tx.timeBlock.create({
       data: {
         dailyPlanId: plan.id,
-        title: `${round.application.company} — ${round.title}`,
+        title: scheduleBlockTitle(round.application.company, round.title),
         category: 'INTERVIEW',
         plannedStart: round.scheduledStart,
         plannedEnd: roundEnd(round),
@@ -502,6 +595,7 @@ export async function recordRoundResult(
         requestId: input.requestId,
       },
     });
+    await settleScheduleBlock(tx, user, round.id, input.status, now);
     if (input.stage && input.stage !== round.application.stage)
       await moveStage(
         tx,

@@ -1,6 +1,12 @@
 import { z } from 'zod';
 import { formatInTimeZone } from 'date-fns-tz';
-import { dayKey, localInstant } from '../../lib/time';
+import {
+  dayKey,
+  hhmm,
+  localInstant,
+  shortDate,
+  weekdayDate,
+} from '../../lib/time';
 import { resourceUrl, localTime, timezone } from '../../lib/validation';
 import { dateInput, shiftDay, weekDays } from '../schedule/domain';
 
@@ -393,6 +399,119 @@ export function interviewTime(
 }
 export const lastActivityDays = (last: Date, now: Date, zone: string) =>
   daysBetween(dayKey(last, zone), dayKey(now, zone));
+
+/** The schedule block a round creates is named "Company — Round" (Today shows the round). */
+export const scheduleBlockTitle = (company: string, roundTitle: string) =>
+  `${company} — ${roundTitle}`;
+
+export type Move = {
+  /** Names the move: "Send follow-up", "Prepare Coding", "Log the Coding result". */
+  title: string;
+  /** The role and the due context: "Platform Engineer · Due today". */
+  context: string;
+  /** Due instant (ms) for ordering; later for quieter states. */
+  due: number;
+  /** True when the move is overdue or due today. */
+  urgent: boolean;
+};
+/**
+ * One line per application for the list: the next move in Today's words. The first
+ * attention reason wins; without one, the owner's own next action, waiting, or closed.
+ */
+export function applicationMove(
+  app: AppLike & { role: string; lastActivityAt: Date },
+  now: Date,
+  zone: string,
+): Move {
+  const today = dayKey(now, zone);
+  if (!isOpen(app.stage))
+    return {
+      title: `Closed · ${label(app.stage)}`,
+      context: app.role,
+      due: Number.MAX_SAFE_INTEGER,
+      urgent: false,
+    };
+  const reason = attention(app, now, zone)[0];
+  const follow = followUpState(app, today);
+  const action = app.nextAction ?? 'Follow up';
+  if (reason?.kind === 'FOLLOW_UP_OVERDUE')
+    return {
+      title: action,
+      context: `${app.role} · Overdue by ${reason.days} day${reason.days === 1 ? '' : 's'}`,
+      due: +app.nextActionDate!,
+      urgent: true,
+    };
+  if (reason?.kind === 'RESULT_NEEDED')
+    return {
+      title: `Log the ${reason.round.title} result`,
+      context: `${app.role} · Interview ended ${weekdayDate(dayKey(reason.round.scheduledStart, zone))}`,
+      due: +reason.round.scheduledStart,
+      urgent: true,
+    };
+  if (reason?.kind === 'INTERVIEW_SOON') {
+    const isToday = dayKey(reason.round.scheduledStart, zone) === today;
+    return {
+      title: `Prepare ${reason.round.title}`,
+      context: `${app.role} · ${isToday ? 'Today' : 'Tomorrow'} at ${hhmm(reason.round.scheduledStart, zone)}`,
+      due: +reason.round.scheduledStart,
+      urgent: isToday,
+    };
+  }
+  if (reason?.kind === 'FOLLOW_UP_TODAY')
+    return {
+      title: action,
+      context: `${app.role} · Due today`,
+      due: +app.nextActionDate!,
+      urgent: true,
+    };
+  const round = nextRound(app.rounds, now);
+  if (round)
+    return {
+      title: `Prepare ${round.title}`,
+      context: `${app.role} · ${weekdayDate(dayKey(round.scheduledStart, zone))} at ${hhmm(round.scheduledStart, zone)}`,
+      due: +round.scheduledStart,
+      urgent: false,
+    };
+  if (follow.state === 'upcoming')
+    return {
+      title: action,
+      context: `${app.role} · Due ${shortDate(follow.date)}`,
+      due: +app.nextActionDate!,
+      urgent: false,
+    };
+  if (app.actionOwner === 'COMPANY') {
+    const days = lastActivityDays(app.lastActivityAt, now, zone);
+    return {
+      title: 'Wait for the company',
+      context: `${app.role} · Last activity ${days ? `${days} day${days === 1 ? '' : 's'} ago` : 'today'}`,
+      due: Number.MAX_SAFE_INTEGER - 1,
+      urgent: false,
+    };
+  }
+  return {
+    title: app.nextAction ?? 'Decide the next step',
+    context: `${app.role} · No date set`,
+    due: Number.MAX_SAFE_INTEGER - 2,
+    urgent: false,
+  };
+}
+/**
+ * The one filled primary on an application page: log the earliest result that is due,
+ * else mark the next action done when it is yours and dated, else set one.
+ */
+export function pagePrimary(
+  app: AppLike,
+  now: Date,
+  zone: string,
+): 'log-result' | 'mark-done' | 'set-next-action' | null {
+  if (!isOpen(app.stage)) return null;
+  if (resultNeeded(app.rounds, now).length) return 'log-result';
+  const follow = followUpState(app, dayKey(now, zone));
+  if (app.actionOwner === 'ME' && follow.state !== 'none') return 'mark-done';
+  if (!app.nextAction && !app.nextActionDate && app.actionOwner !== 'COMPANY')
+    return 'set-next-action';
+  return null;
+}
 
 /** Reminder windows: 'tomorrow' ≈ within 24h (only when not yet inside the short window), 'soon' = within offset. */
 export function interviewWindow(
