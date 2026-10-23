@@ -4558,3 +4558,50 @@ button.attention-link {
     justify-self: start;
   }
 }
+
+/* WI-026: the public privacy page, readable signed out and signed in. */
+.policy {
+  width: min(760px, 100%);
+  margin: 0 auto;
+  padding: 40px 44px;
+  text-align: left;
+  line-height: 1.6;
+}
+.policy-brand {
+  margin: 0 0 24px;
+}
+.policy h1 {
+  margin: 4px 0 2px;
+}
+.policy-updated {
+  margin: 0 0 20px;
+  color: var(--muted);
+  font-size: 14px;
+}
+.policy h2 {
+  font-size: 19px;
+  margin: 28px 0 8px;
+}
+.policy p,
+.policy li {
+  margin: 0 0 12px;
+  font-size: 15px;
+}
+.policy ul {
+  padding-left: 20px;
+  margin: 0 0 12px;
+}
+.policy code {
+  font-size: 13px;
+  background: var(--subtle);
+  padding: 1px 5px;
+  border-radius: 4px;
+}
+.policy-foot {
+  margin-top: 28px;
+}
+@media (max-width: 700px) {
+  .policy {
+    padding: 24px 18px;
+  }
+}

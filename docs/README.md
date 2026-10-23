@@ -61,3 +61,5 @@ See the [WI-023 handoff](WI-023-HANDOFF.md) for Roadmap as rows: Continue as the
 See the [WI-024 handoff](WI-024-HANDOFF.md) for the Weekly review: one summary line, day sections with the shared block rows, next-week rows and Details without a second reminder form.
 
 See the [WI-025 handoff](WI-025-HANDOFF.md) for Settings as rows: the record line, reminder and calendar rows with panels, and the theme control.
+
+See the [WI-026 handoff](WI-026-HANDOFF.md) for the public privacy page and how to publish the Google app.

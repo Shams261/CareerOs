@@ -24,12 +24,12 @@ Server-side `Session` rows (`src/server/session.ts`). The browser holds a random
 
 `src/proxy.ts` runs before every route except static build assets:
 
-| Path                                                                                             | Rule                                                                                                            |
-| ------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------- |
-| `/api/notifications/process`, `/api/calendar/sync`                                               | `Authorization: Bearer $CRON_SECRET` (constant-time), otherwise 401. A session cookie is not accepted.          |
-| `/login`, `/api/auth/callback`, `/api/health`, `/api/calendar/webhook`, manifest, `sw.js`, icons | Public. Health returns status words only; the webhook validates channel ID, resource ID, token hash and expiry. |
-| Every other page                                                                                 | Valid session, else redirect to `/login?next=<path>`. No navigation or data is rendered while signed out.       |
-| Every other `/api/*` route                                                                       | Valid session, else `401 {"error":"unauthorized"}`.                                                             |
+| Path                                                                                                         | Rule                                                                                                                                                                      |
+| ------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `/api/notifications/process`, `/api/calendar/sync`                                                           | `Authorization: Bearer $CRON_SECRET` (constant-time), otherwise 401. A session cookie is not accepted.                                                                    |
+| `/login`, `/privacy`, `/api/auth/callback`, `/api/health`, `/api/calendar/webhook`, manifest, `sw.js`, icons | Public. The privacy page is static text with one contact address; health returns status words only; the webhook validates channel ID, resource ID, token hash and expiry. |
+| Every other page                                                                                             | Valid session, else redirect to `/login?next=<path>`. No navigation or data is rendered while signed out.                                                                 |
+| Every other `/api/*` route                                                                                   | Valid session, else `401 {"error":"unauthorized"}`.                                                                                                                       |
 
 The proxy is the first gate, not the only one: pages and Server Actions call `owner()`, which re-resolves the session and redirects if it is gone, and every service scopes queries and writes to that owner. Server Actions keep Next.js' Origin check (CSRF); cookies are SameSite=Lax; there are no state-changing GET routes (export is read-only).
 

@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { BrandLogo } from '@/components/brand';
 import { redirect } from 'next/navigation';
 import { currentSession } from '@/server/session';
@@ -54,6 +55,11 @@ export default async function Login({
         in testing; continue with the owner account.
       </p>
       <p className="login-continuity">Keep the chain going.</p>
+      <p className="login-note">
+        <Link className="link" href="/privacy">
+          Privacy
+        </Link>
+      </p>
     </section>
   );
 }

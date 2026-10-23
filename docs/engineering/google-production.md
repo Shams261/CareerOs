@@ -26,6 +26,8 @@ CareerOS uses one Google Cloud OAuth client for two separate consents: **sign-in
 
 Choose **In production** if you use Calendar sync and accept the warning; otherwise **Testing** is fine for sign-in only.
 
+To publish, the consent screen needs a privacy policy URL on the authorized domain: use `https://<host>/privacy` (public, no sign-in; WI-026). It names the contact from `PRIVACY_CONTACT_EMAIL` (default `OWNER_EMAIL`) and carries the Limited Use statement Google asks for with the Calendar scope.
+
 ## Environment
 
 ```sh
