@@ -1,11 +1,13 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { formatInTimeZone } from 'date-fns-tz';
+import { ArrowLeft, ChevronRight } from 'lucide-react';
 import { db, owner } from '@/server/db';
 import { dayKey, shortDate, weekdayDate } from '@/lib/time';
 import { ResourceLink } from '@/components/resource-link';
-import { Disclosure, DisclosureTabs } from '@/components/disclosure';
+import { Disclosure } from '@/components/disclosure';
 import { FeedbackOutlet } from '@/components/feedback-outlet';
+import { PanelButton, SidePanel } from '@/components/side-panel';
 import { applicationDetail } from '@/features/jobs/service';
 import {
   calendarDate,
@@ -13,12 +15,14 @@ import {
   interviewTime,
   isOpen,
   label,
-  nextRound,
   ownerLabel,
-  roundEnd,
+  pagePrimary,
   pipelineStages,
+  resultNeeded,
+  roundEnd,
   closedStages,
 } from '@/features/jobs/domain';
+import { dueContext } from '@/features/attention/domain';
 import {
   DetailsForm,
   FollowUpDoneForm,
@@ -33,7 +37,6 @@ import {
   ZoneOptions,
   type LinkOption,
 } from '@/features/jobs/forms';
-import { ArrowLeft } from 'lucide-react';
 import { NextActionBox } from '@/features/jobs/next-action';
 import { PrepCheck } from '@/features/jobs/prep-check';
 import { randomUUID } from 'node:crypto';
@@ -54,7 +57,12 @@ export default async function Application({
     zone = user.timezone,
     today = dayKey(now, zone),
     follow = followUpState(app, today),
-    upcoming = nextRound(app.rounds, now),
+    open = isOpen(app.stage),
+    primary = pagePrimary(app, now, zone),
+    // The earliest interview whose result is still due carries the page's primary action.
+    resultRound = resultNeeded(app.rounds, now).sort(
+      (a, b) => +a.scheduledStart - +b.scheduledStart,
+    )[0],
     at = (d: Date) => formatInTimeZone(d, zone, 'MMM d, HH:mm');
   const [topics, problems, dsaTopics] = await Promise.all([
     db().learningTopic.findMany({
@@ -107,13 +115,26 @@ export default async function Application({
     }
   };
   const hasCreated = app.activities.some((a) => a.type === 'CREATED');
+  const hasAction = !!(app.nextAction || app.nextActionDate);
+  const moveContext = [
+    follow.state === 'overdue' || follow.state === 'today'
+      ? dueContext(follow.date, today)
+      : follow.state === 'upcoming'
+        ? `Due ${shortDate(follow.date)}`
+        : 'No date set',
+    ownerLabel(app.actionOwner),
+  ].join(' · ');
+  const contacts = [
+    ['Recruiter', app.recruiterName, app.recruiterContact],
+    ['Hiring contact', app.hiringContact, null],
+  ].filter(([, v]) => v) as [string, string, string | null][];
   return (
     <>
       <ZoneOptions />
-      <Link className="link" href="/jobs">
+      <Link className="link" href="/jobs" prefetch={false}>
         <ArrowLeft size={14} aria-hidden="true" /> Jobs
       </Link>
-      <p className="eyebrow mt-4">
+      <p className="company-line">
         {app.company}
         {app.location ? ` · ${app.location}` : ''}
         {app.workArrangement !== 'UNKNOWN'
@@ -166,24 +187,7 @@ export default async function Application({
           </span>
         </div>
       </ActionForm>
-      <div className="status-line summary-line mb-7">
-        {(app.nextAction || app.nextActionDate) && (
-          <span>
-            <strong>{app.nextAction ?? 'Follow up'}</strong>
-            {follow.state === 'overdue'
-              ? ` · overdue by ${follow.days} day${follow.days === 1 ? '' : 's'}`
-              : follow.state === 'today'
-                ? ' · due today'
-                : follow.state === 'upcoming'
-                  ? ` · due ${shortDate(follow.date)}`
-                  : ''}
-          </span>
-        )}
-        {upcoming && (
-          <span>
-            Next interview: {upcoming.title} · {interviewTime(upcoming, zone)}
-          </span>
-        )}
+      <p className="status-line summary-line mb-6">
         <span>
           Applied{' '}
           {app.appliedAt ? shortDate(calendarDate(app.appliedAt)) : 'not yet'}
@@ -192,105 +196,136 @@ export default async function Application({
         {app.jobUrl && (
           <ResourceLink url={app.jobUrl}>Job posting</ResourceLink>
         )}
-      </div>
+        {!open && <span>Closed · {label(app.stage)}</span>}
+      </p>
       <div className="grid-main">
         <section>
           <section className="card" aria-labelledby="next-heading">
-            <h2 id="next-heading">Next action</h2>
-            {app.nextAction || app.nextActionDate ? (
-              <NextActionBox
-                id={app.id}
-                requestId={randomUUID()}
-                title={app.nextAction ?? 'Follow up'}
-                due={
-                  follow.state === 'overdue'
-                    ? `overdue by ${follow.days} day${follow.days === 1 ? '' : 's'} (due ${shortDate(follow.date)})`
-                    : follow.state === 'today'
-                      ? 'due today'
-                      : follow.state === 'upcoming'
-                        ? `due ${shortDate(follow.date)}`
-                        : 'no due date'
-                }
-                mine={app.actionOwner === 'ME'}
-                ownerText={ownerLabel(app.actionOwner)}
-                closed={!isOpen(app.stage)}
-              />
-            ) : (
-              <p className="muted">
-                No next action. {ownerLabel(app.actionOwner)}.
-              </p>
-            )}
-            {!isOpen(app.stage) && <p className="muted">Closed application.</p>}
-            <FeedbackOutlet channel="next-action" />
-            <DisclosureTabs
-              className="mt-4"
-              items={[
-                ...(app.nextAction || app.nextActionDate
-                  ? [
-                      {
-                        label: 'Mark done with a note',
-                        content: <FollowUpDoneForm app={app} />,
-                      },
-                    ]
-                  : []),
-                {
-                  label: 'Edit next action',
-                  content: <FollowUpForm app={app} />,
-                },
-              ]}
-            />
+            <h2 id="next-heading">Next move</h2>
+            <div
+              className={`next-move${['overdue', 'today'].includes(follow.state) ? ' is-urgent' : ''}`}
+            >
+              <div className="next-move-main">
+                <span className="attention-label">Next action</span>
+                <strong>
+                  {hasAction
+                    ? (app.nextAction ?? 'Follow up')
+                    : open
+                      ? 'Nothing set yet'
+                      : 'Closed application'}
+                </strong>
+                {hasAction && <small>{moveContext}</small>}
+                {!hasAction && open && (
+                  <small>{ownerLabel(app.actionOwner)}</small>
+                )}
+              </div>
+              {open && (
+                <div className="next-move-actions">
+                  {hasAction && (
+                    <NextActionBox
+                      id={app.id}
+                      requestId={randomUUID()}
+                      title={app.nextAction ?? 'Follow up'}
+                      primary={primary === 'mark-done'}
+                    />
+                  )}
+                  {hasAction && (
+                    <PanelButton
+                      panel="next-action"
+                      focus="done"
+                      className="link-button"
+                    >
+                      Done with a note
+                    </PanelButton>
+                  )}
+                  <PanelButton
+                    panel="next-action"
+                    focus="edit"
+                    className={
+                      primary === 'set-next-action' ? 'button' : 'link-button'
+                    }
+                  >
+                    {hasAction ? 'Edit' : 'Set next action'}
+                  </PanelButton>
+                </div>
+              )}
+            </div>
+            <FeedbackOutlet channel="next-action" className="mt-3" />
+            <SidePanel id="next-action" title="Next action">
+              {hasAction && (
+                <div className="panel-section">
+                  <h3 data-panel-focus="done" tabIndex={-1}>
+                    Done with a note
+                  </h3>
+                  <FollowUpDoneForm app={app} />
+                </div>
+              )}
+              <div className="panel-section">
+                <h3 data-panel-focus="edit" tabIndex={-1}>
+                  {hasAction ? 'Edit next action' : 'Set next action'}
+                </h3>
+                <FollowUpForm app={app} />
+              </div>
+            </SidePanel>
           </section>
 
           <section className="card" aria-labelledby="interviews-heading">
             <h2 id="interviews-heading">Interviews</h2>
             <FeedbackOutlet channel="rounds" className="mb-3" />
-            {!app.rounds.length && <p className="muted">No interviews yet.</p>}
+            {!app.rounds.length && <p className="empty">No interviews yet.</p>}
             {app.rounds.map((r) => {
               const prep = r.prepItems.filter((p) => p.kind === 'PREP'),
                 gaps = r.prepItems.filter((p) => p.kind === 'GAP'),
-                awaitingResult = r.status === 'SCHEDULED' && roundEnd(r) <= now;
+                awaitingResult = r.status === 'SCHEDULED' && roundEnd(r) <= now,
+                panelId = `round:${r.id}`,
+                blockState = !r.scheduleBlock
+                  ? null
+                  : ['CANCELLED', 'SKIPPED'].includes(r.scheduleBlock.status)
+                    ? 'cancelled'
+                    : 'on';
               return (
-                <article className="round" id={`round-${r.id}`} key={r.id}>
+                <article className="round-row" id={`round-${r.id}`} key={r.id}>
                   <div className="round-date" aria-hidden="true">
                     <b>{formatInTimeZone(r.scheduledStart, zone, 'd')}</b>
                     <small>
                       {formatInTimeZone(r.scheduledStart, zone, 'MMM')}
                     </small>
                   </div>
-                  <div className="round-body">
+                  <div className="round-main">
                     <h3>
-                      {r.title}{' '}
-                      <span className="pill">
+                      {r.title}
+                      <span
+                        className={`pill${awaitingResult ? ' warning' : ''}`}
+                      >
                         {awaitingResult ? 'Result needed' : label(r.status)}
                       </span>
                     </h3>
-                    <p className="muted">
+                    <p className="round-context">
                       {label(r.type)} · {interviewTime(r, zone)}
                       {r.interviewers ? ` · With ${r.interviewers}` : ''}
                       {r.location ? ` · ${r.location}` : ''}
+                      {blockState === 'on' && r.scheduleBlock && (
+                        <>
+                          {' · '}
+                          <Link
+                            className="link"
+                            href={`/today?date=${dayKey(r.scheduleBlock.plannedStart, zone)}#block-${r.scheduleBlock.id}`}
+                            prefetch={false}
+                          >
+                            On your schedule{' '}
+                            {weekdayDate(
+                              dayKey(r.scheduleBlock.plannedStart, zone),
+                            )}
+                          </Link>
+                        </>
+                      )}
+                      {blockState === 'cancelled' && ' · Schedule cancelled'}
+                      {!blockState &&
+                        r.status === 'SCHEDULED' &&
+                        ' · Not on your schedule'}
                     </p>
-                    {r.scheduleBlock ? (
-                      <p className="muted">
-                        On schedule ·{' '}
-                        <Link
-                          className="link"
-                          href={`/today?date=${dayKey(r.scheduleBlock.plannedStart, zone)}`}
-                        >
-                          {weekdayDate(
-                            dayKey(r.scheduleBlock.plannedStart, zone),
-                          )}
-                        </Link>
-                        {r.scheduleBlock.status === 'CANCELLED'
-                          ? ' (cancelled)'
-                          : ''}
-                      </p>
-                    ) : (
-                      r.status === 'SCHEDULED' && (
-                        <ScheduleInterviewForm roundId={r.id} />
-                      )
-                    )}
                     {r.meetingUrl && (
-                      <p>
+                      <p className="round-context">
                         <ResourceLink url={r.meetingUrl}>
                           Meeting link
                         </ResourceLink>
@@ -317,112 +352,164 @@ export default async function Application({
                           ))}
                       </dl>
                     )}
-                    <h4 className="mt-4">Preparation</h4>
-                    {prep.length ? (
-                      <ul className="plain-list">
-                        {prep.map((p) => (
-                          <li
-                            className={`prep-item${p.completed ? ' is-done' : ''}`}
-                            key={p.id}
-                          >
-                            <PrepCheck
-                              id={p.id}
-                              completed={p.completed}
-                              title={p.title}
-                            >
-                              {p.title}
-                            </PrepCheck>
-                            <PrepLink item={p} />
-                          </li>
-                        ))}
-                      </ul>
-                    ) : (
-                      <p className="muted">No prep items.</p>
-                    )}
-                    {gaps.length > 0 && (
-                      <>
-                        <h4 className="mt-4">Weak areas to study</h4>
-                        <ul className="plain-list">
-                          {gaps.map((p) => (
-                            <li
-                              className={`prep-item${p.completed ? ' is-done' : ''}`}
-                              key={p.id}
-                            >
-                              <PrepCheck
-                                id={p.id}
-                                completed={p.completed}
-                                title={p.title}
-                              >
-                                {p.title}
-                              </PrepCheck>
-                              <PrepLink item={p} />
-                            </li>
-                          ))}
-                        </ul>
-                      </>
+                    {(prep.length > 0 || gaps.length > 0) && (
+                      <div className="round-lists">
+                        {prep.length > 0 && (
+                          <>
+                            <h4>Preparation</h4>
+                            <ul className="plain-list">
+                              {prep.map((p) => (
+                                <li
+                                  className={`prep-item${p.completed ? ' is-done' : ''}`}
+                                  key={p.id}
+                                >
+                                  <PrepCheck
+                                    id={p.id}
+                                    completed={p.completed}
+                                    title={p.title}
+                                  >
+                                    {p.title}
+                                  </PrepCheck>
+                                  <PrepLink item={p} />
+                                </li>
+                              ))}
+                            </ul>
+                          </>
+                        )}
+                        {gaps.length > 0 && (
+                          <>
+                            <h4>Weak areas to study</h4>
+                            <ul className="plain-list">
+                              {gaps.map((p) => (
+                                <li
+                                  className={`prep-item${p.completed ? ' is-done' : ''}`}
+                                  key={p.id}
+                                >
+                                  <PrepCheck
+                                    id={p.id}
+                                    completed={p.completed}
+                                    title={p.title}
+                                  >
+                                    {p.title}
+                                  </PrepCheck>
+                                  <PrepLink item={p} />
+                                </li>
+                              ))}
+                            </ul>
+                          </>
+                        )}
+                      </div>
                     )}
                     <FeedbackOutlet channel={`round-${r.id}`} />
-                    {awaitingResult && (
-                      <Disclosure
-                        label="Log the result"
-                        variant="primary"
-                        defaultOpen
-                        className="mt-4"
-                      >
-                        <ResultForm round={r} stage={app.stage} />
-                      </Disclosure>
-                    )}
-                    <DisclosureTabs
-                      className="mt-3"
-                      items={[
-                        {
-                          label: 'Add prep item',
-                          content: (
-                            <PrepForm
-                              roundId={r.id}
-                              kind="PREP"
-                              links={links}
-                            />
-                          ),
-                        },
-                        {
-                          label: 'Add weak area',
-                          content: (
-                            <PrepForm roundId={r.id} kind="GAP" links={links} />
-                          ),
-                        },
-                        ...(awaitingResult
-                          ? []
-                          : [
-                              {
-                                label:
-                                  r.status === 'COMPLETED'
-                                    ? 'Edit reflection'
-                                    : 'Log result',
-                                content: (
-                                  <ResultForm round={r} stage={app.stage} />
-                                ),
-                              },
-                            ]),
-                        ...(r.status !== 'COMPLETED'
-                          ? [
-                              {
-                                label: 'Reschedule',
-                                content: <RescheduleForm round={r} />,
-                              },
-                            ]
-                          : []),
-                        {
-                          label: 'Edit details',
-                          content: <RoundDetailsForm round={r} />,
-                        },
-                      ]}
-                    />
+                    <div className="round-actions">
+                      {awaitingResult && (
+                        <PanelButton
+                          panel={panelId}
+                          focus="result"
+                          className={
+                            primary === 'log-result' && resultRound?.id === r.id
+                              ? 'button'
+                              : 'link-button'
+                          }
+                        >
+                          Log the result
+                        </PanelButton>
+                      )}
+                      {r.status === 'SCHEDULED' && !awaitingResult && (
+                        <PanelButton
+                          panel={panelId}
+                          focus="prep"
+                          className="link-button"
+                        >
+                          Add prep
+                        </PanelButton>
+                      )}
+                      {r.status === 'COMPLETED' && (
+                        <PanelButton
+                          panel={panelId}
+                          focus="result"
+                          className="link-button"
+                        >
+                          {r.outcomeNotes || r.toImprove
+                            ? 'Edit reflection'
+                            : 'Add reflection'}
+                        </PanelButton>
+                      )}
+                      {r.status !== 'COMPLETED' && (
+                        <PanelButton
+                          panel={panelId}
+                          focus="reschedule"
+                          className="link-button"
+                        >
+                          Reschedule
+                        </PanelButton>
+                      )}
+                      {r.status === 'SCHEDULED' && blockState !== 'on' && (
+                        <ScheduleInterviewForm
+                          roundId={r.id}
+                          label={
+                            blockState === 'cancelled'
+                              ? 'Add back to schedule'
+                              : 'Add to schedule'
+                          }
+                        />
+                      )}
+                    </div>
                   </div>
+                  <div className="round-side">
+                    <PanelButton
+                      panel={panelId}
+                      className="agenda-details"
+                      aria-label={`Details: ${r.title}`}
+                    >
+                      <ChevronRight size={18} aria-hidden="true" />
+                    </PanelButton>
+                  </div>
+                  <SidePanel id={panelId} title={r.title}>
+                    <p className="muted">
+                      {label(r.type)} · {interviewTime(r, zone)}
+                    </p>
+                    {r.status !== 'CANCELLED' && (
+                      <div className="panel-section">
+                        <h3 data-panel-focus="result" tabIndex={-1}>
+                          {r.status === 'COMPLETED'
+                            ? 'Reflection'
+                            : 'Log the result'}
+                        </h3>
+                        <ResultForm round={r} stage={app.stage} />
+                      </div>
+                    )}
+                    <div className="panel-section">
+                      <h3 data-panel-focus="prep" tabIndex={-1}>
+                        Add prep item
+                      </h3>
+                      <PrepForm roundId={r.id} kind="PREP" links={links} />
+                    </div>
+                    <div className="panel-section">
+                      <h3 data-panel-focus="gap" tabIndex={-1}>
+                        Add weak area
+                      </h3>
+                      <PrepForm roundId={r.id} kind="GAP" links={links} />
+                    </div>
+                    {r.status !== 'COMPLETED' && (
+                      <div className="panel-section">
+                        <h3 data-panel-focus="reschedule" tabIndex={-1}>
+                          Reschedule
+                        </h3>
+                        <RescheduleForm round={r} />
+                      </div>
+                    )}
+                    <div className="panel-section">
+                      <h3 data-panel-focus="edit" tabIndex={-1}>
+                        Edit details
+                      </h3>
+                      <RoundDetailsForm round={r} />
+                    </div>
+                  </SidePanel>
                 </article>
               );
             })}
-            {isOpen(app.stage) && (
+            {open && (
               <Disclosure
                 label="Add interview"
                 className="mt-4"
@@ -448,7 +535,9 @@ export default async function Application({
               ))}
             </ol>
             {!hasCreated && (
-              <p className="muted">Earlier events were not recorded.</p>
+              <p className="status-line">
+                <span>Earlier events were not recorded.</span>
+              </p>
             )}
             <Disclosure
               variant="link"
@@ -463,11 +552,27 @@ export default async function Application({
         <aside>
           <section className="card flat">
             <h2>Contacts</h2>
-            <p>Recruiter: {app.recruiterName ?? 'Not added'}</p>
-            {app.recruiterContact && (
-              <p className="muted">{app.recruiterContact}</p>
+            {contacts.length ? (
+              <dl className="contacts-list">
+                {contacts.map(([k, v, extra]) => (
+                  <div key={k}>
+                    <dt>{k}</dt>
+                    <dd>
+                      {v}
+                      {extra && <span className="muted"> · {extra}</span>}
+                    </dd>
+                  </div>
+                ))}
+              </dl>
+            ) : (
+              <PanelButton
+                panel="details"
+                focus="contacts"
+                className="link-button"
+              >
+                Add contacts
+              </PanelButton>
             )}
-            <p>Hiring contact: {app.hiringContact ?? 'Not added'}</p>
           </section>
           <section className="card flat">
             <h2>Notes</h2>
@@ -493,11 +598,12 @@ export default async function Application({
               </p>
             ))}
           </section>
-          <Disclosure label="Edit application">
-            <section className="card">
-              <DetailsForm app={app} />
-            </section>
-          </Disclosure>
+          <PanelButton panel="details" className="button secondary">
+            Edit application
+          </PanelButton>
+          <SidePanel id="details" title="Edit application">
+            <DetailsForm app={app} />
+          </SidePanel>
         </aside>
       </div>
     </>

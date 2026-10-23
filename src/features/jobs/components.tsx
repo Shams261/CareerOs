@@ -1,82 +1,58 @@
 import Link from 'next/link';
-import {
-  followUpState,
-  interviewTime,
-  isOpen,
-  label,
-  lastActivityDays,
-  nextRound,
-  type AppLike,
-  type Attention,
-} from './domain';
-import { shortDate } from '@/lib/time';
+import { Briefcase, ChevronRight } from 'lucide-react';
+import { applicationMove, label, type AppLike } from './domain';
 
-type RowApp = AppLike & {
+export type RowApp = AppLike & {
   company: string;
   role: string;
   lastActivityAt: Date;
 };
-const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? '' : 's'}`;
 
-/** Plain-text status line: status never depends on color. */
-export function nextLine(app: RowApp, now: Date, zone: string, today: string) {
-  if (!isOpen(app.stage)) return `Closed · ${label(app.stage)}`;
-  const parts: string[] = [];
-  const round = nextRound(app.rounds, now);
-  if (round) parts.push(`Next: ${round.title} — ${interviewTime(round, zone)}`);
-  const follow = followUpState(app, today);
-  const action = app.nextAction ?? 'Follow up';
-  if (follow.state === 'overdue')
-    parts.push(`${action} — overdue by ${plural(follow.days, 'day')}`);
-  else if (follow.state === 'today') parts.push(`${action} — due today`);
-  else if (follow.state === 'upcoming')
-    parts.push(`${action} — due ${shortDate(follow.date)}`);
-  else if (app.nextAction) parts.push(app.nextAction);
-  if (app.actionOwner === 'COMPANY') {
-    const days = lastActivityDays(app.lastActivityAt, now, zone);
-    parts.push(
-      `Waiting on company · last activity ${days ? `${plural(days, 'day')} ago` : 'today'}`,
-    );
-  } else if (app.actionOwner === 'ME' && !parts.length) parts.push('Your move');
-  return parts.join(' · ') || 'No next step set';
-}
-export function attentionText(a: Attention, zone: string) {
-  switch (a.kind) {
-    case 'FOLLOW_UP_OVERDUE':
-      return `Follow-up overdue by ${plural(a.days, 'day')}`;
-    case 'FOLLOW_UP_TODAY':
-      return 'Follow-up due today';
-    case 'RESULT_NEEDED':
-      return `Log result: ${a.round.title}`;
-    case 'INTERVIEW_SOON':
-      return `Interview: ${a.round.title} — ${interviewTime(a.round, zone)}`;
-    case 'ACTION_REQUIRED':
-      return 'Your move (no date set)';
-  }
-}
+/**
+ * One application as Today's row recipe (WI-022): the briefcase tile, the company as the
+ * label, the next move as the title, the role and the due context underneath, a chevron.
+ * The whole row is the link. The stage pill shows only when rows are not grouped by stage.
+ */
 export function ApplicationRow({
   app,
   now,
   zone,
-  today,
+  showStage = false,
 }: {
   app: RowApp;
   now: Date;
   zone: string;
-  today: string;
+  showStage?: boolean;
 }) {
-  const line = nextLine(app, now, zone, today);
-  const urgent = ['overdue', 'today'].includes(followUpState(app, today).state);
+  const move = applicationMove(app, now, zone);
   return (
-    <li className="dsa-item">
-      <Link className="link row-title" href={`/jobs/${app.id}`}>
-        {app.company}
-      </Link>{' '}
-      <span className="muted">· {app.role}</span>
-      <p className="muted">
-        <span className="pill">{label(app.stage)}</span>{' '}
-        {urgent ? <strong className="row-urgent">{line}</strong> : line}
-      </p>
+    <li
+      className={`attention-row${move.urgent ? ' is-urgent' : ''}`}
+      data-source="job"
+    >
+      <Link
+        className="attention-link"
+        href={`/jobs/${app.id}`}
+        prefetch={false}
+        aria-label={`${app.company} — ${app.role}: ${move.title}`}
+      >
+        <span className="attention-icon" aria-hidden="true">
+          <Briefcase size={22} />
+        </span>
+        <span className="attention-main">
+          <span className="attention-label">{app.company}</span>
+          <span className="attention-title">{move.title}</span>
+          <span className="attention-context">{move.context}</span>
+        </span>
+        {showStage && (
+          <span className="pill application-stage">{label(app.stage)}</span>
+        )}
+        <ChevronRight
+          size={18}
+          aria-hidden="true"
+          className="attention-chevron"
+        />
+      </Link>
     </li>
   );
 }

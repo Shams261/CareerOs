@@ -4162,3 +4162,220 @@ a.attention-link:hover .attention-title {
     text-align: right;
   }
 }
+
+/* WI-022: Jobs as moves. The list and the rail reuse Today's workspace and rows. */
+.jobs-workspace.is-today {
+  grid-template-areas: 'main rail';
+  grid-template-columns: minmax(0, 1fr) 340px;
+}
+.jobs-main {
+  grid-area: main;
+  min-width: 0;
+}
+.jobs-group {
+  margin-top: 18px;
+}
+.jobs-group > .agenda-label {
+  margin-bottom: 2px;
+}
+.jobs-main .attention-link {
+  grid-template-columns: 48px minmax(0, 1fr) auto 18px;
+}
+.jobs-main .attention-row:not(.is-urgent) .attention-context {
+  color: var(--muted);
+}
+.application-stage {
+  white-space: nowrap;
+}
+.rail-head {
+  margin-top: 28px;
+}
+.rail-fact {
+  margin: 4px 0 0;
+  font-size: 14px;
+}
+.rail-fact strong {
+  display: block;
+}
+/* Application page: company line, one next move, interview rows. */
+.company-line {
+  margin: 12px 0 2px;
+  font-size: 15px;
+  color: var(--ink-2);
+}
+.next-move {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px 16px;
+  align-items: center;
+  padding: 14px 16px;
+  border-radius: var(--radius-md);
+  background: var(--tint);
+}
+.next-move.is-urgent {
+  background: var(--warning-bg);
+}
+.next-move-main {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+.next-move-main .attention-label {
+  display: block;
+}
+.next-move-main strong {
+  font-size: 17px;
+}
+.next-move-main small {
+  color: var(--ink-2);
+  font-size: 14px;
+}
+.next-move-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  align-items: center;
+  justify-content: flex-end;
+}
+.next-move-actions form,
+.next-move-actions fieldset,
+.next-move-actions .actions {
+  display: contents;
+}
+.round-row {
+  display: grid;
+  grid-template-columns: 56px minmax(0, 1fr) auto;
+  gap: 4px 16px;
+  align-items: start;
+  padding: 16px 0;
+  border-top: 1px solid var(--border-subtle);
+}
+.round-row:first-of-type {
+  border-top: 0;
+}
+.round-row .round-date {
+  margin-top: 2px;
+}
+.round-main {
+  min-width: 0;
+}
+.round-main h3 {
+  margin: 0;
+  font-size: 17px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.round-main .round-context {
+  margin: 2px 0 0;
+  font-size: 14px;
+  color: var(--ink-2);
+}
+.round-main .round-context .link {
+  font-size: inherit;
+}
+.round-lists {
+  margin-top: 10px;
+  display: grid;
+  gap: 2px;
+}
+.round-lists h4 {
+  margin: 8px 0 2px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.round-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  align-items: center;
+  margin-top: 8px;
+}
+.round-actions form,
+.round-actions fieldset,
+.round-actions .actions {
+  display: contents;
+}
+.round-actions .link-button {
+  font-size: 15px;
+  font-weight: 500;
+  text-decoration: none;
+  color: var(--ink-2);
+  min-height: 28px;
+}
+.round-actions .link-button:hover {
+  color: var(--primary);
+  text-decoration: underline;
+}
+.round-side {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  justify-self: end;
+}
+.round-side .agenda-details {
+  text-decoration: none;
+}
+.panel-section + .panel-section {
+  margin-top: 24px;
+  padding-top: 20px;
+  border-top: 1px solid var(--border-subtle);
+}
+.panel-section h3 {
+  margin: 0 0 10px;
+  font-size: 16px;
+}
+.contacts-list {
+  margin: 0;
+  display: grid;
+  gap: 6px;
+}
+.contacts-list dt {
+  font-size: 12px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.contacts-list dd {
+  margin: 0;
+}
+@media (max-width: 1099px) {
+  .jobs-workspace.is-today {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas: 'rail' 'main';
+  }
+}
+@media (max-width: 700px) {
+  .jobs-main .attention-link {
+    grid-template-columns: 48px minmax(0, 1fr) 18px;
+  }
+  .application-stage {
+    display: none;
+  }
+  .round-row {
+    grid-template-columns: 48px minmax(0, 1fr);
+  }
+  .round-side {
+    grid-column: 2;
+    justify-self: start;
+  }
+  .next-move {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .next-move-actions {
+    justify-content: flex-start;
+  }
+}
+.form-section {
+  margin: 18px 0 8px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink-2);
+}
+.form-section:first-of-type {
+  margin-top: 4px;
+}

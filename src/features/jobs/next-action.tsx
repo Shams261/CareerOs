@@ -14,47 +14,35 @@ export function NextActionBox({
   id,
   requestId,
   title,
-  due,
-  mine,
-  ownerText,
-  closed,
+  primary = false,
 }: {
   id: string;
   /** Minted on the server so the hidden field matches between render and hydration. */
   requestId: string;
   title: string;
-  due: string;
-  mine: boolean;
-  ownerText: string;
-  closed: boolean;
+  /** True when Mark done is the page's one filled primary. */
+  primary?: boolean;
 }) {
   const [done, setDone] = useState(false);
   return (
-    <div className={`next-action${done ? ' is-done' : ''}`}>
-      <div className="next-action-main">
-        <strong>{title}</strong>
-        <small>
-          <span className={`pill ${mine ? 'warning' : ''}`}>{ownerText}</span> ·{' '}
-          {done ? 'done' : due}
-        </small>
-      </div>
-      {!closed && (
-        <ActionForm
-          action={followUpDoneAction}
-          broadcast="next-action"
-          onPending={() => setDone(true)}
-          onSettled={(r) => {
-            if (!r.ok) setDone(false);
-          }}
-        >
-          <input type="hidden" name="id" value={id} />
-          <input type="hidden" name="requestId" value={requestId} />
-          <input type="hidden" name="actionOwner" value="ME" />
-          <Button variant="secondary" aria-label={`Mark done: ${title}`}>
-            <Check size={14} aria-hidden="true" /> {done ? 'Done' : 'Mark done'}
-          </Button>
-        </ActionForm>
-      )}
-    </div>
+    <ActionForm
+      action={followUpDoneAction}
+      broadcast="next-action"
+      onPending={() => setDone(true)}
+      onSettled={(r) => {
+        if (!r.ok) setDone(false);
+      }}
+    >
+      <input type="hidden" name="id" value={id} />
+      <input type="hidden" name="requestId" value={requestId} />
+      <input type="hidden" name="actionOwner" value="ME" />
+      <Button
+        variant={primary ? 'primary' : 'secondary'}
+        aria-label={`Mark done: ${title}`}
+        disabled={done}
+      >
+        <Check size={14} aria-hidden="true" /> {done ? 'Done' : 'Mark done'}
+      </Button>
+    </ActionForm>
   );
 }
