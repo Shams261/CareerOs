@@ -279,7 +279,7 @@ Attention is derived, not stored: overdue follow-up, result needed, interview be
 
 - **One block row.** The resolution, its words, the title rule for a linked interview and the meta line live in `src/features/schedule/row.ts`; the row skeleton in `src/features/schedule/block-row.tsx`. Today, Plan and (from WI-024) the Weekly review render blocks through them. A page may add its own side content (Today: actions, Details, a panel; Plan: a link to Today) but never its own status words.
 - **Plan is the week as days**, not a grid: one facts line, a strip of day chips, seven stacked day sections whose heading is the single link to that day on Today. Acting on a block (start, log, reschedule, skip) stays on Today; Plan links there. Routines are a panel, so the week is first on every screen.
-- **24-hour time everywhere.** `hhmm` in `src/lib/time.ts` is the only clock formatter; `clock` is a deprecated alias until WI-024 removes it. Dates keep `shortDate` / `weekdayDate`.
+- **24-hour time everywhere.** `hhmm` in `src/lib/time.ts` is the only clock formatter; `clock` was removed in WI-024. Dates keep `shortDate` / `weekdayDate`.
 - **Counts are records.** Pages may state "12 done · 53 left"; they do not draw progress bars, ratios ("3 / 5 completed") or pace estimates.
 
 **Alternatives rejected:** keeping the 7-column grid with Today's row inside each column (at 1440 with the sidebar a column is about 150 px, too narrow for `time | dot | title | status`); a 12-hour Today with 24-hour elsewhere (the owner wanted one format); a separate "week row" component for Plan (two row recipes to keep in step).

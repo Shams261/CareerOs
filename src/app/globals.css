@@ -4395,3 +4395,77 @@ a.attention-link:hover .attention-title {
     transition: none;
   }
 }
+
+/* WI-024: the Weekly review closes the week with Today's rows. */
+.review-days {
+  margin-top: 8px;
+}
+.review-days .week-day-section {
+  margin-top: 22px;
+}
+.review-days .week-day-head h3 {
+  margin: 0;
+  font-size: 17px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.review-days .week-day-head h3 a {
+  color: inherit;
+  text-decoration: none;
+}
+.review-days .week-day-head h3 a:hover {
+  color: var(--primary);
+}
+.review-days .week-day-section.is-today .week-day-head h3 a {
+  color: var(--primary);
+}
+.next-rows {
+  margin: 0 0 12px;
+  display: grid;
+  gap: 0;
+}
+.next-row {
+  display: grid;
+  grid-template-columns: 150px minmax(0, 1fr);
+  gap: 2px 16px;
+  padding: 10px 0;
+  border-top: 1px solid var(--border-subtle);
+  font-size: 15px;
+}
+.next-row:first-child {
+  border-top: 0;
+}
+.next-row-when {
+  color: var(--ink-2);
+  font-variant-numeric: tabular-nums;
+}
+.next-row .link {
+  font-size: inherit;
+}
+.next-row .muted {
+  grid-column: 2;
+  font-size: 13px;
+}
+@media (max-width: 700px) {
+  .next-row {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .next-row .muted {
+    grid-column: 1;
+  }
+}
+
+/* A header whose primary stays visible beside the More menu on narrow screens. */
+.today-head-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+.today-head-actions > .button {
+  max-width: 100%;
+  white-space: normal;
+  text-align: left;
+}

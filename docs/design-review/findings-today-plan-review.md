@@ -114,6 +114,8 @@ Summary (Plan):
 | R-11 | Review | Copy          | P3       | A muted explanatory paragraph sits inside the Prepare form (forms.tsx:197-200), against the CLAUDE.md rule. The success message says "day(s)" (actions.ts:88-90). Validation errors are raw Zod text (actions.ts:30-33), unlike the labelled ones in validation.ts:19-30.                                                                       | Copy and validation are inconsistent with the rest of the app.               | Remove the paragraph, pluralise properly, use `issueMessages`.                                                                                                  | S      |
 | R-12 | Review | UI            | P3       | Review forms use `.dsa-form` spacing (forms.tsx:36, 148, 215; globals.css:536-549), but PrepareNextWeekForm doesn't (forms.tsx:195), and the schedule forms rely on label margins. Reminder settings live in two places (page.tsx:395-397 links to Settings; 709-715 has an inline form under Past reviews).                                    | Spacing drifts; two places to set reminders.                                 | Add a neutral `.form-stack` class for all ActionForms; keep reminders in Settings only.                                                                         | S      |
 
+Closed in WI-024 (2026-10-23): R-3 (one feedback outlet per list stays; priorities broadcast to it), R-6 (day headings are the links, no bare "Open"), R-8 (zeros left out of the summary line), R-9 (the status leads the summary line, not the navigation), R-10 (arrow keys move weeks), R-12 (reminders only in Settings).
+
 **Nielsen heuristics – Weekly review** (all others 2)
 
 | Heuristic                 | Score | Evidence                                                                 |

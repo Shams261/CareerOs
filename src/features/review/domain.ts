@@ -91,12 +91,18 @@ type BlockIn = {
   /** Owner-calendar date of the block's DailyPlan. */
   day: string;
   goalId?: string | null;
+  description?: string | null;
+  skipReason?: string | null;
+  interviewRoundId?: string | null;
 };
 type SessionIn = {
+  id?: string;
   category: string;
   startedAt: Date;
   endedAt: Date | null;
   goalId?: string | null;
+  /** The block the session was recorded against; tells "needs update" from "not recorded". */
+  taskId?: string | null;
 };
 const clipped = (s: Date, e: Date, b: WeekBounds) =>
   minutes(new Date(Math.max(+b.start, +s)), new Date(Math.min(+b.end, +e)));
@@ -158,11 +164,23 @@ export function scheduleWeek(
     if (unrecorded(x, now)) c.unrecorded++;
     byCategory.set(label, c);
   }
+  const recordedFor = (id: string) =>
+    sessions
+      .filter((s) => s.taskId === id)
+      .map((s, i) => ({
+        id: s.id ?? `${id}:${i}`,
+        startedAt: s.startedAt,
+        endedAt: s.endedAt,
+      }));
   return {
     totals: {
       ...totals,
       cancelled: blocks.length - live.length,
       unrecorded: live.filter((x) => unrecorded(x, now)).length,
+      /** Past blocks with sessions but no decision; a subset of `unrecorded`. */
+      needsUpdate: live.filter(
+        (x) => unrecorded(x, now) && recordedFor(x.id).length > 0,
+      ).length,
     },
     focus: { planned: totals.plannedFocus, actual: totals.actualFocus },
     rows: [...rows.values()]
@@ -204,20 +222,33 @@ export function scheduleWeek(
       items: blocks
         .filter((x) => x.day === day)
         .sort((a, c) => +a.plannedStart - +c.plannedStart)
-        .map((x) => ({
-          id: x.id,
-          title: x.title,
-          state:
-            x.status === 'COMPLETED'
-              ? ('done' as const)
-              : x.status === 'SKIPPED'
-                ? ('skipped' as const)
-                : x.status === 'CANCELLED'
-                  ? ('cancelled' as const)
-                  : unrecorded(x, now)
-                    ? ('unrecorded' as const)
-                    : ('planned' as const),
-        })),
+        .map((x) => {
+          const recorded = recordedFor(x.id);
+          return {
+            id: x.id,
+            title: x.title,
+            category: x.category,
+            status: x.status,
+            plannedStart: x.plannedStart,
+            plannedEnd: x.plannedEnd,
+            description: x.description ?? null,
+            skipReason: x.skipReason ?? null,
+            interviewRoundId: x.interviewRoundId ?? null,
+            sessions: recorded,
+            state:
+              x.status === 'COMPLETED'
+                ? ('done' as const)
+                : x.status === 'SKIPPED'
+                  ? ('skipped' as const)
+                  : x.status === 'CANCELLED'
+                    ? ('cancelled' as const)
+                    : unrecorded(x, now)
+                      ? recorded.length
+                        ? ('needs-update' as const)
+                        : ('unrecorded' as const)
+                      : ('planned' as const),
+          };
+        }),
     })),
     unrecordedBlocks: live.filter((x) => unrecorded(x, now)),
     focusCategories: [...new Set(live.map((x) => x.category))].filter(
@@ -457,3 +488,45 @@ export const priorityInput = z.object({
   ),
   targetUnit: text(40),
 });
+
+/**
+ * The review's one factual line (WI-024): the review's state, then the week's counts with
+ * zeros left out, then the focus time. Never a score.
+ */
+export function reviewSummaryLine(
+  status: string,
+  totals: {
+    planned: number;
+    completed: number;
+    skipped: number;
+    unrecorded: number;
+    needsUpdate?: number;
+  },
+  focusActual: number,
+) {
+  const needsUpdate = totals.needsUpdate ?? 0;
+  const notRecorded = totals.unrecorded - needsUpdate;
+  const parts = [status, `${totals.planned} planned`];
+  if (totals.completed) parts.push(`${totals.completed} done`);
+  if (totals.skipped) parts.push(`${totals.skipped} skipped`);
+  if (notRecorded) parts.push(`${notRecorded} not recorded`);
+  if (needsUpdate) parts.push(`${needsUpdate} recorded, needs update`);
+  if (focusActual) parts.push(`${formatMinutes(focusActual)} focus`);
+  return parts.join(' · ');
+}
+/** "2 of 3 done · 1 skipped · 1 not recorded" for a day's rows; "No plan" when empty. */
+export function dayHeading(items: { state: string }[]) {
+  const live = items.filter((i) => i.state !== 'cancelled');
+  if (!live.length) return 'No plan';
+  const count = (state: string) => live.filter((i) => i.state === state).length;
+  return [
+    `${count('done')} of ${live.length} done`,
+    count('skipped') ? `${count('skipped')} skipped` : '',
+    count('unrecorded') ? `${count('unrecorded')} not recorded` : '',
+    count('needs-update')
+      ? `${count('needs-update')} recorded, needs update`
+      : '',
+  ]
+    .filter(Boolean)
+    .join(' · ');
+}

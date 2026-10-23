@@ -4,6 +4,7 @@ import { owner } from '@/server/db';
 import { dayKey } from '@/lib/time';
 import { Disclosure } from '@/components/disclosure';
 import { PageShortcuts } from '@/components/shortcuts';
+import { UtilityMenu } from '@/features/today/utility-menu';
 import { BrandMark } from '@/components/brand';
 import { RoadmapIllustration } from '@/components/illustrations';
 import { FeedbackOutlet } from '@/components/feedback-outlet';
@@ -55,20 +56,20 @@ export default async function RoadmapPage() {
           <div className="today-title">
             <h1>Roadmap</h1>
           </div>
-          <div className="today-utils">
-            <div className="today-utils-items">
-              {goals.length > 0 && (
+          <div className="today-head-actions">
+            {goals.length > 0 && (
+              <UtilityMenu>
                 <PanelButton panel="goals" className="link-button today-util">
                   {active.length === 1 ? 'Edit goal' : 'Goals'}
                 </PanelButton>
-              )}
-              {next && (
-                <Link className="button" href={next.href} prefetch={false}>
-                  Continue · {next.title}{' '}
-                  <ArrowRight size={14} aria-hidden="true" />
-                </Link>
-              )}
-            </div>
+              </UtilityMenu>
+            )}
+            {next && (
+              <Link className="button" href={next.href} prefetch={false}>
+                Continue · {next.title}{' '}
+                <ArrowRight size={14} aria-hidden="true" />
+              </Link>
+            )}
           </div>
         </div>
         {active.length > 0 && (

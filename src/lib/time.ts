@@ -34,8 +34,6 @@ export const weekdayDate = (day: string) =>
 /** A clock time as the app reads it everywhere since WI-021: "06:00", "19:30". */
 export const hhmm = (date: Date, zone: string) =>
   formatInTimeZone(date, zone, 'HH:mm');
-/** @deprecated Use `hhmm`; kept for one work item. */
-export const clock = hhmm;
 export function minutes(start: Date, end: Date) {
   return Math.max(0, differenceInMinutes(end, start));
 }
