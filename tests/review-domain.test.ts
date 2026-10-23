@@ -8,6 +8,8 @@ import {
   learningWeek,
   reviewInput,
   routinePreview,
+  dayHeading,
+  reviewSummaryLine,
   scheduleWeek,
   weekBounds,
   weekOf,
@@ -415,5 +417,73 @@ describe('next week and prompts', () => {
     expect(weeklyReminderDue(sunday, zone, '18:00', false)).toBe('2026-09-21');
     expect(weeklyReminderDue(sunday, zone, '18:00', true)).toBeNull();
     expect(weeklyReminderDue(saturday, zone, '18:00', false)).toBeNull();
+  });
+});
+
+describe('WI-024 review lines', () => {
+  it('tells a recorded block that needs a decision from one with nothing recorded', () => {
+    const b = weekBounds('2026-09-21', zone);
+    const block = (id: string, day: string, start: string, end: string) => ({
+      id,
+      title: id,
+      category: 'DSA',
+      status: 'PLANNED',
+      plannedStart: at(day, start),
+      plannedEnd: at(day, end),
+      day,
+    });
+    const s = scheduleWeek(
+      [
+        block('a', '2026-09-21', '07:00', '08:00'),
+        block('b', '2026-09-21', '09:00', '10:00'),
+      ],
+      [
+        {
+          id: 's1',
+          category: 'DSA',
+          startedAt: at('2026-09-21', '07:00'),
+          endedAt: at('2026-09-21', '07:20'),
+          taskId: 'a',
+        },
+      ],
+      b,
+      at('2026-09-22', '12:00'),
+    );
+    expect(
+      s.days[0].items.map((i) => [i.id, i.state, i.sessions.length]),
+    ).toEqual([
+      ['a', 'needs-update', 1],
+      ['b', 'unrecorded', 0],
+    ]);
+    expect(s.totals).toMatchObject({ unrecorded: 2, needsUpdate: 1 });
+    expect(dayHeading(s.days[0].items)).toBe(
+      '0 of 2 done · 1 not recorded · 1 recorded, needs update',
+    );
+    expect(dayHeading([])).toBe('No plan');
+    expect(dayHeading([{ state: 'cancelled' }])).toBe('No plan');
+  });
+  it('writes the summary line without zeros', () => {
+    expect(
+      reviewSummaryLine(
+        'Not started',
+        {
+          planned: 20,
+          completed: 14,
+          skipped: 2,
+          unrecorded: 4,
+          needsUpdate: 1,
+        },
+        580,
+      ),
+    ).toBe(
+      'Not started · 20 planned · 14 done · 2 skipped · 3 not recorded · 1 recorded, needs update · 9h 40m focus',
+    );
+    expect(
+      reviewSummaryLine(
+        'Draft',
+        { planned: 0, completed: 0, skipped: 0, unrecorded: 0 },
+        0,
+      ),
+    ).toBe('Draft · 0 planned');
   });
 });

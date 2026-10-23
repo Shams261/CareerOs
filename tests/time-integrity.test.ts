@@ -12,7 +12,7 @@ import {
   repairTimestamps,
 } from '../scripts/lib/timestamp-integrity';
 import { interviewTime } from '../src/features/jobs/domain';
-import { clock } from '../src/lib/time';
+import { hhmm } from '../src/lib/time';
 vi.mock('server-only', () => ({}));
 
 const url = process.env.TEST_DATABASE_URL;
@@ -323,7 +323,7 @@ describe.skipIf(!url)('database time integrity (ADR-009)', () => {
     const b = await pinned.timeBlock.findUniqueOrThrow({
       where: { id: block.id },
     });
-    expect(clock(b.plannedStart, 'America/Toronto')).toBe('09:00');
+    expect(hhmm(b.plannedStart, 'America/Toronto')).toBe('09:00');
     const activity = await pinned.jobActivity.findFirstOrThrow({
       where: { applicationId: app.id },
     });

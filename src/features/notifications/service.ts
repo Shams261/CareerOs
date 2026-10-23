@@ -1,12 +1,12 @@
 import 'server-only';
 import { db } from '@/server/db';
-import { dayKey, localInstant } from '@/lib/time';
+import { dayKey, hhmm, localInstant } from '@/lib/time';
 import { reminderKey, reviewReminderDue } from './domain';
 import { locked } from '@/features/schedule/service';
 import { blockReminderDue } from './domain';
 import { followUpReminderDue, interviewWindow } from '@/features/jobs/domain';
 import { weekOf, weeklyReminderDue } from '@/features/review/domain';
-import { clock, weekdayDate } from '@/lib/time';
+import { weekdayDate } from '@/lib/time';
 export async function processNotifications(now = new Date()) {
   const users = await db().user.findMany({
     include: { preferences: { where: { enabled: true } } },
@@ -100,7 +100,7 @@ export async function processNotifications(now = new Date()) {
               await queue(
                 b.id,
                 b.plannedEnd.toISOString(),
-                `You planned ${b.title} from ${clock(b.plannedStart, user.timezone)}–${clock(b.plannedEnd, user.timezone)} and haven’t recorded progress.`,
+                `You planned ${b.title} from ${hhmm(b.plannedStart, user.timezone)}–${hhmm(b.plannedEnd, user.timezone)} and haven’t recorded progress.`,
                 b.plannedEnd,
               );
           }
@@ -150,7 +150,7 @@ export async function processNotifications(now = new Date()) {
             if (!window) continue;
             // Relative words age badly in an inbox: the absolute date always travels with them (B9).
             const startDay = dayKey(r.scheduledStart, user.timezone);
-            const when = `${startDay === dayKey(now, user.timezone) ? 'today' : 'tomorrow'}, ${weekdayDate(startDay)} at ${clock(r.scheduledStart, user.timezone)}`;
+            const when = `${startDay === dayKey(now, user.timezone) ? 'today' : 'tomorrow'}, ${weekdayDate(startDay)} at ${hhmm(r.scheduledStart, user.timezone)}`;
             const prep = r.prepItems.length
               ? ` ${r.prepItems.length} prep item${r.prepItems.length === 1 ? '' : 's'} open.`
               : '';
