@@ -26,6 +26,11 @@ const core = z.object({
       'DATABASE_URL must be a PostgreSQL URL',
     ),
   OWNER_EMAIL: z.email(),
+  /** Shown on /privacy as the contact; defaults to the owner email. */
+  PRIVACY_CONTACT_EMAIL: z
+    .email()
+    .optional()
+    .or(z.literal('').transform(() => undefined)),
   CRON_SECRET: z.string().min(32),
   /** Connections per server process; keep small for hosted/serverless PostgreSQL. */
   DATABASE_POOL_MAX: z.coerce.number().int().min(1).max(50).default(5),
@@ -244,3 +249,7 @@ export function configProblems(
   }
   return [...new Set(problems)];
 }
+
+/** The address the public privacy page names; the owner email unless one is set. */
+export const privacyContact = () =>
+  env().PRIVACY_CONTACT_EMAIL ?? env().OWNER_EMAIL;

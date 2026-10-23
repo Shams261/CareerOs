@@ -13,6 +13,7 @@ function equal(a: string, b: string) {
 /** Reachable without a session; each validates its own credentials or serves no personal data. */
 const PUBLIC = [
   /^\/login$/,
+  /^\/privacy$/,
   /^\/api\/auth\/callback$/,
   /^\/api\/health$/,
   /^\/api\/calendar\/webhook$/,

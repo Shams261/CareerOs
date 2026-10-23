@@ -47,6 +47,7 @@ describe('proxy access control', () => {
     expect(await api.json()).toEqual({ error: 'unauthorized' });
     for (const open of [
       '/login',
+      '/privacy',
       '/api/health',
       '/api/auth/callback',
       '/api/calendar/webhook',
