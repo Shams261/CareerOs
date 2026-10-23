@@ -57,3 +57,5 @@ See the [WI-021 handoff](WI-021-HANDOFF.md) for Plan as days: the shared block r
 See the [WI-022 handoff](WI-022-HANDOFF.md) for Jobs as moves: application rows and the attention rail in Today's words, one primary per application page, round forms in panels, and the interview-block fixes.
 
 See the [WI-023 handoff](WI-023-HANDOFF.md) for Roadmap as rows: Continue as the primary, goal record lines, roadmap rows, the Due for revision rail and the detail page without bars.
+
+See the [WI-024 handoff](WI-024-HANDOFF.md) for the Weekly review: one summary line, day sections with the shared block rows, next-week rows and Details without a second reminder form.
