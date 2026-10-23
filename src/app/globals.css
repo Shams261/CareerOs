@@ -4375,6 +4375,14 @@ a.attention-link:hover .attention-title {
   content: ' · ';
 }
 @media (max-width: 700px) {
+  .today-summary > span {
+    display: block;
+  }
+  .today-summary > span + span::before {
+    content: none;
+  }
+}
+@media (max-width: 700px) {
   .roadmap-workspace .attention-link {
     grid-template-columns: 48px minmax(0, 1fr) 18px;
   }
