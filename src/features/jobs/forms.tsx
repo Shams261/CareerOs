@@ -717,6 +717,7 @@ export function JobReminderForm({
       action={jobReminderAction}
       label="Job reminders"
       className="dsa-form"
+      closeOnSuccess
     >
       <label className="check">
         <input
