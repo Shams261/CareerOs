@@ -3,8 +3,19 @@
  * with their linked-interview identity, and the "needs attention" queue. No I/O, no
  * component code; everything here is covered by tests/today-domain.test.ts.
  */
-import { dayKey, hhmm, minutes, shortDate, weekdayDate } from '@/lib/time';
+import { dayKey, hhmm, minutes, weekdayDate } from '@/lib/time';
 import type { Attention } from '@/features/jobs/domain';
+import {
+  dueContext,
+  interviewPrepRows,
+  jobAttentionRows,
+  practiceRevisionRows,
+  revisionContext,
+  roadmapRevisionRows,
+  sortAttention,
+  type AttentionItem,
+  type AttentionSource,
+} from '@/features/attention/domain';
 import {
   blockResolution,
   blockTitle,
@@ -214,24 +225,14 @@ export function groupAgenda(
 
 /* ---------- Needs attention ---------- */
 
-export type AttentionSource =
-  'interview-prep' | 'job' | 'practice' | 'roadmap' | 'notification' | 'weekly';
-export type AttentionItem = {
-  id: string;
-  source: AttentionSource;
-  /** The small category label. */
-  label: string;
-  title: string;
-  /** Explicit due context: "Overdue by 2 days", "Today at 10:00 AM". */
-  context: string;
-  href: string | null;
-  /** 1 interview prep today · 2 overdue · 3 due today · 4 upcoming. */
-  tier: 1 | 2 | 3 | 4;
-  /** Due instant for ordering inside a tier. */
-  due: number;
-  /** Reminders merged into this row, so Mark read stays available. */
-  notificationIds: string[];
+// The row types and builders are shared with Jobs and the Roadmap since WI-022.
+export {
+  dueContext,
+  revisionContext,
+  type AttentionItem,
+  type AttentionSource,
 };
+
 export type AttentionInput = {
   now: Date;
   zone: string;
@@ -245,18 +246,18 @@ export type AttentionInput = {
     };
     reasons: Attention[];
   }[];
-  practice: {
-    id: string;
-    title: string;
-    confidence: string;
-    nextRevisionAt: Date | null;
-  }[];
   roadmap: {
     id: string;
     title: string;
     section: string;
     nextRevisionAt: Date | null;
     roadmap: { id: string; title: string };
+  }[];
+  practice: {
+    id: string;
+    title: string;
+    confidence: string;
+    nextRevisionAt: Date | null;
   }[];
   notifications: {
     id: string;
@@ -276,25 +277,6 @@ export type AttentionInput = {
   }[];
 };
 
-const dateLabel = (d: Date) => d.toISOString().slice(0, 10);
-const daysBetween = (from: string, to: string) =>
-  Math.round(
-    (+new Date(`${to}T12:00:00Z`) - +new Date(`${from}T12:00:00Z`)) / 86400000,
-  );
-/** "Overdue by 2 days" / "Due today" for a DATE label against the owner's day. */
-function dueContext(date: string, today: string) {
-  const days = daysBetween(date, today);
-  return days > 0
-    ? `Overdue by ${days} day${days === 1 ? '' : 's'}`
-    : days === 0
-      ? 'Due today'
-      : `Due ${shortDate(date)}`;
-}
-/** "Revision due today", "Revision overdue by 2 days": the revision rows read as one phrase. */
-function revisionContext(date: string, today: string) {
-  const due = dueContext(date, today);
-  return `Revision ${due.charAt(0).toLowerCase()}${due.slice(1)}`;
-}
 /** The entity id a reminder was keyed on (`user:type:entity:occurrence`). */
 export const notificationEntity = (dedupeKey: string) =>
   dedupeKey.split(':')[2] ?? '';
@@ -306,137 +288,28 @@ export const notificationEntity = (dedupeKey: string) =>
 export function attentionItems(input: AttentionInput): AttentionItem[] {
   const { now, zone } = input;
   const today = dayKey(now, zone);
-  const items: AttentionItem[] = [];
-  // Interview rows by round id (prep, result, upcoming) and follow-up rows by application id:
-  // a reminder merges only into the row that is about the same action.
+  const prep = interviewPrepRows(input.interviews, now, zone);
+  const items: AttentionItem[] = [
+    ...prep,
+    ...jobAttentionRows(
+      input.jobs,
+      now,
+      zone,
+      new Set(prep.map((i) => i.id.slice('prep:'.length))),
+    ),
+    ...practiceRevisionRows(input.practice, now, zone),
+    ...roadmapRevisionRows(input.roadmap, now, zone),
+  ];
+  // Interview rows by round id (prep, result, upcoming) and follow-up rows by application
+  // id: a reminder merges only into the row that is about the same action.
   const byRound = new Map<string, AttentionItem>();
   const followUpByApp = new Map<string, AttentionItem>();
-  for (const r of input.interviews) {
-    const end = r.scheduledEnd ?? new Date(+r.scheduledStart + 60 * 60000);
-    // Prep is only worth a row while the interview is still ahead; afterwards the result is.
-    if (
-      r.openPrep > 0 &&
-      end > now &&
-      dayKey(r.scheduledStart, zone) === today
-    ) {
-      const item: AttentionItem = {
-        id: `prep:${r.id}`,
-        source: 'interview-prep',
-        label: 'Jobs',
-        title: `Prepare ${r.title}`,
-        context: `${r.company} · Today at ${hhmm(r.scheduledStart, zone)} · ${r.openPrep} prep item${r.openPrep === 1 ? '' : 's'} open`,
-        href: `/jobs/${r.applicationId}#round-${r.id}`,
-        tier: 1,
-        due: +r.scheduledStart,
-        notificationIds: [],
-      };
-      items.push(item);
-      byRound.set(r.id, item);
-    }
+  for (const item of items) {
+    const [kind, id] = item.id.split(':');
+    if (kind === 'prep' || kind === 'result' || kind === 'interview')
+      byRound.set(id, item);
+    if (kind === 'job') followUpByApp.set(id, item);
   }
-  for (const { app, reasons } of input.jobs) {
-    // Every reason counts: an interview tomorrow never hides a follow-up due today.
-    for (const reason of reasons) {
-      let item: AttentionItem | null = null;
-      if (reason.kind === 'FOLLOW_UP_OVERDUE' && app.nextActionDate)
-        item = {
-          id: `job:${app.id}`,
-          source: 'job',
-          label: 'Jobs',
-          title: app.nextAction ?? 'Follow up',
-          context: `${app.company} · ${dueContext(dateLabel(app.nextActionDate), today)}`,
-          href: `/jobs/${app.id}`,
-          tier: 2,
-          due: +app.nextActionDate,
-          notificationIds: [],
-        };
-      else if (reason.kind === 'RESULT_NEEDED') {
-        if (byRound.has(reason.round.id)) continue;
-        item = {
-          id: `result:${reason.round.id}`,
-          source: 'job',
-          label: 'Jobs',
-          title: `Log the ${reason.round.title} result`,
-          context: `${app.company} · Interview ended ${weekdayDate(dayKey(reason.round.scheduledStart, zone))}`,
-          href: `/jobs/${app.id}#round-${reason.round.id}`,
-          tier: 2,
-          due: +reason.round.scheduledStart,
-          notificationIds: [],
-        };
-        byRound.set(reason.round.id, item);
-      } else if (reason.kind === 'FOLLOW_UP_TODAY' && app.nextActionDate)
-        item = {
-          id: `job:${app.id}`,
-          source: 'job',
-          label: 'Jobs',
-          title: app.nextAction ?? 'Follow up',
-          context: `${app.company} · Due today`,
-          href: `/jobs/${app.id}`,
-          tier: 3,
-          due: +app.nextActionDate,
-          notificationIds: [],
-        };
-      else if (reason.kind === 'INTERVIEW_SOON') {
-        if (byRound.has(reason.round.id)) continue;
-        const isToday = dayKey(reason.round.scheduledStart, zone) === today;
-        item = {
-          id: `interview:${reason.round.id}`,
-          source: 'job',
-          label: 'Jobs',
-          title: `Prepare ${reason.round.title}`,
-          context: `${app.company} · ${isToday ? 'Today' : 'Tomorrow'} at ${hhmm(reason.round.scheduledStart, zone)}`,
-          href: `/jobs/${app.id}#round-${reason.round.id}`,
-          tier: isToday ? 3 : 4,
-          due: +reason.round.scheduledStart,
-          notificationIds: [],
-        };
-        byRound.set(reason.round.id, item);
-      } else if (reason.kind === 'ACTION_REQUIRED')
-        item = {
-          id: `job:${app.id}`,
-          source: 'job',
-          label: 'Jobs',
-          title: app.nextAction ?? 'Decide the next step',
-          context: `${app.company} · No date set`,
-          href: `/jobs/${app.id}`,
-          tier: 4,
-          due: Number.MAX_SAFE_INTEGER,
-          notificationIds: [],
-        };
-      if (!item) continue;
-      if (item.id === `job:${app.id}`) {
-        if (followUpByApp.has(app.id)) continue;
-        followUpByApp.set(app.id, item);
-      }
-      items.push(item);
-    }
-  }
-  for (const p of input.practice)
-    if (p.nextRevisionAt)
-      items.push({
-        id: `practice:${p.id}`,
-        source: 'practice',
-        label: 'Practice',
-        title: `Review ${p.title}`,
-        context: `${revisionContext(dateLabel(p.nextRevisionAt), today)} · ${p.confidence.charAt(0)}${p.confidence.slice(1).toLowerCase()}`,
-        href: `/dsa/${p.id}`,
-        tier: 3,
-        due: +p.nextRevisionAt,
-        notificationIds: [],
-      });
-  for (const i of input.roadmap)
-    if (i.nextRevisionAt)
-      items.push({
-        id: `roadmap:${i.id}`,
-        source: 'roadmap',
-        label: 'Roadmap',
-        title: `Revisit ${i.title}`,
-        context: `${revisionContext(dateLabel(i.nextRevisionAt), today)} · ${i.roadmap.title}`,
-        href: `/roadmap/${i.roadmap.id}?section=${encodeURIComponent(i.section)}&show=revision#item-${i.id}`,
-        tier: 3,
-        due: +i.nextRevisionAt,
-        notificationIds: [],
-      });
   for (const n of input.notifications) {
     const entity = notificationEntity(n.dedupeKey);
     const host =
@@ -500,9 +373,7 @@ export function attentionItems(input: AttentionInput): AttentionItem[] {
       due: +now,
       notificationIds: [],
     });
-  return items.sort(
-    (a, b) => a.tier - b.tier || a.due - b.due || a.id.localeCompare(b.id),
-  );
+  return sortAttention(items);
 }
 export const ATTENTION_PAGE = 20;
 export function attentionPage<T>(

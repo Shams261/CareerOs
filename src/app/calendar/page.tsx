@@ -22,7 +22,7 @@ import {
   resolutionText,
   rowMeta,
 } from '@/features/schedule/row';
-import { PanelButton, SidePanel } from '@/features/today/panels';
+import { PanelButton, SidePanel } from '@/components/side-panel';
 import { PrepareNextWeekForm } from '@/features/review/forms';
 export const metadata = { title: 'Plan' };
 
