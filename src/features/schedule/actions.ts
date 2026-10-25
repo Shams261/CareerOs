@@ -7,7 +7,7 @@ import { owner } from '@/server/db';
 import { syncSoon } from '@/features/calendar/background';
 import { saveBlock, saveRoutine, PreviewRequired } from './editing';
 import { dateInput } from './domain';
-import { locked } from './service';
+import { locked, recordReview } from './service';
 import {
   execute,
   logSession,
@@ -144,38 +144,14 @@ export async function reviewAction(_state: ActionState, form: FormData) {
       })
       .parse(Object.fromEntries(form));
     const user = await owner();
-    await locked(user.id, async (tx) => {
-      const plan = await tx.dailyPlan.upsert({
-        where: { userId_date: { userId: user.id, date: new Date(input.day) } },
-        create: {
-          userId: user.id,
-          date: new Date(input.day),
-          reviewedAt: new Date(),
-        },
-        update: { reviewedAt: new Date() },
-      });
-      const data = {
+    await locked(user.id, (tx) =>
+      recordReview(tx, user.id, input.day, {
         notes: input.notes,
         blocker: input.blocker,
         carryForward: input.carryForward,
         rating: input.rating === '' ? null : input.rating,
-        completedAt: new Date(),
-      };
-      await tx.dailyCheckIn.upsert({
-        where: { dailyPlanId: plan.id },
-        create: { ...data, userId: user.id, dailyPlanId: plan.id },
-        update: data,
-      });
-      await tx.notificationLog.updateMany({
-        where: {
-          userId: user.id,
-          type: { in: ['DAILY_PROGRESS', 'MISSED_CHECK_IN'] },
-          readAt: null,
-          dedupeKey: { endsWith: `:${input.day}` },
-        },
-        data: { readAt: new Date() },
-      });
-    });
+      }),
+    );
     return 'Daily review saved.';
   });
 }

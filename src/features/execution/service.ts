@@ -1,5 +1,6 @@
 import 'server-only';
 import { z } from 'zod';
+import type { Prisma } from '@/generated/prisma/client';
 import {
   locked,
   ownedBlock,
@@ -25,82 +26,92 @@ export async function execute(
   now = new Date(),
   lines: { intention?: string; learned?: string } = {},
 ) {
+  return locked(user.id, (tx) =>
+    executeIn(tx, user, id, action, reason, now, lines),
+  );
+}
+/** `execute` inside a transaction that already holds the owner lock (Close the Day, WI-029). */
+export async function executeIn(
+  tx: Prisma.TransactionClient,
+  user: ScheduleUser,
+  id: string,
+  action: 'start' | 'stop' | 'complete' | 'skip' | 'cancel' | 'reset',
+  reason = '',
+  now = new Date(),
+  lines: { intention?: string; learned?: string } = {},
+) {
   const { intention, learned } = focusLines.parse(lines);
-  return locked(user.id, async (tx) => {
-    const b = await ownedBlock(tx, user.id, id);
-    const running = await tx.actualSession.findFirst({
-      where: { userId: user.id, endedAt: null },
+  const b = await ownedBlock(tx, user.id, id);
+  const running = await tx.actualSession.findFirst({
+    where: { userId: user.id, endedAt: null },
+  });
+  if (action === 'start') {
+    if (running) {
+      if (running.taskId === id) return;
+      throw new Error('Another session is running. Stop or complete it first.');
+    }
+    if (!['PLANNED', 'IN_PROGRESS'].includes(b.status))
+      throw new Error('Reset this block before starting it.');
+    const recordedAhead = await tx.actualSession.findFirst({
+      where: { userId: user.id, endedAt: { gt: now } },
     });
-    if (action === 'start') {
-      if (running) {
-        if (running.taskId === id) return;
-        throw new Error(
-          'Another session is running. Stop or complete it first.',
-        );
-      }
-      if (!['PLANNED', 'IN_PROGRESS'].includes(b.status))
-        throw new Error('Reset this block before starting it.');
-      const recordedAhead = await tx.actualSession.findFirst({
-        where: { userId: user.id, endedAt: { gt: now } },
-      });
-      if (recordedAhead)
-        throw new Error(
-          'Recorded actual time extends beyond now. Resolve that entry before starting a session.',
-        );
-      await tx.actualSession.create({
+    if (recordedAhead)
+      throw new Error(
+        'Recorded actual time extends beyond now. Resolve that entry before starting a session.',
+      );
+    await tx.actualSession.create({
+      data: {
+        userId: user.id,
+        taskId: id,
+        goalId: b.goalId,
+        category: b.category,
+        startedAt: now,
+        notes: appendNote(null, 'Intention', intention),
+      },
+    });
+    await tx.timeBlock.update({
+      where: { id },
+      data: { status: 'IN_PROGRESS', isOverride: true },
+    });
+  } else {
+    const ownSession = running?.taskId === id ? running : null;
+    if (action === 'complete' && b.status === 'COMPLETED' && !ownSession)
+      return;
+    if (['skip', 'cancel', 'reset'].includes(action) && ownSession)
+      throw new Error('Stop the running session before changing its status.');
+    if (action === 'stop' && !ownSession)
+      throw new Error('No running session is linked to this block.');
+    if (ownSession && ['stop', 'complete'].includes(action)) {
+      if (now <= ownSession.startedAt)
+        throw new Error('Wait a moment before stopping the session.');
+      await tx.actualSession.update({
+        where: { id: ownSession.id },
         data: {
-          userId: user.id,
-          taskId: id,
-          goalId: b.goalId,
-          category: b.category,
-          startedAt: now,
-          notes: appendNote(null, 'Intention', intention),
-        },
-      });
-      await tx.timeBlock.update({
-        where: { id },
-        data: { status: 'IN_PROGRESS', isOverride: true },
-      });
-    } else {
-      const ownSession = running?.taskId === id ? running : null;
-      if (action === 'complete' && b.status === 'COMPLETED' && !ownSession)
-        return;
-      if (['skip', 'cancel', 'reset'].includes(action) && ownSession)
-        throw new Error('Stop the running session before changing its status.');
-      if (action === 'stop' && !ownSession)
-        throw new Error('No running session is linked to this block.');
-      if (ownSession && ['stop', 'complete'].includes(action)) {
-        if (now <= ownSession.startedAt)
-          throw new Error('Wait a moment before stopping the session.');
-        await tx.actualSession.update({
-          where: { id: ownSession.id },
-          data: {
-            endedAt: now,
-            notes: appendNote(ownSession.notes, 'Learned', learned),
-          },
-        });
-      }
-      const status =
-        action === 'complete'
-          ? 'COMPLETED'
-          : action === 'skip'
-            ? 'SKIPPED'
-            : action === 'cancel'
-              ? 'CANCELLED'
-              : 'PLANNED';
-      await tx.timeBlock.update({
-        where: { id },
-        data: {
-          status,
-          completedAt: status === 'COMPLETED' ? now : null,
-          isOverride: true,
-          skipReason:
-            action === 'skip' ? z.string().max(300).parse(reason) : null,
+          endedAt: now,
+          notes: appendNote(ownSession.notes, 'Learned', learned),
         },
       });
     }
-    await clearBlockReminders(tx, user.id, id);
-  });
+    const status =
+      action === 'complete'
+        ? 'COMPLETED'
+        : action === 'skip'
+          ? 'SKIPPED'
+          : action === 'cancel'
+            ? 'CANCELLED'
+            : 'PLANNED';
+    await tx.timeBlock.update({
+      where: { id },
+      data: {
+        status,
+        completedAt: status === 'COMPLETED' ? now : null,
+        isOverride: true,
+        skipReason:
+          action === 'skip' ? z.string().max(300).parse(reason) : null,
+      },
+    });
+  }
+  await clearBlockReminders(tx, user.id, id);
 }
 export const manualSessionInput = z.object({
   id: z.string().min(1),

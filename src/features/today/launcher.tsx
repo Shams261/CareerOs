@@ -9,7 +9,7 @@ import { categoryGroup } from '@/features/review/domain';
 
 import type { TimeBlock } from '@/generated/prisma/client';
 import { blockTitle, hhmm, type LauncherState, type RoundLike } from './domain';
-import { PressButton } from './panels';
+import { PanelButton, PressButton } from './panels';
 
 const startsIn = (d: Date, now: Date) => {
   const m = Math.max(1, Math.round((+d - +now) / 60000));
@@ -29,12 +29,18 @@ export function Launcher({
   rounds,
   zone,
   now,
+  closing = false,
+  closed = false,
 }: {
   state: LauncherState;
   blocks: TimeBlock[];
   rounds: RoundLike[];
   zone: string;
   now: Date;
+  /** From the stop time, the end of the day is Close the day (WI-029). */
+  closing?: boolean;
+  /** The day was closed or reviewed. */
+  closed?: boolean;
 }) {
   const full = (id: string) => blocks.find((b) => b.id === id) ?? null;
   const roundOf = (block: { interviewRoundId: string | null } | null) =>
@@ -119,6 +125,18 @@ export function Launcher({
     action = <ExecutionControls block={block} current launcher primaryOnly />;
     if (state.kind === 'current' && state.next)
       next = `Next: ${state.next.title} · ${hhmm(state.next.plannedStart, zone)}`;
+  } else if (closing && (state.kind === 'reconcile' || state.kind === 'done')) {
+    const open = state.kind === 'reconcile' ? state.blocks.length : 0;
+    eyebrow = 'End of the day';
+    title = 'Close the day';
+    context = open
+      ? `${open} block${open === 1 ? '' : 's'} without a decision yet`
+      : 'Every block has a decision';
+    action = (
+      <PanelButton panel="review" className="button">
+        Close the day
+      </PanelButton>
+    );
   } else if (state.kind === 'reconcile') {
     eyebrow = 'Earlier today';
     title = 'Update earlier blocks';
@@ -128,6 +146,11 @@ export function Launcher({
         Update earlier blocks
       </a>
     );
+  } else if (closed && state.kind === 'done') {
+    eyebrow = 'Day closed';
+    title = 'Nothing more planned today';
+    context = 'Edit the review from the header if something changes.';
+    action = <PressButton press="add-block">Add a block</PressButton>;
   } else {
     eyebrow = 'Nothing more planned';
     title = 'That is the plan for today';

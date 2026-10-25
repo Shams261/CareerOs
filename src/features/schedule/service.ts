@@ -15,6 +15,45 @@ export async function locked<T>(
     { timeout: 20000 },
   );
 }
+/**
+ * Marks a day reviewed and writes its check-in, inside the owner lock. Only the given fields
+ * change on an existing check-in, so Close the Day (WI-029) keeps a rating written earlier.
+ * The day's unread review reminders are read from then on.
+ */
+export async function recordReview(
+  tx: Prisma.TransactionClient,
+  userId: string,
+  day: string,
+  fields: {
+    notes: string;
+    blocker?: string;
+    carryForward?: string;
+    rating?: number | null;
+  },
+  now = new Date(),
+) {
+  const plan = await tx.dailyPlan.upsert({
+    where: { userId_date: { userId, date: new Date(day) } },
+    create: { userId, date: new Date(day), reviewedAt: now },
+    update: { reviewedAt: now },
+  });
+  const data = { ...fields, completedAt: now };
+  await tx.dailyCheckIn.upsert({
+    where: { dailyPlanId: plan.id },
+    create: { ...data, userId, dailyPlanId: plan.id },
+    update: data,
+  });
+  await tx.notificationLog.updateMany({
+    where: {
+      userId,
+      type: { in: ['DAILY_PROGRESS', 'MISSED_CHECK_IN'] },
+      readAt: null,
+      dedupeKey: { endsWith: `:${day}` },
+    },
+    data: { readAt: now },
+  });
+  return plan;
+}
 export async function generateInTransaction(
   tx: Prisma.TransactionClient,
   user: ScheduleUser,

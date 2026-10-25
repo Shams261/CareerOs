@@ -23,6 +23,7 @@ export function TodayHeader({
   renderedAt,
   noteCount,
   reviewed,
+  closing = false,
   rested = false,
 }: {
   day: string;
@@ -40,6 +41,8 @@ export function TodayHeader({
   noteCount: number;
   /** null when the day cannot be reviewed yet (a future date). */
   reviewed: boolean | null;
+  /** Close the Day replaces Review day (WI-029). */
+  closing?: boolean;
   /** The owner marked this day as rest (WI-028). */
   rested?: boolean;
 }) {
@@ -99,7 +102,11 @@ export function TodayHeader({
           </PressButton>
           {reviewed !== null && (
             <PanelButton panel="review" className="button secondary">
-              {reviewed ? 'Edit review' : 'Review day'}
+              {closing
+                ? 'Close the day'
+                : reviewed
+                  ? 'Edit review'
+                  : 'Review day'}
             </PanelButton>
           )}
         </UtilityMenu>
