@@ -45,7 +45,13 @@ export async function Attention({
       dsaSnapshot(user),
       weeklyReviewOpen(user, now),
       db().notificationLog.findMany({
-        where: { userId: user.id, readAt: null, scheduledFor: { lte: now } },
+        where: {
+          userId: user.id,
+          readAt: null,
+          scheduledFor: { lte: now },
+          // Study nudges have their own card on Today (WI-028).
+          type: { notIn: ['STUDY_MORNING', 'STUDY_EVENING'] },
+        },
         orderBy: { scheduledFor: 'desc' },
         select: {
           id: true,

@@ -23,6 +23,7 @@ export function TodayHeader({
   renderedAt,
   noteCount,
   reviewed,
+  rested = false,
 }: {
   day: string;
   today: string;
@@ -39,6 +40,8 @@ export function TodayHeader({
   noteCount: number;
   /** null when the day cannot be reviewed yet (a future date). */
   reviewed: boolean | null;
+  /** The owner marked this day as rest (WI-028). */
+  rested?: boolean;
 }) {
   const isToday = day === today;
   return (
@@ -104,6 +107,7 @@ export function TodayHeader({
       <p className="today-summary">
         <LiveSummary {...summary} running={running} renderedAt={renderedAt} />
         {reviewed && <span className="pill success">Reviewed</span>}
+        {rested && <span className="pill">Rest day</span>}
       </p>
       <FeedbackOutlet channel="review" className="mt-2" />
     </header>

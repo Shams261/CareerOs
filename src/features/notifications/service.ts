@@ -7,13 +7,20 @@ import { blockReminderDue } from './domain';
 import { followUpReminderDue, interviewWindow } from '@/features/jobs/domain';
 import { weekOf, weeklyReminderDue } from '@/features/review/domain';
 import { weekdayDate } from '@/lib/time';
+import { processStudyNudges, nudgeKey } from '@/features/nudges/service';
+import { isStudyCategory } from '@/features/nudges/domain';
+import { nudgeSetting } from '@/features/nudges/service';
 export async function processNotifications(now = new Date()) {
   const users = await db().user.findMany({
-    include: { preferences: { where: { enabled: true } } },
+    include: { preferences: { where: { enabled: true } }, studyNudges: true },
   });
   let candidates = 0;
   for (const user of users) {
     await locked(user.id, async (tx) => {
+      // Study Nudges first (WI-028): the daily reminder below stays in the inbox on an evening
+      // that already had a study check-in, so the owner is never pushed twice for one thing.
+      candidates += await processStudyNudges(tx, user, user.studyNudges, now);
+      const nudges = nudgeSetting(user.studyNudges);
       for (const pref of user.preferences) {
         const day = dayKey(now, pref.timezone);
         const plan = await tx.dailyPlan.findUnique({
@@ -25,6 +32,7 @@ export async function processNotifications(now = new Date()) {
           occurrence: string,
           title: string,
           scheduledFor: Date,
+          inAppOnly = false,
         ) => {
           await tx.notificationLog.upsert({
             where: {
@@ -38,6 +46,7 @@ export async function processNotifications(now = new Date()) {
               body: title,
               scheduledFor,
               dedupeKey: reminderKey(user.id, pref.type, entity, occurrence),
+              inAppOnly,
             },
           });
           candidates++;
@@ -57,6 +66,10 @@ export async function processNotifications(now = new Date()) {
             day,
             "You haven't checked today's progress yet.",
             localInstant(day, pref.preferredTime, pref.timezone),
+            !!(await tx.notificationLog.findUnique({
+              where: { dedupeKey: nudgeKey(user.id, 'STUDY_EVENING', day) },
+              select: { id: true },
+            })),
           );
         if (
           pref.type === 'MISSED_CHECK_IN' &&
@@ -82,6 +95,13 @@ export async function processNotifications(now = new Date()) {
             },
           });
           for (const b of blocks) {
+            // The evening study check-in speaks for study blocks while it is on (WI-028).
+            if (
+              pref.type === 'OVERDUE_TASK' &&
+              nudges.eveningEnabled &&
+              isStudyCategory(b.category, nudges.studyCategories)
+            )
+              continue;
             const due = new Date(+b.plannedStart - pref.offsetMinutes * 60000);
             if (
               pref.type === 'UPCOMING_BLOCK' &&

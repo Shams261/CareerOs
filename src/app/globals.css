@@ -4777,3 +4777,134 @@ button.attention-link {
     min-width: 0;
   }
 }
+
+/* Study Nudges (WI-028): one calm card on Today, the settings form in its panel. */
+.nudge {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  padding: 18px 20px;
+  margin: 0 0 12px;
+  display: grid;
+  gap: 8px;
+}
+.nudge:focus {
+  outline: none;
+}
+.nudge:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+.nudge h2,
+.nudge p {
+  margin: 0;
+}
+.nudge h2 {
+  font-size: 19px;
+}
+.nudge-line {
+  color: var(--ink-2);
+}
+.nudge-block {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+  background: var(--surface-2);
+  border-radius: var(--radius-md);
+  padding: 9px 12px;
+  font-size: 15px;
+}
+.nudge-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 4px;
+}
+.nudge-confirm {
+  display: grid;
+  gap: 8px;
+  margin-top: 4px;
+}
+.nudge-confirm .actions {
+  margin: 0;
+}
+.nudge .nudge-confirm p {
+  margin-bottom: 10px;
+}
+.nudge-feedback {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 14px;
+  font-size: 14px;
+}
+.nudge-feedback fieldset {
+  display: contents;
+}
+.nudge-feedback .link-button {
+  display: inline-flex;
+  align-items: center;
+}
+.nudge-form fieldset {
+  border: 0;
+  margin: 0;
+  padding: 0;
+}
+.nudge-form > fieldset {
+  margin-top: 16px;
+  gap: 22px;
+}
+.nudge-form .nudge-mode,
+.nudge-form .nudge-days {
+  gap: 10px;
+}
+.nudge-form label.check {
+  margin: 0;
+}
+.nudge-mode,
+.nudge-days {
+  display: grid;
+  gap: 8px;
+}
+.nudge-mode legend,
+.nudge-days legend {
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+.nudge-days {
+  grid-template-columns: repeat(auto-fill, minmax(84px, 1fr));
+}
+.nudge-days legend {
+  grid-column: 1 / -1;
+}
+.nudge-copy {
+  margin: 0;
+  background: var(--surface-2);
+  border-radius: var(--radius-md);
+  padding: 8px 11px;
+  font-size: 14px;
+  color: var(--ink-2);
+}
+.nudge-quiet {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+.nudge-pause {
+  margin-top: 14px;
+}
+.nudge-pause p {
+  margin: 0 0 6px;
+}
+@media (max-width: 700px) {
+  .nudge-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+  .nudge-actions .button {
+    min-height: 44px;
+    justify-content: center;
+  }
+}

@@ -7,6 +7,19 @@
 3. In the same request, `deliverPending` sends each new, unread, unsent reminder to every active `PushSubscription` of the owner, as an encrypted Web Push message (VAPID, RFC 8291 `aes128gcm`, TTL 12 hours, urgency normal).
 4. The browser's push service wakes the service worker (`public/sw.js`), which shows the notification. Clicking it focuses an open CareerOS window or opens one at the reminder's page (`/dsa`, `/learn`, `/jobs/<id>`, `/review` or `/today`). Only same-origin paths are accepted; anything else opens `/today`.
 
+## Study Nudges (WI-028)
+
+Two optional reminders, both off until the owner turns them on in Settings → Reminders → Study nudges. The rules are `morningDue` and `eveningDue` in `src/features/nudges/domain.ts`; `processStudyNudges` runs first in the same job and lock.
+
+- **Morning:** from the chosen local time for up to three hours, on chosen days, by default only when the day has a study block.
+- **Evening check-in:** from the chosen time until quiet hours, only when a study block has ended, is still planned and has no session, and the day is not rested or closed.
+- **Never:** in quiet hours (default 22:00–07:30), while paused, on a rest day, while a session is running, more than once per mode a day, or within four hours of the morning nudge.
+- **In the app only:** when Silsila was seen in the last five minutes. The shell posts `POST /api/presence` at most every two minutes while a page is visible, which stamps `User.lastActiveAt`. Such rows are `NotificationLog.inAppOnly`, and `deliverPending` never pushes them.
+- **No doubling up:** an evening check-in keeps that day's daily reminder in the app, and overdue alerts skip study blocks while the check-in is on.
+- **Lock screen:** "Good morning" or "Study check-in" with the general line. A tap opens `/today#study-nudge`, where the card names the block.
+
+The OS permission prompt still appears only from the Enable button in Settings. Without permission, or on iPhone outside the Home Screen app, nudges stay on Today.
+
 The daily progress reminder therefore reaches a closed app: cron creates it at the preferred local time (default 21:30) when the day has not been reviewed, and push delivers it.
 
 ## Delivery rules

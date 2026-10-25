@@ -9,6 +9,7 @@ import { addPriority, removePriority } from '@/features/review/service';
 import { changeStage } from '@/features/jobs/service';
 import { stages } from '@/features/jobs/domain';
 import { randomUUID } from 'node:crypto';
+import { setRestDay } from '@/features/nudges/service';
 
 /**
  * Undo for destructive one-click actions (WI-011). Nothing is soft-deleted: an undo re-creates
@@ -64,6 +65,8 @@ const kinds = {
     nextRevisionAt: z.string().nullable().optional(),
     revisionStage: z.number().int().min(0),
   }),
+  /** A rest day just marked (WI-028): undo makes it an ordinary day again. */
+  'clear-rest-day': z.object({ day: z.string().regex(/^\d{4}-\d{2}-\d{2}$/) }),
 } as const;
 export type UndoKind = keyof typeof kinds;
 export type Undo = { kind: UndoKind; payload: unknown; label?: string };
@@ -188,6 +191,11 @@ export async function restore(
         },
       });
       return 'Item restored with its revision schedule.';
+    }
+    case 'clear-rest-day': {
+      const { day } = kinds[k].parse(payload);
+      await setRestDay(user, day, false);
+      return 'Not a rest day any more.';
     }
   }
 }

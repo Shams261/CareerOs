@@ -39,6 +39,7 @@ export async function exportOwnerData(userId: string, now = new Date()) {
     calendar,
     roadmaps,
     quickNotes,
+    studyNudges,
   ] = await Promise.all([
     db().user.findUniqueOrThrow({
       where: { id: userId },
@@ -99,6 +100,7 @@ export async function exportOwnerData(userId: string, now = new Date()) {
     }),
     db().roadmap.findMany({ ...own, include: { items: true } }),
     db().quickNote.findMany(own),
+    db().studyNudgeSetting.findUnique({ where: { userId } }),
   ]);
   return {
     format: 'careeros-export',
@@ -132,6 +134,7 @@ export async function exportOwnerData(userId: string, now = new Date()) {
     ),
     weeklyReviews: reviews,
     notificationPreferences: preferences,
+    studyNudges,
     notifications,
     googleCalendar: calendar,
   };
