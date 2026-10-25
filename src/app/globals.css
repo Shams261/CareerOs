@@ -5013,3 +5013,192 @@ button.attention-link {
 .close-option input:disabled + span {
   color: var(--muted);
 }
+
+/* Practice drills (WI-030): Which Pattern? and Watch It Run. */
+.page-head .page-head-link {
+  margin-left: auto;
+}
+.drill-card {
+  display: grid;
+  gap: 14px;
+  max-width: 680px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  padding: 22px 24px;
+}
+.drill-card h2 {
+  margin: 0;
+}
+.drill-card h2:focus {
+  outline: none;
+}
+.drill-card p {
+  margin: 0;
+}
+.drill-options {
+  display: grid;
+  gap: 8px;
+  border: 0;
+  margin: 0;
+  padding: 0;
+}
+.drill-options legend {
+  margin-bottom: 6px;
+  font-size: 14px;
+}
+.drill-option {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 48px;
+  width: 100%;
+  padding: 10px 14px;
+  text-align: left;
+  font: inherit;
+  color: var(--text-primary);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+}
+.drill-option:hover:not(:disabled) {
+  border-color: var(--border-strong);
+}
+.drill-option:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+.drill-option > span:nth-child(2) {
+  flex: 1;
+}
+.drill-key {
+  display: inline-grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink-2);
+}
+.drill-option.is-answer {
+  border-color: var(--success);
+  background: var(--success-soft);
+}
+.drill-option.is-picked {
+  border-color: var(--border-strong);
+}
+.drill-option.is-dim,
+.drill-option:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+.drill-reveal {
+  display: grid;
+  gap: 6px;
+  padding: 12px 14px;
+  background: var(--surface-2);
+  border-radius: var(--radius-md);
+}
+.drill-card .button {
+  justify-self: start;
+}
+.drill-mixed {
+  margin: 0;
+  padding-left: 18px;
+}
+.trace {
+  display: grid;
+  gap: 12px;
+}
+.trace p {
+  margin: 0;
+}
+.trace-stage {
+  display: grid;
+  gap: 10px;
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface-2);
+}
+.trace-stage:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+.trace-cells {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.trace-cell {
+  display: grid;
+  justify-items: center;
+  gap: 2px;
+  min-width: 40px;
+  padding: 6px 4px 4px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+}
+.trace-stage.is-animated .trace-cell {
+  transition:
+    background-color 200ms ease,
+    border-color 200ms ease;
+}
+.trace-cell.in-range {
+  background: var(--primary-soft);
+  border-color: var(--primary);
+}
+.trace-cell.on-stack {
+  border-style: dashed;
+  border-color: var(--primary);
+}
+.trace-cell.is-marked {
+  box-shadow: inset 0 -3px 0 var(--primary);
+}
+.trace-value {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.trace-index {
+  font-size: 11px;
+  color: var(--muted);
+}
+.trace-mark {
+  min-height: 14px;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--primary);
+}
+.trace-facts,
+.trace-stack {
+  font-size: 14px;
+  color: var(--ink-2);
+  font-variant-numeric: tabular-nums;
+}
+.trace-narration {
+  min-height: 3em;
+}
+.trace-controls {
+  margin: 0;
+}
+.trace-input {
+  display: grid;
+  gap: 8px;
+  max-width: 420px;
+}
+.trace-input .actions {
+  margin: 0;
+  align-items: center;
+}
+.trace-controls .button {
+  gap: 6px;
+}

@@ -11,6 +11,8 @@ import { AttemptForm } from '@/features/dsa/attempt-form';
 import { isDsa, revisionDay, solvedText } from '@/features/dsa/domain';
 import { resourceUrl } from '@/lib/validation';
 import { shortDate } from '@/lib/time';
+import { traceForTopic } from '@/features/drills/trace';
+import { WatchItRun } from '@/features/drills/watch-it-run';
 export const metadata = { title: 'Practice' };
 
 const tone = { RED: 'danger', YELLOW: 'warning', GREEN: 'success' } as const;
@@ -154,6 +156,9 @@ export default async function Problem({
           </p>
         )}
       </section>
+      {traceForTopic(p.topic.name) && (
+        <WatchItRun kind={traceForTopic(p.topic.name)!} />
+      )}
       <section className="card flat" aria-labelledby="history-heading">
         <div className="section-head">
           <h2 id="history-heading">
