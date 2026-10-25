@@ -22,7 +22,7 @@ The daily progress reminder therefore reaches a closed app: cron creates it at t
 | No enabled device                                       | Nothing is sent and no attempt is counted.                                                                          |
 | Push not configured (no VAPID keys)                     | Inbox only; Settings says so.                                                                                       |
 
-Upgrading to WI-008 marks existing reminders as already attempted, so enabling push never replays a backlog. Payloads contain only `CareerOS`, one reminder line, a tag and a path; never notes, contacts or reflections.
+Upgrading to WI-008 marks existing reminders as already attempted, so enabling push never replays a backlog. Payloads contain only `Silsila`, one **general line for the reminder's type** (`LOCK_SCREEN_TEXT` in `src/features/push/domain.ts`, for example "A planned block starts soon."), the notification id as the tag and a path. Since R2 (Version 2) a push never carries a block title, company, round, note or item name; the named reminder stays in the inbox and on Today, which only show once the device is unlocked. Clicking a notification also posts its id to `/api/notifications/opened` (signed in, owner-scoped), which stamps `NotificationLog.openedAt` once; the stamp runs beside opening the app and never delays it.
 
 ## Enabling a device
 

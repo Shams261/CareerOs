@@ -61,6 +61,7 @@ For a database used before WI-005.1 on a non-UTC PostgreSQL server (see the READ
 1. Stop the app. Take a backup: `pg_dump --format=custom --file=careeros-pre-time-repair.dump`. Verify it by restoring into an isolated database.
 2. `psql -c 'SHOW TimeZone'` gives the server default that old sessions used.
 3. `pnpm timestamps:audit`. Record counts, ambiguous rows and samples.
+   Before enabling Study Nudges or AI (Version 2), also run `DATABASE_URL=<personal> pnpm data:check`: read-only, it lists test- or UAT-named records by model and id (never their names) and exits 1 until they are cleaned up in the app.
 4. `LEGACY_TIMESTAMP_TIMEZONE=<zone> pnpm timestamps:repair`. Review the dry-run counts and integrity output; nothing is written.
 5. `pnpm timestamps:repair --legacy-zone=<zone> --apply --confirm=<database>`. This is transactional and writes a `MaintenanceRecord` ledger row.
 6. `pnpm db:deploy` for any pending migrations. Their date conversions now see corrected instants.

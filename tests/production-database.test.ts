@@ -128,7 +128,8 @@ describe.skipIf(!url)('production hardening (PostgreSQL)', () => {
     expect(r).toMatchObject({ notifications: 1, delivered: 1, revoked: 1 });
     expect(JSON.parse(calls[0])).toEqual({
       title: 'Silsila',
-      body: '2 DSA problems due',
+      // R2: the push carries the general line for its type; the inbox keeps the named text.
+      body: 'Practice problems are due for revision today.',
       tag: log.id,
       url: '/dsa',
     });
@@ -205,7 +206,8 @@ describe.skipIf(!url)('production hardening (PostgreSQL)', () => {
     await deliverPending(evening, sender, cfg);
     await processNotifications(new Date(+evening + 60000));
     await deliverPending(new Date(+evening + 60000), sender, cfg);
-    expect(sent).toEqual(["You haven't checked today's progress yet."]);
+    // R2: the lock screen sees the general daily line, not the inbox text.
+    expect(sent).toEqual(['Ready to review your day?']);
     expect(
       await prisma.notificationLog.count({
         where: { userId: user.id, type: 'DAILY_PROGRESS' },

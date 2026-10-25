@@ -23,6 +23,7 @@ Latest completed work item: **WI-027** (Focus session, the first Version 2 slice
 - **UX simplification (WI-009):** first-run cards on Today, Practice, Learn and Jobs; visible primary actions (`Disclosure` replaces `<details>` for forms); plain vocabulary; filters and counters only once data exists; three-screen weekly review; sidebar Today / Plan / Roadmap / Practice / Learn / Jobs / Weekly review / Settings; Google Calendar panel lives in Settings; inline form feedback with a pending state and auto-clearing success.
 - **Week at a glance, motion, notes (WI-010):** per-day planned/recorded minutes in `scheduleWeek` and a bar chart on review step one; motion only under `prefers-reduced-motion: no-preference`; `QuickNote` captured from the shell, listed on Today until done. No streak, no score.
 - **Goals and roadmap (WI-009):** `Goal` authoring with target dates and live weekly progress; `Roadmap` → `RoadmapItem` (sections, concepts/questions, status, asked-in-interview mark, optional links to Learn topics and Practice problems/topics). A roadmap is a planning layer: it never changes mastery, attempts or revision dates (ADR-016). Today shows the chain (14 days, record not score) in its Activity panel, a live timer and keyboard shortcuts; the running session sits in the shell on every page.
+- **Readiness R1–R3 (Version 2):** `isTestNamed` (`src/lib/test-data.ts`) marks test/UAT-named records; `pnpm data:check` lists them read-only. Pushes carry only `LOCK_SCREEN_TEXT` per type (`src/features/push/domain.ts`), never a reminder's names. `NotificationLog.openedAt` (stamped once by the service worker through `/api/notifications/opened`) and `feedback` (`NotificationFeedback`) exist for Study Nudges.
 - **Focus session (WI-027, ADR-021):** every Start goes to `/focus?block=<id>` (`src/app/focus/page.tsx`, client `src/features/execution/focus.tsx`, pure `focus-domain.ts`). Begin is the existing start action; the ring drains to the block's planned end (`focusTarget`); at time up an opt-in chime (`src/lib/sound.ts`, cookie `silsila-focus-chime`) and "What did you learn?". Intention and learned lines are appended to `ActualSession.notes` (`appendNote`), never replacing text; nothing completes automatically. Pop out (Document Picture-in-Picture) and Keep screen on (`src/lib/wake-lock.ts`) render only where the browser has them. The running strip and the launcher link to Focus.
 - **Settings as rows (WI-025):** `src/app/settings/page.tsx` shows one record line (`settingsSummary`) and groups of `SettingRow`s (`src/features/settings/rows.tsx`): reminders open their forms in panels (`reminderContext` reads "21:30 · On"), the Google Calendar panel is a heading with Sync now plus rows and panels, Theme is `ThemeSwitch` (saves on choice), shortcuts a toggle, system status one line.
 - **Weekly review closes the week (WI-024):** `src/app/review/page.tsx` reads like Today: `reviewSummaryLine` and `dayHeading` in `src/features/review/domain.ts`, `scheduleWeek` items with their sessions and a `needs-update` state, the shared `BlockRowShell` for the week's days, next-week interviews and follow-ups as rows, Details without a second reminder form. `hhmm` is the only clock formatter (`clock` is gone).
@@ -116,6 +117,7 @@ pnpm db:deploy
 pnpm db:seed             # example data only; never against a personal DB
 pnpm exec tsx scripts/verify-seed.ts   # seed idempotency
 pnpm timestamps:audit    # read-only
+pnpm data:check          # read-only: test/UAT-named records by model and id; exit 1 until clean (Version 2 R1)
 pnpm timestamps:repair   # dry-run unless --apply --confirm=<db>
 pnpm db:backup
 pnpm db:restore:verify <file>          # restores into a new scratch DB, then drops it
@@ -150,7 +152,7 @@ State as of 2026-10-20: **Silsila is live at https://usesilsila.me** on a Render
 
 ## Current next step
 
-Version 2 is in progress (WI-027 done). Next, in order: R1–R3 (data readiness, lock-screen privacy for every reminder, notification opened/feedback fields), then WI-028 Study Nudges, WI-029 Close the Day, WI-030 drills, R4 then WI-031 Grill Me, WI-032 deck. Standing items:
+Version 2 is in progress (WI-027 and R1–R3 done; the owner still runs `pnpm data:check` and cleans test records in production). Next, in order: WI-028 Study Nudges, WI-029 Close the Day, WI-030 drills, R4 then WI-031 Grill Me, WI-032 deck. Standing items:
 
 1. After the WI-012 merge, the owner runs the one-time runbook from the workstation: verified backup (`PATH=/opt/homebrew/opt/libpq/bin:$PATH pnpm db:backup` + Docker PostgreSQL 17 restore check) → clear the TEST routine and blocks in the app and Sync now → `scripts/reset-owner-data.sql` → deploy → `pnpm db:deploy` → `pnpm roadmap:bundle` → `pnpm roadmap:import` (`docs/engineering/backup-restore.md`, `docs/engineering/operations.md`).
 2. Use Silsila daily as the single tracker for 7–14 days and collect friction; verify Web Push on real devices; connect Google Calendar; weekly backup.

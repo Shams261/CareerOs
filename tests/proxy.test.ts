@@ -45,6 +45,8 @@ describe('proxy access control', () => {
     const api = await proxy(req('/api/export'));
     expect(api.status).toBe(401);
     expect(await api.json()).toEqual({ error: 'unauthorized' });
+    // R3: the service worker's opened stamp is a private API like any other.
+    expect((await proxy(req('/api/notifications/opened'))).status).toBe(401);
     for (const open of [
       '/login',
       '/privacy',

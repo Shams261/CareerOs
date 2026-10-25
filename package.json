@@ -22,6 +22,7 @@
     "docs:check": "node scripts/check-docs.mjs",
     "test:ci": "node scripts/test-ci.mjs",
     "timestamps:audit": "tsx scripts/timestamps.ts audit",
+    "data:check": "tsx scripts/data-check.ts",
     "timestamps:repair": "tsx scripts/timestamps.ts repair",
     "db:backup": "tsx scripts/db-backup.ts",
     "db:restore:verify": "tsx scripts/db-restore-verify.ts",
