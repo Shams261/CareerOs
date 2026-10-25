@@ -53,6 +53,21 @@ export async function saveBlock(
   allowOverlap: boolean,
   version?: string,
 ) {
+  return locked(user.id, (tx) =>
+    saveBlockIn(tx, user, raw, allowOverlap, version),
+  );
+}
+/**
+ * `saveBlock` inside a transaction that already holds the owner lock, so a caller can move
+ * several blocks and write other records all or nothing (Close the Day, WI-029).
+ */
+export async function saveBlockIn(
+  tx: Prisma.TransactionClient,
+  user: ScheduleUser,
+  raw: unknown,
+  allowOverlap: boolean,
+  version?: string,
+) {
   const input = blockInput.parse(raw),
     range = interval(
       input.day,
@@ -61,52 +76,50 @@ export async function saveBlock(
       input.endLocal,
       user.timezone,
     );
-  return locked(user.id, async (tx) => {
-    await validateGoal(tx, user.id, input.goalId);
-    const existing = input.id ? await ownedBlock(tx, user.id, input.id) : null;
-    if (existing) {
-      if (existing.updatedAt.toISOString() !== version)
-        throw new Error(
-          'This block changed in another tab. Reload before editing.',
-        );
-      if (existing.sessions.some((s) => !s.endedAt))
-        throw new Error('Stop the running session before editing its plan.');
-    }
-    const collisions = await conflicts(
-      tx,
-      user.id,
-      range.plannedStart,
-      range.plannedEnd,
-      existing?.id,
-    );
-    if (collisions.length && !allowOverlap)
+  await validateGoal(tx, user.id, input.goalId);
+  const existing = input.id ? await ownedBlock(tx, user.id, input.id) : null;
+  if (existing) {
+    if (existing.updatedAt.toISOString() !== version)
       throw new Error(
-        `Overlap: ${collisions.map((b) => `${b.title} (${formatInTimeZone(b.plannedStart, user.timezone, 'MMM d, HH:mm')}–${formatInTimeZone(b.plannedEnd, user.timezone, 'HH:mm')})`).join('; ')}. Check “Allow this overlap” to proceed intentionally.`,
+        'This block changed in another tab. Reload before editing.',
       );
-    const plan = await tx.dailyPlan.upsert({
-      where: { userId_date: { userId: user.id, date: new Date(input.day) } },
-      create: { userId: user.id, date: new Date(input.day) },
-      update: {},
-    });
-    const data = {
-      dailyPlanId: plan.id,
-      title: input.title,
-      description: input.description,
-      category: input.category,
-      goalId: input.goalId || null,
-      priority: input.priority,
-      ...range,
-      isOverride: true,
-    };
-    if (existing) {
-      await tx.timeBlock.update({ where: { id: existing.id }, data });
-      await clearBlockReminders(tx, user.id, existing.id);
-      await followLinkedInterview(tx, user.id, existing, range);
-      return { id: existing.id, created: false };
-    }
-    const made = await tx.timeBlock.create({ data, select: { id: true } });
-    return { id: made.id, created: true };
+    if (existing.sessions.some((s) => !s.endedAt))
+      throw new Error('Stop the running session before editing its plan.');
+  }
+  const collisions = await conflicts(
+    tx,
+    user.id,
+    range.plannedStart,
+    range.plannedEnd,
+    existing?.id,
+  );
+  if (collisions.length && !allowOverlap)
+    throw new Error(
+      `Overlap: ${collisions.map((b) => `${b.title} (${formatInTimeZone(b.plannedStart, user.timezone, 'MMM d, HH:mm')}–${formatInTimeZone(b.plannedEnd, user.timezone, 'HH:mm')})`).join('; ')}. Check “Allow this overlap” to proceed intentionally.`,
+    );
+  const plan = await tx.dailyPlan.upsert({
+    where: { userId_date: { userId: user.id, date: new Date(input.day) } },
+    create: { userId: user.id, date: new Date(input.day) },
+    update: {},
   });
+  const data = {
+    dailyPlanId: plan.id,
+    title: input.title,
+    description: input.description,
+    category: input.category,
+    goalId: input.goalId || null,
+    priority: input.priority,
+    ...range,
+    isOverride: true,
+  };
+  if (existing) {
+    await tx.timeBlock.update({ where: { id: existing.id }, data });
+    await clearBlockReminders(tx, user.id, existing.id);
+    await followLinkedInterview(tx, user.id, existing, range);
+    return { id: existing.id, created: false };
+  }
+  const made = await tx.timeBlock.create({ data, select: { id: true } });
+  return { id: made.id, created: true };
 }
 /** A block created from an interview round is that appointment: moving it moves the round. */
 async function followLinkedInterview(

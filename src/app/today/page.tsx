@@ -34,6 +34,9 @@ import { AttentionBoundary } from '@/features/today/attention-boundary';
 import { SidePanel } from '@/features/today/panels';
 import { NudgeCard } from '@/features/nudges/card';
 import { todaysNudge } from '@/features/nudges/service';
+import { CloseDayForm } from '@/features/close-day/form';
+import { closeDayOpen } from '@/features/close-day/domain';
+import { previewSlots, stopTime } from '@/features/close-day/service';
 
 export const metadata = { title: 'Today' };
 
@@ -61,38 +64,48 @@ export default async function Today({
       generationError =
         error instanceof Error ? error.message : 'Unable to plan this week.';
     }
-  const [plan, sessions, running, goals, routines, interviews, notes, nudge] =
-    await Promise.all([
-      db().dailyPlan.findUnique({
-        where: { userId_date: { userId: user.id, date: new Date(day) } },
-        include: {
-          blocks: {
-            orderBy: { plannedStart: 'asc' },
-            include: { sessions: { orderBy: { startedAt: 'asc' } } },
-          },
-          checkIn: true,
+  const [
+    plan,
+    sessions,
+    running,
+    goals,
+    routines,
+    interviews,
+    notes,
+    nudge,
+    stop,
+  ] = await Promise.all([
+    db().dailyPlan.findUnique({
+      where: { userId_date: { userId: user.id, date: new Date(day) } },
+      include: {
+        blocks: {
+          orderBy: { plannedStart: 'asc' },
+          include: { sessions: { orderBy: { startedAt: 'asc' } } },
         },
-      }),
-      db().actualSession.findMany({
-        where: {
-          userId: user.id,
-          startedAt: { lt: bounds.end },
-          OR: [{ endedAt: null }, { endedAt: { gt: bounds.start } }],
-        },
-      }),
-      db().actualSession.findFirst({
-        where: { userId: user.id, endedAt: null },
-        include: { task: true },
-      }),
-      db().goal.findMany({
-        where: { userId: user.id },
-        select: { id: true, title: true },
-      }),
-      db().routineBlock.count({ where: { userId: user.id } }),
-      todaysInterviews(user, day),
-      isToday ? openNotes(user.id) : Promise.resolve([]),
-      isToday ? todaysNudge(user, day) : Promise.resolve(null),
-    ]);
+        checkIn: true,
+      },
+    }),
+    db().actualSession.findMany({
+      where: {
+        userId: user.id,
+        startedAt: { lt: bounds.end },
+        OR: [{ endedAt: null }, { endedAt: { gt: bounds.start } }],
+      },
+    }),
+    db().actualSession.findFirst({
+      where: { userId: user.id, endedAt: null },
+      include: { task: true },
+    }),
+    db().goal.findMany({
+      where: { userId: user.id },
+      select: { id: true, title: true },
+    }),
+    db().routineBlock.count({ where: { userId: user.id } }),
+    todaysInterviews(user, day),
+    isToday ? openNotes(user.id) : Promise.resolve([]),
+    isToday ? todaysNudge(user, day) : Promise.resolve(null),
+    day <= today ? stopTime(user.id) : Promise.resolve(null),
+  ]);
   const blocks = plan?.blocks ?? [];
   const rounds: RoundLike[] = interviews.map((r) => ({
     id: r.id,
@@ -134,6 +147,18 @@ export default async function Today({
   // Until the first routine exists Today is a single card with one job.
   const firstRun = isToday && !routines && !blocks.length && !running;
   const reviewed = !!plan?.reviewedAt && !!plan.checkIn;
+  // Close the Day (WI-029) takes over the review on a past day and from the stop time.
+  const closing =
+    !!stop &&
+    closeDayOpen({
+      day,
+      today,
+      now,
+      zone: user.timezone,
+      stopTime: stop,
+      reviewed,
+    });
+  const preview = closing ? await previewSlots(user, blocks, today, now) : null;
   return (
     <>
       <ExecutionRefresh />
@@ -186,6 +211,7 @@ export default async function Today({
             renderedAt={now.toISOString()}
             noteCount={notes.length}
             reviewed={day > today ? null : reviewed}
+            closing={closing}
             rested={!!plan?.restAt}
           />
           {generationError && (
@@ -233,6 +259,8 @@ export default async function Today({
                 rounds={rounds}
                 zone={user.timezone}
                 now={now}
+                closing={closing}
+                closed={reviewed}
               />
             )}
             <Agenda
@@ -263,18 +291,43 @@ export default async function Today({
           {day <= today && (
             <SidePanel
               id="review"
-              title={reviewed ? 'Edit review' : 'Review day'}
+              title={
+                closing
+                  ? 'Close the day'
+                  : reviewed
+                    ? 'Edit review'
+                    : 'Review day'
+              }
             >
-              <p className="muted">{summaryLine(summary)}</p>
-              {reviewed && plan?.checkIn && (
-                <p className="muted">
-                  Reviewed{' '}
-                  {plan.checkIn.completedAt
-                    ? `· ${new Intl.DateTimeFormat('en', { timeZone: user.timezone, hour: 'numeric', minute: '2-digit' }).format(plan.checkIn.completedAt)}`
-                    : ''}
-                </p>
+              {closing && preview ? (
+                <CloseDayForm
+                  day={day}
+                  zone={user.timezone}
+                  now={now}
+                  blocks={blocks}
+                  rounds={rounds}
+                  summary={summaryLine(summary)}
+                  note={plan?.checkIn?.notes ?? ''}
+                  rested={!!plan?.restAt}
+                  running={!!running}
+                  target={preview.target}
+                  slots={preview.slots}
+                  isToday={isToday}
+                />
+              ) : (
+                <>
+                  <p className="muted">{summaryLine(summary)}</p>
+                  {reviewed && plan?.checkIn && (
+                    <p className="muted">
+                      Reviewed
+                      {plan.checkIn.completedAt
+                        ? ` · ${hhmm(plan.checkIn.completedAt, user.timezone)}`
+                        : ''}
+                    </p>
+                  )}
+                  <ReviewForm day={day} review={plan?.checkIn} />
+                </>
               )}
-              <ReviewForm day={day} review={plan?.checkIn} />
             </SidePanel>
           )}
           {isToday && (

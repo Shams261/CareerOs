@@ -64,4 +64,4 @@ See the [WI-025 handoff](WI-025-HANDOFF.md) for Settings as rows: the record lin
 
 See the [WI-026 handoff](WI-026-HANDOFF.md) for the public privacy page and how to publish the Google app.
 
-See the [Version 2 plan](product/v2-plan.md) and the [WI-027 handoff](WI-027-HANDOFF.md) for the Focus session, the first Version 2 slice; the [R1–R3 handoff](V2-R1-R3-HANDOFF.md) for the test data check, lock-screen privacy and notification opened and feedback; the [WI-028 handoff](WI-028-HANDOFF.md) for Study Nudges and Rest today.
+See the [Version 2 plan](product/v2-plan.md) and the [WI-027 handoff](WI-027-HANDOFF.md) for the Focus session, the first Version 2 slice; the [R1–R3 handoff](V2-R1-R3-HANDOFF.md) for the test data check, lock-screen privacy and notification opened and feedback; the [WI-028 handoff](WI-028-HANDOFF.md) for Study Nudges and Rest today; the [WI-029 handoff](WI-029-HANDOFF.md) for Close the Day.
