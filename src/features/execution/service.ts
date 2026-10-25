@@ -8,13 +8,24 @@ import {
 } from '@/features/schedule/service';
 import { interval, dateInput } from '@/features/schedule/domain';
 import { localTime } from '@/lib/validation';
+import { appendNote, INTENTION_MAX, LEARNED_MAX } from './focus-domain';
+const focusLines = z.object({
+  intention: z.string().max(INTENTION_MAX).optional(),
+  learned: z.string().max(LEARNED_MAX).optional(),
+});
+/**
+ * `lines` are the Focus session's words (WI-027): an intention kept on the session that
+ * starts, a learned line appended when the running session stops or completes.
+ */
 export async function execute(
   user: ScheduleUser,
   id: string,
   action: 'start' | 'stop' | 'complete' | 'skip' | 'cancel' | 'reset',
   reason = '',
   now = new Date(),
+  lines: { intention?: string; learned?: string } = {},
 ) {
+  const { intention, learned } = focusLines.parse(lines);
   return locked(user.id, async (tx) => {
     const b = await ownedBlock(tx, user.id, id);
     const running = await tx.actualSession.findFirst({
@@ -43,6 +54,7 @@ export async function execute(
           goalId: b.goalId,
           category: b.category,
           startedAt: now,
+          notes: appendNote(null, 'Intention', intention),
         },
       });
       await tx.timeBlock.update({
@@ -62,7 +74,10 @@ export async function execute(
           throw new Error('Wait a moment before stopping the session.');
         await tx.actualSession.update({
           where: { id: ownSession.id },
-          data: { endedAt: now },
+          data: {
+            endedAt: now,
+            notes: appendNote(ownSession.notes, 'Learned', learned),
+          },
         });
       }
       const status =

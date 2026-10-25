@@ -285,3 +285,20 @@ Attention is derived, not stored: overdue follow-up, result needed, interview be
 **Alternatives rejected:** keeping the 7-column grid with Today's row inside each column (at 1440 with the sidebar a column is about 150 px, too narrow for `time | dot | title | status`); a 12-hour Today with 24-hour elsewhere (the owner wanted one format); a separate "week row" component for Plan (two row recipes to keep in step).
 
 **Consequences:** `src/features/today/domain.ts` re-exports the moved names, so its tests are the regression contract for the shared module. Plan loads block sessions (one statement) and linked rounds when they exist. `executionLabel` and `executionTone` remain for `tests/execution-domain.test.ts` and have no page consumer after WI-021.
+
+## ADR-021 — Version 2: deterministic moments first; AI only on minimal, previewed study text
+
+**Status:** Accepted (2026-10-25, WI-027). The plan is `docs/product/v2-plan.md`.
+
+**Context:** Version 1 (WI-001 to WI-026) is live and the feature freeze ends with the owner's Version 2 plan. Two earlier V2 directions were rejected or narrowed: an AI morning brief and week draft ("not exciting") and a broad set of AI study features. The owner set the constraints: calm, story-led "moments, not dashboards"; AI through OpenRouter, only on generic study text, under a US$5 monthly cap enforced in Silsila; no guilt, streaks, scores or confetti.
+
+**Decision:**
+
+- **Deterministic work leads.** Focus session, Study Nudges, Close the Day and the practice drills need no AI. AI is one feature (Grill Me) in Phase 3, behind a readiness gate.
+- **Moments are rare and earned.** One quiet moment per real event. No confetti, counters, streaks, scores, comparisons or guilt copy. Sound is off by default; the end-of-focus chime is the owner's switch. Motion stays under `prefers-reduced-motion: no-preference`.
+- **Records stay the source of truth.** Only the existing writers change data, after an explicit confirmation. Focus adds words to the session's existing notes (`Intention: …`, `Learned: …`), never a new store.
+- **AI rules (from Phase 3).** One allowlist function builds every payload from minimal, length-limited fields the owner sees and can untick before sending; notes, answers, the schedule, jobs and reflections never leave. One pinned model and one pinned ZDR provider endpoint, `allow_fallbacks: false`, `data_collection: "deny"`, no `models` array; fail closed. No prompt or answer history is stored; only what the owner keeps. A ledger without content enforces the US$5 monthly cap before each call.
+
+**Alternatives rejected:** an AI "next move" on Today and AI day or week planning (both need the owner's schedule and duplicate the deterministic launcher); AI-generated traces and disguises as the only path for the drills (correctness and drift); default-on sound.
+
+**Consequences:** Focus is a route (`/focus`) entered from Start; the running strip and the launcher link to it. Later WIs add their own migrations (Study Nudges: settings, rest day, presence; Grill Me: usage ledger and kept cards). Each WI keeps its own handoff.

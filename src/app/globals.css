@@ -4610,3 +4610,170 @@ button.attention-link {
     padding: 24px 18px;
   }
 }
+
+/* Focus session (WI-027): one card, a ring that drains toward the block's planned end. */
+.focus-page {
+  max-width: var(--reading-max);
+}
+.focus-title {
+  margin: 2px 0 18px;
+  overflow-wrap: anywhere;
+}
+.focus-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-sm);
+  padding: 28px 30px;
+  display: grid;
+  justify-items: center;
+  gap: 16px;
+  text-align: center;
+}
+.focus-card > * {
+  max-width: 100%;
+}
+.focus-begin,
+.focus-finish {
+  width: 100%;
+  max-width: 460px;
+  display: grid;
+  gap: 14px;
+  text-align: left;
+}
+.focus-field {
+  display: grid;
+  gap: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink-2);
+}
+.focus-field input {
+  font-weight: 400;
+}
+.focus-intention {
+  display: grid;
+  gap: 2px;
+  margin: 0;
+  font-size: 18px;
+  color: var(--foreground);
+  overflow-wrap: anywhere;
+}
+.focus-ring {
+  position: relative;
+  max-width: 100%;
+  aspect-ratio: 1;
+}
+.focus-ring svg {
+  width: 100%;
+  height: 100%;
+  transform: rotate(-90deg);
+}
+.focus-ring-track {
+  fill: none;
+  stroke: var(--tint);
+  stroke-width: 6;
+}
+.focus-ring-arc {
+  fill: none;
+  stroke: var(--primary);
+  stroke-width: 6;
+  stroke-linecap: round;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .focus-ring-arc {
+    transition: stroke-dashoffset 1s linear;
+  }
+}
+.focus-ring-text {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-content: center;
+  gap: 2px;
+  text-align: center;
+}
+.focus-ring-text strong {
+  font-size: 46px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+}
+.focus-ring-text span {
+  color: var(--muted);
+  font-size: 15px;
+}
+.focus-tools {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 18px;
+  justify-content: center;
+  align-items: center;
+  font-size: 14px;
+}
+.focus-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+}
+.focus-actions.is-reversed {
+  flex-direction: row-reverse;
+}
+.focus-actions .button {
+  min-height: 48px;
+  min-width: 132px;
+}
+.focus-learned-toggle {
+  justify-self: center;
+}
+.focus-hint {
+  margin: 0;
+  font-size: 13px;
+  color: var(--muted);
+}
+.running-focus {
+  justify-self: start;
+  font-size: 14px;
+}
+/* The pop-out window: the ring alone, over whatever the owner is working in. */
+.focus-pip-body {
+  margin: 0;
+  background: var(--surface);
+  color: var(--foreground);
+  font-family: var(--font-ui, system-ui, sans-serif);
+}
+.focus-pip {
+  min-height: 100vh;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 8px;
+  padding: 12px;
+  text-align: center;
+}
+.focus-pip p {
+  margin: 0;
+  font-size: 13px;
+  color: var(--ink-2);
+}
+.focus-pip .focus-ring-text strong {
+  font-size: 30px;
+}
+.focus-pip .focus-ring-text span {
+  font-size: 12px;
+}
+@media (max-width: 700px) {
+  .focus-card {
+    padding: 22px 16px;
+    border-radius: var(--radius-lg);
+  }
+  .focus-ring {
+    width: min(270px, 78vw) !important;
+    height: auto !important;
+  }
+  .focus-actions .button {
+    flex: 1;
+    min-width: 0;
+  }
+}

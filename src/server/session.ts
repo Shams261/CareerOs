@@ -37,6 +37,8 @@ export async function createSession(
       userId,
       tokenHash: sha256(token),
       userAgent: userAgent?.slice(0, 200) ?? null,
+      // One clock for the row: createdAt, expiresAt and lastSeenAt (the check needs expiry > creation).
+      createdAt: now,
       expiresAt: new Date(+now + SESSION_DAYS * 86400000),
       lastSeenAt: now,
     },
