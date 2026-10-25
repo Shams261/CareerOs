@@ -249,3 +249,19 @@ export async function processNotifications(now = new Date()) {
   }
   return { candidates };
 }
+
+/**
+ * R3: the owner opened Silsila from this notification. Set once (a later click keeps the first
+ * time) and only for the owner's own row. Returns whether a row was stamped.
+ */
+export async function markNotificationOpened(
+  userId: string,
+  id: string,
+  now = new Date(),
+) {
+  const { count } = await db().notificationLog.updateMany({
+    where: { id, userId, openedAt: null },
+    data: { openedAt: now },
+  });
+  return count === 1;
+}

@@ -102,6 +102,12 @@ enum LearningActivityType {
   NOTE
 }
 
+enum NotificationFeedback {
+  HELPFUL
+  NOT_TODAY
+  TOO_MANY
+}
+
 enum NotificationType {
   WEEKLY_REVIEW
   TECHNICAL_REVIEW
@@ -603,20 +609,24 @@ model NotificationPreference {
 }
 
 model NotificationLog {
-  id           String           @id @default(cuid())
+  id           String                @id @default(cuid())
   userId       String
-  user         User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user         User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
   type         NotificationType
   title        String
   body         String
-  scheduledFor DateTime         @db.Timestamptz(3)
+  scheduledFor DateTime              @db.Timestamptz(3)
   /// Set when at least one device accepted the Web Push delivery.
-  sentAt       DateTime?        @db.Timestamptz(3)
-  pushAttempts Int              @default(0)
-  readAt       DateTime?        @db.Timestamptz(3)
-  dedupeKey    String           @unique
+  sentAt       DateTime?             @db.Timestamptz(3)
+  pushAttempts Int                   @default(0)
+  readAt       DateTime?             @db.Timestamptz(3)
+  /// When the owner opened Silsila from this notification (R3); set once.
+  openedAt     DateTime?             @db.Timestamptz(3)
+  /// The owner's answer to "Useful?" (R3; asked by Study Nudges from WI-028).
+  feedback     NotificationFeedback?
+  dedupeKey    String                @unique
   metadata     Json?
-  createdAt    DateTime         @default(now()) @db.Timestamptz(3)
+  createdAt    DateTime              @default(now()) @db.Timestamptz(3)
 
   @@index([userId, readAt, scheduledFor])
 }

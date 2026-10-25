@@ -98,7 +98,8 @@ describe('Web Push encryption and VAPID (RFC 8291 / 8292)', () => {
     expect(body.includes(Buffer.from('DSA'))).toBe(false);
     expect(JSON.parse(decrypt(body, receiver, auth))).toEqual({
       title: 'Silsila',
-      body: '2 DSA problems due',
+      // R2: a push carries the general line for its type, never the reminder's own text.
+      body: 'Practice problems are due for revision today.',
       tag: 'n1',
       url: '/dsa',
     });

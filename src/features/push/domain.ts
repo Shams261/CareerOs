@@ -18,7 +18,30 @@ export function notificationPath(type: string, dedupeKey: string) {
       return '/today';
   }
 }
-/** Encrypted by the Web Push protocol end to end; contains the reminder text only. */
+/**
+ * What a push may say on a lock screen (R2, Version 2 plan): one general line per reminder
+ * type. A block title, company, round, note or item name never leaves in a push; the named
+ * reminder stays in the inbox and on Today, which only show once the device is unlocked.
+ */
+export const LOCK_SCREEN_TEXT: Record<string, string> = {
+  UPCOMING_BLOCK: 'A planned block starts soon.',
+  OVERDUE_TASK: 'A planned block has no session recorded yet.',
+  DAILY_PROGRESS: 'Ready to review your day?',
+  MISSED_CHECK_IN: 'Your daily check-in is waiting.',
+  JOB_FOLLOW_UP: 'A job follow-up is due.',
+  INTERVIEW: 'An interview is coming up.',
+  TECHNICAL_REVIEW: 'Roadmap items are due for revision today.',
+  DSA_REVISION: 'Practice problems are due for revision today.',
+  WEEKLY_REVIEW: 'Your weekly review is ready.',
+};
+export const lockScreenText = (type: string) =>
+  LOCK_SCREEN_TEXT[type] ?? 'You have a Silsila reminder.';
+
+/**
+ * Encrypted by the Web Push protocol end to end. Carries only the general line for the
+ * reminder's type, the notification id (tag) and a same-origin path; `title` is unused here
+ * on purpose so the reminder's named text can never reach a lock screen.
+ */
 export const pushPayload = (n: {
   id: string;
   type: string;
@@ -27,7 +50,7 @@ export const pushPayload = (n: {
 }) =>
   JSON.stringify({
     title: 'Silsila',
-    body: n.title,
+    body: lockScreenText(n.type),
     tag: n.id,
     url: notificationPath(n.type, n.dedupeKey),
   });

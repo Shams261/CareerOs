@@ -82,6 +82,8 @@ export async function exportOwnerData(userId: string, now = new Date()) {
         scheduledFor: true,
         sentAt: true,
         readAt: true,
+        openedAt: true,
+        feedback: true,
         createdAt: true,
       },
     }),
