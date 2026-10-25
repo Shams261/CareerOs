@@ -144,9 +144,20 @@ export default async function Dsa({
       <div className="page-head">
         <h1>Practice</h1>
         {topics.length > 0 && (
-          <Disclosure label="Add a problem" variant="secondary">
-            <ProblemForm topics={topics} currentId={currentTopic?.id} />
-          </Disclosure>
+          <>
+            {problems.length >= 4 && (
+              <Link
+                className="button secondary page-head-link"
+                href="/dsa/drill"
+                prefetch={false}
+              >
+                Which pattern?
+              </Link>
+            )}
+            <Disclosure label="Add a problem" variant="secondary">
+              <ProblemForm topics={topics} currentId={currentTopic?.id} />
+            </Disclosure>
+          </>
         )}
       </div>
       {!topics.length ? (
