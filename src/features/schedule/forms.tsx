@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { ActionForm } from '@/components/action-form';
 import { FormMore } from '@/components/form-more';
 import {
@@ -406,37 +407,51 @@ export function ExecutionControls({
       <div className="actions">
         {['PLANNED', 'IN_PROGRESS'].includes(block.status) ? (
           <>
-            {(canStart || running) && !hideStart && !(more && !current) && (
-              <button
-                className={
-                  current || running
-                    ? 'button'
-                    : `button secondary${more ? ' small' : ''}`
-                }
-                name="action"
-                value={running ? 'stop' : 'start'}
-                data-shortcut={current && !running ? 'start' : undefined}
-              >
-                {running
-                  ? launcher
-                    ? 'Stop session'
-                    : 'Stop'
-                  : launcher
-                    ? 'Start session'
-                    : 'Start'}
-                <span className="sr-only">: {block.title}</span>
-              </button>
-            )}
+            {(canStart || running) &&
+              !hideStart &&
+              !(more && !current) &&
+              (running ? (
+                <>
+                  {launcher && (
+                    <Link
+                      className="button secondary"
+                      href="/focus"
+                      prefetch={false}
+                    >
+                      Focus<span className="sr-only">: {block.title}</span>
+                    </Link>
+                  )}
+                  <button className="button" name="action" value="stop">
+                    {launcher ? 'Stop session' : 'Stop'}
+                    <span className="sr-only">: {block.title}</span>
+                  </button>
+                </>
+              ) : (
+                // Start opens Focus (WI-027): an intention, then Begin starts the session.
+                <Link
+                  className={
+                    current
+                      ? 'button'
+                      : `button secondary${more ? ' small' : ''}`
+                  }
+                  href={`/focus?block=${block.id}`}
+                  prefetch={false}
+                  data-shortcut={current ? 'start' : undefined}
+                >
+                  {launcher ? 'Start session' : 'Start'}
+                  <span className="sr-only">: {block.title}</span>
+                </Link>
+              ))}
             {!primaryOnly && (
               <SecondaryActions title={block.title} always={more}>
                 {more && !current && canStart && !hideStart && !running && (
-                  <Button
-                    className="secondary small"
-                    name="action"
-                    value="start"
+                  <Link
+                    className="button secondary small"
+                    href={`/focus?block=${block.id}`}
+                    prefetch={false}
                   >
                     Start<span className="sr-only">: {block.title}</span>
-                  </Button>
+                  </Link>
                 )}
                 <Button
                   className={`secondary${more ? ' small' : ''}`}

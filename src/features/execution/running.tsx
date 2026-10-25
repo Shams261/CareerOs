@@ -18,12 +18,15 @@ export async function RunningNow() {
   });
   if (!running) return null;
   return (
-    <aside className="running-now" aria-label="Running session">
+    <section className="running-now" aria-label="Running session">
       <p className="eyebrow">Running</p>
       <Link className="running-title" href="/today">
         {running.task?.title ?? categoryGroup(running.category)}
       </Link>
       <LiveTimer startedAt={running.startedAt.toISOString()} />
+      <Link className="link running-focus" href="/focus" prefetch={false}>
+        Focus
+      </Link>
       {running.task ? (
         <ActionForm action={executionAction} label="Stop the running session">
           <input type="hidden" name="id" value={running.task.id} />
@@ -40,6 +43,6 @@ export async function RunningNow() {
           <Button className="secondary">Stop</Button>
         </ActionForm>
       )}
-    </aside>
+    </section>
   );
 }

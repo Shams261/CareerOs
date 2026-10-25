@@ -100,6 +100,42 @@ describe.skipIf(!url)('daily execution persistence', () => {
       }),
     ).rejects.toThrow();
   });
+  it('keeps the Focus intention and appends the learned line to the session notes', async () => {
+    const b = await block();
+    await execute(user, b.id, 'start', '', now, {
+      intention: 'Two problems without hints',
+    });
+    const started = await prisma.actualSession.findFirstOrThrow({
+      where: { userId: user.id, taskId: b.id },
+    });
+    expect(started.notes).toBe('Intention: Two problems without hints');
+    await execute(user, b.id, 'complete', '', new Date('2026-09-23T12:30Z'), {
+      learned: 'Store indices, not values',
+    });
+    const done = await prisma.actualSession.findUniqueOrThrow({
+      where: { id: started.id },
+    });
+    expect(done.notes).toBe(
+      'Intention: Two problems without hints\nLearned: Store indices, not values',
+    );
+    expect(done.endedAt).toEqual(new Date('2026-09-23T12:30Z'));
+    // A plain start and stop leave notes empty, as before Focus existed.
+    const other = await block('2026-09-23', 'Reading');
+    await execute(user, other.id, 'start', '', new Date('2026-09-23T12:40Z'));
+    await execute(user, other.id, 'stop', '', new Date('2026-09-23T12:50Z'));
+    expect(
+      (
+        await prisma.actualSession.findFirstOrThrow({
+          where: { userId: user.id, taskId: other.id },
+        })
+      ).notes,
+    ).toBeNull();
+    await expect(
+      execute(user, other.id, 'start', '', new Date('2026-09-23T12:55Z'), {
+        intention: 'x'.repeat(141),
+      }),
+    ).rejects.toThrow();
+  });
   it('stops and resumes into separate actual sessions', async () => {
     const b = await block();
     await execute(user, b.id, 'start', '', now);

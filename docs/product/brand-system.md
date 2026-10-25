@@ -62,3 +62,9 @@ Remaining visual debt: original SVG lockups/mark/monochrome asset integration an
 Theme behavior is now independent of OS appearance. The server resolves the saved cookie before rendering HTML and viewport metadata, so no client-side theme detection or hydration correction is required. Login uses the same saved preference and defaults to Light when none exists. The brand palette is unchanged.
 
 Verification: all 205 tests in 26 files, lint, typecheck and build passed. Chrome confirmed Light on initial Settings, explicit Dark after saving and reloading, Light after switching back and reloading, matching color-scheme/theme-color values, and Light login after sign-out. Full OS Light/Dark matrix, Firefox and Safari/WebKit acceptance remain unverified; Safari control was interrupted. No cross-browser pass is claimed.
+
+## Moments and sound (Version 2, ADR-021)
+
+- A moment marks a real event (a focus session reaching its time, a day closed) once, quietly. No confetti, counters, streaks, badges to collect, scores or comparisons.
+- Sound is off by default and always the owner's choice. The only sound in WI-027 is the end-of-focus chime: two soft synthesised notes, played once, switched on in Focus ("Chime at the end").
+- Motion stays inside `prefers-reduced-motion: no-preference`; repeated actions stay instant.

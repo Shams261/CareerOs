@@ -24,7 +24,7 @@ export type ActionState = {
   link?: { href: string; label: string };
 };
 function refresh() {
-  for (const route of ['/today', '/calendar', '/review', '/jobs'])
+  for (const route of ['/today', '/calendar', '/review', '/jobs', '/focus'])
     revalidatePath(route);
 }
 type Done = string | { message: string; undo?: ActionState['undo'] };
@@ -111,6 +111,11 @@ export async function executionAction(_state: ActionState, form: FormData) {
       z.string().min(1).parse(form.get('id')),
       action,
       String(form.get('reason') ?? ''),
+      new Date(),
+      {
+        intention: String(form.get('intention') ?? ''),
+        learned: String(form.get('learned') ?? ''),
+      },
     );
     const id = String(form.get('id'));
     if (action === 'skip' || action === 'cancel')

@@ -63,3 +63,5 @@ See the [WI-024 handoff](WI-024-HANDOFF.md) for the Weekly review: one summary l
 See the [WI-025 handoff](WI-025-HANDOFF.md) for Settings as rows: the record line, reminder and calendar rows with panels, and the theme control.
 
 See the [WI-026 handoff](WI-026-HANDOFF.md) for the public privacy page and how to publish the Google app.
+
+See the [Version 2 plan](product/v2-plan.md) and the [WI-027 handoff](WI-027-HANDOFF.md) for the Focus session, the first Version 2 slice.
