@@ -47,7 +47,7 @@ Secrets are environment-only and validated at start-up without printing values (
 ## Data leaving the server
 
 - **Google:** during sign-in, only the OAuth exchange. Calendar: see ADR-010 (titles, instants, category, private IDs).
-- **Push services** (Google FCM, Mozilla, Apple): an encrypted payload (RFC 8291, aes128gcm) with a title, one short reminder line, a tag and a same-origin path, plus a VAPID JWT (RFC 8292). Push services cannot read the payload. Reminder text never includes notes, contacts or reflections.
+- **Push services** (Google FCM, Mozilla, Apple): an encrypted payload (RFC 8291, aes128gcm) with a title, one general line for the reminder's type, a tag and a same-origin path, plus a VAPID JWT (RFC 8292). Push services cannot read the payload. Since R2 the line is fixed per type, so a lock screen never shows a block title, company, round, note or item name (`tests/push-privacy.test.ts` checks every type).
 - **Export** (`/api/export`, signed-in only): a JSON copy of domain records. It excludes the refresh token, sync token, channel tokens, session hashes, push endpoints and keys, and maintenance records.
 
 ## Dependencies
