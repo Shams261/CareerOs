@@ -5,7 +5,7 @@ import { Disclosure } from '@/components/disclosure';
 import { FeedbackOutlet } from '@/components/feedback-outlet';
 import { PageShortcuts } from '@/components/shortcuts';
 import { db, owner } from '@/server/db';
-import { dayKey, dayBounds } from '@/lib/time';
+import { dayKey, dayBounds, hhmm, weekdayDate } from '@/lib/time';
 import { generateThroughSunday } from '@/features/schedule/service';
 import { dateInput, shiftDay } from '@/features/schedule/domain';
 import {
@@ -32,6 +32,9 @@ import { Agenda } from '@/features/today/agenda';
 import { Attention, AttentionSkeleton } from '@/features/today/attention';
 import { AttentionBoundary } from '@/features/today/attention-boundary';
 import { SidePanel } from '@/features/today/panels';
+import { NudgeCard } from '@/features/nudges/card';
+import { todaysNudge } from '@/features/nudges/service';
+
 export const metadata = { title: 'Today' };
 
 /**
@@ -58,7 +61,7 @@ export default async function Today({
       generationError =
         error instanceof Error ? error.message : 'Unable to plan this week.';
     }
-  const [plan, sessions, running, goals, routines, interviews, notes] =
+  const [plan, sessions, running, goals, routines, interviews, notes, nudge] =
     await Promise.all([
       db().dailyPlan.findUnique({
         where: { userId_date: { userId: user.id, date: new Date(day) } },
@@ -88,6 +91,7 @@ export default async function Today({
       db().routineBlock.count({ where: { userId: user.id } }),
       todaysInterviews(user, day),
       isToday ? openNotes(user.id) : Promise.resolve([]),
+      isToday ? todaysNudge(user, day) : Promise.resolve(null),
     ]);
   const blocks = plan?.blocks ?? [];
   const rounds: RoundLike[] = interviews.map((r) => ({
@@ -182,6 +186,7 @@ export default async function Today({
             renderedAt={now.toISOString()}
             noteCount={notes.length}
             reviewed={day > today ? null : reviewed}
+            rested={!!plan?.restAt}
           />
           {generationError && (
             <p role="alert" className="form-message mb-5">
@@ -189,6 +194,34 @@ export default async function Today({
               routines on Plan.
             </p>
           )}
+          {/* Outside the card: the answer stays visible after the card closes. */}
+          {isToday && <FeedbackOutlet channel="nudge" className="mb-4" />}
+          {nudge &&
+            (() => {
+              const b = nudge.blockId
+                ? blocks.find((x) => x.id === nudge.blockId)
+                : null;
+              const tomorrow = shiftDay(day, 1);
+              return (
+                <>
+                  <NudgeCard
+                    nudge={nudge}
+                    day={day}
+                    block={
+                      b
+                        ? {
+                            id: b.id,
+                            title: b.title,
+                            status: b.status,
+                            window: `${hhmm(b.plannedStart, user.timezone)}–${hhmm(b.plannedEnd, user.timezone)}`,
+                            tomorrow: `${weekdayDate(tomorrow)} · ${hhmm(b.plannedStart, user.timezone)}–${hhmm(b.plannedEnd, user.timezone)}`,
+                          }
+                        : null
+                    }
+                  />
+                </>
+              );
+            })()}
           <Suspense fallback={null}>
             <CalendarAttention user={user} />
           </Suspense>

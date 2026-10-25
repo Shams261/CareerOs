@@ -30,6 +30,10 @@ import { currentWeek } from '@/features/review/domain';
 import { shiftDay } from '@/features/schedule/domain';
 import { SettingsIndex } from '@/features/settings/index-nav';
 import { SettingRow } from '@/features/settings/rows';
+import { NudgeSettingsForm } from '@/features/nudges/forms';
+import { nudgeContext } from '@/features/nudges/domain';
+import { nudgeSetting } from '@/features/nudges/service';
+import { dayKey } from '@/lib/time';
 import { ThemeSwitch } from '@/features/settings/theme-switch';
 import { reminderContext, settingsSummary } from '@/features/settings/domain';
 export const metadata = { title: 'Settings' };
@@ -54,34 +58,52 @@ export default async function Settings({
     }
   })();
   const nextMonday = shiftDay(currentWeek(now, user.timezone), 7);
-  const [prefs, devices, health, calendar, jobs, routines, nextWeekPlans] =
-    await Promise.all([
-      db().notificationPreference.findMany({
-        where: {
-          userId: user.id,
-          type: {
-            in: [
-              'DAILY_PROGRESS',
-              'TECHNICAL_REVIEW',
-              'JOB_FOLLOW_UP',
-              'INTERVIEW',
-            ],
-          },
+  const [
+    prefs,
+    devices,
+    health,
+    calendar,
+    jobs,
+    routines,
+    nextWeekPlans,
+    nudgeRow,
+    routineCategories,
+  ] = await Promise.all([
+    db().notificationPreference.findMany({
+      where: {
+        userId: user.id,
+        type: {
+          in: [
+            'DAILY_PROGRESS',
+            'TECHNICAL_REVIEW',
+            'JOB_FOLLOW_UP',
+            'INTERVIEW',
+          ],
         },
-      }),
-      activeDevices(user.id),
-      healthCheck(),
-      db().calendarConnection.findUnique({ where: { userId: user.id } }),
-      db().jobRun.findMany(),
-      db().routineBlock.count({ where: { userId: user.id, enabled: true } }),
-      db().dailyPlan.count({
-        where: {
-          userId: user.id,
-          generatedAt: { not: null },
-          date: { gte: new Date(nextMonday) },
-        },
-      }),
-    ]);
+      },
+    }),
+    activeDevices(user.id),
+    healthCheck(),
+    db().calendarConnection.findUnique({ where: { userId: user.id } }),
+    db().jobRun.findMany(),
+    db().routineBlock.count({ where: { userId: user.id, enabled: true } }),
+    db().dailyPlan.count({
+      where: {
+        userId: user.id,
+        generatedAt: { not: null },
+        date: { gte: new Date(nextMonday) },
+      },
+    }),
+    db().studyNudgeSetting.findUnique({ where: { userId: user.id } }),
+    db().routineBlock.findMany({
+      where: { userId: user.id },
+      select: { category: true },
+      distinct: ['category'],
+    }),
+  ]);
+  const nudges = nudgeSetting(nudgeRow);
+  const today = dayKey(now, user.timezone);
+  const nudgesPaused = !!nudges.pausedUntil && nudges.pausedUntil >= today;
   const prefOf = (type: string) => prefs.find((p) => p.type === type) ?? null;
   const pref = prefOf('DAILY_PROGRESS'),
     revisionPref = prefOf('TECHNICAL_REVIEW'),
@@ -203,6 +225,14 @@ export default async function Settings({
               <SettingRow
                 source="notification"
                 icon={<Bell size={22} />}
+                label="Study nudges"
+                title="A morning first step and an evening check-in"
+                context={`${nudgeContext(nudges)}${nudgesPaused ? ' · Paused' : ''}`}
+                panel="reminder-study"
+              />
+              <SettingRow
+                source="notification"
+                icon={<Bell size={22} />}
                 label="Daily"
                 title="Remind me when I haven’t reviewed my day"
                 context={reminderContext(pref, { time: '21:30' })}
@@ -235,6 +265,36 @@ export default async function Settings({
                 focus="interview"
               />
             </ul>
+            <SidePanel id="reminder-study" title="Study nudges">
+              <p className="status-line">
+                <span>
+                  Off by default · at most two a day, four hours apart · never
+                  during a focus session · the lock screen never names a task
+                </span>
+              </p>
+              <NudgeSettingsForm
+                setting={nudges}
+                categories={routineCategories.map((r) => r.category)}
+                today={today}
+              />
+              <div className="panel-section">
+                <h3>This device</h3>
+                {push ? (
+                  <PushControls publicKey={push.publicKey} devices={devices} />
+                ) : (
+                  <p className="muted">
+                    Push is not configured on this server. Nudges appear on
+                    Today.
+                  </p>
+                )}
+                <p className="status-line">
+                  <span>
+                    Without notifications, nudges stay on Today · iPhone needs
+                    Silsila on the Home Screen (iOS 16.4+)
+                  </span>
+                </p>
+              </div>
+            </SidePanel>
             <SidePanel id="reminder-daily" title="Daily reminder">
               <ActionForm
                 action={reminderAction}

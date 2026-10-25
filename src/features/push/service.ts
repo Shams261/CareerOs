@@ -133,6 +133,8 @@ export async function deliverPending(
     where: {
       sentAt: null,
       readAt: null,
+      // Raised while Silsila was open (WI-028): shown in the app, never on a lock screen.
+      inAppOnly: false,
       pushAttempts: { lt: MAX_PUSH_ATTEMPTS },
       scheduledFor: { lte: now, gte: new Date(+now - PUSH_FRESH_MS) },
     },

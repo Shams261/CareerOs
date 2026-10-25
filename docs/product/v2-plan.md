@@ -423,9 +423,9 @@ The OS permission rule is deliberately server-side. Safari does not allow invisi
 
 **Morning variants**, rotated by day:
 
-1. "Good morning. You don't need a perfect day—just a first step. Your plan is here when you're ready."
-2. "Good morning. One block is enough to begin. Your plan is ready when you are."
-3. "Good morning. Start small today. Your plan is here."
+1. "You don't need a perfect day—just a first step. Your plan is here when you're ready."
+2. "One block is enough to begin. Your plan is ready when you are."
+3. "Start small today. Your plan is here."
 
 **Evening variants:**
 

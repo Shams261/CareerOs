@@ -7,6 +7,7 @@ import type { Metadata } from 'next';
 import { Suspense } from 'react';
 import { Navigation } from '@/components/navigation';
 import { RunningNow } from '@/features/execution/running';
+import { PresenceBeat } from '@/features/nudges/presence';
 import { CaptureForm } from '@/features/notes/forms';
 import './globals.css';
 import type { Viewport } from 'next';
@@ -92,6 +93,7 @@ export default async function RootLayout({
           <main id="main" className="content">
             {children}
           </main>
+          <PresenceBeat />
         </div>
       </body>
     </html>

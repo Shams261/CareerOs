@@ -33,6 +33,8 @@ export type FocusBlock = {
   window: string;
   /** Sessions start only on the block's own day. */
   canStart: boolean;
+  /** A short target in minutes ("Start 20 min" from a study nudge), else the planned end. */
+  minutes?: number | null;
 };
 export type FocusSession = {
   id: string;
@@ -170,7 +172,14 @@ export function FocusView({
       <Link className="link" href="/today" prefetch={false}>
         <ArrowLeft size={14} aria-hidden="true" /> Today
       </Link>
-      <p className="eyebrow mt-4">Focus{block ? ` · ${block.window}` : ''}</p>
+      <p className="eyebrow mt-4">
+        Focus
+        {block?.minutes
+          ? ` · ${block.minutes} min`
+          : block?.window
+            ? ` · ${block.window}`
+            : ''}
+      </p>
       <h1 className="focus-title">{title}</h1>
       {session ? (
         <Running
@@ -241,13 +250,15 @@ function Running({
   const router = useRouter();
   const now = useNow(renderedAt);
   const started = new Date(session.startedAt);
-  const target = block
-    ? focusTarget({
-        startedAt: started,
-        plannedStart: new Date(block.plannedStart),
-        plannedEnd: new Date(block.plannedEnd),
-      })
-    : null;
+  const target = block?.minutes
+    ? new Date(+started + block.minutes * 60_000)
+    : block
+      ? focusTarget({
+          startedAt: started,
+          plannedStart: new Date(block.plannedStart),
+          plannedEnd: new Date(block.plannedEnd),
+        })
+      : null;
   const at = new Date(now);
   const fraction = target ? ringFraction(started, target, at) : null;
   const left = target ? minutesLeft(target, at) : null;

@@ -12,7 +12,7 @@ export const metadata = { title: 'Focus' };
 export default async function FocusPage({
   searchParams,
 }: {
-  searchParams: Promise<{ block?: string }>;
+  searchParams: Promise<{ block?: string; minutes?: string }>;
 }) {
   const user = await owner(),
     now = new Date(),
@@ -38,6 +38,12 @@ export default async function FocusPage({
       })
     : null;
   if (!running && !block) redirect('/today');
+  // "Start 20 min" from a study nudge (WI-028): a short target instead of the planned end.
+  const minutes = Number(query.minutes);
+  const target =
+    Number.isInteger(minutes) && minutes >= 5 && minutes <= 180
+      ? minutes
+      : null;
   const session = running
     ? {
         id: running.id,
@@ -57,6 +63,7 @@ export default async function FocusPage({
           plannedStart: block.plannedStart.toISOString(),
           plannedEnd: block.plannedEnd.toISOString(),
           window: `${hhmm(block.plannedStart, user.timezone)}–${hhmm(block.plannedEnd, user.timezone)}`,
+          minutes: target,
           canStart:
             ['PLANNED', 'IN_PROGRESS'].includes(block.status) &&
             block.dailyPlan.date.toISOString().slice(0, 10) ===

@@ -118,6 +118,8 @@ enum NotificationType {
   JOB_FOLLOW_UP
   INTERVIEW
   DSA_REVISION
+  STUDY_MORNING
+  STUDY_EVENING
 }
 
 model User {
@@ -138,6 +140,8 @@ model User {
   email              String                   @unique
   name               String
   timezone           String                   @default("America/Toronto")
+  /// Last time a Silsila page was visible (WI-028 presence beat); nudges go in-app while recent.
+  lastActiveAt       DateTime?                @db.Timestamptz(3)
   createdAt          DateTime                 @default(now()) @db.Timestamptz(3)
   updatedAt          DateTime                 @updatedAt @db.Timestamptz(3)
   goals              Goal[]
@@ -157,6 +161,7 @@ model User {
   currentDsaTopicId  String?
   currentDsaTopic    DsaTopic?                @relation(fields: [currentDsaTopicId], references: [id], onDelete: SetNull)
   routines           RoutineBlock[]
+  studyNudges        StudyNudgeSetting?
 }
 
 model Goal {
@@ -191,6 +196,8 @@ model DailyPlan {
   notes       String?
   generatedAt DateTime?     @db.Timestamptz(3)
   reviewedAt  DateTime?     @db.Timestamptz(3)
+  /// The owner marked this day as rest (WI-028): evening study check-ins stop for the day.
+  restAt      DateTime?     @db.Timestamptz(3)
   createdAt   DateTime      @default(now()) @db.Timestamptz(3)
   updatedAt   DateTime      @updatedAt @db.Timestamptz(3)
   blocks      TimeBlock[]
@@ -625,6 +632,8 @@ model NotificationLog {
   /// The owner's answer to "Useful?" (R3; asked by Study Nudges from WI-028).
   feedback     NotificationFeedback?
   dedupeKey    String                @unique
+  /// Shown in the inbox and on Today only, never pushed (WI-028: Silsila was open).
+  inAppOnly    Boolean               @default(false)
   metadata     Json?
   createdAt    DateTime              @default(now()) @db.Timestamptz(3)
 
@@ -915,4 +924,24 @@ model QuickNote {
   doneAt    DateTime? @db.Timestamptz(3)
 
   @@index([userId, doneAt, createdAt])
+}
+
+/// Study Nudges (WI-028): off by default; evaluated against the latest plan at each cron run.
+model StudyNudgeSetting {
+  id              String    @id @default(cuid())
+  userId          String    @unique
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  morningEnabled  Boolean   @default(false)
+  morningTime     String    @default("08:00")
+  eveningEnabled  Boolean   @default(false)
+  eveningTime     String    @default("19:30")
+  /// Weekdays as bits, Monday = 1 … Sunday = 64; Mon–Fri by default.
+  days            Int       @default(31)
+  onlyStudyDays   Boolean   @default(true)
+  quietStart      String    @default("22:00")
+  quietEnd        String    @default("07:30")
+  /// Paused through this owner-calendar day (DATE label).
+  pausedUntil     DateTime? @db.Date
+  studyCategories String[]  @default(["DSA", "Technical"])
+  updatedAt       DateTime  @updatedAt @db.Timestamptz(3)
 }
