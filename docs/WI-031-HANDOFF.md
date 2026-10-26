@@ -122,6 +122,20 @@ The check runs before the first use and whenever the last one is more than 36 ho
 
 Fixed on `fix/wi-031-ladder-length`: `MAX_TOKENS` 2,000, a brevity line in the prompt, and a brief retry for a cut-off answer (`finish_reason: "length"`), tested in `tests/ai-database.test.ts`.
 
+### Live check after the fix (main `65a38cb`)
+
+| Step                                       | Result                                                                                                             |
+| ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------ |
+| Send and start on the same item            | Pass: five rungs on the first call                                                                                 |
+| Rung quality                               | Pass: five points per rung, moving from what the interview assesses to a consistency-versus-availability trade-off |
+| Space, 2, K (reveal, Partly, Keep as card) | Pass                                                                                                               |
+| Ladder done                                | Pass: the counts with Done offered                                                                                 |
+| Escape                                     | Pass: only the panel closed; the item stayed open                                                                  |
+| Kept card on the item, then Remove card    | Pass: "Kept cards · 1", then "Card removed." with Undo. The test card was removed afterwards                       |
+| Ledger                                     | Pass: OK, 732 of 2,000 output tokens, US$0.00043                                                                   |
+
+The same day, the reminders cron was found disabled on cron-job.org since 2026-10-21, after repeated "output too large" failures during a deploy. It was re-enabled, and its first run succeeded. That run also carried Grill Me's daily provider check.
+
 ## Owner steps
 
 1. **Before merging**, apply the migration to production from your own terminal, the same way as WI-028 (`read -rs` for the Supabase URL, then `pnpm db:deploy`).

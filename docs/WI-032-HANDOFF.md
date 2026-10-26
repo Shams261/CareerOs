@@ -78,6 +78,19 @@ Fixed on `fix/wi-032-hint-rules`:
 - **Retry.** It no longer sends the rejected answer back, for hints and for Grill Me. It names what to fix and asks again from the start, which also avoids the long, cut-off second answer.
 - **Logging.** The failure line names the broken rules by position and code (`hints.2.hint:too_big`), never text, so the next live failure can be read from the log.
 
+### Live check after the fix (main `8ae8741`)
+
+| Step                                    | Result                                                                                                                 |
+| --------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| Hints button and the four-field preview | Pass                                                                                                                   |
+| Get hints                               | Pass: five hints on the first call. The first hint was about 170 characters, which confirms the old limit as the cause |
+| Space and Next hint                     | Pass                                                                                                                   |
+| Code in hints                           | Pass: none in five. They went from reading the problem to a single pass with a set                                     |
+| Closing line                            | Pass: "That's every hint. Try it now, then record your attempt."                                                       |
+| Ledger                                  | Pass: OK, 335 of 1,000 output tokens, US$0.00022                                                                       |
+
+The deck could not be checked live because production had no kept cards on a due item. It was checked locally, as above.
+
 ## Owner steps
 
 1. **Before merging**, apply the migration to production from your own terminal, as with WI-031 (`read -rs` for the Supabase URL, then `pnpm db:deploy`).
