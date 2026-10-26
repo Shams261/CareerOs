@@ -169,6 +169,7 @@ describe('the ladder', () => {
     expect(readLadder('not json')).toEqual({
       ok: false,
       issues: 'The answer was not JSON.',
+      codes: 'json',
     });
     const thin = readLadder(
       JSON.stringify({ rungs: Array(5).fill({ ...rung, points: ['one'] }) }),
