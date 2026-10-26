@@ -241,6 +241,13 @@ export default async function Review({
             >
               Details
             </Link>
+            <Link
+              className="link-button today-util"
+              href="/review/look-back"
+              prefetch={false}
+            >
+              Look back
+            </Link>
           </UtilityMenu>
         </div>
         <p className="today-summary">
