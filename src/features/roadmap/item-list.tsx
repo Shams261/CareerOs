@@ -21,6 +21,7 @@ import type { Reference, Scenario } from './domain';
 import { Button } from '@/components/ui/button';
 import { GrillMe } from '@/features/ai/grill';
 import { Listen } from '@/features/listen/listen';
+import { OPEN_ITEM_EVENT } from './events';
 import { removeCardAction } from '@/features/ai/actions';
 
 export type RowLinks = {
@@ -125,6 +126,22 @@ export function ItemList({
     () => '',
   );
   const [chosen, setChosen] = useState<string | null | undefined>(undefined);
+  // A new hash (a link, or the command bar on this same page) wins over an earlier click, so
+  // the earlier choice is dropped while rendering (derived from the previous hash).
+  const [seenHash, setSeenHash] = useState(hashId);
+  if (hashId !== seenHash) {
+    setSeenHash(hashId);
+    if (hashId) setChosen(undefined);
+  }
+  // The command bar on this same page names the item outright, even when the hash is unchanged.
+  useEffect(() => {
+    const onOpen = (e: Event) => {
+      const id = (e as CustomEvent<string>).detail;
+      if (rows.some((r) => r.item.id === id)) setChosen(id);
+    };
+    window.addEventListener(OPEN_ITEM_EVENT, onOpen);
+    return () => window.removeEventListener(OPEN_ITEM_EVENT, onOpen);
+  }, [rows]);
   const [expandedScope, setExpandedScope] = useState<string | null>(null);
   const open =
     chosen !== undefined
