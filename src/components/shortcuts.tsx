@@ -88,6 +88,7 @@ export function PageShortcuts({
     ...(prev && next
       ? ([['← →', 'Previous and next']] as [string, string][])
       : []),
+    ['⌘K', 'Search and run anything (Ctrl K)'],
     ['?', 'Show or hide this list'],
     ['Esc', 'Close'],
   ];
