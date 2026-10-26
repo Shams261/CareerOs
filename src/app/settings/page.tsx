@@ -6,7 +6,7 @@ import {
   Check,
   Circle,
   Download,
-  Image,
+  ImageIcon,
   Keyboard,
   MessagesSquare,
   Server,
@@ -377,7 +377,7 @@ export default async function Settings({
               />
               <SettingRow
                 source="weekly"
-                icon={<Image size={22} />}
+                icon={<ImageIcon size={22} />}
                 label="Day print"
                 title="A print of each closed day"
                 context={
