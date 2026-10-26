@@ -337,7 +337,7 @@ export async function ask<T>({
     messages.push({
       role: 'user',
       content: cutOff
-        ? BRIEF_RETRY
+        ? (format.brief ?? BRIEF_RETRY)
         : `Your previous answer did not match the rules: ${result.issues}. Answer again from the start, following every rule, and return only the JSON object.`,
     });
   }

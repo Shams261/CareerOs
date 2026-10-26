@@ -64,6 +64,24 @@ The command bar offers **Listen · {item}** when you type "listen".
 
 Screenshots: `docs/screenshots/wi-037/`. The model was the local fake, so script quality is checked live.
 
+## Live check (UAT, 2026-10-26, owner's Chrome)
+
+| Step                                              | Result                                                                                                                                           |
+| ------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| ⌘K "listen http" lists Listen for three items     | Pass                                                                                                                                             |
+| HTTP semantics: the preview of fields and sources | Pass: three fields, RFC 9110 and MDN as official docs, the YouTube playlist not fetched                                                          |
+| Fetch sources and write                           | **Fail**: "Couldn’t write a script for this item." The log showed both sources fetched with 6 passages, then `[study] grill failed CutOff` twice |
+
+Both answers hit the 1,500-token output ceiling, so the JSON never closed. The retry also asked in Grill Me's terms (questions and points).
+
+Fixed on `fix/wi-037-listen-length`:
+
+- **Ceiling.** The output ceiling is now 3,000 tokens. A full 3,000 costs about US$0.0015.
+- **Prompt.** It asks for eight to ten lines, each one sentence of at most 30 words, in the model's own words keeping the passage's key terms, and never copying a passage. Copied passages are the likely reason the answer ran long.
+- **Retry.** A cut-off answer is asked again in Listen's own terms ("eight lines, each one sentence under 25 words"), through a `brief` on the output format. Grill Me's and hints' retries are unchanged. The cut-off text is never resent.
+- **Test.** A new database test covers the cut-off retry.
+- **Flake.** A Grill Me database test that ordered ledger rows by an identical `createdAt` now also orders by id. Its expectation is unchanged.
+
 ## Owner steps
 
 1. **Before merging**, apply the migration to production from your own terminal, as with WI-031 and WI-032 (`read -rs` for the Supabase URL, then `pnpm db:deploy`).
