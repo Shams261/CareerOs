@@ -56,7 +56,12 @@ const endpointList = {
 
 /** A fake OpenRouter: public lists and a queue of chat answers; it records every request. */
 function fakeRouter(
-  answers: { content?: string; provider?: string; status?: number }[],
+  answers: {
+    content?: string;
+    provider?: string;
+    status?: number;
+    finish?: string;
+  }[],
   lists = { zdr: zdrList, endpoints: endpointList },
 ) {
   const calls: { url: string; body?: unknown; auth?: string | null }[] = [];
@@ -75,7 +80,9 @@ function fakeRouter(
     return Response.json({
       provider: a.provider ?? 'Google',
       usage: { prompt_tokens: 600, completion_tokens: 800, cost: 0.00046 },
-      choices: [{ message: { content: a.content } }],
+      choices: [
+        { message: { content: a.content }, finish_reason: a.finish ?? 'stop' },
+      ],
     });
   }) as typeof fetch;
   return {
@@ -206,6 +213,27 @@ describe.skipIf(!url)('Grill Me (PostgreSQL)', () => {
       grill(user, item.id, ticks, now, bad.fetcher),
     ).rejects.toBeInstanceOf(AiUnavailable);
     expect(bad.chats()).toHaveLength(2);
+  });
+
+  it('asks again, briefly, when an answer is cut off at the ceiling', async () => {
+    const r = fakeRouter([
+      { content: goodLadder.slice(0, 300), finish: 'length' },
+      { content: goodLadder },
+    ]);
+    const ladder = await grill(user, item.id, ticks, now, r.fetcher);
+    expect(ladder.rungs).toHaveLength(5);
+    const retry = r.chats()[1].body as {
+      max_tokens: number;
+      messages: { role: string; content: string }[];
+    };
+    expect(retry.max_tokens).toBe(2000);
+    // The cut-off text is not sent back; only a request to be brief.
+    expect(retry.messages.map((m) => m.role)).toEqual([
+      'system',
+      'user',
+      'user',
+    ]);
+    expect(retry.messages.at(-1)!.content).toMatch(/cut off/);
   });
 
   it('blocks AI when an answer comes from another provider, until the owner checks again', async () => {

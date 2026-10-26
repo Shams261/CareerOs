@@ -10,6 +10,7 @@ import { locked, type ScheduleUser } from '@/features/schedule/service';
 import {
   CHECK_MAX_AGE_MS,
   costMicros,
+  BRIEF_RETRY,
   ENDPOINT,
   evaluateProvider,
   firstMessages,
@@ -247,7 +248,7 @@ export async function grill(
     let body: {
       provider?: unknown;
       usage?: unknown;
-      choices?: { message?: { content?: unknown } }[];
+      choices?: { message?: { content?: unknown }; finish_reason?: unknown }[];
     };
     try {
       const res = await fetcher(`${cfg.baseUrl}/chat/completions`, {
@@ -312,8 +313,14 @@ export async function grill(
       );
       return read.ladder;
     }
-    console.error('[study] grill failed InvalidLadder');
-    if (typeof content === 'string')
+    const cutOff = body.choices?.[0]?.finish_reason === 'length';
+    console.error(
+      `[study] grill failed ${cutOff ? 'CutOff' : 'InvalidLadder'}`,
+    );
+    if (cutOff)
+      // A cut-off answer is not worth sending back: ask the same question again, briefly.
+      messages.push({ role: 'user', content: BRIEF_RETRY });
+    else if (typeof content === 'string')
       messages.push(
         { role: 'assistant', content: content.slice(0, 4000) },
         {

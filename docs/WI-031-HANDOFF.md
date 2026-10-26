@@ -110,6 +110,18 @@ The check runs before the first use and whenever the last one is more than 36 ho
 | Browser, 390 and dark                                   | The panel was full width with no overflow. Dark mode read well                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
 | Not verified                                            | A real OpenRouter call. It needs the owner's key on Render (below)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
 
+## Live check (UAT, 2026-10-26, owner's Chrome)
+
+| Step                                                                    | Result                                                                                                                                         |
+| ----------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| Settings → Data → Grill Me reads "On · US$0.00 of US$3 used this month" | Pass                                                                                                                                           |
+| Check the provider again                                                | Pass: the panel then read "Provider checked Oct 26" with no block                                                                              |
+| Grill me on a System design item (Introduction), payload preview        | Pass: title, scope and "done when" only                                                                                                        |
+| Send and start                                                          | **Fail**: "Couldn’t build a useful ladder". The ledger showed 900 of 900 output tokens on both calls, so the answer was cut off at the ceiling |
+| Spend line after the attempt                                            | Pass: "under US$0.01" (about US$0.001 for the two calls)                                                                                       |
+
+Fixed on `fix/wi-031-ladder-length`: `MAX_TOKENS` 2,000, a brevity line in the prompt, and a brief retry for a cut-off answer (`finish_reason: "length"`), tested in `tests/ai-database.test.ts`.
+
 ## Owner steps
 
 1. **Before merging**, apply the migration to production from your own terminal, the same way as WI-028 (`read -rs` for the Supabase URL, then `pnpm db:deploy`).

@@ -15,7 +15,11 @@ export const MODEL_LABEL = 'Claude Haiku 5.5';
 export const PROVIDER_LABEL = 'Google Vertex, zero data retention';
 /** Prices checked on 2026-10-26, in millionths of a US dollar per token. */
 export const PRICE = { input: 0.1, output: 0.5 } as const;
-export const MAX_TOKENS = 900;
+/**
+ * The output ceiling. 900 cut both answers short in the first live check (2026-10-26: 900 of
+ * 900 tokens each, so the JSON never closed); five rungs need about 1,000–1,400.
+ */
+export const MAX_TOKENS = 2000;
 /** Silsila's own monthly limit (ADR-022); the OpenRouter key's hard limit is US$5. */
 export const CAP_MICROS = 3_000_000;
 export const RATE = { hour: 20, day: 60 } as const;
@@ -107,6 +111,7 @@ export const SYSTEM_PROMPT = [
   'Each later question changes one constraint of the one before: scale, a failure, a new requirement, a trade-off or an edge case.',
   'For each question give "change": the constraint that changed, in a few words ("Starting point" for the first),',
   'and "points": three to five short points a strong answer covers.',
+  'Keep each question under 30 words, each change under 6 words and each point under 15 words.',
   'Plain English. No markdown, no code blocks, no names of people or companies unless they appear in the topic, and nothing about the candidate personally.',
 ].join(' ');
 
@@ -190,6 +195,10 @@ export const ladderSchema = z.object({
 });
 export type Ladder = z.infer<typeof ladderSchema>;
 export type Rung = Ladder['rungs'][number];
+
+/** The retry after an answer that hit the output ceiling: the same question, asked for brevity. */
+export const BRIEF_RETRY =
+  'Your previous answer was cut off because it was too long. Answer again, shorter: questions under 25 words, points under 12 words.';
 
 /** Reads the model's text as a ladder, or says what was wrong for the one retry. */
 export function readLadder(
