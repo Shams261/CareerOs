@@ -302,3 +302,76 @@ Attention is derived, not stored: overdue follow-up, result needed, interview be
 **Alternatives rejected:** an AI "next move" on Today and AI day or week planning (both need the owner's schedule and duplicate the deterministic launcher); AI-generated traces and disguises as the only path for the drills (correctness and drift); default-on sound.
 
 **Consequences:** Focus is a route (`/focus`) entered from Start; the running strip and the launcher link to it. Later WIs add their own migrations (Study Nudges: settings, rest day, presence; Grill Me: usage ledger and kept cards). Each WI keeps its own handoff.
+
+## ADR-022 — The AI provider for Grill Me (Version 2 R4)
+
+**Status:** Accepted (2026-10-26, owner sign-off below). WI-031 builds on it.
+
+**Context:** ADR-021 allows one pinned model on one pinned zero-data-retention (ZDR) endpoint through OpenRouter, with no fallback and a US$5 monthly cap. R4 checks what is true today before any code is written. The checks ran on 2026-10-26 against OpenRouter's public lists, which need no key and receive nothing about the owner:
+
+- `GET https://openrouter.ai/api/v1/endpoints/zdr`
+- `GET https://openrouter.ai/api/v1/models/anthropic/<model>/endpoints` for `claude-haiku-5.5`, `claude-sonnet-5.5` and `claude-opus-5.5`
+
+**What the checks showed (2026-10-26), for Claude Haiku 5.5:**
+
+| Endpoint (OpenRouter slug)                   | On the ZDR list | Strict structured outputs | Price per million tokens (in / out) |
+| -------------------------------------------- | --------------- | ------------------------- | ----------------------------------- |
+| `google-vertex/global`                       | Yes             | Yes                       | US$0.10 / US$0.50                   |
+| `google-vertex/us`, `google-vertex/europe`   | Yes             | Yes                       | US$0.11 / US$0.55                   |
+| `amazon-bedrock`, `/us-east-1`, `/eu-west-1` | Yes             | No (JSON mode only)       | US$0.10–0.11 / US$0.50–0.55         |
+| `anthropic`, `azure/*`, `claude-on-aws`      | No              | —                         | —                                   |
+
+- Grill Me needs a strict JSON schema, so only the Google Vertex endpoints fit both rules for this model.
+- The owner asked for the cheapest model from an established company that follows every rule here, within a budget of US$2–3 a month and never more than US$5.
+- The larger models have the same shape: their ZDR endpoints are Google Vertex (and Bedrock), with strict structured outputs on Vertex. The cost of one ladder assumes about 700 input tokens and at most 900 output tokens (ADR-021, plan section 8):
+
+| Model on `google-vertex/global` (snapshot)  | Price per million (in / out) | One ladder, at most | Ladders within US$5 |
+| ------------------------------------------- | ---------------------------- | ------------------- | ------------------- |
+| `anthropic/claude-haiku-5.5` (`-20261007`)  | US$0.10 / US$0.50            | about US$0.0005     | about 9,600         |
+| `anthropic/claude-sonnet-5.5` (`-20260928`) | US$2 / US$10                 | about US$0.010      | about 480           |
+| `anthropic/claude-opus-5.5` (`-20260921`)   | US$4 / US$20                 | about US$0.021      | about 240           |
+
+- Other makers on established hosts, also ZDR with strict structured outputs, cost more per ladder: Gemini 3.8 Flash on `google-vertex/global` about US$0.0039 (US$0.0019 on the lower-priority `flex` tier), Mistral Medium 3.1 on `mistral/zdr` about US$0.0021, GPT-5.4 on `azure` about US$0.015. Cheaper ZDR models exist on smaller hosts, often quantized (fp4/fp8); they were left out for quality and for trust in the ZDR claim.
+- Every listed Vertex endpoint reported full uptime over the last 30 minutes at the time of the check. The `/us` and `/europe` regions cost about 10% more than `/global`.
+
+**Decision:**
+
+- **Model:** `anthropic/claude-haiku-5.5`, the cheapest model from an established company that meets every rule. One ladder costs at most about US$0.0005, so ten ladders a day come to about US$0.15 a month. If its ladders rate poorly in the owner's ten-item check (plan section 1), `anthropic/claude-sonnet-5.5` on the same endpoint family is the step up, at about US$0.010 a ladder. Changing the model is an owner decision recorded here, never an automatic switch. A blind comparison of models can come later.
+- **Endpoint:** `google-vertex/global`, the cheapest region with ZDR and strict structured outputs. `google-vertex/us` is the alternative if the owner wants the US region, at about 10% more.
+- **Every request** carries one `model`, no `models` array, and:
+
+  ```json
+  "provider": {
+    "order": ["google-vertex/global"],
+    "only": ["google-vertex/global"],
+    "allow_fallbacks": false,
+    "zdr": true,
+    "data_collection": "deny",
+    "require_parameters": true
+  }
+  ```
+
+  OpenRouter accepts the full slug with its region suffix to pin one endpoint. `allow_fallbacks` defaults to true and `data_collection` to `"allow"`, so both are always set explicitly.
+
+- **Fail closed.** A daily preflight in WI-031 repeats both checks. If the endpoint leaves the ZDR list, loses structured outputs or disappears, AI controls turn off until the owner approves again. A price change updates the ledger rates only after the owner sees it.
+- **Two caps.** Silsila's own ledger stops AI at **US$3** per calendar month in the owner's timezone, checked before each call: the owner's working budget, tighter than ADR-021's US$5. The OpenRouter key gets a hard credit limit of **US$5** with `limit_reset: "monthly"` (it resets at midnight UTC), so even a fault in Silsila cannot spend more. Whichever is reached first stops the feature.
+- **Account settings.** Account-level ZDR is turned on for Anthropic models and prompt logging stays off, so a request without `zdr: true` still cannot reach a retaining endpoint.
+
+**What these controls do and do not establish:**
+
+- **OpenRouter:** it defines ZDR as a provider that "will not store your data for any period of time". It does not count in-memory prompt caching as retention, and it does not keep prompts unless the account opts into logging.
+- **Google:** Vertex AI's data governance page (last updated 2026-10-22) says Google won't train on customer data without permission. Its caching and request-logging switches belong to the Google Cloud project that sends the request, which is OpenRouter's, not Silsila's. Its abuse-monitoring note names Google models and does not address partner models such as Claude.
+- **Silsila's reach:** it can enforce routing, field allowlists, caps and its own non-storage. It cannot audit OpenRouter's or Google's internals. The owner accepts that residual trust in signing off.
+
+**Sources (checked 2026-10-26):**
+
+- https://openrouter.ai/docs/features/provider-routing
+- https://openrouter.ai/docs/features/zdr
+- https://openrouter.ai/docs/guides/best-practices/capping-shared-agent-keys.md
+- https://docs.cloud.google.com/vertex-ai/generative-ai/docs/data-governance
+
+**Owner sign-off:**
+
+- 2026-10-26: the owner chose Google Vertex ZDR only, and the cheapest established option that meets every rule (`anthropic/claude-haiku-5.5` on `google-vertex/global`), with a working budget of US$2–3 a month and US$5 as the most.
+- 2026-10-26: the owner turned on account-level ZDR for Anthropic models, kept prompt logging off, and set the Silsila key's credit limit to US$5, reset monthly.
+- 2026-10-26: the owner read the Google Vertex and OpenRouter data terms and found them acceptable.
