@@ -5719,3 +5719,101 @@ button.attention-link {
     animation: silsila-rise var(--motion-normal) var(--motion-easing) both;
   }
 }
+
+/* WI-037: Listen. */
+.listen-note {
+  margin: 0;
+  font-size: 13px;
+}
+.listen-sources,
+.listen-lines,
+.listen-passages {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.listen-sources {
+  font-size: 14px;
+  margin: 10px 0;
+}
+.listen-player {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+.listen-player .button {
+  min-width: 96px;
+}
+.listen-player label {
+  display: inline-flex;
+  margin: 0;
+}
+.listen-player select {
+  width: auto;
+  max-width: 100%;
+  min-height: 44px;
+}
+.listen-lines {
+  counter-reset: line;
+  gap: 4px;
+}
+.listen-lines li {
+  counter-increment: line;
+  display: grid;
+  grid-template-columns: 26px 1fr;
+  gap: 4px 6px;
+  padding: 8px 10px 8px 6px;
+  border-radius: var(--radius-md);
+  line-height: 1.5;
+}
+.listen-lines li::before {
+  content: counter(line);
+  color: var(--muted);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  padding-top: 2px;
+}
+.listen-lines li > * {
+  grid-column: 2;
+}
+.listen-lines li.is-speaking {
+  background: var(--primary-soft);
+}
+.listen-chips {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.listen-chip {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  padding: 0 7px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--primary);
+  text-decoration: none;
+}
+.listen-passages {
+  gap: 14px;
+}
+.listen-passage-head {
+  margin: 0 0 6px;
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+.listen-passages blockquote {
+  margin: 0;
+  padding: 8px 12px;
+  border-left: 3px solid var(--border);
+  background: var(--surface-2);
+  font-size: 14px;
+  line-height: 1.55;
+  overflow-wrap: anywhere;
+}

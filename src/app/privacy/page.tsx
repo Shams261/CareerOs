@@ -126,9 +126,14 @@ export default async function Privacy() {
         owner ticks and sees before sending, through OpenRouter to Claude Haiku
         5.5 on Google Vertex AI, using an endpoint with zero data retention and
         no fallback to another provider. Hints on a Practice problem send its
-        title, difficulty, platform and topic the same way. Notes, the schedule,
-        sessions, jobs and reflections are never sent. Nothing is shared with
-        anyone else, and nothing is sold.
+        title, difficulty, platform and topic the same way. Listen sends an
+        item&rsquo;s title, scope and &ldquo;done when&rdquo; line with short
+        passages Silsila fetched, when the owner presses it, from the
+        item&rsquo;s own links on a fixed list of documentation and guide sites;
+        those sites see an ordinary request from Silsila&rsquo;s server and
+        nothing about the owner. Notes, the schedule, sessions, jobs and
+        reflections are never sent. Nothing is shared with anyone else, and
+        nothing is sold.
       </p>
 
       <h2>Keeping and removing data</h2>

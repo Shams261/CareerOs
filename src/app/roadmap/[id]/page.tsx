@@ -19,6 +19,7 @@ import {
   type Scenario,
 } from '@/features/roadmap/domain';
 import { dayKey } from '@/lib/time';
+import { sourcePlan } from '@/features/listen/domain';
 import { isTestNamed } from '@/lib/test-data';
 import { aiState } from '@/features/ai/service';
 import { budgetLine } from '@/features/ai/domain';
@@ -146,6 +147,10 @@ export default async function RoadmapDetail({
       },
       cards: cards.filter((c) => c.roadmapItemId === item.id),
       grillable: !!grill && !isTestNamed(item.title, roadmap.title),
+      listenable:
+        !!grill &&
+        !isTestNamed(item.title, roadmap.title) &&
+        sourcePlan(item.references).fetch.length > 0,
     }));
   const initialOpen =
     roadmap.next && roadmap.next.section === selected ? roadmap.next.id : null;

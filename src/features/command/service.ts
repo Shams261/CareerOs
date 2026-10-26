@@ -6,6 +6,7 @@ import type { ScheduleUser } from '@/features/schedule/service';
 import { closeDayOpen } from '@/features/close-day/domain';
 import { stopTime } from '@/features/close-day/service';
 import { aiState } from '@/features/ai/service';
+import { sourcePlan } from '@/features/listen/domain';
 import { searchTerms, stageWords, type Command } from './domain';
 
 const TAKE = 12;
@@ -127,6 +128,7 @@ export async function searchCommands(
         section: true,
         status: true,
         nextRevisionAt: true,
+        references: true,
         roadmap: { select: { id: true, title: true, studyAi: true } },
       },
     }),
@@ -171,6 +173,22 @@ export async function searchCommands(
         meta,
         href,
         press: `#item-${i.id} [data-grill-open]`,
+        explicit: true,
+      });
+    if (
+      grillOn &&
+      i.roadmap.studyAi &&
+      !isTestNamed(i.title, i.roadmap.title) &&
+      sourcePlan(i.references).fetch.length
+    )
+      out.push({
+        id: `listen:${i.id}`,
+        group: 'Roadmap',
+        verb: 'Listen',
+        title: i.title,
+        meta,
+        href,
+        press: `#item-${i.id} [data-listen-open]`,
         explicit: true,
       });
     out.push({
