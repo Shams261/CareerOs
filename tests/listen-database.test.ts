@@ -48,9 +48,12 @@ const PAGES: Record<string, string> = {
   'https://www.hellointerview.com/learn/mvcc': `<p>MVCC keeps several versions of each row so a transaction reads a consistent snapshot while writers create new versions.</p>`,
 };
 
-function web(answer: (sent: { messages: { content: string }[] }) => unknown) {
+function web(
+  answer: (sent: { messages: { content: string }[] }) => unknown,
+  finishes: string[] = [],
+) {
   const fetched: string[] = [];
-  const chats: { messages: { content: string }[] }[] = [];
+  const chats: { max_tokens?: number; messages: { content: string }[] }[] = [];
   const fetcher = (async (input: RequestInfo | URL, init?: RequestInit) => {
     const u = String(input);
     if (u.endsWith('/endpoints/zdr')) return Response.json(zdr);
@@ -62,10 +65,16 @@ function web(answer: (sent: { messages: { content: string }[] }) => unknown) {
         provider: 'Google',
         usage: { prompt_tokens: 900, completion_tokens: 400, cost: 0.00029 },
         choices: [
-          {
-            message: { content: JSON.stringify(answer(sent)) },
-            finish_reason: 'stop',
-          },
+          finishes.length
+            ? {
+                // A cut-off answer: the JSON never closes.
+                message: { content: '{"lines":[{"text":"HTTP' },
+                finish_reason: finishes.shift(),
+              }
+            : {
+                message: { content: JSON.stringify(answer(sent)) },
+                finish_reason: 'stop',
+              },
         ],
       });
     }
@@ -204,6 +213,30 @@ describe.skipIf(!url)('Listen (PostgreSQL)', () => {
     expect(ledger.map((r) => [r.feature, r.outcome])).toEqual([
       ['LISTEN_ITEM', 'OK'],
     ]);
+  });
+
+  it('asks a cut-off answer again in Listen’s own terms, without resending it', async () => {
+    const it1 = await item([
+      {
+        label: 'PostgreSQL MVCC',
+        url: 'https://www.postgresql.org/docs/current/mvcc-intro.html',
+      },
+      {
+        label: 'PostgreSQL isolation',
+        url: 'https://www.postgresql.org/docs/current/transaction-iso.html',
+      },
+    ]);
+    const { fetcher, chats } = web(faithful, ['length']);
+    const script = await listen(user, it1.id, now, fetcher);
+    expect(script.lines.length).toBeGreaterThanOrEqual(4);
+    expect(chats).toHaveLength(2);
+    expect(chats[0].max_tokens).toBe(3000);
+    const retry = chats[1].messages.at(-1)!.content;
+    expect(retry).toContain('eight lines');
+    expect(retry).not.toContain('questions');
+    expect(JSON.stringify(chats[1].messages)).not.toContain(
+      '{"lines":[{"text":"HTTP',
+    );
   });
 
   it('refuses before spending when nothing checked can come of it', async () => {

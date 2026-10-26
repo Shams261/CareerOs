@@ -133,10 +133,12 @@ describe.skipIf(!url)('Grill Me (PostgreSQL)', () => {
   afterEach(async () => {
     await prisma.user.delete({ where: { id: user.id } });
   });
+  // Every row shares the request's `now`, so the id (a cuid, rising in creation order)
+  // keeps the order stable.
   const usage = () =>
     prisma.aiUsage.findMany({
       where: { userId: user.id },
-      orderBy: { createdAt: 'asc' },
+      orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
     });
 
   it('sends only the ticked fields, once, and records cost without content', async () => {

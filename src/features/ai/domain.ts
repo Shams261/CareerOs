@@ -152,6 +152,8 @@ export type OutputFormat = {
   name: string;
   schema: Record<string, unknown>;
   maxTokens: number;
+  /** The retry after a cut-off answer, in this format's own terms (else `BRIEF_RETRY`). */
+  brief?: string;
 };
 export const LADDER_FORMAT: OutputFormat = {
   name: 'ladder',
