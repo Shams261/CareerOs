@@ -48,6 +48,8 @@ export async function roadmapAction(_s: ActionState, f: FormData) {
     await saveRoadmap(await owner(), {
       ...Object.fromEntries(f),
       archived: f.get('archived') === 'on',
+      // The switch is on the edit form only; a new roadmap starts with Study AI off.
+      studyAi: f.get('id') ? f.get('studyAi') === 'on' : undefined,
     });
     return f.get('id') ? 'Roadmap saved.' : 'Roadmap added.';
   });

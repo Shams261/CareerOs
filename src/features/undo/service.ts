@@ -10,6 +10,7 @@ import { changeStage } from '@/features/jobs/service';
 import { stages } from '@/features/jobs/domain';
 import { randomUUID } from 'node:crypto';
 import { setRestDay } from '@/features/nudges/service';
+import { cardInput, keepCard } from '@/features/ai/service';
 
 /**
  * Undo for destructive one-click actions (WI-011). Nothing is soft-deleted: an undo re-creates
@@ -67,6 +68,8 @@ const kinds = {
   }),
   /** A rest day just marked (WI-028): undo makes it an ordinary day again. */
   'clear-rest-day': z.object({ day: z.string().regex(/^\d{4}-\d{2}-\d{2}$/) }),
+  /** A kept card just removed (WI-031): undo keeps it again. */
+  'restore-card': cardInput,
 } as const;
 export type UndoKind = keyof typeof kinds;
 export type Undo = { kind: UndoKind; payload: unknown; label?: string };
@@ -196,6 +199,10 @@ export async function restore(
       const { day } = kinds[k].parse(payload);
       await setRestDay(user, day, false);
       return 'Not a rest day any more.';
+    }
+    case 'restore-card': {
+      await keepCard(user, kinds[k].parse(payload));
+      return 'Card kept again.';
     }
   }
 }

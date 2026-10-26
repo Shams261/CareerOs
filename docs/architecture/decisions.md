@@ -363,6 +363,12 @@ Attention is derived, not stored: overdue follow-up, result needed, interview be
 - **Google:** Vertex AI's data governance page (last updated 2026-10-22) says Google won't train on customer data without permission. Its caching and request-logging switches belong to the Google Cloud project that sends the request, which is OpenRouter's, not Silsila's. Its abuse-monitoring note names Google models and does not address partner models such as Claude.
 - **Silsila's reach:** it can enforce routing, field allowlists, caps and its own non-storage. It cannot audit OpenRouter's or Google's internals. The owner accepts that residual trust in signing off.
 
+**Consequences (WI-031):**
+
+- The model, endpoint, prices, token ceiling, caps and rate limits are constants in `src/features/ai/domain.ts`. The provider check (`evaluateProvider`) and the request (`requestBody`) read them, and a change to any of them is a change to this ADR first.
+- **`temperature` is never sent.** The pinned endpoint does not list it among its supported parameters, and `require_parameters: true` would refuse to route such a request. The check also verifies that every parameter Silsila sends (`SENT_PARAMETERS`) is still supported.
+- **Verifying the provider.** Every answer must report the provider `Google`. Anything else is counted, shown as unavailable, and blocks AI until the owner checks again.
+
 **Sources (checked 2026-10-26):**
 
 - https://openrouter.ai/docs/features/provider-routing

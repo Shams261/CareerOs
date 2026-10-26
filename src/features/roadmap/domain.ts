@@ -167,6 +167,8 @@ export const roadmapInput = z.object({
     .optional()
     .transform((v) => v || null),
   archived: z.boolean().default(false),
+  /** Grill Me may send this roadmap's items (WI-031); absent on create, so owner-made ones start off. */
+  studyAi: z.boolean().optional(),
   promptTemplate: text(20000),
   scenarios: z
     .string()

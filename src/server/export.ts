@@ -40,6 +40,9 @@ export async function exportOwnerData(userId: string, now = new Date()) {
     roadmaps,
     quickNotes,
     studyNudges,
+    revisionCards,
+    aiSetting,
+    aiUsage,
   ] = await Promise.all([
     db().user.findUniqueOrThrow({
       where: { id: userId },
@@ -101,6 +104,10 @@ export async function exportOwnerData(userId: string, now = new Date()) {
     db().roadmap.findMany({ ...own, include: { items: true } }),
     db().quickNote.findMany(own),
     db().studyNudgeSetting.findUnique({ where: { userId } }),
+    db().revisionCard.findMany(own),
+    db().aiSetting.findUnique({ where: { userId } }),
+    // The ledger holds no prompt or answer: model, endpoint, tokens, cost and time only.
+    db().aiUsage.findMany(own),
   ]);
   return {
     format: 'careeros-export',
@@ -135,6 +142,8 @@ export async function exportOwnerData(userId: string, now = new Date()) {
     weeklyReviews: reviews,
     notificationPreferences: preferences,
     studyNudges,
+    revisionCards,
+    ai: { setting: aiSetting, usage: aiUsage },
     notifications,
     googleCalendar: calendar,
   };

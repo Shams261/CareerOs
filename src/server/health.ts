@@ -2,7 +2,7 @@ import 'server-only';
 import { db } from './db';
 
 /** Must equal the newest prisma/migrations directory (enforced by a test). */
-export const LATEST_MIGRATION = '20261025180000_study_nudges';
+export const LATEST_MIGRATION = '20261026090000_grill_me';
 
 /** Safe to expose: statuses only, never URLs, versions of secrets or user data. */
 export async function healthCheck() {
