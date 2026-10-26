@@ -71,6 +71,7 @@ export function PanelButton({
       className={className}
       aria-haspopup="dialog"
       aria-expanded={current.open === panel}
+      data-panel={panel}
       onClick={(e) => openPanel(panel, e.currentTarget, focus ?? null)}
       {...props}
     >

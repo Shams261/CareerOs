@@ -14,6 +14,7 @@ import type { Viewport } from 'next';
 import { currentSession } from '@/server/session';
 import { signOutAction } from '@/features/auth/actions';
 import { NavigationProgress } from '@/components/progress-bar-top';
+import { CommandBar, CommandButton } from '@/features/command/bar';
 export const metadata: Metadata = {
   title: { default: 'Silsila', template: '%s · Silsila' },
   description:
@@ -70,7 +71,7 @@ export default async function RootLayout({
         </Suspense>
         <div className="shell">
           <aside className="sidebar" aria-label="Workspace">
-            <div>
+            <div className="sidebar-head">
               <Link
                 href="/today"
                 className="brand-home"
@@ -78,6 +79,7 @@ export default async function RootLayout({
               >
                 <BrandLogo />
               </Link>
+              <CommandButton className="command-button" />
             </div>
             <Navigation capture={<CaptureForm />} />
             <Suspense fallback={null}>
@@ -94,6 +96,7 @@ export default async function RootLayout({
             {children}
           </main>
           <PresenceBeat />
+          <CommandBar />
         </div>
       </body>
     </html>
