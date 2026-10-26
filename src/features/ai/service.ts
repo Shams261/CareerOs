@@ -26,12 +26,7 @@ import {
   studyInput,
   TIMEOUT_MS,
   withinCap,
-  hintMessages,
-  HINTS_FORMAT,
   LADDER_FORMAT,
-  problemInput,
-  readHints,
-  type Hints,
   type Ladder,
   type Message,
   type OutputFormat,
@@ -197,8 +192,8 @@ export async function ready(
 }
 
 /**
- * One AI answer in a strict format, shared by Grill Me (WI-031), the problem hints (WI-032)
- * and Listen (WI-037). Each call is reserved in the ledger under the owner lock before it is sent, so
+ * One AI answer in a strict format, shared by Grill Me (WI-031) and Listen (WI-037). (The
+ * problem hints of WI-032 used it too until WI-038 removed them.) Each call is reserved in the ledger under the owner lock before it is sent, so
  * the cap and the rate limits hold; the answer must come from the pinned provider; a
  * malformed answer gets one retry (a cut-off one is asked again, briefly). Nothing of the
  * prompt or the answer is stored.
@@ -216,7 +211,7 @@ export async function ask<T>({
 }: {
   user: ScheduleUser;
   cfg: AiConfig;
-  feature: 'GRILL_ITEM' | 'GRILL_PROBLEM' | 'LISTEN_ITEM';
+  feature: 'GRILL_ITEM' | 'LISTEN_ITEM';
   messages: Message[];
   format: OutputFormat;
   read: (
@@ -379,44 +374,6 @@ export async function grill(
     read: (c) => {
       const r = readLadder(c);
       return r.ok ? { ok: true, value: r.ladder } : r;
-    },
-    now,
-    fetcher,
-  });
-}
-
-/**
- * Five hints on a Practice problem (WI-032): only its title, difficulty, platform and topic
- * are sent; hints never carry a solution or code.
- */
-export async function problemHints(
-  user: ScheduleUser,
-  problemId: string,
-  now = new Date(),
-  fetcher: Fetcher = fetch,
-): Promise<Hints> {
-  const cfg = aiConfig();
-  if (!cfg) throw new AiRefusal(UNAVAILABLE);
-  const problem = await db().dsaProblem.findFirst({
-    where: { id: problemId, userId: user.id },
-    include: { topic: { select: { name: true } } },
-  });
-  if (!problem)
-    throw new AiRefusal('This problem no longer exists. Reload the page.');
-  if (isTestNamed(problem.title, problem.topic.name))
-    throw new AiRefusal('Grill Me skips test records.');
-  await ready(user, cfg, now, fetcher);
-  return ask({
-    user,
-    cfg,
-    feature: 'GRILL_PROBLEM',
-    messages: hintMessages(
-      problemInput({ ...problem, topic: problem.topic.name }),
-    ),
-    format: HINTS_FORMAT,
-    read: (c) => {
-      const r = readHints(c);
-      return r.ok ? { ok: true, value: r.hints } : r;
     },
     now,
     fetcher,

@@ -5,6 +5,7 @@ import { ActionForm } from '@/components/action-form';
 import { Button } from '@/components/ui/button';
 import { itemOpAction } from '@/features/roadmap/actions';
 import { grillAction, keepCardAction } from './actions';
+import { SentFields } from './sent-fields';
 import {
   DEFAULT_TICKS,
   hasSubstance,
@@ -139,9 +140,7 @@ export function GrillMe({
               Your note <span className="muted">· never sent</span>
             </label>
           </fieldset>
-          <pre className="grill-payload" aria-label="The exact text sent">
-            {JSON.stringify(payload, null, 2)}
-          </pre>
+          <SentFields payload={payload} noteRow={false} />
           <p className="grill-facts muted">
             {MODEL_LABEL} · {PROVIDER_LABEL} · {spent}
           </p>

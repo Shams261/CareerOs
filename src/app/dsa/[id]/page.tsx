@@ -13,11 +13,6 @@ import { resourceUrl } from '@/lib/validation';
 import { shortDate } from '@/lib/time';
 import { traceForTopic } from '@/features/drills/trace';
 import { WatchItRun } from '@/features/drills/watch-it-run';
-import { PanelButton, SidePanel } from '@/components/side-panel';
-import { isTestNamed } from '@/lib/test-data';
-import { aiState } from '@/features/ai/service';
-import { budgetLine, problemInput } from '@/features/ai/domain';
-import { HintLadder } from '@/features/ai/hints';
 export const metadata = { title: 'Practice' };
 
 const tone = { RED: 'danger', YELLOW: 'warning', GREEN: 'success' } as const;
@@ -42,7 +37,7 @@ export default async function Problem({
     },
   });
   if (!p) notFound();
-  const [topics, origin, running, ai] = await Promise.all([
+  const [topics, origin, running] = await Promise.all([
     db().dsaTopic.findMany({ orderBy: [{ ordering: 'asc' }, { name: 'asc' }] }),
     from
       ? db().roadmapItem.findFirst({
@@ -54,14 +49,7 @@ export default async function Problem({
       where: { userId: user.id, endedAt: null },
       select: { startedAt: true, category: true },
     }),
-    aiState(user),
   ]);
-  // Hints (WI-032): only when AI is configured, switched on and the provider check holds.
-  const hints =
-    ai.configured &&
-    ai.enabled &&
-    !ai.blocked &&
-    !isTestNamed(p.title, p.topic.name);
   const date = (d: Date | null) =>
     d ? formatInTimeZone(d, user.timezone, 'MMM d, yyyy · HH:mm') : 'Not yet';
   const legacy = p.attemptsCount - p.attempts.length;
@@ -90,11 +78,6 @@ export default async function Problem({
       </p>
       <div className="page-head">
         <h1>{p.title}</h1>
-        {hints && (
-          <PanelButton panel={`hints:${p.id}`} className="button secondary">
-            Hints
-          </PanelButton>
-        )}
         {validUrl && (
           <a
             className="button secondary"
@@ -223,20 +206,6 @@ export default async function Problem({
         </div>
       </section>
       <InterviewMentions userId={user.id} dsaProblemId={p.id} />
-      {hints && (
-        <SidePanel id={`hints:${p.id}`} title={`Hints · ${p.title}`}>
-          <HintLadder
-            problemId={p.id}
-            payload={problemInput({
-              title: p.title,
-              difficulty: p.difficulty,
-              platform: p.platform,
-              topic: p.topic.name,
-            })}
-            budget={budgetLine(ai.spent)}
-          />
-        </SidePanel>
-      )}
     </>
   );
 }

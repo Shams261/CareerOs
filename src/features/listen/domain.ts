@@ -87,7 +87,7 @@ export const LISTEN_LIMITS = {
 
 /**
  * Code punctuation only (backticks, braces, arrows, comparisons, calls, a statement's closing
- * semicolon, tags). Narrower than the hints check, so prose like "indexes let the planner"
+ * semicolon, tags). Narrow on purpose, so prose like "indexes let the planner"
  * stays.
  */
 export const codeLike = (text: string) =>

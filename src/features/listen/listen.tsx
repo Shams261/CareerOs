@@ -16,6 +16,7 @@ import {
   studyInput,
   type StudyItem,
 } from '@/features/ai/domain';
+import { SentFields } from '@/features/ai/sent-fields';
 import { listenAction } from './actions';
 import { sourcePlan, TIER_LABEL, type Passage } from './domain';
 import type { ListenScript } from './service';
@@ -151,12 +152,9 @@ export function Listen({
       <div className="grill listen">
         <section aria-labelledby="listen-sent">
           <h3 id="listen-sent">What will be sent</h3>
-          <pre className="grill-payload" aria-label="The item fields sent">
-            {JSON.stringify(payload, null, 2)}
-          </pre>
+          <SentFields payload={payload} />
           <p className="muted listen-note">
             With passages from these sources, fetched when you press Listen.
-            Your note is never sent.
           </p>
           <ul className="listen-sources">
             {plan.fetch.map((s) => (

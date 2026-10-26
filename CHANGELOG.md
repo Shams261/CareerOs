@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- WI-038 (the first item of the Rumi plan, `docs/product/rumi-plan.md`): Grill Me and Listen show "What will be sent" as a labelled list (Title, Scope, Done when, References) instead of raw JSON, following the ticks as they change. Hints on Practice problems are removed at the owner's request, since hints will come from the assistant Rumi; the ledger value `GRILL_PROBLEM` stays for existing rows. No migration.
 - Accessibility pass over the Phase 4 screens (Focus, Look back, the ⌘K bar, Listen, the Day Print, Settings) with axe-core, in light and dark, desktop and phone. The one finding is fixed: the "⌘K" label on the Search button now meets 4.5:1 contrast. The project's last lint warning (an icon the alt-text rule mistook for an image) is gone too.
 - Fixed (found in the WI-037 live check): ⌘K could not open a roadmap item on the page already shown once a row had been clicked. A new hash now wins over an earlier click, and the command bar also names the item directly, so it opens even when its hash is already in the address.
 - Fixed (WI-037 live check): Listen answers were cut off at the 1,500-token output ceiling, so no script appeared. The ceiling is now 3,000 tokens. The prompt asks for eight to ten one-sentence lines of at most 30 words in the model's own words, never copied passages. A cut-off answer is retried in Listen's own terms without resending it. One script costs at most about US$0.002.

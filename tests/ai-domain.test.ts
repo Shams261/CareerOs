@@ -16,6 +16,7 @@ import {
   requestBody,
   reservationMicros,
   SENT_PARAMETERS,
+  sentRows,
   studyInput,
   withinCap,
 } from '../src/features/ai/domain';
@@ -115,6 +116,36 @@ describe('the study input allowlist', () => {
     });
     expect(hasSubstance(studyInput(item, DEFAULT_TICKS(item)))).toBe(true);
     expect(hasSubstance(studyInput({ ...item, scope: null }, all))).toBe(false);
+  });
+});
+
+describe('the readable preview (WI-038)', () => {
+  it('lists exactly the sent fields, labelled, in order, and nothing else', () => {
+    const item = {
+      title: 'Rate limiter',
+      scope: 'Token bucket and sliding window',
+      checkpoint: 'Explain the trade-offs out loud.',
+      references: [{ label: 'System design primer', url: 'https://x.test' }],
+    };
+    const all = studyInput(item, {
+      title: true,
+      scope: true,
+      checkpoint: true,
+      references: true,
+    });
+    expect(sentRows(all)).toEqual([
+      ['Title', 'Rate limiter'],
+      ['Scope', 'Token bucket and sliding window'],
+      ['Done when', 'Explain the trade-offs out loud.'],
+      ['References', 'System design primer'],
+    ]);
+    // Unticked fields are not shown, because they are not sent.
+    expect(sentRows(studyInput(item, DEFAULT_TICKS(item)))).toEqual([
+      ['Title', 'Rate limiter'],
+      ['Scope', 'Token bucket and sliding window'],
+      ['Done when', 'Explain the trade-offs out loud.'],
+    ]);
+    expect(sentRows({})).toEqual([]);
   });
 });
 

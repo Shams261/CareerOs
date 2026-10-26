@@ -958,7 +958,7 @@ model StudyNudgeSetting {
 /// WI-031: what a Grill Me request is for (the ledger never holds content).
 enum AiFeature {
   GRILL_ITEM
-  /// WI-032: the hint ladder on a Practice problem.
+  /// WI-032: the hint ladder on a Practice problem. Retired in WI-038; kept for ledger rows.
   GRILL_PROBLEM
   /// WI-037: a Listen script from an item's fetched sources.
   LISTEN_ITEM
