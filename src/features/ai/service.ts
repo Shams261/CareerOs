@@ -7,6 +7,7 @@ import { dayKey, shortDate } from '@/lib/time';
 import { isTestNamed } from '@/lib/test-data';
 import { recordRun } from '@/server/jobs';
 import { locked, type ScheduleUser } from '@/features/schedule/service';
+import { revisionDue } from '@/features/roadmap/service';
 import {
   CHECK_MAX_AGE_MS,
   costMicros,
@@ -25,8 +26,15 @@ import {
   studyInput,
   TIMEOUT_MS,
   withinCap,
+  hintMessages,
+  HINTS_FORMAT,
+  LADDER_FORMAT,
+  problemInput,
+  readHints,
+  type Hints,
   type Ladder,
   type Message,
+  type OutputFormat,
   type Ticks,
 } from './domain';
 
@@ -171,31 +179,13 @@ const settle = (
   },
 ) => db().aiUsage.update({ where: { id }, data });
 
-/**
- * Grill Me on one roadmap item: the owner's ticked fields go to the pinned endpoint once (and
- * once more if the answer does not match the schema). Every call is reserved in the ledger
- * under the owner lock before it is sent, so the cap and the rate limits hold. Nothing of
- * the prompt or the answer is stored.
- */
-export async function grill(
+/** The owner's switch and the provider check, before any AI request. */
+async function ready(
   user: ScheduleUser,
-  itemId: string,
-  ticks: Ticks,
-  now = new Date(),
-  fetcher: Fetcher = fetch,
-): Promise<Ladder> {
-  const cfg = aiConfig();
-  if (!cfg) throw new AiRefusal(UNAVAILABLE);
-  const item = await db().roadmapItem.findFirst({
-    where: { id: itemId, userId: user.id },
-    include: { roadmap: { select: { title: true, studyAi: true } } },
-  });
-  if (!item)
-    throw new AiRefusal('This item no longer exists. Reload the page.');
-  if (!item.roadmap.studyAi)
-    throw new AiRefusal('Study AI is off for this roadmap.');
-  if (isTestNamed(item.title, item.roadmap.title))
-    throw new AiRefusal('Grill Me skips test records.');
+  cfg: AiConfig,
+  now: Date,
+  fetcher: Fetcher,
+) {
   let setting = await db().aiSetting.findUnique({ where: { userId: user.id } });
   if (setting && !setting.enabled)
     throw new AiRefusal('Grill Me is turned off in Settings.');
@@ -204,15 +194,38 @@ export async function grill(
     setting = await db().aiSetting.findUnique({ where: { userId: user.id } });
   }
   if (setting?.blockedAt) throw new AiRefusal(UNAVAILABLE);
-  const payload = studyInput(item, ticks);
-  if (!hasSubstance(payload))
-    throw new AiRefusal(
-      'Add a scope or “done when” line for better questions.',
-    );
+}
 
-  const messages: Message[] = firstMessages(payload);
+/**
+ * One AI answer in a strict format, shared by Grill Me (WI-031) and the problem hints
+ * (WI-032). Each call is reserved in the ledger under the owner lock before it is sent, so
+ * the cap and the rate limits hold; the answer must come from the pinned provider; a
+ * malformed answer gets one retry (a cut-off one is asked again, briefly). Nothing of the
+ * prompt or the answer is stored.
+ */
+async function ask<T>({
+  user,
+  cfg,
+  feature,
+  messages,
+  format,
+  read,
+  now,
+  fetcher,
+}: {
+  user: ScheduleUser;
+  cfg: AiConfig;
+  feature: 'GRILL_ITEM' | 'GRILL_PROBLEM';
+  messages: Message[];
+  format: OutputFormat;
+  read: (
+    content: unknown,
+  ) => { ok: true; value: T } | { ok: false; issues: string };
+  now: Date;
+  fetcher: Fetcher;
+}): Promise<T> {
   for (let attempt = 0; attempt < 2; attempt++) {
-    const reserve = reservationMicros(messages);
+    const reserve = reservationMicros(messages, format.maxTokens);
     const usage = await locked(user.id, async (tx) => {
       const hour = new Date(+now - 3600_000),
         day = new Date(+now - 24 * 3600_000);
@@ -236,7 +249,7 @@ export async function grill(
       return tx.aiUsage.create({
         data: {
           userId: user.id,
-          feature: 'GRILL_ITEM',
+          feature,
           model: MODEL,
           provider: ENDPOINT,
           costMicros: reserve,
@@ -258,7 +271,7 @@ export async function grill(
           'Content-Type': 'application/json',
           'X-Title': 'Silsila',
         },
-        body: JSON.stringify(requestBody(messages)),
+        body: JSON.stringify(requestBody(messages, format)),
         signal: AbortSignal.timeout(TIMEOUT_MS),
       });
       if (!res.ok) throw new AiUnavailable(`HTTP ${res.status}`);
@@ -299,19 +312,19 @@ export async function grill(
       throw new AiUnavailable(UNAVAILABLE);
     }
     const content = body.choices?.[0]?.message?.content;
-    const read = readLadder(content);
+    const result = read(content);
     await settle(usage.id, {
-      outcome: read.ok ? 'OK' : 'FAILED',
+      outcome: result.ok ? 'OK' : 'FAILED',
       costMicros: cost.micros,
       inputTokens: cost.input,
       outputTokens: cost.output,
       durationMs,
     });
-    if (read.ok) {
+    if (result.ok) {
       console.info(
         `[study] grill made ${JSON.stringify({ model: MODEL, provider: ENDPOINT, tokens: cost.input + cost.output, ms: durationMs })}`,
       );
-      return read.ladder;
+      return result.value;
     }
     const cutOff = body.choices?.[0]?.finish_reason === 'length';
     console.error(
@@ -325,13 +338,92 @@ export async function grill(
         { role: 'assistant', content: content.slice(0, 4000) },
         {
           role: 'user',
-          content: `That did not match the required format: ${read.issues}. Return only the JSON object.`,
+          content: `That did not match the required format: ${result.issues}. Return only the JSON object.`,
         },
       );
   }
   throw new AiUnavailable(
     'Couldn’t build a useful ladder for this item. Try again later.',
   );
+}
+
+/** Grill Me on one roadmap item (WI-031): the owner's ticked fields, five rungs back. */
+export async function grill(
+  user: ScheduleUser,
+  itemId: string,
+  ticks: Ticks,
+  now = new Date(),
+  fetcher: Fetcher = fetch,
+): Promise<Ladder> {
+  const cfg = aiConfig();
+  if (!cfg) throw new AiRefusal(UNAVAILABLE);
+  const item = await db().roadmapItem.findFirst({
+    where: { id: itemId, userId: user.id },
+    include: { roadmap: { select: { title: true, studyAi: true } } },
+  });
+  if (!item)
+    throw new AiRefusal('This item no longer exists. Reload the page.');
+  if (!item.roadmap.studyAi)
+    throw new AiRefusal('Study AI is off for this roadmap.');
+  if (isTestNamed(item.title, item.roadmap.title))
+    throw new AiRefusal('Grill Me skips test records.');
+  await ready(user, cfg, now, fetcher);
+  const payload = studyInput(item, ticks);
+  if (!hasSubstance(payload))
+    throw new AiRefusal(
+      'Add a scope or “done when” line for better questions.',
+    );
+  return ask({
+    user,
+    cfg,
+    feature: 'GRILL_ITEM',
+    messages: firstMessages(payload),
+    format: LADDER_FORMAT,
+    read: (c) => {
+      const r = readLadder(c);
+      return r.ok ? { ok: true, value: r.ladder } : r;
+    },
+    now,
+    fetcher,
+  });
+}
+
+/**
+ * Five hints on a Practice problem (WI-032): only its title, difficulty, platform and topic
+ * are sent; hints never carry a solution or code.
+ */
+export async function problemHints(
+  user: ScheduleUser,
+  problemId: string,
+  now = new Date(),
+  fetcher: Fetcher = fetch,
+): Promise<Hints> {
+  const cfg = aiConfig();
+  if (!cfg) throw new AiRefusal(UNAVAILABLE);
+  const problem = await db().dsaProblem.findFirst({
+    where: { id: problemId, userId: user.id },
+    include: { topic: { select: { name: true } } },
+  });
+  if (!problem)
+    throw new AiRefusal('This problem no longer exists. Reload the page.');
+  if (isTestNamed(problem.title, problem.topic.name))
+    throw new AiRefusal('Grill Me skips test records.');
+  await ready(user, cfg, now, fetcher);
+  return ask({
+    user,
+    cfg,
+    feature: 'GRILL_PROBLEM',
+    messages: hintMessages(
+      problemInput({ ...problem, topic: problem.topic.name }),
+    ),
+    format: HINTS_FORMAT,
+    read: (c) => {
+      const r = readHints(c);
+      return r.ok ? { ok: true, value: r.hints } : r;
+    },
+    now,
+    fetcher,
+  });
 }
 
 export const cardInput = z.object({
@@ -375,4 +467,39 @@ export async function removeCard(user: ScheduleUser, id: string) {
   if (!card) throw new Error('This card was already removed.');
   await db().revisionCard.delete({ where: { id: card.id } });
   return card;
+}
+
+/**
+ * Today's revision deck (WI-032): the cards the owner kept, on roadmap items due for revision
+ * today or overdue, in the items' due order. Only kept cards; nothing is generated here.
+ */
+export async function revisionDeck(user: ScheduleUser, now = new Date()) {
+  const due = (await revisionDue(user, now)).filter(
+    (i) => i._count.revisionCards > 0,
+  );
+  if (!due.length) return { items: [], cards: [] };
+  const order = new Map(due.map((i, n) => [i.id, n]));
+  const cards = await db().revisionCard.findMany({
+    where: { userId: user.id, roadmapItemId: { in: due.map((i) => i.id) } },
+    orderBy: { createdAt: 'asc' },
+    select: {
+      id: true,
+      roadmapItemId: true,
+      question: true,
+      change: true,
+      points: true,
+    },
+  });
+  cards.sort(
+    (a, b) => order.get(a.roadmapItemId)! - order.get(b.roadmapItemId)!,
+  );
+  return {
+    items: due.map((i) => ({
+      id: i.id,
+      title: i.title,
+      href: `/roadmap/${i.roadmap.id}?section=${encodeURIComponent(i.section)}&show=revision#item-${i.id}`,
+      roadmap: i.roadmap.title,
+    })),
+    cards,
+  };
 }

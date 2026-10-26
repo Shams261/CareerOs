@@ -5321,3 +5321,39 @@ button.attention-link {
 .kept-card form {
   margin: 0;
 }
+
+/* WI-032: the revision deck and the hint ladder. */
+.deck-items li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 14px;
+  padding: 8px 0;
+  border-top: 1px solid var(--border-subtle);
+}
+.deck-items form {
+  margin: 0;
+}
+.hint-list {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.hint-list li {
+  display: grid;
+  gap: 4px;
+  padding: 10px 12px;
+  background: var(--surface-2);
+  border-radius: var(--radius-md);
+}
+.hint-list li:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+.hint-list p,
+.hint-list .eyebrow {
+  margin: 0;
+}
