@@ -4712,6 +4712,46 @@ button.attention-link {
   align-items: center;
   font-size: 14px;
 }
+.focus-sound {
+  justify-self: center;
+  display: inline-flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin: 0;
+  padding: 3px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+}
+.focus-sound label {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 16px;
+  border-radius: 999px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--muted);
+  cursor: pointer;
+}
+.focus-sound label.is-on {
+  background: var(--primary);
+  color: var(--on-primary, #fff);
+}
+.focus-sound input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+.focus-sound label:has(input:focus-visible) {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
 .focus-actions {
   display: flex;
   gap: 10px;

@@ -6,6 +6,25 @@ export const INTENTION_MAX = 140;
 export const LEARNED_MAX = 200;
 const NOTES_MAX = 1000;
 
+/** The ambient sounds Focus offers (WI-035), by the value kept in the cookie and the form. */
+export const SOUNDS = ['rain', 'brown'] as const;
+export type Sound = (typeof SOUNDS)[number];
+export const SOUND_NAMES: Record<Sound, string> = {
+  rain: 'Rain',
+  brown: 'Brown noise',
+};
+
+/**
+ * The sounds that played during a session, as its notes line ("Rain, Brown noise"), from the
+ * form's space-separated values. Unknown values are dropped; nothing played gives ''.
+ */
+export function soundsLine(value: string | null | undefined) {
+  const picked = new Set((value ?? '').split(/\s+/));
+  return SOUNDS.filter((s) => picked.has(s))
+    .map((s) => SOUND_NAMES[s])
+    .join(', ');
+}
+
 /**
  * When the ring closes. The block's planned end while there is still a minute of it left
  * when the session starts; a late start instead gets the block's planned length from its own
@@ -50,12 +69,12 @@ export function focusLabel(left: number, total: number) {
 }
 
 /**
- * Appends one labelled line ("Intention: …", "Learned: …") to the session's notes. Existing
+ * Appends one labelled line ("Intention: …", "Learned: …", "Sound: …") to the session's notes. Existing
  * text is never replaced; an empty line adds nothing; the whole stays within the notes limit.
  */
 export function appendNote(
   existing: string | null | undefined,
-  label: 'Intention' | 'Learned',
+  label: 'Intention' | 'Learned' | 'Sound',
   text: string | null | undefined,
 ): string | null {
   const value = (text ?? '').replace(/\s+/g, ' ').trim();

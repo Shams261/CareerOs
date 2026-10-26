@@ -136,6 +136,29 @@ describe.skipIf(!url)('daily execution persistence', () => {
       }),
     ).rejects.toThrow();
   });
+  it('appends the ambient sounds that played after the learned line (WI-035)', async () => {
+    const b = await block();
+    await execute(user, b.id, 'start', '', now);
+    await execute(user, b.id, 'stop', '', new Date('2026-09-23T12:30Z'), {
+      learned: 'Window shrinks from the left',
+      sound: 'brown rain bogus',
+    });
+    const first = await prisma.actualSession.findFirstOrThrow({
+      where: { userId: user.id, taskId: b.id },
+    });
+    expect(first.notes).toBe(
+      'Learned: Window shrinks from the left\nSound: Rain, Brown noise',
+    );
+    // No sound played: no Sound line, as before WI-035.
+    await execute(user, b.id, 'start', '', new Date('2026-09-23T12:40Z'));
+    await execute(user, b.id, 'complete', '', new Date('2026-09-23T12:50Z'), {
+      sound: '',
+    });
+    const second = await prisma.actualSession.findFirstOrThrow({
+      where: { userId: user.id, taskId: b.id, id: { not: first.id } },
+    });
+    expect(second.notes).toBeNull();
+  });
   it('stops and resumes into separate actual sessions', async () => {
     const b = await block();
     await execute(user, b.id, 'start', '', now);

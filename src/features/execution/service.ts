@@ -9,14 +9,22 @@ import {
 } from '@/features/schedule/service';
 import { interval, dateInput } from '@/features/schedule/domain';
 import { localTime } from '@/lib/validation';
-import { appendNote, INTENTION_MAX, LEARNED_MAX } from './focus-domain';
+import {
+  appendNote,
+  INTENTION_MAX,
+  LEARNED_MAX,
+  soundsLine,
+} from './focus-domain';
 const focusLines = z.object({
   intention: z.string().max(INTENTION_MAX).optional(),
   learned: z.string().max(LEARNED_MAX).optional(),
+  sound: z.string().max(40).optional(),
 });
+type FocusLines = { intention?: string; learned?: string; sound?: string };
 /**
  * `lines` are the Focus session's words (WI-027): an intention kept on the session that
- * starts, a learned line appended when the running session stops or completes.
+ * starts, a learned line appended when the running session stops or completes, and the
+ * ambient sounds that played (WI-035) appended after it.
  */
 export async function execute(
   user: ScheduleUser,
@@ -24,7 +32,7 @@ export async function execute(
   action: 'start' | 'stop' | 'complete' | 'skip' | 'cancel' | 'reset',
   reason = '',
   now = new Date(),
-  lines: { intention?: string; learned?: string } = {},
+  lines: FocusLines = {},
 ) {
   return locked(user.id, (tx) =>
     executeIn(tx, user, id, action, reason, now, lines),
@@ -38,9 +46,9 @@ export async function executeIn(
   action: 'start' | 'stop' | 'complete' | 'skip' | 'cancel' | 'reset',
   reason = '',
   now = new Date(),
-  lines: { intention?: string; learned?: string } = {},
+  lines: FocusLines = {},
 ) {
-  const { intention, learned } = focusLines.parse(lines);
+  const { intention, learned, sound } = focusLines.parse(lines);
   const b = await ownedBlock(tx, user.id, id);
   const running = await tx.actualSession.findFirst({
     where: { userId: user.id, endedAt: null },
@@ -88,7 +96,11 @@ export async function executeIn(
         where: { id: ownSession.id },
         data: {
           endedAt: now,
-          notes: appendNote(ownSession.notes, 'Learned', learned),
+          notes: appendNote(
+            appendNote(ownSession.notes, 'Learned', learned),
+            'Sound',
+            soundsLine(sound),
+          ),
         },
       });
     }
