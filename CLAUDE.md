@@ -155,7 +155,7 @@ State as of 2026-10-20: **Silsila is live at https://usesilsila.me** on a Render
 
 ## Current next step
 
-Version 2 is in progress (WI-027, R1–R3, WI-028, WI-029 and WI-030 done; the owner cleans the test records `pnpm data:check` lists before turning nudges on). Next, in order: R4 (AI provider validation, a paper exercise with the owner) then WI-031 Grill Me, WI-032 deck. Standing items:
+Version 2 is in progress (WI-027, R1–R3, WI-028, WI-029 and WI-030 done; the owner cleans the test records `pnpm data:check` lists before turning nudges on). R4 is done (ADR-022: `anthropic/claude-haiku-5.5` on `google-vertex/global` only, Silsila cap US$3 a month, OpenRouter key limit US$5). Next, in order: WI-031 Grill Me, WI-032 deck. Standing items:
 
 1. After the WI-012 merge, the owner runs the one-time runbook from the workstation: verified backup (`PATH=/opt/homebrew/opt/libpq/bin:$PATH pnpm db:backup` + Docker PostgreSQL 17 restore check) → clear the TEST routine and blocks in the app and Sync now → `scripts/reset-owner-data.sql` → deploy → `pnpm db:deploy` → `pnpm roadmap:bundle` → `pnpm roadmap:import` (`docs/engineering/backup-restore.md`, `docs/engineering/operations.md`).
 2. Use Silsila daily as the single tracker for 7–14 days and collect friction; verify Web Push on real devices; connect Google Calendar; weekly backup.
