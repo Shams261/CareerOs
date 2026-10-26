@@ -13,6 +13,7 @@ import { useRouter } from 'next/navigation';
 import { Search } from 'lucide-react';
 import { closePanel, openPanel } from '@/components/side-panel';
 import { addNoteAction } from '@/features/notes/actions';
+import { OPEN_ITEM_EVENT } from '@/features/roadmap/events';
 import {
   noteCommand,
   openKeyLabel,
@@ -208,9 +209,16 @@ export function CommandBar() {
       location.pathname === target.pathname &&
       location.search === target.search
     ) {
-      // Same page: a new hash opens a roadmap item without a reload.
+      // Same page: a new hash opens a roadmap item without a reload; the event opens it even
+      // when the hash is already there and another row was opened since.
       if (target.hash && location.hash !== target.hash)
         location.hash = target.hash;
+      if (target.hash.startsWith('#item-'))
+        window.dispatchEvent(
+          new CustomEvent(OPEN_ITEM_EVENT, {
+            detail: target.hash.slice('#item-'.length),
+          }),
+        );
     } else router.push(command.href);
     if (command.panel || command.press) afterNavigation(command, target);
   };

@@ -82,6 +82,21 @@ Fixed on `fix/wi-037-listen-length`:
 - **Test.** A new database test covers the cut-off retry.
 - **Flake.** A Grill Me database test that ordered ledger rows by an identical `createdAt` now also orders by id. Its expectation is unchanged.
 
+### Live check after the fix (main `ec2cd7c`)
+
+| Step                                      | Result                                                                                                                                                                                        |
+| ----------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Fetch sources and write on HTTP semantics | Pass: "Listen · 9 checked lines" on the first call, 3,069 tokens in all, 9.5 seconds. The log read `[listen] checked {"kept":9,"unsupported":0,"one-source":0,"code":0}`                      |
+| Quality                                   | Pass: all nine lines come from RFC 9110 and MDN, and each says what its passage says. The last line notes that the passages do not cover POST or PUT timeouts rather than inventing an answer |
+| Play, the highlighted line, Stop          | Pass: the voice read the title and line 1 with the line highlighted; Stop ended speech                                                                                                        |
+
+**Found on the way and fixed on `fix/roadmap-hash-open`:** the ⌘K command bar (WI-036) could not open a roadmap item on the page already shown once any row had been clicked, because the clicked row overrode the hash. Two changes fix it:
+
+- A new hash now wins over an earlier click.
+- The bar also names the item with a `silsila:open-item` event (`src/features/roadmap/events.ts`), so it opens even when the hash is already there.
+
+Both cases were checked locally after clicking a row.
+
 ## Owner steps
 
 1. **Before merging**, apply the migration to production from your own terminal, as with WI-031 and WI-032 (`read -rs` for the Supabase URL, then `pnpm db:deploy`).
