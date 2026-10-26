@@ -35,6 +35,8 @@ import { SidePanel } from '@/features/today/panels';
 import { NudgeCard } from '@/features/nudges/card';
 import { todaysNudge } from '@/features/nudges/service';
 import { CloseDayForm } from '@/features/close-day/form';
+import { DayPrintCard } from '@/features/day-print/print';
+import { dayPrint } from '@/features/day-print/domain';
 import { closeDayOpen } from '@/features/close-day/domain';
 import { previewSlots, stopTime } from '@/features/close-day/service';
 
@@ -248,6 +250,25 @@ export default async function Today({
                 </>
               );
             })()}
+          {/* The Day Print (WI-033): a closed day's records as a picture, unless removed. */}
+          <FeedbackOutlet channel="day-print" className="mb-4" />
+          {reviewed && user.dayPrint !== false && (
+            <DayPrintCard
+              model={dayPrint({
+                day,
+                bounds,
+                sessions,
+                letGo: blocks.filter(
+                  (b) => b.status === 'SKIPPED' && b.skipReason === 'Let go',
+                ).length,
+                rested: !!plan?.restAt,
+                now,
+              })}
+              day={day}
+              isToday={isToday}
+              ask={user.dayPrint == null}
+            />
+          )}
           <Suspense fallback={null}>
             <CalendarAttention user={user} />
           </Suspense>

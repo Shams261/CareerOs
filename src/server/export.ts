@@ -52,6 +52,7 @@ export async function exportOwnerData(userId: string, now = new Date()) {
         name: true,
         timezone: true,
         createdAt: true,
+        dayPrint: true,
       },
     }),
     db().goal.findMany(own),

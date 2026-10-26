@@ -142,6 +142,8 @@ model User {
   timezone           String                   @default("America/Toronto")
   /// Last time a Silsila page was visible (WI-028 presence beat); nudges go in-app while recent.
   lastActiveAt       DateTime?                @db.Timestamptz(3)
+  /// WI-033: the Day Print after a closed day. Null until the owner chooses keep (true) or remove (false).
+  dayPrint           Boolean?
   createdAt          DateTime                 @default(now()) @db.Timestamptz(3)
   updatedAt          DateTime                 @updatedAt @db.Timestamptz(3)
   goals              Goal[]
