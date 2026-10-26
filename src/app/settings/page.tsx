@@ -6,6 +6,7 @@ import {
   Check,
   Circle,
   Download,
+  Image,
   Keyboard,
   MessagesSquare,
   Server,
@@ -36,6 +37,7 @@ import { nudgeContext } from '@/features/nudges/domain';
 import { nudgeSetting } from '@/features/nudges/service';
 import { dayKey } from '@/lib/time';
 import { aiState } from '@/features/ai/service';
+import { dayPrintAction } from '@/features/day-print/actions';
 import { AiSettings, aiContext } from '@/features/ai/settings';
 import { ThemeSwitch } from '@/features/settings/theme-switch';
 import { reminderContext, settingsSummary } from '@/features/settings/domain';
@@ -372,6 +374,30 @@ export default async function Settings({
                 title="Single-key shortcuts on this device"
                 context="N, S, J, K, D, C; ? always lists them"
                 control={<ShortcutsToggle label="On" className="check" />}
+              />
+              <SettingRow
+                source="weekly"
+                icon={<Image size={22} />}
+                label="Day print"
+                title="A print of each closed day"
+                context={
+                  user.dayPrint === false
+                    ? 'Off'
+                    : user.dayPrint
+                      ? 'On'
+                      : 'On · you have not chosen yet'
+                }
+                control={
+                  <ActionForm action={dayPrintAction} label="Day print">
+                    <Button
+                      className="secondary small"
+                      name="choice"
+                      value={user.dayPrint === false ? 'on' : 'off'}
+                    >
+                      {user.dayPrint === false ? 'Turn on' : 'Turn off'}
+                    </Button>
+                  </ActionForm>
+                }
               />
             </ul>
           </section>
