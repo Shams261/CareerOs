@@ -10,7 +10,8 @@ import {
   executionAction,
   stopUnlinkedAction,
 } from '@/features/schedule/actions';
-import { playChime, unlockAudio } from '@/lib/sound';
+import { audioRunning, playChime, unlockAudio } from '@/lib/sound';
+import { playAmbient, stopAmbient } from '@/lib/ambient';
 import { useWakeLock, useWakeLockSupported } from '@/lib/wake-lock';
 import {
   focusLabel,
@@ -20,7 +21,10 @@ import {
   LEARNED_MAX,
   minutesLeft,
   ringFraction,
+  SOUND_NAMES,
+  SOUNDS,
   targetMinutes,
+  type Sound,
 } from './focus-domain';
 
 export type FocusBlock = {
@@ -44,7 +48,6 @@ export type FocusSession = {
   since: string;
 };
 
-const CHIME_COOKIE = 'silsila-focus-chime';
 const pad = (n: number) => String(n).padStart(2, '0');
 const clock = (ms: number) => {
   const total = Math.max(0, Math.round(ms / 1000)),
@@ -75,22 +78,127 @@ function useNow(renderedAt: string) {
   return now;
 }
 
-const readChime = () =>
-  typeof document !== 'undefined' &&
-  document.cookie.split('; ').includes(`${CHIME_COOKIE}=on`);
-const chimeListeners = new Set<() => void>();
-function setChime(on: boolean) {
-  document.cookie = `${CHIME_COOKIE}=${on ? 'on' : 'off'}; path=/; max-age=31536000; samesite=lax`;
-  for (const fn of chimeListeners) fn();
-}
-function useChime() {
-  return useSyncExternalStore(
-    (fn) => {
-      chimeListeners.add(fn);
-      return () => chimeListeners.delete(fn);
+/**
+ * A Focus preference kept in a cookie with no personal content, read on the client only (the
+ * server renders the fallback): the chime (WI-027) and the ambient sound (WI-035).
+ */
+function cookieChoice<T extends string>(
+  name: string,
+  values: readonly T[],
+  fallback: T,
+) {
+  const listeners = new Set<() => void>();
+  const read = (): T => {
+    if (typeof document === 'undefined') return fallback;
+    const value = document.cookie
+      .split('; ')
+      .find((c) => c.startsWith(`${name}=`))
+      ?.slice(name.length + 1);
+    return values.includes(value as T) ? (value as T) : fallback;
+  };
+  return {
+    set(value: T) {
+      document.cookie = `${name}=${value}; path=/; max-age=31536000; samesite=lax`;
+      for (const fn of listeners) fn();
     },
-    readChime,
-    () => false,
+    useValue() {
+      return useSyncExternalStore(
+        (fn) => {
+          listeners.add(fn);
+          return () => listeners.delete(fn);
+        },
+        read,
+        () => fallback,
+      );
+    },
+  };
+}
+const chimeChoice = cookieChoice('silsila-focus-chime', ['on', 'off'], 'off');
+const soundChoice = cookieChoice<'off' | Sound>(
+  'silsila-focus-sound',
+  ['off', ...SOUNDS],
+  'off',
+);
+
+/** The sounds that played in this session, kept for the tab so a reload does not lose them. */
+function playedSounds(sessionId: string) {
+  const key = `silsila-sounds:${sessionId}`;
+  const read = () => {
+    try {
+      return sessionStorage.getItem(key) ?? '';
+    } catch {
+      return '';
+    }
+  };
+  return {
+    read,
+    add(sound: Sound) {
+      const list = new Set(read().split(' ').filter(Boolean)).add(sound);
+      try {
+        sessionStorage.setItem(key, [...list].join(' '));
+      } catch {
+        // Private mode: the sound still plays; it just is not written to the notes.
+      }
+    },
+  };
+}
+
+/**
+ * Plays the chosen ambient sound while `active`. When audio is still locked (a reload), it
+ * waits for the owner's next tap or key instead of starting a context without a gesture.
+ */
+function useAmbient(sound: 'off' | Sound, active: boolean, sessionId: string) {
+  useEffect(() => {
+    if (sound === 'off' || !active) return;
+    const played = playedSounds(sessionId);
+    const go = () => {
+      unlockAudio();
+      playAmbient(sound);
+      played.add(sound);
+    };
+    if (audioRunning()) {
+      go();
+      return stopAmbient;
+    }
+    const once = () => {
+      document.removeEventListener('pointerdown', once);
+      document.removeEventListener('keydown', once);
+      go();
+    };
+    document.addEventListener('pointerdown', once);
+    document.addEventListener('keydown', once);
+    return () => {
+      document.removeEventListener('pointerdown', once);
+      document.removeEventListener('keydown', once);
+      stopAmbient();
+    };
+  }, [sound, active, sessionId]);
+}
+
+/** Off / Rain / Brown noise, saved on choice like the theme switch. */
+function SoundSwitch({
+  value,
+  onChoose,
+}: {
+  value: 'off' | Sound;
+  onChoose: (value: 'off' | Sound) => void;
+}) {
+  return (
+    <fieldset className="focus-sound">
+      <legend className="sr-only">Sound</legend>
+      {(['off', ...SOUNDS] as const).map((option) => (
+        <label key={option} className={value === option ? 'is-on' : ''}>
+          <input
+            type="radio"
+            name="focus-sound"
+            value={option}
+            checked={value === option}
+            onChange={() => onChoose(option)}
+          />
+          {option === 'off' ? 'No sound' : SOUND_NAMES[option]}
+        </label>
+      ))}
+    </fieldset>
   );
 }
 
@@ -265,7 +373,11 @@ function Running({
   const total = target ? targetMinutes(started, target) : null;
   const done = target ? +at >= +target : false;
   const intention = intentionOf(session.notes);
-  const chime = useChime();
+  const chime = chimeChoice.useValue() === 'on';
+  const sound = soundChoice.useValue();
+  // The sound fades out when the time is up, unless the owner picks one again after that.
+  const [soundAfterTime, setSoundAfterTime] = useState(false);
+  useAmbient(sound, !done || soundAfterTime, session.id);
   const wakeSupported = useWakeLockSupported();
   const [awake, setAwake] = useState(true);
   useWakeLock(awake && wakeSupported);
@@ -370,6 +482,14 @@ function Running({
           here.
         </p>
       )}
+      <SoundSwitch
+        value={sound}
+        onChoose={(value) => {
+          unlockAudio();
+          if (done) setSoundAfterTime(true);
+          soundChoice.set(value);
+        }}
+      />
       <div className="focus-tools">
         {canPip && (
           <Button
@@ -396,7 +516,7 @@ function Running({
             checked={chime}
             onChange={(e) => {
               unlockAudio();
-              setChime(e.target.checked);
+              chimeChoice.set(e.target.checked ? 'on' : 'off');
             }}
           />
           Chime at the end
@@ -409,6 +529,7 @@ function Running({
           className="focus-finish"
           onPending={(form) => {
             submitted.current = String(form.get('action') ?? '');
+            form.set('sound', playedSounds(session.id).read());
           }}
           onSettled={(result) => {
             if (result.ok && submitted.current) router.push('/today');

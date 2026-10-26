@@ -115,6 +115,7 @@ export async function executionAction(_state: ActionState, form: FormData) {
       {
         intention: String(form.get('intention') ?? ''),
         learned: String(form.get('learned') ?? ''),
+        sound: String(form.get('sound') ?? ''),
       },
     );
     const id = String(form.get('id'));

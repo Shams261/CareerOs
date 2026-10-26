@@ -1,13 +1,15 @@
 'use client';
 /**
- * The one sound in WI-027: a soft two-note chime synthesised with Web Audio (no files, works
- * offline). Browsers only allow audio after a user gesture, so `unlockAudio()` runs on the
- * owner's first tap in Focus and the chime can play later when the time is up.
+ * Focus sounds, synthesised with Web Audio (no files, works offline): the WI-027 end chime and,
+ * through `src/lib/ambient.ts`, the WI-035 ambient sound. Browsers only allow audio after a
+ * user gesture, so `unlockAudio()` runs on the owner's first tap in Focus and sound can play
+ * later.
  */
 type AudioCtor = typeof AudioContext;
 let context: AudioContext | null = null;
 
-function audio() {
+/** The page's one AudioContext, created on first use. */
+export function audioContext() {
   if (typeof window === 'undefined') return null;
   const Ctor: AudioCtor | undefined =
     window.AudioContext ??
@@ -22,9 +24,12 @@ function audio() {
   return context;
 }
 
+/** True once a gesture has let audio play; never creates the context (no autoplay warning). */
+export const audioRunning = () => context?.state === 'running';
+
 /** Called from a tap: lets a later chime play (and keeps iOS from muting it as ambient). */
 export function unlockAudio() {
-  const ctx = audio();
+  const ctx = audioContext();
   if (!ctx) return;
   try {
     const session = (
@@ -39,7 +44,7 @@ export function unlockAudio() {
 
 /** Two soft sine notes, about −24 dB, half a second in all. Silent when audio is unavailable. */
 export function playChime() {
-  const ctx = audio();
+  const ctx = audioContext();
   if (!ctx || ctx.state !== 'running') return;
   const start = ctx.currentTime + 0.02;
   for (const [i, frequency] of [659.25, 880].entries()) {
