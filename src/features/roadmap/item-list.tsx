@@ -20,6 +20,7 @@ import { StudyPrompt } from './study-prompt';
 import type { Reference, Scenario } from './domain';
 import { Button } from '@/components/ui/button';
 import { GrillMe } from '@/features/ai/grill';
+import { Listen } from '@/features/listen/listen';
 import { removeCardAction } from '@/features/ai/actions';
 
 export type RowLinks = {
@@ -51,6 +52,8 @@ export type Row = {
   }[];
   /** Grill Me is offered for this item (AI on, Study AI on, not a test record). */
   grillable: boolean;
+  /** Listen is offered too: Grill Me's conditions and a reference on a checked site (WI-037). */
+  listenable: boolean;
 };
 
 const statusText = {
@@ -290,7 +293,15 @@ export function ItemList({
       <FeedbackOutlet channel="roadmap-items" className="mb-3" />
       <ol className="plain-list item-list" ref={listRef}>
         {rows.map(
-          ({ item, revision, revisionText, links, cards, grillable }) => {
+          ({
+            item,
+            revision,
+            revisionText,
+            links,
+            cards,
+            grillable,
+            listenable,
+          }) => {
             const isOpen = open === item.id;
             const status = optimistic.get(item.id) ?? item.status;
             const references = (item.references as Reference[] | null) ?? [];
@@ -625,6 +636,15 @@ export function ItemList({
                             Grill me
                           </PanelButton>
                         )}
+                        {grill && listenable && (
+                          <PanelButton
+                            panel={`listen:${item.id}`}
+                            className="button secondary small"
+                            data-listen-open
+                          >
+                            Listen
+                          </PanelButton>
+                        )}
                         <span className="item-actions-spacer" />
                         <PanelButton
                           panel={`item-edit:${item.id}`}
@@ -703,6 +723,23 @@ export function ItemList({
                           revisionDue={
                             revision === 'due' || revision === 'overdue'
                           }
+                        />
+                      </SidePanel>
+                    )}
+                    {grill && listenable && (
+                      <SidePanel
+                        id={`listen:${item.id}`}
+                        title={`Listen · ${item.title}`}
+                      >
+                        <Listen
+                          item={{
+                            id: item.id,
+                            title: item.title,
+                            scope: item.scope,
+                            checkpoint: item.checkpoint,
+                            references: item.references,
+                          }}
+                          budget={grill.budget}
                         />
                       </SidePanel>
                     )}

@@ -47,7 +47,7 @@ export class AiRefusal extends Error {
 export class AiUnavailable extends Error {
   name = 'AiUnavailable';
 }
-const UNAVAILABLE = 'Grill Me is unavailable right now.';
+export const UNAVAILABLE = 'Grill Me is unavailable right now.';
 
 /** Spend this month (pending reservations included), in millionths of a US dollar. */
 async function monthSpend(
@@ -180,7 +180,7 @@ const settle = (
 ) => db().aiUsage.update({ where: { id }, data });
 
 /** The owner's switch and the provider check, before any AI request. */
-async function ready(
+export async function ready(
   user: ScheduleUser,
   cfg: AiConfig,
   now: Date,
@@ -197,13 +197,13 @@ async function ready(
 }
 
 /**
- * One AI answer in a strict format, shared by Grill Me (WI-031) and the problem hints
- * (WI-032). Each call is reserved in the ledger under the owner lock before it is sent, so
+ * One AI answer in a strict format, shared by Grill Me (WI-031), the problem hints (WI-032)
+ * and Listen (WI-037). Each call is reserved in the ledger under the owner lock before it is sent, so
  * the cap and the rate limits hold; the answer must come from the pinned provider; a
  * malformed answer gets one retry (a cut-off one is asked again, briefly). Nothing of the
  * prompt or the answer is stored.
  */
-async function ask<T>({
+export async function ask<T>({
   user,
   cfg,
   feature,
@@ -212,10 +212,11 @@ async function ask<T>({
   read,
   now,
   fetcher,
+  failure = 'Couldn’t build a useful ladder for this item. Try again later.',
 }: {
   user: ScheduleUser;
   cfg: AiConfig;
-  feature: 'GRILL_ITEM' | 'GRILL_PROBLEM';
+  feature: 'GRILL_ITEM' | 'GRILL_PROBLEM' | 'LISTEN_ITEM';
   messages: Message[];
   format: OutputFormat;
   read: (
@@ -223,6 +224,8 @@ async function ask<T>({
   ) => { ok: true; value: T } | { ok: false; issues: string; codes: string };
   now: Date;
   fetcher: Fetcher;
+  /** What the owner reads when both answers were unusable. */
+  failure?: string;
 }): Promise<T> {
   for (let attempt = 0; attempt < 2; attempt++) {
     const reserve = reservationMicros(messages, format.maxTokens);
@@ -338,9 +341,7 @@ async function ask<T>({
         : `Your previous answer did not match the rules: ${result.issues}. Answer again from the start, following every rule, and return only the JSON object.`,
     });
   }
-  throw new AiUnavailable(
-    'Couldn’t build a useful ladder for this item. Try again later.',
-  );
+  throw new AiUnavailable(failure);
 }
 
 /** Grill Me on one roadmap item (WI-031): the owner's ticked fields, five rungs back. */

@@ -383,3 +383,30 @@ Attention is derived, not stored: overdue follow-up, result needed, interview be
 - 2026-10-26: the owner chose Google Vertex ZDR only, and the cheapest established option that meets every rule (`anthropic/claude-haiku-5.5` on `google-vertex/global`), with a working budget of US$2–3 a month and US$5 as the most.
 - 2026-10-26: the owner turned on account-level ZDR for Anthropic models, kept prompt logging off, and set the Silsila key's credit limit to US$5, reset monthly.
 - 2026-10-26: the owner read the Google Vertex and OpenRouter data terms and found them acceptable.
+
+## ADR-023 — Listen: scripts written only from fetched, cross-checked sources
+
+**Status:** Accepted (2026-10-26). The owner chose the grounded script and asked for official and non-official sources, cross-checked so that quality and legitimacy hold. WI-037 builds on it.
+
+**Context:** the Version 2 plan (section 8, "Web research") deferred Listen until a grounding pipeline existed. A reference's name or URL does not prove that a script is grounded. The sources have to be fetched explicitly, and the passages actually used have to be shown. Roadmap items already carry curated references (`RoadmapItem.references`), most of them official documentation.
+
+**Decision:**
+
+- **Only on the owner's press.** The panel first shows the item fields to be sent and the sources to be fetched. Nothing is fetched until Fetch sources and write is pressed.
+- **Only listed sites.** The server fetches only the item's own reference links, over HTTPS, on two lists in `src/features/listen/domain.ts`:
+  - **Official:** documentation and specifications, such as PostgreSQL, MDN, OWASP, the RFCs and Kubernetes.
+  - **Secondary:** vetted interview guides, engineering blogs and reference projects, such as Hello Interview, interviewing.io, GitHub and Martin Fowler.
+  - User-generated and video sites (YouTube, Reddit, Glassdoor, job boards, Medium) are never fetched.
+  - At most four sources, official first. Redirects are followed by hand, only to listed sites and at most three. The page must be HTML or plain text, with 8 seconds and 1.5 MB at most.
+- **Passages, not pages.** Each page is reduced to readable paragraphs (no navigation, scripts or code blocks). The paragraphs sharing the most content words with the item are kept: at most three a page and nine in all, each clipped at a sentence to 600 characters.
+- **One pinned request** through the ADR-022 engine (`ask()`), with the same endpoint, ledger, US$3 stop, rate limits and provider check. It sends the item's title, scope and done-when, plus the passages. The owner's note and "asked at" are never sent. The prompt allows only facts stated in the passages, and every line must cite the passage ids it relies on.
+- **The cross-check** (`crossCheck`) is deterministic and runs on the server:
+  - A cited passage counts only if it exists and shares at least two, and 40%, of the line's content words (`supports`).
+  - A line is kept when an official passage supports it, or when supported passages come from two different sites.
+  - A line backed by a single non-official site, a line no passage supports, and anything that reads as code or a link are dropped. The panel says how many were dropped and why.
+  - Fewer than four checked lines means nothing is shown.
+- **Shown with its evidence.** Each line carries chips for its passages. The passages used are listed with their tier, link, site and fetch time.
+- **The device's own voice.** The script is read by the browser's speech synthesis, line by line, with Play, Pause, Stop, a voice and a speed. No audio is generated or stored.
+- **Nothing is stored.** The script exists only in the page. The ledger row (`AiFeature.LISTEN_ITEM`) holds no content. Logs carry counts only: sources fetched or failed, passages, lines kept and dropped by reason.
+
+**Consequences:** a line is only as good as its passages. The check tests that a passage states a line's words, not that the line is a correct reading of it. Showing every passage beside its line is how the owner judges the rest. The plan's test still applies: the owner rates five scripts useful before relying on Listen. Adding a site to a list is a reviewed code change.

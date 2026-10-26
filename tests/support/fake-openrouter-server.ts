@@ -5,7 +5,8 @@
  *   pnpm openrouter:fake   (PORT, default 4466)
  *
  * It serves the two public lists the provider check reads and answers chat completions with
- * a fixed, generic five-rung ladder about the topic it was sent. It prints request counts
+ * a fixed, generic five-rung ladder about the topic it was sent (or hints, or a Listen script
+ * built from the passages it was sent). It prints request counts
  * only, never what was sent. FAKE_OPENROUTER_MODE=invalid answers with a broken ladder;
  * FAKE_OPENROUTER_MODE=no-zdr leaves the pinned endpoint off the ZDR list.
  */
@@ -71,6 +72,28 @@ function hintSet() {
   };
 }
 
+/**
+ * A Listen script (WI-037) from the passages it was sent: one line per passage, taken from
+ * the passage itself so the cross-check keeps it, and one unsupported line it must drop.
+ */
+function listenScript(content: string) {
+  let passages: { id: string; text: string }[] = [];
+  try {
+    passages = JSON.parse(content).passages ?? [];
+  } catch {
+    passages = [];
+  }
+  const lines = passages.slice(0, 8).map((p) => ({
+    text: p.text.split(/(?<=[.!?])\s/)[0].slice(0, 300),
+    sources: [p.id],
+  }));
+  lines.push({
+    text: 'Quantum annealing guarantees zero downtime for every rollout.',
+    sources: [passages[0]?.id ?? 'P1'],
+  });
+  return { lines };
+}
+
 createServer(async (req, res) => {
   const url = new URL(req.url ?? '/', `http://127.0.0.1:${port}`);
   const json = (status: number, data: unknown) => {
@@ -92,7 +115,8 @@ createServer(async (req, res) => {
       messages: { role: string; content: string }[];
       response_format?: { json_schema?: { name?: string } };
     };
-    const wantsHints = body.response_format?.json_schema?.name === 'hints';
+    const format = body.response_format?.json_schema?.name;
+    const wantsHints = format === 'hints';
     let topic = '';
     try {
       topic = JSON.parse(body.messages[1]?.content ?? '{}').topic ?? '';
@@ -110,7 +134,13 @@ createServer(async (req, res) => {
             content:
               mode === 'invalid'
                 ? '{"rungs":[]}'
-                : JSON.stringify(wantsHints ? hintSet() : ladder(topic)),
+                : JSON.stringify(
+                    format === 'listen'
+                      ? listenScript(body.messages[1]?.content ?? '{}')
+                      : wantsHints
+                        ? hintSet()
+                        : ladder(topic),
+                  ),
           },
         },
       ],
