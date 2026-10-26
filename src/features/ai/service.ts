@@ -220,7 +220,7 @@ async function ask<T>({
   format: OutputFormat;
   read: (
     content: unknown,
-  ) => { ok: true; value: T } | { ok: false; issues: string };
+  ) => { ok: true; value: T } | { ok: false; issues: string; codes: string };
   now: Date;
   fetcher: Fetcher;
 }): Promise<T> {
@@ -328,19 +328,15 @@ async function ask<T>({
     }
     const cutOff = body.choices?.[0]?.finish_reason === 'length';
     console.error(
-      `[study] grill failed ${cutOff ? 'CutOff' : 'InvalidLadder'}`,
+      `[study] grill failed ${cutOff ? 'CutOff' : `InvalidLadder ${result.codes}`}`,
     );
-    if (cutOff)
-      // A cut-off answer is not worth sending back: ask the same question again, briefly.
-      messages.push({ role: 'user', content: BRIEF_RETRY });
-    else if (typeof content === 'string')
-      messages.push(
-        { role: 'assistant', content: content.slice(0, 4000) },
-        {
-          role: 'user',
-          content: `That did not match the required format: ${result.issues}. Return only the JSON object.`,
-        },
-      );
+    // The rejected answer is never sent back: the retry asks again, saying what to fix.
+    messages.push({
+      role: 'user',
+      content: cutOff
+        ? BRIEF_RETRY
+        : `Your previous answer did not match the rules: ${result.issues}. Answer again from the start, following every rule, and return only the JSON object.`,
+    });
   }
   throw new AiUnavailable(
     'Couldn’t build a useful ladder for this item. Try again later.',

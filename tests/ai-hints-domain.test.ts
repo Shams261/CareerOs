@@ -40,6 +40,7 @@ describe('problem hints (WI-032)', () => {
       'A hash map lets you check in constant time whether the partner exists.',
       'Return the indices once you find the pair; you only need one pass.',
       'If the input were sorted, two pointers would work.',
+      'Return true if (and only if) some value appears twice.',
     ])
       expect(looksLikeCode(plain), plain).toBe(false);
     for (const code of [
@@ -60,7 +61,10 @@ describe('problem hints (WI-032)', () => {
     expect(
       readHints(five('Loop with for (i = 0; i < n; i++) over nums')).ok,
     ).toBe(false);
-    expect(readHints(five('x'.repeat(200))).ok).toBe(false);
+    expect(readHints(five('x'.repeat(300))).ok).toBe(false);
+    expect(
+      readHints(five(`${'A longer but plain hint. '.repeat(8)}`.trim())).ok,
+    ).toBe(true);
     expect(
       readHints(
         JSON.stringify({ hints: [hint('Only one hint here for you.')] }),
@@ -69,6 +73,7 @@ describe('problem hints (WI-032)', () => {
     expect(readHints('not json')).toEqual({
       ok: false,
       issues: 'The answer was not JSON.',
+      codes: 'json',
     });
   });
 });

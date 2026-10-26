@@ -207,6 +207,12 @@ describe.skipIf(!url)('Grill Me (PostgreSQL)', () => {
       messages: { role: string; content: string }[];
     };
     expect(retry.messages.at(-1)!.content).toMatch(/did not match/);
+    // The rejected answer is never sent back.
+    expect(retry.messages.map((m) => m.role)).toEqual([
+      'system',
+      'user',
+      'user',
+    ]);
 
     const bad = fakeRouter([{ content: 'nope' }, { content: 'nope' }]);
     await expect(

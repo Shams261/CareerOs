@@ -35,7 +35,7 @@ The problem's notes, link and attempts are never sent.
 
 **Five hints** come back, each stronger than the last (reading, pattern, structure, key insight, approach). Space or **Next hint** opens them one at a time.
 
-**Never code.** The schema refuses any hint over 160 characters or one that reads as code (`looksLikeCode`: backticks, `;` endings, `=>`, `==`, braces, `word[...]`, `for (`, `def`, `const` …). Such an answer is retried once, then shown as unavailable.
+**Never code.** The schema refuses any hint over 240 characters or one that reads as code (`looksLikeCode`: backticks, `;` endings, `=>`, `==`, braces, `word[...]`, `for (`, `def`, `const` …). Such an answer is retried once, then shown as unavailable.
 
 ### Internals
 
@@ -63,6 +63,20 @@ The problem's notes, link and attempts are never sent.
 | Browser, 390                             | The hints panel at full width, no overflow                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
 
 Screenshots: `docs/screenshots/wi-032/`.
+
+## Live check (UAT, 2026-10-26, owner's Chrome)
+
+| Step                                                        | Result                                                                                                                                                                             |
+| ----------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Contains Duplicate: Hints button and the four-field preview | Pass                                                                                                                                                                               |
+| Get hints                                                   | **Fail**: "Couldn't build a useful ladder". The ledger showed a complete first answer (311 of 1,000 tokens) rejected by a rule, then a retry that ran into the 1,000-token ceiling |
+
+Fixed on `fix/wi-032-hint-rules`:
+
+- **Length.** A hint may be up to 240 characters, and the prompt says "at most 30 words in all" instead of "two sentences under 25 words", which a correct answer could easily exceed.
+- **Code check.** `if (`, `for (` and `while (` count as code only with an operator or `;` inside the brackets, so "if (and only if)" passes.
+- **Retry.** It no longer sends the rejected answer back, for hints and for Grill Me. It names what to fix and asks again from the start, which also avoids the long, cut-off second answer.
+- **Logging.** The failure line names the broken rules by position and code (`hints.2.hint:too_big`), never text, so the next live failure can be read from the log.
 
 ## Owner steps
 
