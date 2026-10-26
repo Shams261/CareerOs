@@ -97,6 +97,15 @@ Fixed on `fix/wi-037-listen-length`:
 
 Both cases were checked locally after clicking a row.
 
+## Phase 4 accessibility pass (2026-10-26, `fix/a11y-phase4`)
+
+axe-core 4.13 ran in the dev app on every Phase 4 screen, in light and dark and at 1440 and 375 wide. Each run waited until the page had finished streaming in.
+
+- **Screens:** Focus (before Begin, and running with the sound switch), Look back, the ⌘K bar, the Listen panel (before and after a script), a closed past day with its Day Print, and Settings.
+- **One finding, fixed.** The "⌘K" key label on the sidebar Search button had a contrast of 4.23:1, against the 4.5:1 needed. Its text now uses the secondary ink.
+- **Everything else is clean.** The Day Print is an `img` labelled with its date and facts.
+- **Lint warning, fixed.** The only lint warning in the project was `jsx-a11y/alt-text` on Settings' Day print row. The rule read lucide's `Image` icon as an `<img>`; the row now uses the same icon under its `ImageIcon` name, so lint reports no problems.
+
 ## Owner steps
 
 1. **Before merging**, apply the migration to production from your own terminal, as with WI-031 and WI-032 (`read -rs` for the Supabase URL, then `pnpm db:deploy`).

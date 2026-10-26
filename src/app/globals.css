@@ -5604,6 +5604,8 @@ button.attention-link {
 .command-button kbd {
   margin-left: auto;
   font-size: 12px;
+  /* The button's meta grey is under 4.5:1 on the key's tinted face. */
+  color: var(--text-secondary);
 }
 .command-backdrop {
   position: fixed;
