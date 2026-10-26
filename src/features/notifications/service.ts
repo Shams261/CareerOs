@@ -95,13 +95,13 @@ export async function processNotifications(now = new Date()) {
             },
           });
           for (const b of blocks) {
+            const study = isStudyCategory(b.category, nudges.studyCategories);
             // The evening study check-in speaks for study blocks while it is on (WI-028).
-            if (
-              pref.type === 'OVERDUE_TASK' &&
-              nudges.eveningEnabled &&
-              isStudyCategory(b.category, nudges.studyCategories)
-            )
+            if (pref.type === 'OVERDUE_TASK' && nudges.eveningEnabled && study)
               continue;
+            // The block-start nudge speaks for study blocks while it is on (WI-039), so the
+            // owner is never told twice about one block.
+            if (nudges.blockStartEnabled && study) continue;
             const due = new Date(+b.plannedStart - pref.offsetMinutes * 60000);
             if (
               pref.type === 'UPCOMING_BLOCK' &&

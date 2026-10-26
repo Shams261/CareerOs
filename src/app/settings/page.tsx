@@ -233,7 +233,7 @@ export default async function Settings({
                 source="notification"
                 icon={<Bell size={22} />}
                 label="Study nudges"
-                title="A morning first step and an evening check-in"
+                title="A morning plan, a block-start nudge and an evening check-in"
                 context={`${nudgeContext(nudges)}${nudgesPaused ? ' · Paused' : ''}`}
                 panel="reminder-study"
               />
@@ -275,8 +275,9 @@ export default async function Settings({
             <SidePanel id="reminder-study" title="Study nudges">
               <p className="status-line">
                 <span>
-                  Off by default · at most two a day, four hours apart · never
-                  during a focus session · the lock screen never names a task
+                  Off by default · a morning line and an evening check-in, four
+                  hours apart, plus one block-start nudge a day · never during a
+                  focus session · the lock screen never names a task
                 </span>
               </p>
               <NudgeSettingsForm

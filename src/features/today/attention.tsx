@@ -50,7 +50,7 @@ export async function Attention({
           readAt: null,
           scheduledFor: { lte: now },
           // Study nudges have their own card on Today (WI-028).
-          type: { notIn: ['STUDY_MORNING', 'STUDY_EVENING'] },
+          type: { notIn: ['STUDY_MORNING', 'STUDY_EVENING', 'STUDY_BLOCK'] },
         },
         orderBy: { scheduledFor: 'desc' },
         select: {

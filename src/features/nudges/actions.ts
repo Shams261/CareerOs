@@ -7,6 +7,7 @@ import { issueMessages } from '@/lib/validation';
 import { dayKey, hhmm } from '@/lib/time';
 import { dateInput, shiftDay } from '@/features/schedule/domain';
 import { saveBlock } from '@/features/schedule/editing';
+import { execute } from '@/features/execution/service';
 import type { ActionState } from '@/features/schedule/actions';
 import { syncSoon } from '@/features/calendar/background';
 import { PAUSED_FOREVER } from './domain';
@@ -58,6 +59,8 @@ export async function nudgeSettingsAction(_s: ActionState, form: FormData) {
       quietStart: String(form.get('quietStart') ?? ''),
       quietEnd: String(form.get('quietEnd') ?? ''),
       studyCategories: form.getAll('studyCategories').map(String),
+      blockStartEnabled: form.get('blockStartEnabled') === 'on',
+      blockStartMinutes: Number(form.get('blockStartMinutes') ?? 15),
     });
     return 'Study nudges saved.';
   });
@@ -115,6 +118,32 @@ export async function restDayAction(_s: ActionState, form: FormData) {
     return {
       message: 'Rest day. Evening check-ins stop for today.',
       undo: { kind: 'clear-rest-day', payload: { day } },
+    };
+  });
+}
+
+/**
+ * "Let go" on a block-start nudge (WI-039): the block is skipped with the reason "Let go"
+ * through the existing writer, the day's nudges close, and Undo puts the block back.
+ */
+export async function letGoAction(_s: ActionState, form: FormData) {
+  return perform(async () => {
+    const user = await owner();
+    const id = z.string().min(1).parse(form.get('id'));
+    const block = await db().timeBlock.findFirst({
+      where: { id, dailyPlan: { userId: user.id } },
+      include: { dailyPlan: { select: { date: true } } },
+    });
+    if (!block) throw new Error('This block is no longer on your plan.');
+    await execute(user, id, 'skip', 'Let go');
+    await closeNudges(
+      db(),
+      user.id,
+      block.dailyPlan.date.toISOString().slice(0, 10),
+    );
+    return {
+      message: `Let go of ${block.title} for today.`,
+      undo: { kind: 'block-reset', payload: { id } },
     };
   });
 }
