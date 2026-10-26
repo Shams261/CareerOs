@@ -100,7 +100,7 @@ heroku ps:type eco --app silsila
 
 ### Configure _(owner)_
 
-Generate the secrets from [1. Prepare secrets](#1-prepare-secrets) and set them with `heroku config:set … --app silsila`. Required: `APP_BASE_URL=https://usesilsila.me`, `OWNER_EMAIL`, `CRON_SECRET`, `AUTH_SECRET`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `DATABASE_SSL=no-verify`, `DATABASE_POOL_MAX=5`. Optional: `CALENDAR_TOKEN_ENCRYPTION_KEY`, `GOOGLE_CALENDAR_WEBHOOK_BASE_URL=https://usesilsila.me`, `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT`. Try `DATABASE_SSL=verify-full` first; if the start-up log shows a certificate error, use `no-verify` (encrypted, unverified, Heroku's documented mode). Do not set any `GOOGLE_OAUTH_*_URL` override.
+Generate the secrets from [1. Prepare secrets](#1-prepare-secrets) and set them with `heroku config:set … --app silsila`. Required: `APP_BASE_URL=https://usesilsila.me`, `OWNER_EMAIL`, `CRON_SECRET`, `AUTH_SECRET`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `DATABASE_SSL=no-verify`, `DATABASE_POOL_MAX=5`. Optional: `CALENDAR_TOKEN_ENCRYPTION_KEY`, `GOOGLE_CALENDAR_WEBHOOK_BASE_URL=https://usesilsila.me`, `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT`, `OPENROUTER_API_KEY` (Grill Me, WI-031). Try `DATABASE_SSL=verify-full` first; if the start-up log shows a certificate error, use `no-verify` (encrypted, unverified, Heroku's documented mode). Do not set any `GOOGLE_OAUTH_*_URL` override.
 
 ### Deploy _(owner)_
 

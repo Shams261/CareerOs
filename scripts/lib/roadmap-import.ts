@@ -156,6 +156,9 @@ export async function importBundle(
                 title: r.title,
                 goalId,
                 ordering: ordering++,
+                // Grill Me may use imported study roadmaps; the behavioural one is the owner's
+                // own material (WI-031). An existing roadmap keeps the owner's choice.
+                studyAi: r.title !== 'Behavioural and resume',
               },
             });
         const counts = { created: 0, updated: 0, notesKept: 0 };

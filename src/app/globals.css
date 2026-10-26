@@ -5202,3 +5202,122 @@ button.attention-link {
 .trace-controls .button {
   gap: 6px;
 }
+
+/* Grill Me (WI-031): the payload preview, the rungs and kept cards. */
+.grill {
+  display: grid;
+  gap: 14px;
+}
+.grill h3,
+.grill p {
+  margin: 0;
+}
+.grill h3:focus {
+  outline: none;
+}
+.grill > section {
+  display: grid;
+  gap: 10px;
+}
+.grill-ticks {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+.grill-ticks .check {
+  margin: 0;
+  font-size: 15px;
+}
+.grill-payload {
+  margin: 0;
+  padding: 10px 12px;
+  max-height: 220px;
+  overflow: auto;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font-size: 13px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+}
+.grill-facts {
+  font-size: 14px;
+}
+.grill .button {
+  justify-self: start;
+}
+.grill-question {
+  font-size: 18px;
+  line-height: 1.4;
+}
+.grill-points {
+  display: grid;
+  gap: 6px;
+  list-style: disc;
+  margin: 0;
+  padding: 12px 14px 12px 30px;
+  background: var(--surface-2);
+  border-radius: var(--radius-md);
+}
+.grill-points:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+.grill-marks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.grill-marks .button.is-on {
+  border-color: var(--primary);
+  background: var(--primary-soft);
+}
+.grill-next {
+  margin: 0;
+  align-items: center;
+}
+.ai-settings {
+  display: grid;
+  gap: 14px;
+}
+.ai-rules {
+  margin: 0;
+  padding-left: 18px;
+  list-style: disc;
+  color: var(--ink-2);
+  font-size: 14px;
+}
+.kept-cards {
+  display: grid;
+  gap: 8px;
+}
+.kept-cards .eyebrow {
+  margin: 0;
+}
+.kept-card {
+  display: grid;
+  gap: 4px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+}
+.kept-card p {
+  margin: 0;
+}
+.kept-card-q {
+  font-weight: 600;
+}
+.kept-card-change {
+  font-size: 14px;
+}
+.kept-card ul {
+  margin: 0;
+  padding-left: 18px;
+  list-style: disc;
+  font-size: 14px;
+}
+.kept-card form {
+  margin: 0;
+}

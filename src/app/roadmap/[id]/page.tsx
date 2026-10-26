@@ -19,6 +19,9 @@ import {
   type Scenario,
 } from '@/features/roadmap/domain';
 import { dayKey } from '@/lib/time';
+import { isTestNamed } from '@/lib/test-data';
+import { aiState } from '@/features/ai/service';
+import { budgetLine } from '@/features/ai/domain';
 import { formatInTimeZone } from 'date-fns-tz';
 import { ArrowLeft } from 'lucide-react';
 export const metadata = { title: 'Roadmap' };
@@ -41,13 +44,20 @@ export default async function RoadmapDetail({
     roadmap = await roadmapDetail(user, id);
   if (!roadmap) notFound();
   const today = dayKey(new Date(), user.timezone);
-  const [links, goals] = await Promise.all([
+  const [links, goals, ai] = await Promise.all([
     linkOptions(user.id),
     db().goal.findMany({
       where: { userId: user.id },
       select: { id: true, title: true },
     }),
+    roadmap.studyAi ? aiState(user) : null,
   ]);
+  // Grill Me (WI-031): offered when the server has a key, the owner left it on, the provider
+  // check holds, and this roadmap allows Study AI.
+  const grill =
+    ai && ai.configured && ai.enabled && !ai.blocked
+      ? { budget: budgetLine(ai.spent) }
+      : null;
   const sectionNames = [...roadmap.sections.keys()];
   const sections = sectionNames.map((name) => {
     const items = roadmap.sections.get(name)!;
@@ -78,7 +88,19 @@ export default async function RoadmapDetail({
     ? (query.show as Show)
     : defaultShow;
   const q = (query.q ?? '').trim().toLowerCase();
-  const rows: Row[] = (roadmap.sections.get(selected) ?? [])
+  const shown = roadmap.sections.get(selected) ?? [];
+  const cards = await db().revisionCard.findMany({
+    where: { userId: user.id, roadmapItemId: { in: shown.map((i) => i.id) } },
+    orderBy: { createdAt: 'asc' },
+    select: {
+      id: true,
+      roadmapItemId: true,
+      question: true,
+      change: true,
+      points: true,
+    },
+  });
+  const rows: Row[] = shown
     .filter(
       (item) =>
         (show === 'all' ||
@@ -122,6 +144,8 @@ export default async function RoadmapDetail({
           : null,
         dsaTopic: item.dsaTopic,
       },
+      cards: cards.filter((c) => c.roadmapItemId === item.id),
+      grillable: !!grill && !isTestNamed(item.title, roadmap.title),
     }));
   const initialOpen =
     roadmap.next && roadmap.next.section === selected ? roadmap.next.id : null;
@@ -150,6 +174,15 @@ export default async function RoadmapDetail({
             press: 'row-done',
           },
           { key: 'c', label: 'Copy the study prompt', press: 'row-copy' },
+          ...(grill
+            ? [
+                {
+                  key: 'g',
+                  label: 'Grill me on the open item',
+                  press: 'row-grill',
+                },
+              ]
+            : []),
           { key: 'Escape', label: 'Close the open item', press: 'row-close' },
         ]}
       />
@@ -278,6 +311,7 @@ export default async function RoadmapDetail({
                 show={show}
                 elsewhere={elsewhere}
                 q={q}
+                grill={grill}
                 nextDue={(() => {
                   const i = sections.findIndex((s) => s.name === selected);
                   const after = [

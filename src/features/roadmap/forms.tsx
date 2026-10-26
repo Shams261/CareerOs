@@ -183,6 +183,14 @@ export function RoadmapForm({
           <label className="check">
             <input
               type="checkbox"
+              name="studyAi"
+              defaultChecked={roadmap.studyAi}
+            />
+            Study AI: allow Grill Me on this roadmap&rsquo;s items
+          </label>
+          <label className="check">
+            <input
+              type="checkbox"
               name="archived"
               defaultChecked={!!roadmap.archivedAt}
             />

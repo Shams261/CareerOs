@@ -77,6 +77,7 @@ export async function saveRoadmap(user: ScheduleUser, raw: unknown) {
       archivedAt: input.archived ? new Date() : null,
       promptTemplate: input.promptTemplate,
       scenarios: input.scenarios ?? Prisma.DbNull,
+      ...(input.studyAi === undefined ? {} : { studyAi: input.studyAi }),
     };
     if (input.id) {
       const existing = await tx.roadmap.findFirst({

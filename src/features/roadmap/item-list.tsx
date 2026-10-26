@@ -19,6 +19,8 @@ import { ItemForm } from './item-form';
 import { StudyPrompt } from './study-prompt';
 import type { Reference, Scenario } from './domain';
 import { Button } from '@/components/ui/button';
+import { GrillMe } from '@/features/ai/grill';
+import { removeCardAction } from '@/features/ai/actions';
 
 export type RowLinks = {
   learningTopic: { id: string; title: string; subject: string } | null;
@@ -40,6 +42,15 @@ export type Row = {
   /** "Revision due today", "Revision overdue by 2 days", "Revision due Oct 28" (WI-023). */
   revisionText: string | null;
   links: RowLinks;
+  /** Revision cards kept from Grill Me (WI-031). */
+  cards: {
+    id: string;
+    question: string;
+    change: string | null;
+    points: string[];
+  }[];
+  /** Grill Me is offered for this item (AI on, Study AI on, not a test record). */
+  grillable: boolean;
 };
 
 const statusText = {
@@ -89,6 +100,7 @@ export function ItemList({
   nextDue = null,
   elsewhere = [],
   q = '',
+  grill = null,
 }: {
   roadmap: { id: string; title: string; promptTemplate: string | null };
   scenarios: Scenario[];
@@ -101,6 +113,8 @@ export function ItemList({
   /** Other sections where the search words match; search is scoped to this section. */
   elsewhere?: { name: string; count: number }[];
   q?: string;
+  /** Grill Me for this roadmap, with the month's budget line; null when off (WI-031). */
+  grill?: { budget: string } | null;
 }) {
   const hashId = useSyncExternalStore(
     subscribeHash,
@@ -256,6 +270,12 @@ export function ItemList({
         />
         <button
           type="button"
+          data-shortcut="row-grill"
+          tabIndex={-1}
+          onClick={() => pressInRow('[data-grill-open]')}
+        />
+        <button
+          type="button"
           data-shortcut="row-close"
           tabIndex={-1}
           onClick={() => {
@@ -269,357 +289,429 @@ export function ItemList({
       </span>
       <FeedbackOutlet channel="roadmap-items" className="mb-3" />
       <ol className="plain-list item-list" ref={listRef}>
-        {rows.map(({ item, revision, revisionText, links }) => {
-          const isOpen = open === item.id;
-          const status = optimistic.get(item.id) ?? item.status;
-          const references = (item.references as Reference[] | null) ?? [];
-          const meta = [
-            item.estimateMinutes ? `${item.estimateMinutes} min` : null,
-            revision === 'upcoming' && revisionText ? revisionText : null,
-          ].filter(Boolean);
-          const longScope = (item.scope?.length ?? 0) > SCOPE_CLAMP;
-          const clamped = longScope && expandedScope !== item.id;
-          const next = status === 'DONE' ? nextAfter(item.id) : null;
-          return (
-            <li
-              key={item.id}
-              id={`item-${item.id}`}
-              className={`item-row is-${status.toLowerCase().replace('_', '-')}${isOpen ? ' is-open' : ''}`}
-            >
-              <StatusIcon status={status} pop={popped === item.id} />
-              <button
-                type="button"
-                className="item-title"
-                aria-expanded={isOpen}
-                aria-controls={`panel-${item.id}`}
-                onClick={() => toggle(item.id)}
-                title={item.title}
+        {rows.map(
+          ({ item, revision, revisionText, links, cards, grillable }) => {
+            const isOpen = open === item.id;
+            const status = optimistic.get(item.id) ?? item.status;
+            const references = (item.references as Reference[] | null) ?? [];
+            const meta = [
+              item.estimateMinutes ? `${item.estimateMinutes} min` : null,
+              revision === 'upcoming' && revisionText ? revisionText : null,
+            ].filter(Boolean);
+            const longScope = (item.scope?.length ?? 0) > SCOPE_CLAMP;
+            const clamped = longScope && expandedScope !== item.id;
+            const next = status === 'DONE' ? nextAfter(item.id) : null;
+            return (
+              <li
+                key={item.id}
+                id={`item-${item.id}`}
+                className={`item-row is-${status.toLowerCase().replace('_', '-')}${isOpen ? ' is-open' : ''}`}
               >
-                <span className="sr-only">{statusText[status]}: </span>
-                {item.title}
-              </button>
-              <span className="item-meta">
-                {item.askedInInterview && (
-                  <span className="pill success">Asked</span>
-                )}
-                {revision === 'due' && revisionText && (
-                  <span className="pill warning">{revisionText}</span>
-                )}
-                {revision === 'overdue' && revisionText && (
-                  <span className="pill danger">{revisionText}</span>
-                )}
-                {meta.length > 0 && <span>{meta.join(' · ')}</span>}
-                <ChevronDown
-                  size={16}
-                  aria-hidden="true"
-                  className={`item-chevron${isOpen ? ' is-open' : ''}`}
-                />
-              </span>
-              {!isOpen && (
-                <ActionForm
-                  action={itemOpAction}
-                  className="row-quick"
-                  onPending={(f) => flip(item.id, f)}
-                  onSettled={(r) => settle(item.id, r.ok)}
+                <StatusIcon status={status} pop={popped === item.id} />
+                <button
+                  type="button"
+                  className="item-title"
+                  aria-expanded={isOpen}
+                  aria-controls={`panel-${item.id}`}
+                  onClick={() => toggle(item.id)}
+                  title={item.title}
                 >
-                  <input type="hidden" name="id" value={item.id} />
-                  {status === 'DONE' &&
-                  (revision === 'due' || revision === 'overdue') ? (
-                    <button
-                      className="button secondary small"
-                      name="op"
-                      value="revised"
-                      aria-label={`Mark revised: ${item.title}`}
-                      title="Mark revised"
-                    >
-                      <Check size={14} aria-hidden="true" /> Revised
-                    </button>
-                  ) : status !== 'DONE' ? (
-                    <button
-                      className="button secondary small"
-                      name="op"
-                      value="done"
-                      aria-label={`Done: ${item.title}`}
-                      title="Done"
-                    >
-                      <Check size={14} aria-hidden="true" /> Done
-                    </button>
-                  ) : null}
-                </ActionForm>
-              )}
-              {isOpen && (
-                <div id={`panel-${item.id}`} className="item-panel">
-                  {item.checkpoint && (
-                    <div className="item-checkpoint">
-                      <b>Done when</b>
-                      {item.checkpoint}
-                    </div>
+                  <span className="sr-only">{statusText[status]}: </span>
+                  {item.title}
+                </button>
+                <span className="item-meta">
+                  {item.askedInInterview && (
+                    <span className="pill success">Asked</span>
                   )}
-                  {(item.scope || item.priority === 1) && (
-                    <p className={`item-scope${clamped ? ' is-clamped' : ''}`}>
-                      {item.priority === 1 && (
-                        <span className="pill priority">P0</span>
-                      )}
-                      {item.scope}
-                      {longScope && (
-                        <>
-                          {' '}
-                          <Button
-                            type="button"
-                            variant="link"
-                            onClick={() =>
-                              setExpandedScope(clamped ? item.id : null)
-                            }
-                          >
-                            {clamped ? 'Read more' : 'Show less'}
-                          </Button>
-                        </>
-                      )}
-                    </p>
+                  {revision === 'due' && revisionText && (
+                    <span className="pill warning">{revisionText}</span>
                   )}
-                  {references.length > 0 && (
-                    <ul className="plain-list reference-list">
-                      {references.map((r) => (
-                        <li key={r.url}>
-                          <a
-                            className="reference-chip"
-                            href={r.url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            title={r.kind ? `${r.label} · ${r.kind}` : r.label}
-                          >
-                            {r.label}
-                            <ExternalLink size={12} aria-hidden="true" />
-                          </a>
-                        </li>
-                      ))}
-                    </ul>
+                  {revision === 'overdue' && revisionText && (
+                    <span className="pill danger">{revisionText}</span>
                   )}
-                  {(item.url ||
-                    links.dsaProblem ||
-                    links.learningTopic ||
-                    links.dsaTopic) && (
-                    <p className="item-links">
-                      {item.url && (
-                        <a
-                          className="link"
-                          href={item.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                        >
-                          Open link
-                          <ExternalLink size={12} aria-hidden="true" />
-                        </a>
-                      )}
-                      {links.dsaProblem && (
-                        <>
-                          <Link
-                            className="link"
-                            href={`/dsa/${links.dsaProblem.id}?from=${item.id}`}
-                          >
-                            Record an attempt
-                          </Link>
-                          <span className="item-practice">
-                            <span
-                              className={`pill ${links.dsaProblem.attemptsCount ? tone[links.dsaProblem.confidence] : ''}`}
-                            >
-                              {links.dsaProblem.attemptsCount
-                                ? links.dsaProblem.confidence
-                                : 'Unattempted'}
-                            </span>
-                            {links.dsaProblem.attemptsCount > 0 && (
-                              <span className="muted">
-                                {links.dsaProblem.attemptsCount} attempt
-                                {links.dsaProblem.attemptsCount === 1
-                                  ? ''
-                                  : 's'}
-                                {links.dsaProblem.nextRevision
-                                  ? ` · next revision ${links.dsaProblem.nextRevision}`
-                                  : ''}
-                              </span>
-                            )}
-                          </span>
-                        </>
-                      )}
-                      {links.learningTopic && (
-                        <Link
-                          className="link"
-                          href={`/learn/topics/${links.learningTopic.id}`}
-                        >
-                          {links.learningTopic.subject} —{' '}
-                          {links.learningTopic.title}
-                        </Link>
-                      )}
-                      {links.dsaTopic && (
-                        <span className="muted">
-                          Practice topic: {links.dsaTopic.name}
-                        </span>
-                      )}
-                    </p>
-                  )}
-                  <StudyPrompt
-                    roadmap={{ title: roadmap.title }}
-                    template={roadmap.promptTemplate}
-                    scenarios={scenarios}
-                    storageKey={`silsila-scenario:${roadmap.id}`}
-                    item={{
-                      title: item.title,
-                      section: item.section,
-                      scope: item.scope,
-                      checkpoint: item.checkpoint,
-                      priority: item.priority,
-                      estimateMinutes: item.estimateMinutes,
-                      references,
-                      notes: item.notes,
-                      url: item.url,
-                    }}
+                  {meta.length > 0 && <span>{meta.join(' · ')}</span>}
+                  <ChevronDown
+                    size={16}
+                    aria-hidden="true"
+                    className={`item-chevron${isOpen ? ' is-open' : ''}`}
                   />
-                  <ActionForm
-                    action={noteAction}
-                    label={`Note for ${item.title}`}
-                    className="note-form"
-                  >
-                    <input type="hidden" name="id" value={item.id} />
-                    <label>
-                      My note{' '}
-                      <span className="muted">
-                        (saves when you leave the field)
-                      </span>
-                      <textarea
-                        name="notes"
-                        rows={2}
-                        maxLength={20000}
-                        defaultValue={item.notes ?? ''}
-                        placeholder="What tripped me up, a link, a reminder for next time"
-                        onBlur={(e) => {
-                          if (e.currentTarget.value !== (item.notes ?? ''))
-                            e.currentTarget.form?.requestSubmit();
-                        }}
-                      />
-                    </label>
-                    <Button className="secondary small">Save note</Button>
-                  </ActionForm>
+                </span>
+                {!isOpen && (
                   <ActionForm
                     action={itemOpAction}
-                    broadcast="roadmap-items"
-                    className="item-actions-form"
+                    className="row-quick"
                     onPending={(f) => flip(item.id, f)}
                     onSettled={(r) => settle(item.id, r.ok)}
                   >
                     <input type="hidden" name="id" value={item.id} />
-                    <div className="item-actions">
-                      {status === 'DONE' ? (
-                        revision === 'due' || revision === 'overdue' ? (
-                          <button
-                            className="button small"
-                            name="op"
-                            value="revised"
-                          >
-                            <Check size={14} aria-hidden="true" /> Mark revised
-                          </button>
-                        ) : null
-                      ) : (
-                        <Button className="small" name="op" value="done">
-                          <Check size={14} aria-hidden="true" /> Done
-                        </Button>
-                      )}
-                      {status === 'NOT_STARTED' && (
-                        <button
-                          className="button secondary small"
-                          name="op"
-                          value="start"
-                        >
-                          Start
-                        </button>
-                      )}
-                      {status === 'DONE' && (
-                        <button
-                          className="button secondary small"
-                          name="op"
-                          value="reopen"
-                        >
-                          Reopen
-                        </button>
-                      )}
+                    {status === 'DONE' &&
+                    (revision === 'due' || revision === 'overdue') ? (
                       <button
                         className="button secondary small"
                         name="op"
-                        value={item.askedInInterview ? 'unasked' : 'asked'}
-                        aria-pressed={item.askedInInterview}
+                        value="revised"
+                        aria-label={`Mark revised: ${item.title}`}
+                        title="Mark revised"
                       >
-                        {item.askedInInterview ? (
-                          <>
-                            <Check size={14} aria-hidden="true" /> Asked
-                          </>
-                        ) : (
-                          'Asked in interview'
-                        )}
+                        <Check size={14} aria-hidden="true" /> Revised
                       </button>
-                      <span className="item-actions-spacer" />
-                      <PanelButton
-                        panel={`item-edit:${item.id}`}
-                        className="link-button"
-                      >
-                        Edit
-                      </PanelButton>
-                      <Button
-                        variant="link"
-                        className="danger"
+                    ) : status !== 'DONE' ? (
+                      <button
+                        className="button secondary small"
                         name="op"
-                        value="remove"
+                        value="done"
+                        aria-label={`Done: ${item.title}`}
+                        title="Done"
                       >
-                        Remove
-                      </Button>
-                    </div>
+                        <Check size={14} aria-hidden="true" /> Done
+                      </button>
+                    ) : null}
                   </ActionForm>
-                  {item.askedInInterview && (
+                )}
+                {isOpen && (
+                  <div id={`panel-${item.id}`} className="item-panel">
+                    {item.checkpoint && (
+                      <div className="item-checkpoint">
+                        <b>Done when</b>
+                        {item.checkpoint}
+                      </div>
+                    )}
+                    {(item.scope || item.priority === 1) && (
+                      <p
+                        className={`item-scope${clamped ? ' is-clamped' : ''}`}
+                      >
+                        {item.priority === 1 && (
+                          <span className="pill priority">P0</span>
+                        )}
+                        {item.scope}
+                        {longScope && (
+                          <>
+                            {' '}
+                            <Button
+                              type="button"
+                              variant="link"
+                              onClick={() =>
+                                setExpandedScope(clamped ? item.id : null)
+                              }
+                            >
+                              {clamped ? 'Read more' : 'Show less'}
+                            </Button>
+                          </>
+                        )}
+                      </p>
+                    )}
+                    {references.length > 0 && (
+                      <ul className="plain-list reference-list">
+                        {references.map((r) => (
+                          <li key={r.url}>
+                            <a
+                              className="reference-chip"
+                              href={r.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              title={
+                                r.kind ? `${r.label} · ${r.kind}` : r.label
+                              }
+                            >
+                              {r.label}
+                              <ExternalLink size={12} aria-hidden="true" />
+                            </a>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                    {(item.url ||
+                      links.dsaProblem ||
+                      links.learningTopic ||
+                      links.dsaTopic) && (
+                      <p className="item-links">
+                        {item.url && (
+                          <a
+                            className="link"
+                            href={item.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                          >
+                            Open link
+                            <ExternalLink size={12} aria-hidden="true" />
+                          </a>
+                        )}
+                        {links.dsaProblem && (
+                          <>
+                            <Link
+                              className="link"
+                              href={`/dsa/${links.dsaProblem.id}?from=${item.id}`}
+                            >
+                              Record an attempt
+                            </Link>
+                            <span className="item-practice">
+                              <span
+                                className={`pill ${links.dsaProblem.attemptsCount ? tone[links.dsaProblem.confidence] : ''}`}
+                              >
+                                {links.dsaProblem.attemptsCount
+                                  ? links.dsaProblem.confidence
+                                  : 'Unattempted'}
+                              </span>
+                              {links.dsaProblem.attemptsCount > 0 && (
+                                <span className="muted">
+                                  {links.dsaProblem.attemptsCount} attempt
+                                  {links.dsaProblem.attemptsCount === 1
+                                    ? ''
+                                    : 's'}
+                                  {links.dsaProblem.nextRevision
+                                    ? ` · next revision ${links.dsaProblem.nextRevision}`
+                                    : ''}
+                                </span>
+                              )}
+                            </span>
+                          </>
+                        )}
+                        {links.learningTopic && (
+                          <Link
+                            className="link"
+                            href={`/learn/topics/${links.learningTopic.id}`}
+                          >
+                            {links.learningTopic.subject} —{' '}
+                            {links.learningTopic.title}
+                          </Link>
+                        )}
+                        {links.dsaTopic && (
+                          <span className="muted">
+                            Practice topic: {links.dsaTopic.name}
+                          </span>
+                        )}
+                      </p>
+                    )}
+                    <StudyPrompt
+                      roadmap={{ title: roadmap.title }}
+                      template={roadmap.promptTemplate}
+                      scenarios={scenarios}
+                      storageKey={`silsila-scenario:${roadmap.id}`}
+                      item={{
+                        title: item.title,
+                        section: item.section,
+                        scope: item.scope,
+                        checkpoint: item.checkpoint,
+                        priority: item.priority,
+                        estimateMinutes: item.estimateMinutes,
+                        references,
+                        notes: item.notes,
+                        url: item.url,
+                      }}
+                    />
+                    {cards.length > 0 && (
+                      <section
+                        className="kept-cards"
+                        aria-label={`Kept cards for ${item.title}`}
+                      >
+                        <p className="eyebrow">Kept cards · {cards.length}</p>
+                        <ul className="plain-list">
+                          {cards.map((c) => (
+                            <li key={c.id} className="kept-card">
+                              <p className="kept-card-q">{c.question}</p>
+                              {c.change && (
+                                <p className="muted kept-card-change">
+                                  {c.change}
+                                </p>
+                              )}
+                              <ul>
+                                {c.points.map((p) => (
+                                  <li key={p}>{p}</li>
+                                ))}
+                              </ul>
+                              <ActionForm
+                                action={removeCardAction}
+                                broadcast="roadmap-items"
+                                label={`Remove the card ${c.question}`}
+                              >
+                                <input type="hidden" name="id" value={c.id} />
+                                <Button variant="link" className="danger small">
+                                  Remove card
+                                </Button>
+                              </ActionForm>
+                            </li>
+                          ))}
+                        </ul>
+                      </section>
+                    )}
                     <ActionForm
-                      action={askedNoteAction}
-                      label={`Where ${item.title} came up`}
-                      className="asked-form"
+                      action={noteAction}
+                      label={`Note for ${item.title}`}
+                      className="note-form"
                     >
                       <input type="hidden" name="id" value={item.id} />
                       <label>
-                        Asked at
-                        <input
-                          name="askedNote"
-                          maxLength={200}
-                          defaultValue={item.askedNote ?? ''}
-                          placeholder="Amazon phone screen, Oct 2026"
+                        My note{' '}
+                        <span className="muted">
+                          (saves when you leave the field)
+                        </span>
+                        <textarea
+                          name="notes"
+                          rows={2}
+                          maxLength={20000}
+                          defaultValue={item.notes ?? ''}
+                          placeholder="What tripped me up, a link, a reminder for next time"
                           onBlur={(e) => {
-                            if (
-                              e.currentTarget.value !== (item.askedNote ?? '')
-                            )
+                            if (e.currentTarget.value !== (item.notes ?? ''))
                               e.currentTarget.form?.requestSubmit();
                           }}
                         />
                       </label>
+                      <Button className="secondary small">Save note</Button>
                     </ActionForm>
-                  )}
-                  {next && (
-                    <p className="item-next">
-                      Next:{' '}
-                      <Button
-                        type="button"
-                        variant="link"
-                        onClick={() => toggle(next.item.id)}
+                    <ActionForm
+                      action={itemOpAction}
+                      broadcast="roadmap-items"
+                      className="item-actions-form"
+                      onPending={(f) => flip(item.id, f)}
+                      onSettled={(r) => settle(item.id, r.ok)}
+                    >
+                      <input type="hidden" name="id" value={item.id} />
+                      <div className="item-actions">
+                        {status === 'DONE' ? (
+                          revision === 'due' || revision === 'overdue' ? (
+                            <button
+                              className="button small"
+                              name="op"
+                              value="revised"
+                            >
+                              <Check size={14} aria-hidden="true" /> Mark
+                              revised
+                            </button>
+                          ) : null
+                        ) : (
+                          <Button className="small" name="op" value="done">
+                            <Check size={14} aria-hidden="true" /> Done
+                          </Button>
+                        )}
+                        {status === 'NOT_STARTED' && (
+                          <button
+                            className="button secondary small"
+                            name="op"
+                            value="start"
+                          >
+                            Start
+                          </button>
+                        )}
+                        {status === 'DONE' && (
+                          <button
+                            className="button secondary small"
+                            name="op"
+                            value="reopen"
+                          >
+                            Reopen
+                          </button>
+                        )}
+                        <button
+                          className="button secondary small"
+                          name="op"
+                          value={item.askedInInterview ? 'unasked' : 'asked'}
+                          aria-pressed={item.askedInInterview}
+                        >
+                          {item.askedInInterview ? (
+                            <>
+                              <Check size={14} aria-hidden="true" /> Asked
+                            </>
+                          ) : (
+                            'Asked in interview'
+                          )}
+                        </button>
+                        {grill && grillable && (
+                          <PanelButton
+                            panel={`grill:${item.id}`}
+                            className="button secondary small"
+                            data-grill-open
+                          >
+                            Grill me
+                          </PanelButton>
+                        )}
+                        <span className="item-actions-spacer" />
+                        <PanelButton
+                          panel={`item-edit:${item.id}`}
+                          className="link-button"
+                        >
+                          Edit
+                        </PanelButton>
+                        <Button
+                          variant="link"
+                          className="danger"
+                          name="op"
+                          value="remove"
+                        >
+                          Remove
+                        </Button>
+                      </div>
+                    </ActionForm>
+                    {item.askedInInterview && (
+                      <ActionForm
+                        action={askedNoteAction}
+                        label={`Where ${item.title} came up`}
+                        className="asked-form"
                       >
-                        {next.item.title}{' '}
-                        <ArrowRight size={14} aria-hidden="true" />
-                      </Button>
-                    </p>
-                  )}
-                  <SidePanel
-                    id={`item-edit:${item.id}`}
-                    title={`Edit ${item.title}`}
-                  >
-                    <ItemForm item={item} sections={sections} />
-                  </SidePanel>
-                </div>
-              )}
-            </li>
-          );
-        })}
+                        <input type="hidden" name="id" value={item.id} />
+                        <label>
+                          Asked at
+                          <input
+                            name="askedNote"
+                            maxLength={200}
+                            defaultValue={item.askedNote ?? ''}
+                            placeholder="Amazon phone screen, Oct 2026"
+                            onBlur={(e) => {
+                              if (
+                                e.currentTarget.value !== (item.askedNote ?? '')
+                              )
+                                e.currentTarget.form?.requestSubmit();
+                            }}
+                          />
+                        </label>
+                      </ActionForm>
+                    )}
+                    {next && (
+                      <p className="item-next">
+                        Next:{' '}
+                        <Button
+                          type="button"
+                          variant="link"
+                          onClick={() => toggle(next.item.id)}
+                        >
+                          {next.item.title}{' '}
+                          <ArrowRight size={14} aria-hidden="true" />
+                        </Button>
+                      </p>
+                    )}
+                    <SidePanel
+                      id={`item-edit:${item.id}`}
+                      title={`Edit ${item.title}`}
+                    >
+                      <ItemForm item={item} sections={sections} />
+                    </SidePanel>
+                    {grill && grillable && (
+                      <SidePanel
+                        id={`grill:${item.id}`}
+                        title={`Grill me · ${item.title}`}
+                      >
+                        <GrillMe
+                          item={{
+                            id: item.id,
+                            title: item.title,
+                            scope: item.scope,
+                            checkpoint: item.checkpoint,
+                            references: item.references,
+                          }}
+                          budget={grill.budget}
+                          status={status}
+                          revisionDue={
+                            revision === 'due' || revision === 'overdue'
+                          }
+                        />
+                      </SidePanel>
+                    )}
+                  </div>
+                )}
+              </li>
+            );
+          },
+        )}
         {!rows.length &&
           (show === 'revision' && nextDue ? (
             <li className="muted">

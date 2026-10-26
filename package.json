@@ -28,7 +28,8 @@
     "db:restore:verify": "tsx scripts/db-restore-verify.ts",
     "roadmap:bundle": "tsx scripts/build-roadmap-bundle.ts",
     "roadmap:import": "tsx scripts/import-roadmap.ts",
-    "google:fake": "tsx tests/support/fake-google-server.ts"
+    "google:fake": "tsx tests/support/fake-google-server.ts",
+    "openrouter:fake": "tsx tests/support/fake-openrouter-server.ts"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.10.0",

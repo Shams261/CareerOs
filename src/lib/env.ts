@@ -221,6 +221,42 @@ export function pushConfig(): PushConfig | null {
   };
 }
 
+const aiSchema = z.object({
+  OPENROUTER_API_KEY: z
+    .string()
+    .regex(
+      /^sk-or-[A-Za-z0-9_-]{20,200}$/,
+      'OPENROUTER_API_KEY must be an OpenRouter key (sk-or-…)',
+    ),
+  /** Loopback only: a local fake for development and tests. */
+  OPENROUTER_API_URL: z
+    .url()
+    .refine(
+      loopback,
+      'OPENROUTER_API_URL may only be overridden with a loopback URL',
+    )
+    .optional()
+    .or(z.literal('').transform(() => undefined)),
+  STUDY_AI_ENABLED: z.enum(['true', 'false']).default('true'),
+});
+export type AiConfig = { apiKey: string; baseUrl: string };
+/**
+ * Grill Me (WI-031, ADR-022) is enabled by OPENROUTER_API_KEY and turned off by
+ * STUDY_AI_ENABLED=false. The key is used on the server only and never logged.
+ */
+export function aiConfig(): AiConfig | null {
+  if (!process.env.OPENROUTER_API_KEY) return null;
+  const c = aiSchema.parse(process.env);
+  if (c.STUDY_AI_ENABLED === 'false') return null;
+  return {
+    apiKey: c.OPENROUTER_API_KEY,
+    baseUrl: (c.OPENROUTER_API_URL ?? 'https://openrouter.ai/api/v1').replace(
+      /\/$/,
+      '',
+    ),
+  };
+}
+
 /**
  * Startup validation: every problem as "NAME: reason", without values. Production refuses to
  * start when this list is non-empty.
@@ -232,7 +268,7 @@ export function configProblems(
   const saved = process.env;
   process.env = source as NodeJS.ProcessEnv;
   try {
-    for (const check of [env, authConfig, calendarConfig, pushConfig])
+    for (const check of [env, authConfig, calendarConfig, pushConfig, aiConfig])
       try {
         check();
       } catch (error) {

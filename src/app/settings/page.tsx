@@ -7,6 +7,7 @@ import {
   Circle,
   Download,
   Keyboard,
+  MessagesSquare,
   Server,
   Sun,
   UserRound,
@@ -34,6 +35,8 @@ import { NudgeSettingsForm } from '@/features/nudges/forms';
 import { nudgeContext } from '@/features/nudges/domain';
 import { nudgeSetting } from '@/features/nudges/service';
 import { dayKey } from '@/lib/time';
+import { aiState } from '@/features/ai/service';
+import { AiSettings, aiContext } from '@/features/ai/settings';
 import { ThemeSwitch } from '@/features/settings/theme-switch';
 import { reminderContext, settingsSummary } from '@/features/settings/domain';
 export const metadata = { title: 'Settings' };
@@ -68,6 +71,7 @@ export default async function Settings({
     nextWeekPlans,
     nudgeRow,
     routineCategories,
+    ai,
   ] = await Promise.all([
     db().notificationPreference.findMany({
       where: {
@@ -100,6 +104,7 @@ export default async function Settings({
       select: { category: true },
       distinct: ['category'],
     }),
+    aiState(user, now),
   ]);
   const nudges = nudgeSetting(nudgeRow);
   const today = dayKey(now, user.timezone);
@@ -404,6 +409,14 @@ export default async function Settings({
             </div>
             <ul className="plain-list attention-list">
               <SettingRow
+                source="roadmap"
+                icon={<MessagesSquare size={22} />}
+                label="AI"
+                title="Grill Me"
+                context={aiContext(ai)}
+                panel="ai"
+              />
+              <SettingRow
                 source="weekly"
                 icon={<Download size={22} />}
                 label="Export"
@@ -420,6 +433,9 @@ export default async function Settings({
                 context={statusLine}
               />
             </ul>
+            <SidePanel id="ai" title="Grill Me">
+              <AiSettings state={ai} zone={user.timezone} />
+            </SidePanel>
           </section>
         </div>
       </div>

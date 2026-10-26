@@ -96,6 +96,11 @@ export default async function Privacy() {
           enabled, and reminders delivered to the in-app inbox.
         </li>
         <li>
+          Revision cards the owner keeps from Grill Me, and a ledger of each AI
+          request with its model, token counts and cost. No prompt or answer
+          text is stored.
+        </li>
+        <li>
           Two cookies: the session cookie above and a theme preference. No
           analytics, advertising or tracking cookies.
         </li>
@@ -113,8 +118,16 @@ export default async function Privacy() {
         two protected endpoints to deliver reminders and run calendar sync; it
         receives no personal data. Google receives only the calendar events
         Silsila writes to its own calendar and the push messages it delivers
-        through the browser&rsquo;s push service. Nothing is shared with anyone
-        else, and nothing is sold.
+        through the browser&rsquo;s push service.
+      </p>
+      <p>
+        Grill Me (optional) sends a roadmap item&rsquo;s title, scope,
+        &ldquo;done when&rdquo; line and reference names, only the ones the
+        owner ticks and sees before sending, through OpenRouter to Claude Haiku
+        5.5 on Google Vertex AI, using an endpoint with zero data retention and
+        no fallback to another provider. Notes, the schedule, sessions, jobs and
+        reflections are never sent. Nothing is shared with anyone else, and
+        nothing is sold.
       </p>
 
       <h2>Keeping and removing data</h2>
