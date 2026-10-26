@@ -5270,17 +5270,33 @@ button.attention-link {
   margin: 0;
   font-size: 15px;
 }
-.grill-payload {
+/* WI-038: what will be sent, as a readable list. */
+.sent-fields {
+  display: grid;
+  gap: 8px;
   margin: 0;
-  padding: 10px 12px;
-  max-height: 220px;
-  overflow: auto;
-  white-space: pre-wrap;
-  overflow-wrap: anywhere;
-  font-size: 13px;
+  padding: 12px 14px;
   background: var(--surface-2);
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
+  font-size: 14px;
+  line-height: 1.45;
+}
+.sent-fields > div {
+  display: grid;
+  grid-template-columns: 96px minmax(0, 1fr);
+  gap: 12px;
+}
+.sent-fields dt {
+  color: var(--muted);
+  font-weight: 600;
+}
+.sent-fields dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+.sent-fields .is-muted dd {
+  color: var(--muted);
 }
 .grill-facts {
   font-size: 14px;
@@ -5362,7 +5378,7 @@ button.attention-link {
   margin: 0;
 }
 
-/* WI-032: the revision deck and the hint ladder. */
+/* WI-032: the revision deck. */
 .deck-items li {
   display: flex;
   flex-wrap: wrap;
@@ -5373,28 +5389,6 @@ button.attention-link {
   border-top: 1px solid var(--border-subtle);
 }
 .deck-items form {
-  margin: 0;
-}
-.hint-list {
-  display: grid;
-  gap: 10px;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-.hint-list li {
-  display: grid;
-  gap: 4px;
-  padding: 10px 12px;
-  background: var(--surface-2);
-  border-radius: var(--radius-md);
-}
-.hint-list li:focus-visible {
-  outline: 2px solid var(--focus);
-  outline-offset: 2px;
-}
-.hint-list p,
-.hint-list .eyebrow {
   margin: 0;
 }
 

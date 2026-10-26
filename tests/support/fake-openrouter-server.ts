@@ -5,8 +5,8 @@
  *   pnpm openrouter:fake   (PORT, default 4466)
  *
  * It serves the two public lists the provider check reads and answers chat completions with
- * a fixed, generic five-rung ladder about the topic it was sent (or hints, or a Listen script
- * built from the passages it was sent). It prints request counts
+ * a fixed, generic five-rung ladder about the topic it was sent, or a Listen script built from
+ * the passages it was sent. It prints request counts
  * only, never what was sent. FAKE_OPENROUTER_MODE=invalid answers with a broken ladder;
  * FAKE_OPENROUTER_MODE=no-zdr leaves the pinned endpoint off the ZDR list.
  */
@@ -50,25 +50,6 @@ function ladder(topic: string) {
         'Says how to test or observe it',
       ],
     })),
-  };
-}
-
-/** Five plain hints, a nudge first and the shape of the approach last (WI-032). */
-function hintSet() {
-  return {
-    hints: [
-      ['Reading', 'Say in one sentence what the answer must contain.'],
-      ['Pattern', 'Ask which earlier value would complete the current one.'],
-      [
-        'Structure',
-        'A lookup from value to position answers that in one step.',
-      ],
-      [
-        'Key insight',
-        'Check for the partner before you record the current value.',
-      ],
-      ['Approach', 'One pass: look up the partner, then remember this value.'],
-    ].map(([focus, hint]) => ({ focus, hint })),
   };
 }
 
@@ -116,7 +97,6 @@ createServer(async (req, res) => {
       response_format?: { json_schema?: { name?: string } };
     };
     const format = body.response_format?.json_schema?.name;
-    const wantsHints = format === 'hints';
     let topic = '';
     try {
       topic = JSON.parse(body.messages[1]?.content ?? '{}').topic ?? '';
@@ -137,9 +117,7 @@ createServer(async (req, res) => {
                 : JSON.stringify(
                     format === 'listen'
                       ? listenScript(body.messages[1]?.content ?? '{}')
-                      : wantsHints
-                        ? hintSet()
-                        : ladder(topic),
+                      : ladder(topic),
                   ),
           },
         },
