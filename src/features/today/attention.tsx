@@ -86,7 +86,10 @@ export async function Attention({
             reasons,
           }))
         : [],
-    roadmap: roadmap.status === 'fulfilled' ? roadmap.value : [],
+    roadmap:
+      roadmap.status === 'fulfilled'
+        ? roadmap.value.map((i) => ({ ...i, cards: i._count.revisionCards }))
+        : [],
     practice:
       practice.status === 'fulfilled'
         ? revisionQueue(

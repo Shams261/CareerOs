@@ -52,6 +52,25 @@ function ladder(topic: string) {
   };
 }
 
+/** Five plain hints, a nudge first and the shape of the approach last (WI-032). */
+function hintSet() {
+  return {
+    hints: [
+      ['Reading', 'Say in one sentence what the answer must contain.'],
+      ['Pattern', 'Ask which earlier value would complete the current one.'],
+      [
+        'Structure',
+        'A lookup from value to position answers that in one step.',
+      ],
+      [
+        'Key insight',
+        'Check for the partner before you record the current value.',
+      ],
+      ['Approach', 'One pass: look up the partner, then remember this value.'],
+    ].map(([focus, hint]) => ({ focus, hint })),
+  };
+}
+
 createServer(async (req, res) => {
   const url = new URL(req.url ?? '/', `http://127.0.0.1:${port}`);
   const json = (status: number, data: unknown) => {
@@ -71,7 +90,9 @@ createServer(async (req, res) => {
     chats++;
     const body = JSON.parse(await read(req)) as {
       messages: { role: string; content: string }[];
+      response_format?: { json_schema?: { name?: string } };
     };
+    const wantsHints = body.response_format?.json_schema?.name === 'hints';
     let topic = '';
     try {
       topic = JSON.parse(body.messages[1]?.content ?? '{}').topic ?? '';
@@ -89,7 +110,7 @@ createServer(async (req, res) => {
             content:
               mode === 'invalid'
                 ? '{"rungs":[]}'
-                : JSON.stringify(ladder(topic)),
+                : JSON.stringify(wantsHints ? hintSet() : ladder(topic)),
           },
         },
       ],

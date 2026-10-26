@@ -5,7 +5,13 @@ import { forgetAll } from '@/server/memo';
 import { db, owner } from '@/server/db';
 import { issueMessages } from '@/lib/validation';
 import type { ActionState } from '@/features/schedule/actions';
-import { budgetLine, tickInput, type Ladder, type Ticks } from './domain';
+import {
+  budgetLine,
+  tickInput,
+  type Hints,
+  type Ladder,
+  type Ticks,
+} from './domain';
 import {
   aiState,
   AiRefusal,
@@ -13,6 +19,7 @@ import {
   checkAgain,
   grill,
   keepCard,
+  problemHints,
   removeCard,
 } from './service';
 
@@ -69,6 +76,29 @@ export async function grillAction(
       error instanceof Error ? error.name : 'Error',
     );
     return { ok: false, message: 'Grill Me is unavailable right now.', budget };
+  }
+}
+
+export type HintsResult =
+  | { ok: true; hints: Hints; budget: string }
+  | { ok: false; message: string; budget?: string };
+/** Hints on a Practice problem (WI-032): four fields out, five code-free hints back. */
+export async function hintsAction(problemId: string): Promise<HintsResult> {
+  const user = await owner();
+  try {
+    const hints = await problemHints(user, z.string().min(1).parse(problemId));
+    const state = await aiState(user);
+    return { ok: true, hints, budget: budgetLine(state.spent) };
+  } catch (error) {
+    const state = await aiState(user).catch(() => null);
+    const budget = state ? budgetLine(state.spent) : undefined;
+    if (error instanceof AiRefusal || error instanceof AiUnavailable)
+      return { ok: false, message: error.message, budget };
+    console.error(
+      '[study] grill failed',
+      error instanceof Error ? error.name : 'Error',
+    );
+    return { ok: false, message: 'Hints are unavailable right now.', budget };
   }
 }
 

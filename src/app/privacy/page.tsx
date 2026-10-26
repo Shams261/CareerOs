@@ -125,9 +125,10 @@ export default async function Privacy() {
         &ldquo;done when&rdquo; line and reference names, only the ones the
         owner ticks and sees before sending, through OpenRouter to Claude Haiku
         5.5 on Google Vertex AI, using an endpoint with zero data retention and
-        no fallback to another provider. Notes, the schedule, sessions, jobs and
-        reflections are never sent. Nothing is shared with anyone else, and
-        nothing is sold.
+        no fallback to another provider. Hints on a Practice problem send its
+        title, difficulty, platform and topic the same way. Notes, the schedule,
+        sessions, jobs and reflections are never sent. Nothing is shared with
+        anyone else, and nothing is sold.
       </p>
 
       <h2>Keeping and removing data</h2>

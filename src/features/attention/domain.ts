@@ -250,6 +250,29 @@ export function roadmapRevisionRows(
       : [],
   );
 }
+/**
+ * One row for the revision deck (WI-032) when items due today hold kept cards:
+ * "Revision deck · 6 cards from 2 items". Null when no due item has a card.
+ */
+export function revisionDeckRow(
+  items: { nextRevisionAt: Date | null; cards?: number }[],
+): AttentionItem | null {
+  const withCards = items.filter((i) => (i.cards ?? 0) > 0);
+  const cards = withCards.reduce((n, i) => n + (i.cards ?? 0), 0);
+  if (!cards) return null;
+  const plural = (n: number, w: string) => `${n} ${w}${n === 1 ? '' : 's'}`;
+  return {
+    id: 'deck:today',
+    source: 'roadmap',
+    label: 'Roadmap',
+    title: 'Revision deck',
+    context: `${plural(cards, 'card')} from ${plural(withCards.length, 'item')} due`,
+    href: '/roadmap/deck',
+    tier: 3,
+    due: Math.min(...withCards.map((i) => +(i.nextRevisionAt ?? 0))) - 1,
+    notificationIds: [],
+  };
+}
 /** Urgency tier, then due instant, then a stable id. */
 export const sortAttention = (items: AttentionItem[]) =>
   items.sort(

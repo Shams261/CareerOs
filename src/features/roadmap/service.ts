@@ -431,6 +431,8 @@ async function loadRevisionDue(user: ScheduleUser, now = new Date()) {
       status: true,
       nextRevisionAt: true,
       roadmap: { select: { id: true, title: true } },
+      // Kept Grill Me cards make the revision deck (WI-032).
+      _count: { select: { revisionCards: true } },
     },
     orderBy: { nextRevisionAt: 'asc' },
   });

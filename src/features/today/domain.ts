@@ -15,6 +15,7 @@ import {
   sortAttention,
   type AttentionItem,
   type AttentionSource,
+  revisionDeckRow,
 } from '@/features/attention/domain';
 import {
   blockResolution,
@@ -252,6 +253,8 @@ export type AttentionInput = {
     section: string;
     nextRevisionAt: Date | null;
     roadmap: { id: string; title: string };
+    /** Kept Grill Me cards on the item (WI-032). */
+    cards?: number;
   }[];
   practice: {
     id: string;
@@ -299,6 +302,7 @@ export function attentionItems(input: AttentionInput): AttentionItem[] {
     ),
     ...practiceRevisionRows(input.practice, now, zone),
     ...roadmapRevisionRows(input.roadmap, now, zone),
+    ...[revisionDeckRow(input.roadmap)].filter((r): r is AttentionItem => !!r),
   ];
   // Interview rows by round id (prep, result, upcoming) and follow-up rows by application
   // id: a reminder merges only into the row that is about the same action.
