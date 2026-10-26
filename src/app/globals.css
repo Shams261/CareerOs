@@ -5422,3 +5422,118 @@ button.attention-link {
   background: var(--surface-2);
   font-size: 15px;
 }
+
+/* Look Back (WI-034): the season grid, the moment card and the month. */
+.look-back-range {
+  font-size: 14px;
+}
+.look-back {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(260px, 340px);
+  gap: 20px;
+  align-items: start;
+}
+@media (max-width: 1100px) {
+  .look-back {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+.look-back-grid {
+  display: grid;
+  gap: 10px;
+  padding: 14px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+}
+.look-back-note {
+  margin: 0;
+  font-size: 14px;
+}
+.season-grid {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 6px;
+  table-layout: fixed;
+}
+.season-grid th {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+}
+.season-cell {
+  padding: 0;
+  background: #f4f1ea;
+  border-radius: 10px;
+  aspect-ratio: 1;
+}
+.season-cell a {
+  display: block;
+  border-radius: 10px;
+}
+.season-cell a:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+.season-cell.is-today {
+  box-shadow: inset 0 0 0 2px var(--primary);
+}
+.season-cell.is-future {
+  opacity: 0.45;
+}
+.season-art {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+.look-back-side {
+  display: grid;
+  gap: 16px;
+}
+.moment-card,
+.month-card {
+  display: grid;
+  gap: 8px;
+  padding: 18px 20px;
+  border-radius: var(--radius-lg);
+}
+.moment-card h2,
+.moment-card p,
+.month-card h2,
+.month-card p {
+  margin: 0;
+}
+.moment-card {
+  background: var(--text-primary);
+  color: var(--surface);
+}
+.moment-card .eyebrow {
+  color: inherit;
+  opacity: 0.7;
+}
+.moment-card .button {
+  justify-self: start;
+}
+.month-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-sm);
+}
+.month-lines {
+  margin: 0;
+  padding-left: 18px;
+  list-style: disc;
+}
+.moment-list li {
+  display: grid;
+  gap: 2px;
+  padding: 10px 0;
+  border-top: 1px solid var(--border-subtle);
+}
+.moment-list p {
+  margin: 0;
+}
+.moment-title {
+  font-weight: 600;
+}
