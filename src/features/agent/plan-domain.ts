@@ -177,6 +177,17 @@ export function readMetadata(raw: unknown): {
   };
 }
 
+/** The tool names an answer used, from its stored metadata, for its "Read:" line (WI-055). */
+export function readTools(raw: unknown): string[] {
+  const tools =
+    raw && typeof raw === 'object'
+      ? (raw as Record<string, unknown>).tools
+      : undefined;
+  return (Array.isArray(tools) ? tools : []).filter(
+    (t): t is string => typeof t === 'string' && t.length <= 40,
+  );
+}
+
 /** Blocks a proposal would add: those without a conflict. */
 export const addable = (p: Proposal) => p.blocks.filter((b) => !b.conflict);
 

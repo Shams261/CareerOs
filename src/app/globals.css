@@ -6524,3 +6524,10 @@ button.attention-link {
   color: var(--text-secondary);
   margin-right: 4px;
 }
+
+/* What an answer read (WI-055): quiet, under the reply. */
+.rumi-read {
+  margin: 8px 0 0;
+  font-size: 12px;
+  color: var(--text-secondary);
+}

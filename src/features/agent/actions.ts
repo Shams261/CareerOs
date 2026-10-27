@@ -7,71 +7,26 @@ import { weekdayDate } from '@/lib/time';
 import { syncSoon } from '@/features/calendar/background';
 import { issueMessages } from '@/lib/validation';
 import type { ActionState } from '@/features/schedule/actions';
-import { AiRefusal, AiUnavailable, aiState } from '@/features/ai/service';
-import { budgetLine } from '@/features/ai/domain';
 import { AGENT_NAME } from './domain';
-import { readMetadata, type Proposal, type Suggestion } from './plan-domain';
 import { answerSuggestion, applyProposal, dismissProposal } from './plans';
 import {
   addMemory,
+  askRumi,
   deleteConversation,
   removeMemory,
-  sendMessage,
-  UNAVAILABLE,
+  type AskResult,
 } from './service';
 
-export type AskResult =
-  | {
-      ok: true;
-      conversationId: string;
-      reply: {
-        id: string;
-        content: string;
-        proposals: Proposal[];
-        suggestions: Suggestion[];
-      };
-      budget: string;
-    }
-  | { ok: false; message: string; conversationId?: string; budget?: string };
+export type { AskResult } from './service';
 
 /** Ask Rumi (WI-040): one owner message, one answer from the owner's own records. */
 export async function askAction(
   conversationId: string | null,
   text: string,
 ): Promise<AskResult> {
-  const user = await owner();
-  try {
-    const result = await sendMessage(user, {
-      conversationId: conversationId
-        ? z.string().min(1).parse(conversationId)
-        : null,
-      text,
-    });
-    const state = await aiState(user);
-    revalidatePath('/rumi');
-    return {
-      ok: true,
-      conversationId: result.conversationId,
-      reply: {
-        id: result.message.id,
-        content: result.message.content,
-        ...readMetadata(result.message.metadata),
-      },
-      budget: budgetLine(state.spent),
-    };
-  } catch (error) {
-    const state = await aiState(user).catch(() => null);
-    const budget = state ? budgetLine(state.spent) : undefined;
-    if (error instanceof z.ZodError)
-      return { ok: false, message: issueMessages(error.issues), budget };
-    if (error instanceof AiRefusal || error instanceof AiUnavailable)
-      return { ok: false, message: error.message, budget };
-    console.error(
-      '[agent] chat failed',
-      error instanceof Error ? error.name : 'Error',
-    );
-    return { ok: false, message: UNAVAILABLE, budget };
-  }
+  const result = await askRumi(await owner(), conversationId, text);
+  if (result.ok) revalidatePath('/rumi');
+  return result;
 }
 
 async function perform(work: () => Promise<string>): Promise<ActionState> {

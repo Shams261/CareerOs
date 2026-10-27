@@ -358,3 +358,32 @@ export function renderText(text: string): TextBlock[] {
   flush();
   return blocks;
 }
+
+/** What each read tool is called under an answer (WI-055); cards are not reads. */
+export const READ_WORDS: Record<string, string> = {
+  get_today: 'today',
+  get_schedule: 'your schedule',
+  get_activity: 'recorded activity',
+  get_roadmaps: 'roadmaps',
+  get_practice: 'practice',
+  get_jobs: 'jobs',
+  get_patterns: 'your patterns',
+  get_prep_docs: 'prep docs',
+};
+
+/**
+ * "Read: today, roadmaps" under an answer, from the tools it used, in the order first used.
+ * Null when the answer read nothing, so a reply from the conversation alone shows no line.
+ */
+export function readLine(tools: readonly string[]) {
+  const words = [...new Set(tools.map((t) => READ_WORDS[t]).filter(Boolean))];
+  return words.length ? `Read: ${words.join(', ')}` : null;
+}
+
+/** The progress line while an answer is on its way: the reads so far, or the first wait. */
+export function readingLine(tools: readonly string[]) {
+  const words = [...new Set(tools.map((t) => READ_WORDS[t]).filter(Boolean))];
+  return words.length
+    ? `${AGENT_NAME} is reading ${words.join(', ')}…`
+    : `${AGENT_NAME} is reading your records…`;
+}

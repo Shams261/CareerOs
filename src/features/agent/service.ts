@@ -7,13 +7,16 @@ import { locked, type ScheduleUser } from '@/features/schedule/service';
 import {
   AiRefusal,
   AiUnavailable,
+  aiState,
   callModel,
   ready,
   settle,
   type CallWords,
   type Fetcher,
 } from '@/features/ai/service';
-import { ENDPOINT, MODEL } from '@/features/ai/domain';
+import { budgetLine, ENDPOINT, MODEL } from '@/features/ai/domain';
+import { issueMessages } from '@/lib/validation';
+import { z } from 'zod';
 import {
   AGENT_NAME,
   AGENT_RATE,
@@ -38,6 +41,8 @@ import { newSuggestion, proposeBlocks } from './plans';
 import {
   planWindow,
   PROPOSALS_PER_ANSWER,
+  readMetadata,
+  readTools,
   SUGGESTIONS_PER_ANSWER,
   type ProposeArgs,
   type Proposal,
@@ -125,7 +130,12 @@ export const agentConfigured = () => !!aiConfig();
  */
 export async function sendMessage(
   user: ScheduleUser,
-  input: { conversationId?: string | null; text: unknown },
+  input: {
+    conversationId?: string | null;
+    text: unknown;
+    /** Each read as it starts, for the live "reading" line (WI-055). Never the result. */
+    onRead?: (tool: string) => void;
+  },
   now = new Date(),
   fetcher: Fetcher = fetch,
 ) {
@@ -244,6 +254,7 @@ export async function sendMessage(
         if (!read.ok) result = { error: read.error };
         else {
           used.push(read.name);
+          input.onRead?.(read.name);
           if (read.name === 'propose_blocks') {
             if (proposals.length >= PROPOSALS_PER_ANSWER)
               result = { error: 'One answer holds at most two plans.' };
@@ -309,4 +320,71 @@ export async function sendMessage(
     data: { updatedAt: saved.createdAt },
   });
   return { conversationId, message: saved };
+}
+
+export type AskResult =
+  | {
+      ok: true;
+      conversationId: string;
+      reply: {
+        id: string;
+        content: string;
+        proposals: Proposal[];
+        suggestions: Suggestion[];
+        tools: string[];
+      };
+      budget: string;
+    }
+  | { ok: false; message: string; conversationId?: string; budget?: string };
+
+/**
+ * One question to Rumi as the page needs it (WI-040, WI-055): the answer with its cards and
+ * reads, and the month's budget line, or a plain message. Shared by the server action and the
+ * streaming route, which passes `onRead` to show each read as it starts.
+ */
+export async function askRumi(
+  user: ScheduleUser,
+  conversationId: string | null,
+  text: string,
+  onRead?: (tool: string) => void,
+  fetcher: Fetcher = fetch,
+): Promise<AskResult> {
+  try {
+    const result = await sendMessage(
+      user,
+      {
+        conversationId: conversationId
+          ? z.string().min(1).parse(conversationId)
+          : null,
+        text,
+        onRead,
+      },
+      new Date(),
+      fetcher,
+    );
+    const state = await aiState(user);
+    return {
+      ok: true,
+      conversationId: result.conversationId,
+      reply: {
+        id: result.message.id,
+        content: result.message.content,
+        ...readMetadata(result.message.metadata),
+        tools: readTools(result.message.metadata),
+      },
+      budget: budgetLine(state.spent),
+    };
+  } catch (error) {
+    const state = await aiState(user).catch(() => null);
+    const budget = state ? budgetLine(state.spent) : undefined;
+    if (error instanceof z.ZodError)
+      return { ok: false, message: issueMessages(error.issues), budget };
+    if (error instanceof AiRefusal || error instanceof AiUnavailable)
+      return { ok: false, message: error.message, budget };
+    console.error(
+      '[agent] chat failed',
+      error instanceof Error ? error.name : 'Error',
+    );
+    return { ok: false, message: UNAVAILABLE, budget };
+  }
 }
