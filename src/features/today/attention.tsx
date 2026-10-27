@@ -11,6 +11,8 @@ import { db } from '@/server/db';
 import { attentionItems, type RoundLike } from './domain';
 import { AttentionPages, AttentionRow } from './attention-rows';
 import { PanelButton, SidePanel } from './panels';
+import { noticedFor } from '@/features/noticed/service';
+import { NoticedRows } from '@/features/noticed/rows';
 
 const PREVIEW = 5;
 /** Phones show two rows; the label says so (CSS picks the right one). */
@@ -38,8 +40,8 @@ export async function Attention({
     interviewRoundId: string | null;
   }[];
 }) {
-  const [jobs, roadmap, practice, weekly, reminders] = await Promise.allSettled(
-    [
+  const [jobs, roadmap, practice, weekly, reminders, noticed] =
+    await Promise.allSettled([
       jobTodaySummary(user, now),
       revisionDue(user, now),
       dsaSnapshot(user),
@@ -61,8 +63,9 @@ export async function Attention({
           dedupeKey: true,
         },
       }),
-    ],
-  );
+      // Rumi noticed (WI-043): at most two facts, above the queue.
+      noticedFor(user, now),
+    ]);
   const failed = [
     jobs.status === 'rejected' ? 'Jobs' : null,
     roadmap.status === 'rejected' ? 'Roadmap' : null,
@@ -128,9 +131,12 @@ export async function Attention({
           {name} couldn’t load. Retry by reloading.
         </p>
       ))}
-      {!items.length && !failed.length && (
-        <p className="attention-empty">Nothing needs your attention.</p>
-      )}
+      {noticed.status === 'fulfilled' && <NoticedRows cards={noticed.value} />}
+      {!items.length &&
+        !failed.length &&
+        !(noticed.status === 'fulfilled' && noticed.value.length) && (
+          <p className="attention-empty">Nothing needs your attention.</p>
+        )}
       {preview.length > 0 && (
         <ul className="plain-list attention-list attention-preview">
           {preview.map((item) => (
