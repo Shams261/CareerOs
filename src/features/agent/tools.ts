@@ -206,13 +206,24 @@ async function getActivity(
       out.set(day, { day, minutes: {}, studyBlocks: [], roadmapDone: {} });
     return out.get(day)!;
   };
-  const totals: Record<string, number> = {};
+  // Every study kind is named, at 0 when nothing was recorded, so Rumi can name a gap ("no
+  // System design in 4 days") instead of only the kinds that have minutes.
+  const kinds = [...new Set(['DSA', 'Technical', ...study].map(categoryGroup))];
+  const totals: Record<string, number> = Object.fromEntries(
+    kinds.map((k) => [k, 0]),
+  );
+  const lastRecorded: Record<string, string | null> = Object.fromEntries(
+    kinds.map((k) => [k, null]),
+  );
   for (const s of sessions) {
     const kind = categoryGroup(s.category);
     const m = minutes(s.startedAt, s.endedAt ?? now);
-    const d = at(dayKey(s.startedAt, user.timezone));
+    const day = dayKey(s.startedAt, user.timezone);
+    const d = at(day);
     d.minutes[kind] = (d.minutes[kind] ?? 0) + m;
     totals[kind] = (totals[kind] ?? 0) + m;
+    if (!lastRecorded[kind] || lastRecorded[kind]! < day)
+      lastRecorded[kind] = day;
   }
   for (const b of blocks) {
     if (!titleVisible(b.category, study) || isTestNamed(b.title)) continue;
@@ -232,7 +243,9 @@ async function getActivity(
   return {
     from: first,
     to: today,
+    studyKinds: kinds,
     totalMinutes: totals,
+    lastRecordedOn: lastRecorded,
     roadmapItemsDone: roadmapTotals,
     days: [...out.values()].sort((a, b) => a.day.localeCompare(b.day)),
   };

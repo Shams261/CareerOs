@@ -104,7 +104,7 @@ export const TOOLS = [
   ),
   fn(
     'get_activity',
-    `Recorded study per kind and day for the last N days (1–${ACTIVITY_DAYS}): minutes per kind, study block titles with their state, roadmap items marked done per roadmap, and totals.`,
+    `Recorded study per kind and day for the last N days (1–${ACTIVITY_DAYS}): the owner's study kinds, total minutes per kind (0 when none), the last day each kind was recorded, minutes per day, study block titles with their state, and roadmap items marked done per roadmap.`,
     { days: { type: 'integer', minimum: 1, maximum: ACTIVITY_DAYS } },
   ),
   fn(

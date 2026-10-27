@@ -336,9 +336,12 @@ describe.skipIf(!url)('Ask Rumi (PostgreSQL)', () => {
       now,
     )) as {
       totalMinutes: Record<string, number>;
+      lastRecordedOn: Record<string, string | null>;
       roadmapItemsDone: Record<string, number>;
     };
-    expect(activity.totalMinutes).toEqual({ DSA: 20 });
+    // Kinds with nothing recorded are named at 0, so a gap can be named.
+    expect(activity.totalMinutes).toEqual({ DSA: 20, Technical: 0 });
+    expect(activity.lastRecordedOn).toEqual({ DSA: day, Technical: null });
     expect(activity.roadmapItemsDone).toEqual({ 'System design': 1 });
     const jobs = JSON.stringify(await runTool(user, 'get_jobs', {}, now));
     expect(jobs).toMatch(/Northwind/);
@@ -356,6 +359,17 @@ describe.skipIf(!url)('Ask Rumi (PostgreSQL)', () => {
     });
     const shown = JSON.stringify(await runTool(user, 'get_today', {}, now));
     expect(shown).toMatch(/Spring Boot APIs/);
+    const activity = (await runTool(
+      user,
+      'get_activity',
+      { days: 7 },
+      now,
+    )) as {
+      studyKinds: string[];
+      totalMinutes: Record<string, number>;
+    };
+    expect(activity.studyKinds).toEqual(['DSA', 'Technical', 'Backend']);
+    expect(activity.totalMinutes.Backend).toBe(0);
   });
 
   it('answers through a tool, stores only the question and answer, and counts each call', async () => {
@@ -381,7 +395,10 @@ describe.skipIf(!url)('Ask Rumi (PostgreSQL)', () => {
     const sent = second.body!.messages as { role: string; content: string }[];
     expect(sent[0].role).toBe('system');
     const tool = sent.find((m) => m.role === 'tool')!;
-    expect(JSON.parse(tool.content).totalMinutes).toEqual({ DSA: 20 });
+    expect(JSON.parse(tool.content).totalMinutes).toEqual({
+      DSA: 20,
+      Technical: 0,
+    });
     expect(JSON.stringify(r.chats())).not.toMatch(/PRIVATE/);
     const stored = await conversation(user, conversationId);
     expect(stored?.title).toBe('What did I study least this week?');
