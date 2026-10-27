@@ -54,6 +54,34 @@ For the one-time clean-out of a workspace that holds only acceptance-test data, 
 4. **Check the app**: `/today` opens with the Start here card; Settings → System status is healthy; you are still signed in.
 5. Continue with the roadmap import in [operations](operations.md#roadmap-material-import-wi-012).
 
+## Fresh start, keeping the curriculum (WI-045)
+
+For a workspace that holds only test and acceptance data but already has the imported roadmaps and practice problems. `scripts/fresh-start.sql` is the newer, narrower reset; `reset-owner-data.sql` above also deletes the curriculum.
+
+It deletes, in one transaction:
+
+- everything the owner did: routines, plans, blocks, sessions, check-ins, reviews and priorities, notes to self, inbox reminders, sync conflicts;
+- applications with their rounds, prep items, activity and prep docs;
+- practice attempts, learning activity, revision cards;
+- Ask Rumi conversations, "Rumi knows" lines, "Rumi noticed" answers;
+- every roadmap, item, problem, topic and goal named as test data (the `isTestNamed` rule, mirrored in SQL and checked against it in `tests/fresh-start-script.test.ts`).
+
+It resets the rest of the curriculum to zero: items Not started with no revision, "asked" or note; problems unattempted and Red; learning topics at zero mastery. Imported scope, "done when", references and slugs stay, so a later `roadmap:import` still matches.
+
+It keeps the `User` row and sessions, push devices, notification preferences, Study nudges and AI settings, the AI cost ledger (the monthly stop keeps counting), the Google Calendar connection, job runs, maintenance records and the migration history. It refuses unless the database holds exactly one `User`, and running it twice is harmless.
+
+1. **Back up and verify** as above. Do not continue without `Restore verified.` Run `db:restore:verify` with the same `PATH=/opt/homebrew/opt/libpq/bin:$PATH` as the backup: a dump from the libpq `pg_dump` 18 is unreadable to Homebrew's `pg_restore` 16 ("unsupported version (1.16) in file header").
+2. **Clear Google first.** Plan → Routines → turn the test routine off and confirm the preview (its future blocks are cancelled), then Settings → Sync now. Past test events stay in the dedicated Silsila calendar; delete them there if you like. The script never talks to Google.
+3. **Run the script:**
+
+   ```sh
+   psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f scripts/fresh-start.sql
+   ```
+
+   The last table must read 0 for routines, blocks, sessions, applications, attempts, conversations, roadmap items done and test-named left, and show the roadmaps, items and problems kept.
+
+4. **Check:** `pnpm data:check` reports nothing; `/today` opens empty with the first-routine card.
+
 ## Migrating an existing personal database
 
 For the owner's existing database (created before WI-008, possibly before WI-005.1). **Nothing here runs automatically, and no automated test or verification touched this database.** Do it in a quiet window; it takes a few minutes.
