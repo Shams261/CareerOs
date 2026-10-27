@@ -34,6 +34,15 @@ import {
   type ToolCall,
 } from './domain';
 import { runTool } from './tools';
+import { newSuggestion, proposeBlocks } from './plans';
+import {
+  planWindow,
+  PROPOSALS_PER_ANSWER,
+  SUGGESTIONS_PER_ANSWER,
+  type ProposeArgs,
+  type Proposal,
+  type Suggestion,
+} from './plan-domain';
 
 export const UNAVAILABLE = `${AGENT_NAME} is unavailable right now.`;
 const WORDS: CallWords = {
@@ -61,7 +70,13 @@ export const conversation = (user: ScheduleUser, id: string) =>
       title: true,
       messages: {
         orderBy: { createdAt: 'asc' },
-        select: { id: true, role: true, content: true, createdAt: true },
+        select: {
+          id: true,
+          role: true,
+          content: true,
+          metadata: true,
+          createdAt: true,
+        },
       },
     },
   });
@@ -177,6 +192,7 @@ export async function sendMessage(
         time: hhmm(now, user.timezone),
         zone: user.timezone,
         memory,
+        planUntil: planWindow(dayKey(now, user.timezone)).last,
       }),
     },
     ...historyWindow(history),
@@ -185,6 +201,8 @@ export async function sendMessage(
   // Stored after the question even when the test clock (`now`) is ahead of the real one.
   const later = () => new Date(+now + Math.max(1, Date.now() - started));
   const used: string[] = [];
+  const proposals: Proposal[] = [];
+  const suggestions: Suggestion[] = [];
   let spent = 0;
   let reply: string | null = null;
   for (let round = 1; round <= MAX_ROUNDS && reply === null; round++) {
@@ -223,10 +241,34 @@ export async function sendMessage(
       for (const call of calls.slice(0, 6)) {
         const read = readToolCall(call);
         let result: unknown;
-        if (read.ok) {
+        if (!read.ok) result = { error: read.error };
+        else {
           used.push(read.name);
-          result = await runTool(user, read.name, read.args, now);
-        } else result = { error: read.error };
+          if (read.name === 'propose_blocks') {
+            if (proposals.length >= PROPOSALS_PER_ANSWER)
+              result = { error: 'One answer holds at most two plans.' };
+            else {
+              const made = await proposeBlocks(
+                user,
+                read.args as ProposeArgs,
+                now,
+              );
+              if (made.proposal) proposals.push(made.proposal);
+              result = made.result;
+            }
+          } else if (read.name === 'suggest_memory') {
+            const args = read.args as { text: string; reason: string };
+            if (suggestions.length >= SUGGESTIONS_PER_ANSWER)
+              result = { error: 'One suggestion per answer.' };
+            else {
+              suggestions.push(newSuggestion(args.text, args.reason));
+              result = {
+                shown: true,
+                note: 'Shown to the owner as a card; they keep or dismiss it.',
+              };
+            }
+          } else result = await runTool(user, read.name, read.args, now);
+        }
         messages.push({
           role: 'tool',
           tool_call_id: call.id,
@@ -253,7 +295,12 @@ export async function sendMessage(
       userId: user.id,
       role: 'ASSISTANT',
       content: reply,
-      metadata: { tools: used, costMicros: spent },
+      metadata: {
+        tools: used,
+        costMicros: spent,
+        ...(proposals.length ? { proposals } : {}),
+        ...(suggestions.length ? { suggestions } : {}),
+      },
       createdAt: later(),
     },
   });

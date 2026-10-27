@@ -6037,3 +6037,81 @@ button.attention-link {
     padding: var(--space-4);
   }
 }
+/* WI-041: Rumi's plan and "keep in mind" cards inside an answer, and the patterns line. */
+.rumi-card {
+  display: grid;
+  gap: 10px;
+  margin-top: 4px;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface-2);
+}
+.rumi-card-head {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin: 0;
+  font-weight: 600;
+}
+.rumi-card-head .eyebrow {
+  margin: 0;
+}
+.rumi-plan {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+}
+.rumi-plan li {
+  display: grid;
+  grid-template-columns: 96px minmax(0, 1fr);
+  gap: 10px;
+}
+.rumi-plan li.is-off .rumi-plan-time,
+.rumi-plan li.is-off .rumi-plan-title {
+  text-decoration: line-through;
+  color: var(--text-secondary);
+}
+.rumi-plan-time {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+.rumi-plan-main {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.rumi-plan-kind {
+  font-weight: 400;
+  color: var(--text-secondary);
+}
+.rumi-plan-reason {
+  margin: 0;
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+.rumi-suggestion {
+  margin: 0;
+  font-weight: 600;
+}
+.rumi-card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.rumi-card-done {
+  margin: 0;
+  font-size: 14px;
+}
+.review-patterns {
+  margin: 12px 0 0;
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+@media (max-width: 700px) {
+  .rumi-plan li {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 2px;
+  }
+}

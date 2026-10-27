@@ -146,9 +146,10 @@ export default async function Privacy() {
         roadmaps with Study AI on, practice confidence and recent attempts, and
         active applications with upcoming rounds and their prep item titles.
         Notes, check-in notes, interview reflections, compensation, contacts,
-        interviewer names and job descriptions are never sent. Rumi can read but
-        never change anything. Nothing is shared with anyone else, and nothing
-        is sold.
+        interviewer names and job descriptions are never sent. Rumi never
+        changes anything itself: it can propose study blocks or a line to keep
+        in mind, and only the owner&rsquo;s press adds them. Nothing is shared
+        with anyone else, and nothing is sold.
       </p>
 
       <h2>Keeping and removing data</h2>

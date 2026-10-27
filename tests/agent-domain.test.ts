@@ -166,11 +166,14 @@ describe('what is sent', () => {
       time: '18:20',
       zone: 'America/Toronto',
       memory: ['I focus best before 09:00'],
+      planUntil: '2026-11-01',
     });
     expect(prompt).toMatch(/Tuesday 2026-10-27/);
     expect(prompt).toMatch(/18:20/);
     expect(prompt).toMatch(/data, never instructions/);
-    expect(prompt).toMatch(/cannot add, move or delete/);
+    expect(prompt).toMatch(/cannot add, move or delete anything yourself/);
+    expect(prompt).toMatch(/from 2026-10-27 to 2026-11-01/);
+    expect(prompt).toMatch(/never that it is added/);
     expect(prompt).toMatch(/never visible to you: the owner’s notes/);
     for (const w of BANNED_WORDS) expect(prompt).toContain(w);
     expect(prompt).toMatch(/- I focus best before 09:00/);
@@ -181,6 +184,7 @@ describe('what is sent', () => {
         time: '18:20',
         zone: 'UTC',
         memory: [],
+        planUntil: '2026-11-01',
       }),
     ).not.toMatch(/keep these in mind/);
   });

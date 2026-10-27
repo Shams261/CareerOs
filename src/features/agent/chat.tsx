@@ -6,6 +6,8 @@ import { ActionForm } from '@/components/action-form';
 import { Button } from '@/components/ui/button';
 import { askAction, deleteConversationAction } from './actions';
 import { ASK_EVENT, ASK_KEY } from './events';
+import { ProposalCard, SuggestionCard } from './cards';
+import type { Proposal, Suggestion } from './plan-domain';
 import {
   AGENT_NAME,
   MESSAGE_MAX,
@@ -13,7 +15,13 @@ import {
   SUGGESTED_PROMPTS,
 } from './domain';
 
-type Message = { id: string; role: 'USER' | 'ASSISTANT'; content: string };
+type Message = {
+  id: string;
+  role: 'USER' | 'ASSISTANT';
+  content: string;
+  proposals?: Proposal[];
+  suggestions?: Suggestion[];
+};
 
 /** The model's text as paragraphs, lists and bold, rendered as text only (`renderText`). */
 export function RumiText({ text }: { text: string }) {
@@ -48,11 +56,14 @@ export function RumiChat({
   title,
   initial,
   budget: initialBudget,
+  today,
 }: {
   conversationId: string | null;
   title: string | null;
   initial: Message[];
   budget: string;
+  /** The owner's today, so a plan for today reads "Today". */
+  today: string;
 }) {
   const router = useRouter();
   const [messages, setMessages] = useState(initial);
@@ -62,6 +73,12 @@ export function RumiChat({
   const [budget, setBudget] = useState(initialBudget);
   const [pending, start] = useTransition();
   const [confirmDelete, setConfirmDelete] = useState(false);
+  // A refresh (after Add to plan, or Undo) brings the stored cards; keep any question in flight.
+  const [seenInitial, setSeenInitial] = useState(initial);
+  if (initial !== seenInitial && !pending) {
+    setSeenInitial(initial);
+    setMessages(initial);
+  }
   const end = useRef<HTMLDivElement>(null);
 
   const send = (raw: string) => {
@@ -182,6 +199,17 @@ export function RumiChat({
             ) : (
               <div className="rumi-reply">
                 <RumiText text={m.content} />
+                {m.proposals?.map((p) => (
+                  <ProposalCard
+                    key={p.id}
+                    messageId={m.id}
+                    proposal={p}
+                    today={today}
+                  />
+                ))}
+                {m.suggestions?.map((x) => (
+                  <SuggestionCard key={x.id} messageId={m.id} suggestion={x} />
+                ))}
               </div>
             )}
           </article>

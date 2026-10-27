@@ -89,8 +89,45 @@ type ChatIn = {
   tool_call_id?: string;
 };
 /** The tool a question asks for, by its words, as the model would choose it. */
-function pickTool(question: string) {
+function pickTool(question: string, system: string) {
   const q = question.toLowerCase();
+  const today = /Today is \w+ (\d{4}-\d{2}-\d{2})/.exec(system)?.[1];
+  const last = /from \d{4}-\d{2}-\d{2} to (\d{4}-\d{2}-\d{2})/.exec(
+    system,
+  )?.[1];
+  if (/plan|kal|tomorrow/.test(q) && today) {
+    const next = new Date(`${today}T12:00:00Z`);
+    next.setUTCDate(next.getUTCDate() + 1);
+    const tomorrow = next.toISOString().slice(0, 10);
+    const day = last && tomorrow > last ? today : tomorrow;
+    return [
+      'propose_blocks',
+      {
+        day,
+        blocks: [
+          {
+            title: 'Graphs: BFS practice',
+            kind: 'DSA',
+            start: '06:30',
+            end: '08:00',
+            reason: 'Your recorded study is strongest early',
+          },
+          {
+            title: 'System design: caching',
+            kind: 'Technical',
+            start: '20:00',
+            end: '21:00',
+            reason: 'Technical: 0 min in the last 7 days',
+          },
+        ],
+      },
+    ] as const;
+  }
+  if (/remember|yaad|rest day/.test(q))
+    return [
+      'suggest_memory',
+      { text: 'Rest day is Saturday', reason: 'You said so in this chat' },
+    ] as const;
   if (/today|aaj|now|start/.test(q)) return ['get_today', {}] as const;
   if (/roadmap|revision|revise/.test(q)) return ['get_roadmaps', {}] as const;
   if (/job|interview|prep|company/.test(q)) return ['get_jobs', {}] as const;
@@ -102,7 +139,10 @@ function agentAnswer(messages: ChatIn[], final: boolean) {
   const lastUser = messages.map((m) => m.role).lastIndexOf('user');
   const results = messages.slice(lastUser + 1).filter((m) => m.role === 'tool');
   if (!results.length && !final) {
-    const [name, args] = pickTool(messages[lastUser]?.content ?? '');
+    const [name, args] = pickTool(
+      messages[lastUser]?.content ?? '',
+      messages[0]?.content ?? '',
+    );
     return {
       message: {
         content: null,

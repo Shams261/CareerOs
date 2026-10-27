@@ -15,6 +15,7 @@ import { blockResolution, resolutionText } from '@/features/schedule/row';
 import { categoryGroup } from '@/features/review/domain';
 import { closedStages } from '@/features/jobs/domain';
 import { DEFAULT_NUDGES } from '@/features/nudges/domain';
+import { PATTERN_DAYS, patterns } from './plan-domain';
 import {
   ACTIVITY_DAYS,
   SCHEDULE_SPAN,
@@ -49,7 +50,7 @@ type Block = {
 };
 
 /** The owner's study categories (Study nudges setting), which decide whose titles are sent. */
-async function studyKinds(userId: string) {
+export async function studyKinds(userId: string) {
   const row = await db().studyNudgeSetting.findUnique({
     where: { userId },
     select: { studyCategories: true },
@@ -426,6 +427,45 @@ async function getJobs(user: ScheduleUser, now: Date) {
   };
 }
 
+/** Best hours and recorded share of planned time over the last 28 days (WI-041). */
+export async function getPatterns(user: ScheduleUser, now: Date) {
+  const today = dayKey(now, user.timezone);
+  const first = shiftDay(today, -(PATTERN_DAYS - 1));
+  const start = dayBounds(first, user.timezone).start;
+  const [sessions, blocks, study] = await Promise.all([
+    db().actualSession.findMany({
+      where: { userId: user.id, startedAt: { gte: start, lte: now } },
+      select: { category: true, startedAt: true, endedAt: true },
+    }),
+    db().timeBlock.findMany({
+      where: {
+        dailyPlan: { userId: user.id },
+        status: { not: 'CANCELLED' },
+        plannedStart: { gte: start },
+        plannedEnd: { lte: now },
+      },
+      select: {
+        category: true,
+        title: true,
+        plannedStart: true,
+        plannedEnd: true,
+      },
+    }),
+    studyKinds(user.id),
+  ]);
+  const studied = sessions.filter((s) => titleVisible(s.category, study));
+  return patterns(
+    {
+      sessions: studied,
+      planned: blocks.filter(
+        (b) => titleVisible(b.category, study) && !isTestNamed(b.title),
+      ),
+    },
+    now,
+    user.timezone,
+  );
+}
+
 /** Runs one validated tool for the signed-in owner. */
 export function runTool(
   user: ScheduleUser,
@@ -446,5 +486,11 @@ export function runTool(
       return getPractice(user, now);
     case 'get_jobs':
       return getJobs(user, now);
+    case 'get_patterns':
+      return getPatterns(user, now);
+    case 'propose_blocks':
+    case 'suggest_memory':
+      // Cards, not reads: the message loop handles them (WI-041).
+      return Promise.resolve({ error: 'Not a read tool.' });
   }
 }

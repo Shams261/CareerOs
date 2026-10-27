@@ -11,6 +11,7 @@ import { stages } from '@/features/jobs/domain';
 import { randomUUID } from 'node:crypto';
 import { setRestDay } from '@/features/nudges/service';
 import { cardInput, keepCard } from '@/features/ai/service';
+import { reopenProposal } from '@/features/agent/plans';
 
 /**
  * Undo for destructive one-click actions (WI-011). Nothing is soft-deleted: an undo re-creates
@@ -70,6 +71,12 @@ const kinds = {
   'clear-rest-day': z.object({ day: z.string().regex(/^\d{4}-\d{2}-\d{2}$/) }),
   /** A kept card just removed (WI-031): undo keeps it again. */
   'restore-card': cardInput,
+  /** A Rumi plan just added (WI-041): undo cancels its blocks and reopens the card. */
+  'cancel-blocks': z.object({
+    ids: z.array(z.string().min(1)).min(1).max(6),
+    messageId: z.string().min(1),
+    proposalId: z.string().min(1),
+  }),
 } as const;
 export type UndoKind = keyof typeof kinds;
 export type Undo = { kind: UndoKind; payload: unknown; label?: string };
@@ -203,6 +210,12 @@ export async function restore(
     case 'restore-card': {
       await keepCard(user, kinds[k].parse(payload));
       return 'Card kept again.';
+    }
+    case 'cancel-blocks': {
+      const p = kinds[k].parse(payload);
+      for (const id of p.ids) await execute(user, id, 'cancel');
+      await reopenProposal(user, p.messageId, p.proposalId);
+      return p.ids.length === 1 ? 'Block cancelled.' : 'Blocks cancelled.';
     }
   }
 }
