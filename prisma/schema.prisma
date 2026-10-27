@@ -173,6 +173,7 @@ model User {
   agentMessages      AgentMessage[]
   agentMemories      AgentMemory[]
   prepDocs           InterviewPrepDoc[]
+  noticedAnswers     NoticedAnswer[]
 }
 
 model Goal {
@@ -1098,4 +1099,22 @@ model InterviewPrepDoc {
   createdAt          DateTime       @default(now()) @db.Timestamptz(3)
 
   @@index([userId, applicationId, createdAt])
+}
+
+/// WI-043: the owner's answer to a "Rumi noticed" card. It hides the card until `hiddenUntil`
+/// and counts acted versus dismissed for the plan's measure. Nothing else is stored.
+model NoticedAnswer {
+  id          String    @id @default(cuid())
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  /// The card's key, such as "idle:technical" or "interview:<round id>".
+  key         String
+  kind        String
+  hiddenUntil DateTime  @db.Date
+  actedAt     DateTime? @db.Timestamptz(3)
+  dismissedAt DateTime? @db.Timestamptz(3)
+  createdAt   DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt   DateTime  @updatedAt @db.Timestamptz(3)
+
+  @@unique([userId, key])
 }

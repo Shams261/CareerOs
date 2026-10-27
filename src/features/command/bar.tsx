@@ -41,6 +41,12 @@ export const useOpenKey = () =>
  * Once the page a command opens is showing, opens its side panel or presses its control. Panels
  * close when the address changes, so this waits for the new address and the opener first.
  */
+/** Opens a side panel once the page at `href` shows its opener (used by Rumi noticed, WI-043). */
+export const openPanelAfterNavigation = (href: string, panel: string) =>
+  afterNavigation(
+    { id: panel, group: 'Go to', verb: '', title: '', panel },
+    new URL(href, location.origin),
+  );
 function afterNavigation(command: Command, target: URL) {
   const started = Date.now();
   const tick = () => {

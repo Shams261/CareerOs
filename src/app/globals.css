@@ -6241,3 +6241,27 @@ button.attention-link {
   border-color: var(--primary);
   color: var(--primary);
 }
+/* WI-043: Rumi noticed rows at the top of Needs attention: the fact, then its two answers. */
+.noticed-list {
+  margin-bottom: 8px;
+}
+.noticed-row {
+  display: grid;
+}
+.noticed-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+  padding: 0 12px 12px 64px;
+}
+.noticed-dismiss {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 32px;
+}
+.attention-row[data-source='rumi'] {
+  --tile-bg: var(--primary-soft);
+  --tile-fg: var(--primary);
+}

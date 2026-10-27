@@ -46,6 +46,7 @@ export async function exportOwnerData(userId: string, now = new Date()) {
     agentConversations,
     agentMemories,
     prepDocs,
+    noticedAnswers,
   ] = await Promise.all([
     db().user.findUniqueOrThrow({
       where: { id: userId },
@@ -121,6 +122,8 @@ export async function exportOwnerData(userId: string, now = new Date()) {
     db().agentMemory.findMany(own),
     // WI-042: prep docs with their cited sources.
     db().interviewPrepDoc.findMany({ ...own, orderBy: { createdAt: 'asc' } }),
+    // WI-043: answers to "Rumi noticed" cards (kind, acted or dismissed).
+    db().noticedAnswer.findMany(own),
   ]);
   return {
     format: 'careeros-export',
@@ -158,7 +161,11 @@ export async function exportOwnerData(userId: string, now = new Date()) {
     studyNudges,
     revisionCards,
     ai: { setting: aiSetting, usage: aiUsage },
-    rumi: { conversations: agentConversations, knows: agentMemories },
+    rumi: {
+      conversations: agentConversations,
+      knows: agentMemories,
+      noticed: noticedAnswers,
+    },
     notifications,
     googleCalendar: calendar,
   };
