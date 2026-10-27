@@ -44,6 +44,10 @@ const TYPE_WORDS: Record<string, string> = {
   BEHAVIORAL: 'behavioral interview',
   HIRING_MANAGER: 'hiring manager interview',
   FINAL: 'final round onsite',
+  AI_ASSISTED: 'AI-assisted coding interview',
+  CODE_REVIEW: 'code review interview',
+  DEBUGGING: 'debugging bug squash interview',
+  PRACTICAL: 'practical coding interview',
 };
 /**
  * The searches for a doc. Only the company, the role and the upcoming round types go in:
@@ -163,7 +167,9 @@ export function collectSources(
 export type PrepInput = {
   company: string;
   role: string;
-  rounds: { title: string; type: string; on: string }[];
+  rounds: { title: string; type: string; on: string; ai?: string }[];
+  /** Formats the owner ticked for this loop ("Code review"), WI-047. */
+  formats?: string[];
   /** Each search's summary with the ids of the sources it cited. */
   notes: { query: string; text: string; sources: string[] }[];
   sources: Source[];
@@ -270,6 +276,7 @@ export function prepMessages(input: PrepInput): Message[] {
         company: clip(input.company, LIMITS.company),
         role: clip(input.role, LIMITS.role),
         rounds: input.rounds,
+        ...(input.formats?.length ? { formats: input.formats } : {}),
         sources: input.sources.map((s) => ({
           id: s.id,
           site: s.site,

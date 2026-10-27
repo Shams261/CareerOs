@@ -38,6 +38,7 @@ import {
   type PrepInput,
   type Source,
 } from './domain';
+import { aiPolicyLabel, typeText } from '@/features/jobs/formats';
 
 export const UNAVAILABLE = `${AGENT_NAME} couldn’t prepare this right now.`;
 const WORDS: CallWords = {
@@ -57,10 +58,16 @@ async function material(user: ScheduleUser, applicationId: string, now: Date) {
       role: true,
       jobUrl: true,
       jobDescription: true,
+      formats: true,
       rounds: {
         where: { status: 'SCHEDULED' },
         orderBy: { scheduledStart: 'asc' },
-        select: { title: true, type: true, scheduledStart: true },
+        select: {
+          title: true,
+          type: true,
+          aiPolicy: true,
+          scheduledStart: true,
+        },
       },
     },
   });
@@ -101,7 +108,10 @@ async function material(user: ScheduleUser, applicationId: string, now: Date) {
       title: r.title,
       type: r.type,
       on: dayKey(r.scheduledStart, user.timezone),
+      ...(r.aiPolicy !== 'UNKNOWN' ? { ai: aiPolicyLabel[r.aiPolicy] } : {}),
     })),
+    // The formats ticked on the application (WI-047), in the owner's words.
+    formats: app.formats.map(typeText),
     // Not-done items first, so the doc points at what is left.
     roadmap: items
       .filter((i) => !isTestNamed(i.title, i.roadmap.title))
@@ -133,7 +143,7 @@ export async function prepPreview(
   const queries = searchQueries({
     company: m.app.company,
     role: m.app.role,
-    roundTypes: m.rounds.map((r) => r.type),
+    roundTypes: [...m.rounds.map((r) => r.type), ...m.app.formats],
   });
   return {
     queries,
@@ -181,7 +191,7 @@ export async function writePrepDoc(
   const queries = searchQueries({
     company: m.app.company,
     role: m.app.role,
-    roundTypes: m.rounds.map((r) => r.type),
+    roundTypes: [...m.rounds.map((r) => r.type), ...m.app.formats],
   });
   const started = Date.now();
   const results = await Promise.allSettled(
@@ -238,6 +248,7 @@ export async function writePrepDoc(
     company: m.app.company,
     role: m.app.role,
     rounds: m.rounds,
+    formats: m.formats,
     notes: found.map((f) => ({
       query: f.query,
       text: f.text,

@@ -10,6 +10,7 @@ import { formatInTimeZone } from 'date-fns-tz';
 import {
   createApplicationAction,
   detailsAction,
+  formatsAction,
   followUpAction,
   followUpDoneAction,
   jobNoteAction,
@@ -24,6 +25,7 @@ import {
   stageAction,
 } from './actions';
 import {
+  aiPolicies,
   arrangements,
   calendarDate,
   interviewTypes,
@@ -33,13 +35,32 @@ import {
   stages,
 } from './domain';
 import { Button } from '@/components/ui/button';
+import { aiPolicyLabel, practiceFormats, typeLabel, typeText } from './formats';
 
-const Options = ({ values }: { values: readonly string[] }) =>
+const Options = ({
+  values,
+  text = label,
+}: {
+  values: readonly string[];
+  text?: (v: string) => string;
+}) =>
   values.map((v) => (
     <option key={v} value={v}>
-      {label(v)}
+      {text(v)}
     </option>
   ));
+const AiPolicyField = ({ value = 'UNKNOWN' }: { value?: string }) => (
+  <label>
+    AI in this round
+    <select name="aiPolicy" defaultValue={value}>
+      {aiPolicies.map((p) => (
+        <option key={p} value={p}>
+          {aiPolicyLabel[p]}
+        </option>
+      ))}
+    </select>
+  </label>
+);
 const date = (d: Date | null | undefined) => (d ? calendarDate(d) : '');
 
 export function QuickAddForm({ today }: { today: string }) {
@@ -417,9 +438,10 @@ export function RoundForm({
         <label>
           Type
           <select name="type" defaultValue="CODING">
-            <Options values={interviewTypes} />
+            <Options values={interviewTypes} text={typeText} />
           </select>
         </label>
+        <AiPolicyField />
         <label>
           Title (optional)
           <input
@@ -475,9 +497,10 @@ export function RoundDetailsForm({ round }: { round: InterviewRound }) {
         <label>
           Type
           <select name="type" defaultValue={round.type}>
-            <Options values={interviewTypes} />
+            <Options values={interviewTypes} text={typeText} />
           </select>
         </label>
+        <AiPolicyField value={round.aiPolicy} />
         <label>
           Interviewers
           <input name="interviewers" defaultValue={round.interviewers ?? ''} />
@@ -770,6 +793,41 @@ export function ScheduleInterviewForm({
     <ActionForm action={scheduleInterviewAction} label={text}>
       <input type="hidden" name="id" value={roundId} />
       <Button variant="link">{text}</Button>
+    </ActionForm>
+  );
+}
+
+/** The formats this company's loop uses (WI-047); upcoming rounds add their own type. */
+export function FormatsForm({
+  id,
+  formats,
+}: {
+  id: string;
+  formats: readonly string[];
+}) {
+  return (
+    <ActionForm
+      action={formatsAction}
+      label="Interview formats"
+      className="dsa-form"
+      closeOnSuccess
+    >
+      <input type="hidden" name="id" value={id} />
+      <fieldset className="format-choices">
+        <legend>Rounds this company uses</legend>
+        {practiceFormats.map((f) => (
+          <label className="check" key={f}>
+            <input
+              type="checkbox"
+              name="formats"
+              value={f}
+              defaultChecked={formats.includes(f)}
+            />{' '}
+            {typeLabel[f]}
+          </label>
+        ))}
+      </fieldset>
+      <Button>Save formats</Button>
     </ActionForm>
   );
 }

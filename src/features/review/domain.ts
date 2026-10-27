@@ -379,7 +379,14 @@ export function jobWeek(
     }).length,
     recruiter: rounds('RECRUITER'),
     assessment: rounds('ASSESSMENT'),
-    technical: rounds('CODING'),
+    // Coding and the 2025–2026 formats (WI-047) are all technical rounds.
+    technical: rounds(
+      'CODING',
+      'AI_ASSISTED',
+      'CODE_REVIEW',
+      'DEBUGGING',
+      'PRACTICAL',
+    ),
     systemDesign: rounds('SYSTEM_DESIGN'),
     behavioral: rounds('BEHAVIORAL'),
     final: rounds('FINAL', 'HIRING_MANAGER'),

@@ -15,6 +15,10 @@ const ROUND_WORDS: Record<string, string> = {
   HIRING_MANAGER: 'hiring manager chat',
   FINAL: 'final round',
   OTHER: 'interview',
+  AI_ASSISTED: 'AI-assisted coding round',
+  CODE_REVIEW: 'code review round',
+  DEBUGGING: 'debugging round',
+  PRACTICAL: 'practical coding round',
 };
 const firstReal = <T>(
   rows: T[],
