@@ -7,6 +7,20 @@ vi.mock('@/server/session', () => ({
 }));
 const url = process.env.TEST_DATABASE_URL;
 describe('proxy access control', () => {
+  it('serves robots.txt to anyone and keeps the Rumi stream private (WI-057)', async () => {
+    Object.assign(process.env, {
+      CRON_SECRET: 's'.repeat(40),
+      OWNER_EMAIL: 'o@example.com',
+      DATABASE_URL: url ?? 'postgresql://x@localhost/x',
+    });
+    const { proxy } = await import('../src/proxy');
+    const { NextRequest } = await import('next/server');
+    session.value = null;
+    const req = (path: string) =>
+      new NextRequest(`https://careeros.example.com${path}`);
+    expect((await proxy(req('/robots.txt'))).status).toBe(200);
+    expect((await proxy(req('/api/rumi/ask'))).status).toBe(401);
+  });
   it('guards cron, private pages and APIs; leaves validated public endpoints open; sets CSP', async () => {
     Object.assign(process.env, {
       CRON_SECRET: 's'.repeat(40),

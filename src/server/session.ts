@@ -86,3 +86,30 @@ export async function revokeSession(
 export const currentSession = cache(async () =>
   resolveSession((await cookies()).get(SESSION_COOKIE)?.value),
 );
+
+/** The owner's live sessions, newest activity first, marking the one making this request (WI-057). */
+export async function activeSessions(
+  userId: string,
+  currentId: string | null,
+  now = new Date(),
+) {
+  const rows = await db().session.findMany({
+    where: { userId, revokedAt: null, expiresAt: { gt: now } },
+    orderBy: { lastSeenAt: 'desc' },
+    select: { id: true, userAgent: true, createdAt: true, lastSeenAt: true },
+  });
+  return rows.map((r) => ({ ...r, current: r.id === currentId }));
+}
+
+/** Sign out other devices: revokes every live session of the owner except this one. */
+export async function revokeOtherSessions(
+  userId: string,
+  keepId: string,
+  now = new Date(),
+) {
+  const { count } = await db().session.updateMany({
+    where: { userId, revokedAt: null, id: { not: keepId } },
+    data: { revokedAt: now },
+  });
+  return count;
+}

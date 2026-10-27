@@ -22,6 +22,8 @@ const PUBLIC = [
   /^\/icons\/[\w.-]+$/,
   /^\/apple-touch-icon\.png$/,
   /^\/favicon\.ico$/,
+  // A private app: crawlers are told to stay out (WI-057).
+  /^\/robots\.txt$/,
 ];
 const CRON = ['/api/notifications/process', '/api/calendar/sync'];
 const RATE = {

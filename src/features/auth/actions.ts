@@ -8,7 +8,14 @@ import {
   parseEncryptionKey,
   randomToken,
 } from '@/lib/token-crypto';
-import { SESSION_COOKIE, revokeSession } from '@/server/session';
+import {
+  SESSION_COOKIE,
+  currentSession,
+  revokeOtherSessions,
+  revokeSession,
+} from '@/server/session';
+import { revalidatePath } from 'next/cache';
+import type { ActionState } from '@/features/schedule/actions';
 import { clientIp, rateLimit } from '@/server/rate-limit';
 import { authorizationUrl, safeNext } from './oidc';
 import { LOGIN_COOKIE } from './constants';
@@ -53,4 +60,18 @@ export async function signOutAction() {
   await revokeSession(jar.get(SESSION_COOKIE)?.value);
   jar.delete(SESSION_COOKIE);
   redirect('/login?signed_out=1');
+}
+
+/** Settings → Sessions (WI-057): every other device signs out; this one stays signed in. */
+export async function signOutOthersAction(): Promise<ActionState> {
+  const session = await currentSession();
+  if (!session) redirect('/login');
+  const count = await revokeOtherSessions(session.userId, session.id);
+  revalidatePath('/settings');
+  return {
+    ok: true,
+    message: count
+      ? `Signed out of ${count} other device${count === 1 ? '' : 's'}.`
+      : 'No other device was signed in.',
+  };
 }

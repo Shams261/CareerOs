@@ -206,4 +206,15 @@ test('Settings saves the dark theme and stays accessible', async ({ page }) => {
   await page.goto('/settings');
   await page.getByRole('radio', { name: 'Light' }).check();
   await fitsPhone(page, '/settings');
+
+  // Sessions (WI-057): this device is listed and marked.
+  await page
+    .getByRole('button', { name: /Signed in on this device only/ })
+    .click();
+  const panel = page.getByRole('dialog', { name: 'Sessions' });
+  await expect(panel).toContainText('This device');
+  await accessible(page);
+  // Crawlers get a plain refusal, not the login page.
+  const robots = await page.request.get('/robots.txt');
+  expect(await robots.text()).toContain('Disallow: /');
 });
