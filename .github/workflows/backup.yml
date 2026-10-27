@@ -1,0 +1,88 @@
+name: Backup
+# WI-051: a weekly pg_dump of the production database, proven by a restore into a scratch
+# PostgreSQL 17, then encrypted to the owner's age public key and kept as a workflow artifact
+# for 35 days. The repository is public, so the artifact is only ever ciphertext: the private
+# key stays on the owner's workstation. Secrets (set by the owner, never in the repository):
+#   BACKUP_DATABASE_URL  the Supabase session-pooler URL
+#   BACKUP_AGE_RECIPIENT the owner's age public key (age1…)
+on:
+  schedule:
+    - cron: '23 7 * * 0'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: backup
+  cancel-in-progress: false
+jobs:
+  backup:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    services:
+      restore:
+        image: postgres:17
+        env:
+          POSTGRES_USER: careeros
+          POSTGRES_PASSWORD: restore-check-only
+          POSTGRES_DB: careeros
+        ports:
+          - 5433:5432
+        options: >-
+          --health-cmd "pg_isready -U careeros -d careeros"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      NEXT_TELEMETRY_DISABLED: '1'
+      BACKUP_DIR: backups
+    steps:
+      - name: Require the owner's secrets
+        env:
+          DB: ${{ secrets.BACKUP_DATABASE_URL }}
+          RECIPIENT: ${{ secrets.BACKUP_AGE_RECIPIENT }}
+        run: |
+          if [ -z "$DB" ] || [ -z "$RECIPIENT" ]; then
+            echo "::error::Set BACKUP_DATABASE_URL and BACKUP_AGE_RECIPIENT (docs/engineering/backup-restore.md, Weekly automated backup)."
+            exit 1
+          fi
+          case "$RECIPIENT" in age1*) ;; *) echo "::error::BACKUP_AGE_RECIPIENT must be an age public key (age1…)."; exit 1 ;; esac
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version-file: .node-version
+      - name: Install pinned package manager
+        run: npm install --global pnpm@11.19.0
+      - name: Install locked dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Install PostgreSQL 17 client and age
+        run: |
+          sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y
+          sudo apt-get install --yes --no-install-recommends postgresql-client-17 age
+          echo "/usr/lib/postgresql/17/bin" >> "$GITHUB_PATH"
+      - name: Dump the production database
+        env:
+          DATABASE_URL: ${{ secrets.BACKUP_DATABASE_URL }}
+          DATABASE_SSL: no-verify
+        run: pnpm db:backup
+      - name: Prove the dump restores (scratch PostgreSQL 17)
+        env:
+          RESTORE_VERIFY_SERVER_URL: postgresql://careeros:restore-check-only@localhost:5433/careeros
+        run: |
+          dump=$(ls backups/*.dump)
+          pnpm db:restore:verify "$dump" | tee restore.log
+          grep -q 'Restore verified.' restore.log
+      - name: Encrypt to the owner's key and remove the plain dump
+        env:
+          RECIPIENT: ${{ secrets.BACKUP_AGE_RECIPIENT }}
+        run: |
+          dump=$(ls backups/*.dump)
+          age --recipient "$RECIPIENT" --output "$dump.age" "$dump"
+          shred --remove "$dump"
+          sha256sum backups/*.age
+      - name: Keep the encrypted backup
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: silsila-backup-${{ github.run_number }}
+          path: backups/*.age
+          retention-days: 35
+          if-no-files-found: error

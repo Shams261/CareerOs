@@ -1,0 +1,33 @@
+name: Uptime
+# WI-051: an hourly look at the public health check. A failed run is GitHub's email to the
+# owner: the site is down, the schema is behind, or a scheduled job has stopped succeeding.
+# It reads statuses only; no secret is needed or used.
+on:
+  schedule:
+    - cron: '17 * * * *'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: uptime
+  cancel-in-progress: false
+jobs:
+  health:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    env:
+      HEALTH_URL: https://usesilsila.me/api/health
+    steps:
+      - name: Check the live health endpoint
+        run: |
+          # A free instance can take a minute to wake; try three times before failing.
+          for attempt in 1 2 3; do
+            body=$(curl --silent --show-error --max-time 60 "$HEALTH_URL" || true)
+            echo "attempt $attempt: $body"
+            if echo "$body" | jq -e '.status == "ok" and .schema == "current" and .jobs == "ok"' > /dev/null 2>&1; then
+              exit 0
+            fi
+            sleep 30
+          done
+          echo "::error::Silsila health is not ok (status, schema or scheduled jobs). See Settings → System status and the Render log."
+          exit 1

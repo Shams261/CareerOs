@@ -23,11 +23,39 @@ pnpm db:restore:verify <file> --keep   # keep the scratch database for inspectio
 
 ## Schedule
 
-| When                                  | What                                                                                  |
-| ------------------------------------- | ------------------------------------------------------------------------------------- |
-| Daily (provider)                      | Automated backups with at least 7 days of retention; PITR where offered               |
-| Weekly and **before every migration** | `pnpm db:backup`, then `pnpm db:restore:verify <file>`; keep the last 4 weekly copies |
-| Monthly                               | Time a full restore verification and record duration and data age (NFR-004)           |
+| When                       | What                                                                           |
+| -------------------------- | ------------------------------------------------------------------------------ |
+| Daily (provider)           | Automated backups with at least 7 days of retention; PITR where offered        |
+| Weekly (automated, WI-051) | The Backup workflow: dump, restore check, encrypted artifact kept 35 days      |
+| **Before every migration** | `pnpm db:backup`, then `pnpm db:restore:verify <file>`; keep the last 4 copies |
+| Monthly                    | Time a full restore verification and record duration and data age (NFR-004)    |
+
+## Weekly automated backup (WI-051)
+
+`.github/workflows/backup.yml` runs every Sunday at 07:23 UTC, and on demand from Actions → Backup → Run workflow. It:
+
+1. dumps production with `pnpm db:backup`;
+2. proves the dump with `pnpm db:restore:verify` against a scratch PostgreSQL 17 service, and fails unless it prints `Restore verified.`;
+3. encrypts the dump with [age](https://age-encryption.org) to the owner's public key, shreds the plain file, and keeps `silsila-backup-<run>` as an artifact for 35 days.
+
+The repository is public, so anyone signed in to GitHub can download an artifact. That is why only ciphertext is ever uploaded: the private key never leaves the owner's workstation. A failed run is an email from GitHub to the owner.
+
+**One-time setup (the owner, never in chat or in the repository):**
+
+1. Install age: `brew install age`.
+2. Make a key pair: `mkdir -p ~/.config/silsila && age-keygen -o ~/.config/silsila/backup-key.txt`. It prints `Public key: age1…`. Keep the key file, and a copy in a password manager. Without it no backup can be opened.
+3. On GitHub, open Shams261/CareerOs → Settings → Secrets and variables → Actions, and add two repository secrets:
+   - `BACKUP_DATABASE_URL`: the Supabase session-pooler URL;
+   - `BACKUP_AGE_RECIPIENT`: the `age1…` public key.
+4. Run Actions → Backup → Run workflow once and check it is green.
+
+**Opening a backup:**
+
+1. Download the artifact zip from the run and unzip it.
+2. Decrypt: `age --decrypt -i ~/.config/silsila/backup-key.txt -o careeros.dump careeros-<timestamp>.dump.age`.
+3. Verify it, as above (Docker PostgreSQL 17 and the libpq `PATH`): `PATH=/opt/homebrew/opt/libpq/bin:$PATH RESTORE_VERIFY_SERVER_URL=postgresql://careeros:careeros@127.0.0.1:5433/careeros pnpm db:restore:verify careeros.dump`.
+
+GitHub pauses scheduled workflows in a public repository after 60 days without activity. A push re-enables them, and so does the Run workflow button.
 
 ## Recovering from a bad state
 
