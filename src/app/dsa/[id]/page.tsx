@@ -13,6 +13,12 @@ import { resourceUrl } from '@/lib/validation';
 import { shortDate } from '@/lib/time';
 import { traceForTopic } from '@/features/drills/trace';
 import { WatchItRun } from '@/features/drills/watch-it-run';
+import { StudyPrompt } from '@/features/roadmap/study-prompt';
+import {
+  DEFAULT_SCENARIOS,
+  type Reference,
+  type Scenario,
+} from '@/features/roadmap/domain';
 export const metadata = { title: 'Practice' };
 
 const tone = { RED: 'danger', YELLOW: 'warning', GREEN: 'success' } as const;
@@ -39,12 +45,31 @@ export default async function Problem({
   if (!p) notFound();
   const [topics, origin, running] = await Promise.all([
     db().dsaTopic.findMany({ orderBy: [{ ordering: 'asc' }, { name: 'asc' }] }),
-    from
-      ? db().roadmapItem.findFirst({
-          where: { id: from, userId: user.id },
-          select: { id: true, title: true, section: true, roadmapId: true },
-        })
-      : null,
+    // The roadmap item this problem stands for: the one the owner came from, else the first.
+    db().roadmapItem.findFirst({
+      where: {
+        userId: user.id,
+        dsaProblemId: p.id,
+        ...(from ? { id: from } : {}),
+      },
+      orderBy: { createdAt: 'asc' },
+      select: {
+        id: true,
+        title: true,
+        section: true,
+        roadmapId: true,
+        scope: true,
+        checkpoint: true,
+        priority: true,
+        estimateMinutes: true,
+        references: true,
+        notes: true,
+        url: true,
+        roadmap: {
+          select: { title: true, promptTemplate: true, scenarios: true },
+        },
+      },
+    }),
     db().actualSession.findFirst({
       where: { userId: user.id, endedAt: null },
       select: { startedAt: true, category: true },
@@ -58,13 +83,13 @@ export default async function Problem({
       ? Math.max(1, Math.round((+now - +running.startedAt) / 60000))
       : null;
   const validUrl = resourceUrl.safeParse(p.problemUrl).success;
+  const back = origin
+    ? `/roadmap/${origin.roadmapId}?section=${encodeURIComponent(origin.section)}&show=all#item-${origin.id}`
+    : null;
   return (
     <>
-      {origin ? (
-        <Link
-          className="link"
-          href={`/roadmap/${origin.roadmapId}?section=${encodeURIComponent(origin.section)}&show=all#item-${origin.id}`}
-        >
+      {origin && from ? (
+        <Link className="link" href={back!}>
           <ArrowLeft size={14} aria-hidden="true" /> Back to {origin.title} on
           the roadmap
         </Link>
@@ -145,17 +170,45 @@ export default async function Problem({
           requestId={randomUUID()}
           defaultMinutes={defaultMinutes}
         />
-        {origin && (
+        {origin && from && (
           <p className="status-line mt-4">
-            <Link
-              className="link"
-              href={`/roadmap/${origin.roadmapId}?section=${encodeURIComponent(origin.section)}&show=all#item-${origin.id}`}
-            >
+            <Link className="link" href={back!}>
               <ArrowLeft size={14} aria-hidden="true" /> Back to {origin.title}
             </Link>
           </p>
         )}
       </section>
+      {origin && (
+        <section className="card flat" aria-labelledby="study-heading">
+          <div className="section-head">
+            <h2 id="study-heading">Study</h2>
+            <Link className="link" href={back!}>
+              {origin.roadmap.title} · {origin.section}
+            </Link>
+          </div>
+          <StudyPrompt
+            roadmap={{ title: origin.roadmap.title }}
+            template={origin.roadmap.promptTemplate}
+            scenarios={
+              (origin.roadmap.scenarios as Scenario[] | null)?.length
+                ? (origin.roadmap.scenarios as Scenario[])
+                : DEFAULT_SCENARIOS
+            }
+            storageKey={`silsila-scenario:${origin.roadmapId}`}
+            item={{
+              title: origin.title,
+              section: origin.section,
+              scope: origin.scope,
+              checkpoint: origin.checkpoint,
+              priority: origin.priority,
+              estimateMinutes: origin.estimateMinutes,
+              references: origin.references as Reference[] | null,
+              notes: origin.notes,
+              url: origin.url,
+            }}
+          />
+        </section>
+      )}
       {traceForTopic(p.topic.name) && (
         <WatchItRun kind={traceForTopic(p.topic.name)!} />
       )}

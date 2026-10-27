@@ -129,6 +129,7 @@ export async function searchCommands(
         status: true,
         nextRevisionAt: true,
         references: true,
+        dsaProblemId: true,
         roadmap: { select: { id: true, title: true, studyAi: true } },
       },
     }),
@@ -191,6 +192,8 @@ export async function searchCommands(
         press: `#item-${i.id} [data-listen-open]`,
         explicit: true,
       });
+    // A problem item is the same thing as its Practice problem: one row, the problem's (WI-046).
+    if (i.dsaProblemId) continue;
     out.push({
       id: `item:${i.id}`,
       group: 'Roadmap',

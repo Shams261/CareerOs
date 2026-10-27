@@ -2193,6 +2193,9 @@ a.problem-title:hover {
 .row-quick {
   display: contents;
 }
+.row-quick-cell {
+  grid-column: 4;
+}
 .row-quick fieldset {
   border: 0;
   padding: 0;

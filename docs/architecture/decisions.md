@@ -198,7 +198,7 @@ Attention is derived, not stored: overdue follow-up, result needed, interview be
 
 ## ADR-016 — Goals and roadmaps are a planning layer over the learning models
 
-**Status:** Accepted (2026-10-21, WI-009).
+**Status:** Accepted (2026-10-21, WI-009). Amended by ADR-025 for problem-linked items.
 
 **Context:** The owner prepares for technical interviews from a roadmap of concepts and questions (DSA, system design, behavioural) and wants to see what is covered and what came up in interviews. `LearningTopic` and `DsaProblem` already carry mastery, attempts and revision dates with their own rules (distinct models invariant). A roadmap item is often one of those, but just as often a question ("design a rate limiter") that belongs to neither. `Goal` existed in the schema with relations to routines, subjects, topics, sessions and priorities, but had no authoring surface.
 
@@ -232,7 +232,7 @@ Attention is derived, not stored: overdue follow-up, result needed, interview be
 
 ## ADR-018 — The roadmap is the tracker: items carry scope, checkpoint, references and study prompts; problems live in Practice
 
-**Status:** Accepted (2026-10-21, WI-012).
+**Status:** Accepted (2026-10-21, WI-012). Amended by ADR-025: a problem item's status and revision follow Practice.
 
 **Context:** The owner studies with Claude, ChatGPT, YouTube and the web, and tracked that study in two browser-local HTML "command center" trackers (per-topic scope, checkpoint, priority and references, plus copy-ready study prompts with a scenario), a technical roadmap in Markdown, a DSA pattern book and a behavioural handbook. Silsila's roadmap (ADR-016) held only a title, a kind and marks, so the trackers stayed in use beside it. The owner wants one place: pick the topic, copy the prompt, study elsewhere, come back and mark it, keep links and notes for revision.
 
@@ -473,3 +473,40 @@ The owner's decisions (2026-10-26) and the R5 spike (2026-10-27, `scripts/r5-spi
 **Owner sign-off:**
 
 - 2026-10-27: the owner read the R5 results and these rules and signed off on ADR-024 as written.
+
+## ADR-025 — A problem on the roadmap follows Practice
+
+**Status:** Accepted (2026-10-27, WI-046). It amends ADR-016 and ADR-018 for roadmap items linked to a Practice problem. The UAT audit of 2026-10-27 made it a P0 (`output/Silsila-UAT-Audit.pdf`, section 5).
+
+**Context:** The import put every DSA problem in two places: a `RoadmapItem` in DSA patterns and a `DsaProblem` in Practice, linked by `dsaProblemId`. Each kept its own state. "1. Two Sum" could be Done on the roadmap and Red in Practice, with two different revision dates. ⌘K listed both. The owner asked which one is true; the honest answer was neither.
+
+**Decision:**
+
+- **A roadmap item linked to a problem takes its status from Practice.** No attempt is Not started, any attempt is In progress, and Green is Done (`practiceStatus`, `src/features/roadmap/follow.ts`). `completedAt` is the first time it turned Green, and a later Yellow or Red reopens it.
+- **Revision lives on the problem only.** These items carry no `nextRevisionAt` and no revision stage, so the roadmap's revision rail, Today's Revise card and the `TECHNICAL_REVIEW` reminder never show a problem twice. The problem's own spaced revision is unchanged.
+- **Practice keeps the item in step.** `followPractice` runs in the same transaction as every write that can change the pair:
+  - recording an attempt;
+  - linking an item to a problem;
+  - restoring a removed item;
+  - the roadmap import.
+    It writes the item only, and only when it differs. ADR-016 still holds: the roadmap never writes to Practice.
+- **The roadmap no longer marks a problem item.**
+  - Done, Start, Reopen and Revised are refused on the server ("This item follows Practice. Record an attempt on the problem instead.").
+  - The open item's primary action is **Record an attempt**, a link to the problem.
+  - Asked in interview, notes, Grill me, Listen, Edit and Remove stay.
+  - The Edit form hides "Revise on".
+- **Study help moves to the problem.** The problem page gains a **Study** section with the roadmap item's Copy prompt and scenarios, so one page is enough.
+- **⌘K shows a problem once,** as its Practice row; the roadmap item's Open row is left out. Grill me and Listen stay when named.
+- Concept items, and items linked to a learning topic or a DSA topic, keep the roadmap's own marks and its 7/14/30/60 revision.
+
+**Alternatives rejected:**
+
+- Deriving the status on every read. More than twenty readers count or filter by `RoadmapItem.status`: progress lines, Continue, goals, Rumi's tools, Look Back, noticed and reminders. Each would need the join.
+- Letting the roadmap write confidence. That reverses ADR-016 and turns a planning mark into an attempt that never happened.
+- Removing problem items from the roadmap. The roadmap's order and sections are what the owner follows.
+
+**Consequences:**
+
+- A Done problem item now means Green in Practice, so a roadmap's "N done" counts proof rather than a click.
+- Items left stale by an earlier version catch up on the next attempt or import. Production had no progress when this shipped (WI-045), so nothing was stale there.
+- Unlinking a problem keeps the item's last status; from then on the roadmap marks it again.

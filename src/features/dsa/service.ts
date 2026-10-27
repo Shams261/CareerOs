@@ -7,6 +7,7 @@ import { resourceUrl } from '@/lib/validation';
 import { dayKey } from '@/lib/time';
 import { dateInput } from '@/features/schedule/domain';
 import { attemptInput, isDsa, revision } from './domain';
+import { followPractice } from '@/features/roadmap/follow';
 import type { Prisma } from '@/generated/prisma/client';
 export async function ownedProblem(
   tx: Prisma.TransactionClient,
@@ -152,6 +153,7 @@ export async function recordAttempt(
         ),
       },
     });
+    await followPractice(tx, user.id, { problemId: problem.id }, now);
     return attempt;
   });
 }

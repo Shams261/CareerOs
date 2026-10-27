@@ -171,4 +171,46 @@ describe.skipIf(!url)('Command bar (PostgreSQL)', () => {
       else delete process.env.OPENROUTER_API_KEY;
     }
   });
+
+  it('shows a problem item once, as its Practice problem (WI-046)', async () => {
+    const roadmap = await prisma.roadmap.create({
+      data: { userId: user.id, title: 'DSA patterns' },
+    });
+    const topic = await prisma.dsaTopic.upsert({
+      where: { name: 'Arrays & Hashing' },
+      create: { name: 'Arrays & Hashing' },
+      update: {},
+    });
+    const problem = await prisma.dsaProblem.create({
+      data: {
+        userId: user.id,
+        title: 'Two Sum',
+        platform: 'LeetCode',
+        problemUrl: 'https://leetcode.com/problems/two-sum/',
+        difficulty: 'EASY',
+        topicId: topic.id,
+      },
+    });
+    await prisma.roadmapItem.create({
+      data: {
+        userId: user.id,
+        roadmapId: roadmap.id,
+        section: 'Arrays & Hashing',
+        kind: 'QUESTION',
+        title: '1. Two Sum',
+        dsaProblemId: problem.id,
+      },
+    });
+    const key = process.env.OPENROUTER_API_KEY;
+    delete process.env.OPENROUTER_API_KEY;
+    try {
+      const found = await searchCommands(user, 'two sum', at('12:00'));
+      expect(found.map((c) => `${c.group}|${c.title}|${c.href}`)).toEqual([
+        `Practice|Two Sum|/dsa/${problem.id}`,
+      ]);
+    } finally {
+      if (key) process.env.OPENROUTER_API_KEY = key;
+      else delete process.env.OPENROUTER_API_KEY;
+    }
+  });
 });

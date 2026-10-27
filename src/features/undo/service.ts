@@ -12,6 +12,7 @@ import { randomUUID } from 'node:crypto';
 import { setRestDay } from '@/features/nudges/service';
 import { cardInput, keepCard } from '@/features/ai/service';
 import { reopenProposal } from '@/features/agent/plans';
+import { followPractice } from '@/features/roadmap/follow';
 
 /**
  * Undo for destructive one-click actions (WI-011). Nothing is soft-deleted: an undo re-creates
@@ -132,7 +133,7 @@ export async function restore(
           ? db().dsaTopic.findFirst({ where: { id: p.dsaTopicId } })
           : null,
       ]);
-      await db().roadmapItem.create({
+      const restored = await db().roadmapItem.create({
         data: {
           userId: user.id,
           roadmapId: roadmap.id,
@@ -163,6 +164,8 @@ export async function restore(
           dsaTopicId: dsaTopic?.id ?? null,
         },
       });
+      // A problem item takes its status from Practice again, not from the removed copy.
+      if (problem) await followPractice(db(), user.id, { itemId: restored.id });
       return 'Item restored.';
     }
     case 'cancel-block': {

@@ -114,14 +114,19 @@ export function ItemForm({
             placeholder="Amazon phone screen"
           />
         </label>
-        <label>
-          Revise on (clear to stop)
-          <input
-            name="nextRevisionAt"
-            type="date"
-            defaultValue={item.nextRevisionAt?.toISOString().slice(0, 10) ?? ''}
-          />
-        </label>
+        {/* A problem item's revision date is the problem's, set in Practice (WI-046). */}
+        {!item.dsaProblemId && (
+          <label>
+            Revise on (clear to stop)
+            <input
+              name="nextRevisionAt"
+              type="date"
+              defaultValue={
+                item.nextRevisionAt?.toISOString().slice(0, 10) ?? ''
+              }
+            />
+          </label>
+        )}
       </div>
       <datalist id={`sections-edit-${item.roadmapId}`}>
         {sections.map((s) => (
