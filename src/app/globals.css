@@ -6495,3 +6495,29 @@ button.attention-link {
 .setup-first-run {
   max-width: var(--reading-max);
 }
+
+/* Study aids in an open roadmap item (WI-053): the prompt first, then Check yourself. */
+.study-aids {
+  display: grid;
+  gap: 8px;
+}
+.study-aids > .eyebrow {
+  margin: 0;
+}
+.study-hint {
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin: 0;
+}
+.check-yourself {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.check-yourself-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-right: 4px;
+}

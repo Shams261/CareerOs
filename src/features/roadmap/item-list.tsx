@@ -525,23 +525,63 @@ export function ItemList({
                         )}
                       </p>
                     )}
-                    <StudyPrompt
-                      roadmap={{ title: roadmap.title }}
-                      template={roadmap.promptTemplate}
-                      scenarios={scenarios}
-                      storageKey={`silsila-scenario:${roadmap.id}`}
-                      item={{
-                        title: item.title,
-                        section: item.section,
-                        scope: item.scope,
-                        checkpoint: item.checkpoint,
-                        priority: item.priority,
-                        estimateMinutes: item.estimateMinutes,
-                        references,
-                        notes: item.notes,
-                        url: item.url,
-                      }}
-                    />
+                    {/* Study first (WI-053): the prompt is the main path; Grill me and Listen
+                        check what stuck, so they sit together under it. */}
+                    <section
+                      className="study-aids"
+                      aria-labelledby={`study-${item.id}`}
+                    >
+                      <p className="eyebrow" id={`study-${item.id}`}>
+                        Study
+                      </p>
+                      <StudyHint />
+                      <StudyPrompt
+                        roadmap={{ title: roadmap.title }}
+                        template={roadmap.promptTemplate}
+                        scenarios={scenarios}
+                        storageKey={`silsila-scenario:${roadmap.id}`}
+                        item={{
+                          title: item.title,
+                          section: item.section,
+                          scope: item.scope,
+                          checkpoint: item.checkpoint,
+                          priority: item.priority,
+                          estimateMinutes: item.estimateMinutes,
+                          references,
+                          notes: item.notes,
+                          url: item.url,
+                        }}
+                      />
+                      {grill && (grillable || listenable) && (
+                        <div
+                          className="check-yourself"
+                          role="group"
+                          aria-label="Check yourself"
+                        >
+                          <span className="check-yourself-label">
+                            Check yourself
+                          </span>
+                          {grillable && (
+                            <PanelButton
+                              panel={`grill:${item.id}`}
+                              className="button secondary small"
+                              data-grill-open
+                            >
+                              Grill me
+                            </PanelButton>
+                          )}
+                          {listenable && (
+                            <PanelButton
+                              panel={`listen:${item.id}`}
+                              className="button secondary small"
+                              data-listen-open
+                            >
+                              Listen
+                            </PanelButton>
+                          )}
+                        </div>
+                      )}
+                    </section>
                     {cards.length > 0 && (
                       <section
                         className="kept-cards"
@@ -663,24 +703,6 @@ export function ItemList({
                             'Asked in interview'
                           )}
                         </button>
-                        {grill && grillable && (
-                          <PanelButton
-                            panel={`grill:${item.id}`}
-                            className="button secondary small"
-                            data-grill-open
-                          >
-                            Grill me
-                          </PanelButton>
-                        )}
-                        {grill && listenable && (
-                          <PanelButton
-                            panel={`listen:${item.id}`}
-                            className="button secondary small"
-                            data-listen-open
-                          >
-                            Listen
-                          </PanelButton>
-                        )}
                         <span className="item-actions-spacer" />
                         <PanelButton
                           panel={`item-edit:${item.id}`}
@@ -841,5 +863,50 @@ export function ItemList({
         </p>
       )}
     </>
+  );
+}
+
+const HINT_KEY = 'silsila-study-hint-seen';
+const hintListeners = new Set<() => void>();
+function subscribeHint(onChange: () => void) {
+  hintListeners.add(onChange);
+  return () => {
+    hintListeners.delete(onChange);
+  };
+}
+function hintSeen() {
+  try {
+    return localStorage.getItem(HINT_KEY) === '1';
+  } catch {
+    return true;
+  }
+}
+
+/**
+ * The first time an item opens (WI-053), one line says how studying works here; Got it keeps
+ * it away on this device. The server renders nothing, so it never flashes for a returning owner.
+ */
+function StudyHint() {
+  const seen = useSyncExternalStore(subscribeHint, hintSeen, () => true);
+  if (seen) return null;
+  return (
+    <p className="study-hint">
+      Copy the prompt into Claude or ChatGPT, study there, then come back and
+      mark it.{' '}
+      <Button
+        type="button"
+        variant="link"
+        onClick={() => {
+          try {
+            localStorage.setItem(HINT_KEY, '1');
+          } catch {
+            /* storage unavailable: the hint simply stays */
+          }
+          hintListeners.forEach((l) => l());
+        }}
+      >
+        Got it
+      </Button>
+    </p>
   );
 }
