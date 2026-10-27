@@ -6531,3 +6531,64 @@ button.attention-link {
   font-size: 12px;
   color: var(--text-secondary);
 }
+
+/* The Jobs funnel (WI-056): a plain table of counts, numbers right-aligned. */
+.jobs-funnel {
+  margin-top: 28px;
+}
+.funnel-scroll {
+  overflow-x: auto;
+}
+.funnel-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+}
+.funnel-table th,
+.funnel-table td {
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--border-subtle);
+  text-align: right;
+  white-space: nowrap;
+}
+.funnel-table th:first-child {
+  text-align: left;
+}
+.funnel-table thead th {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+.funnel-table tbody th,
+.funnel-table tfoot th {
+  text-transform: none;
+  letter-spacing: normal;
+  font-size: 14px;
+  color: var(--text-primary);
+}
+.funnel-table tbody th {
+  font-weight: 500;
+}
+.funnel-table tfoot th,
+.funnel-table tfoot td {
+  font-weight: 600;
+  border-bottom: 0;
+}
+@media (max-width: 700px) {
+  .funnel-table {
+    font-size: 13px;
+  }
+  .funnel-table th,
+  .funnel-table td {
+    padding: 7px 4px;
+  }
+  .funnel-table thead th {
+    font-size: 10px;
+    letter-spacing: 0.02em;
+  }
+  .funnel-table tbody th,
+  .funnel-table tfoot th {
+    font-size: 13px;
+  }
+}

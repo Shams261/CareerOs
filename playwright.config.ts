@@ -11,7 +11,8 @@ export default defineConfig({
   testDir: 'e2e',
   fullyParallel: false,
   workers: 1,
-  retries: CI ? 1 : 0,
+  // The journeys share one workspace in order, so a retry would start from a used one.
+  retries: 0,
   forbidOnly: CI,
   timeout: 60_000,
   expect: { timeout: 10_000 },

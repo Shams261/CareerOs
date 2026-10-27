@@ -34,7 +34,6 @@ export function ApplicationRow({
         className="attention-link"
         href={`/jobs/${app.id}`}
         prefetch={false}
-        aria-label={`${app.company} — ${app.role}: ${move.title}`}
       >
         <span className="attention-icon" aria-hidden="true">
           <Briefcase size={22} />

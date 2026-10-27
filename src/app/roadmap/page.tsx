@@ -201,7 +201,6 @@ export default async function RoadmapPage() {
                         : `/roadmap/${r.id}`
                     }
                     prefetch={false}
-                    aria-label={`${r.title}: ${r.next ? `continue with ${r.next.title}` : 'open'}`}
                   >
                     <span className="attention-icon" aria-hidden="true">
                       <Route size={22} />
