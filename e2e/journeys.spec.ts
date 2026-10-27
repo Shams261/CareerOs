@@ -9,6 +9,8 @@ import AxeBuilder from '@axe-core/playwright';
 test.describe.configure({ mode: 'serial' });
 
 async function accessible(page: Page) {
+  // Next streams the <title> after the body; judge the page once it has one.
+  await expect(page).toHaveTitle(/\S/);
   const result = await new AxeBuilder({ page })
     .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'])
     .analyze();
@@ -95,6 +97,10 @@ test('a roadmap item is added and marked done', async ({ page }) => {
   await page.getByRole('button', { name: 'New roadmap' }).click();
   await page.getByLabel('Title').fill('System design');
   await page.getByRole('button', { name: 'Create roadmap' }).click();
+  await expect(
+    page.getByRole('link', { name: /System design/ }).first(),
+  ).toBeVisible();
+  await accessible(page);
   await page
     .getByRole('link', { name: /System design/ })
     .first()
@@ -140,6 +146,33 @@ test('an application gets its interview formats and practice links', async ({
   await expect(formats).toContainText('Code review');
   await expect(formats).toContainText('System design');
   await accessible(page);
+
+  // Two more applications put the funnel on the Jobs page (WI-056).
+  await page.goto('/jobs');
+  for (const company of ['Fabrikam', 'Contoso']) {
+    // The form stays open after an add; open it only when it is closed.
+    const toggle = page.locator('button.disclosure-trigger', {
+      hasText: 'Add application',
+    });
+    if ((await toggle.getAttribute('aria-expanded')) !== 'true')
+      await toggle.click();
+    const add = page.getByRole('form', { name: 'Add application' });
+    await add.getByLabel('Company').fill(company);
+    await add.getByLabel('Role').fill('Backend Engineer');
+    await add.getByRole('button', { name: 'Add application' }).click();
+    await expect(
+      page.getByRole('link', { name: new RegExp(company) }).first(),
+    ).toBeVisible();
+  }
+  const funnel = page.getByRole('table', {
+    name: /Applications by the week they were sent/,
+  });
+  await expect(funnel).toBeVisible();
+  await expect(funnel.getByRole('row', { name: /All time/ })).toContainText(
+    '3',
+  );
+  await accessible(page);
+  await fitsPhone(page, '/jobs');
 });
 
 test('Rumi proposes tomorrow, the plan is added and undone', async ({

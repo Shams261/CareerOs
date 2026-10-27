@@ -6,6 +6,9 @@ import { locked, type ScheduleUser } from '@/features/schedule/service';
 import { PreviewRequired } from '@/features/schedule/editing';
 import { dayBounds, dayKey } from '@/lib/time';
 import { localTime } from '@/lib/validation';
+import { isTestNamed } from '@/lib/test-data';
+import { weekOf } from '@/features/review/domain';
+import { jobsFunnel } from './funnel';
 import type { Prisma } from '@/generated/prisma/client';
 import {
   attentionQueue,
@@ -998,3 +1001,40 @@ export async function loopPractice(
     ...formatPractice(l.format, items, app.company),
   }));
 }
+
+/**
+ * The applications as the funnel reads them (WI-056): stage, dates, stage history and rounds,
+ * test records left out. Memoized like the Jobs snapshot; any write drops it.
+ */
+async function loadFunnel(user: ScheduleUser, now: Date) {
+  const apps = await db().jobApplication.findMany({
+    where: { userId: user.id },
+    select: {
+      company: true,
+      role: true,
+      stage: true,
+      appliedAt: true,
+      createdAt: true,
+      activities: {
+        where: { type: 'STAGE_CHANGED', toStage: { not: null } },
+        select: { toStage: true },
+      },
+      rounds: { select: { type: true, status: true } },
+    },
+  });
+  return jobsFunnel(
+    apps
+      .filter((a) => !isTestNamed(a.company, a.role))
+      .map((a) => ({
+        stage: a.stage,
+        appliedOn: a.appliedAt ? a.appliedAt.toISOString().slice(0, 10) : null,
+        addedOn: dayKey(a.createdAt, user.timezone),
+        history: a.activities.map((x) => x.toStage!),
+        rounds: a.rounds,
+      })),
+    dayKey(now, user.timezone),
+    weekOf,
+  );
+}
+export const funnelSnapshot = (user: ScheduleUser, now = new Date()) =>
+  memo(user.id, 'jobs-funnel', () => loadFunnel(user, now));

@@ -61,10 +61,7 @@ export function AttentionRow({ item }: { item: AttentionItem }) {
           {item.notificationIds.map((id) => (
             <input key={id} type="hidden" name="id" value={id} />
           ))}
-          <Button
-            variant="link"
-            aria-label={`Mark the reminder read: ${item.title}`}
-          >
+          <Button variant="link" aria-label={`Mark read: ${item.title}`}>
             Mark read
           </Button>
         </ActionForm>

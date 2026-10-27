@@ -2,8 +2,10 @@ import Link from 'next/link';
 import { ArrowRight } from 'lucide-react';
 import { ApplicationIllustration } from '@/components/illustrations';
 import { owner } from '@/server/db';
-import { dayKey, hhmm, weekdayDate } from '@/lib/time';
-import { jobSnapshot } from '@/features/jobs/service';
+import { dayKey, hhmm, shortDate, weekdayDate } from '@/lib/time';
+import { funnelSnapshot, jobSnapshot } from '@/features/jobs/service';
+import { FUNNEL_STEPS } from '@/features/jobs/funnel';
+import { weekOf } from '@/features/review/domain';
 import {
   applicationMove,
   attentionQueue,
@@ -51,7 +53,10 @@ export default async function Jobs({
     zone = user.timezone,
     today = dayKey(now, zone),
     filter = await searchParams,
-    data = await jobSnapshot(user, now);
+    [data, funnel] = await Promise.all([
+      jobSnapshot(user, now),
+      funnelSnapshot(user, now),
+    ]);
   const apps = data.apps;
   // Needs attention in Today's words: prep for today's interviews, then every reason of
   // every application (follow-ups, results, interviews soon, undated moves).
@@ -290,6 +295,64 @@ export default async function Jobs({
                     ? 'No closed applications.'
                     : 'No applications match this view.'}
               </p>
+            )}
+            {/* The funnel (WI-056): once a few applications are out, by the week they went. */}
+            {funnel.sent >= 3 && (
+              <section className="jobs-funnel" aria-labelledby="funnel-heading">
+                <h2 id="funnel-heading" className="agenda-heading">
+                  Funnel
+                </h2>
+                <div
+                  className="funnel-scroll"
+                  role="region"
+                  aria-label="Funnel table"
+                  tabIndex={0}
+                >
+                  <table className="funnel-table">
+                    <caption className="sr-only">
+                      Applications by the week they were sent, and how far each
+                      got
+                    </caption>
+                    <thead>
+                      <tr>
+                        <th scope="col">Week</th>
+                        {FUNNEL_STEPS.map((step) => (
+                          <th scope="col" key={step}>
+                            {step}
+                          </th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {funnel.weeks.map((w) => (
+                        <tr key={w.monday}>
+                          <th scope="row">
+                            {w.monday === weekOf(today)
+                              ? 'This week'
+                              : shortDate(w.monday)}
+                          </th>
+                          {w.counts.map((n, i) => (
+                            <td
+                              key={FUNNEL_STEPS[i]}
+                              className={n ? '' : 'muted'}
+                            >
+                              {n}
+                            </td>
+                          ))}
+                        </tr>
+                      ))}
+                    </tbody>
+                    <tfoot>
+                      <tr>
+                        <th scope="row">All time</th>
+                        {funnel.all.map((n, i) => (
+                          <td key={FUNNEL_STEPS[i]}>{n}</td>
+                        ))}
+                      </tr>
+                    </tfoot>
+                  </table>
+                </div>
+              </section>
             )}
           </section>
           <aside className="today-rail">
