@@ -9,7 +9,7 @@ Date: 2026-10-28. Branch `feat/wi-052-smoke-tests` from `main` `81f506f` (WI-051
 - `playwright.config.ts` runs three loopback servers:
   - the fake Google (`tests/support/fake-google-server.ts`, 4455);
   - the fake OpenRouter (4466);
-  - `next start --port 3100` on the production build, with `e2e/env.ts`.
+  - `next start --port 3197` on the production build, with `e2e/env.ts` (3197 since WI-054: 3100 was taken by another local app).
 - `e2e/env.ts` holds throwaway values only: fixed test keys, loopback endpoints, `owner@example.com`.
 - One worker; reduced motion, so axe judges settled colours; traces and screenshots on failure.
 - `scripts/e2e-db.ts` drops and recreates the database in `E2E_DATABASE_URL` (default `silsila_e2e` on local PostgreSQL), then applies every migration. It refuses any name not ending in `_e2e`.

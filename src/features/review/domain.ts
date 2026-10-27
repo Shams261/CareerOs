@@ -537,3 +537,26 @@ export function dayHeading(items: { state: string }[]) {
     .filter(Boolean)
     .join(' · ');
 }
+
+/**
+ * Weekly review step 1 as a summary (WI-054): one line for the whole week in `dayHeading`'s
+ * words, and only the blocks still without a decision (not recorded, or recorded and needing
+ * an update), earliest first, a few at a time. Every day in full lives in Plan and in Details.
+ */
+export function weekSummary<
+  T extends { id: string; title: string; state: string; plannedStart: Date },
+>(days: { day: string; items: T[] }[], limit = 5) {
+  const all = days.flatMap((d) => d.items);
+  const open = days
+    .flatMap((d) =>
+      d.items
+        .filter((i) => i.state === 'unrecorded' || i.state === 'needs-update')
+        .map((item) => ({ day: d.day, item })),
+    )
+    .sort((a, c) => +a.item.plannedStart - +c.item.plannedStart);
+  return {
+    line: dayHeading(all),
+    open: open.slice(0, limit),
+    more: Math.max(0, open.length - limit),
+  };
+}

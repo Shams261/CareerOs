@@ -1,5 +1,5 @@
 import { defineConfig, devices } from '@playwright/test';
-import { appEnv, E2E_BASE_URL, E2E_OWNER } from './e2e/env';
+import { appEnv, E2E_BASE_URL, E2E_OWNER, E2E_PORT } from './e2e/env';
 
 /**
  * Browser smoke journeys (WI-052): the production build (`next start`) against a fresh
@@ -49,7 +49,7 @@ export default defineConfig({
       reuseExistingServer: !CI,
     },
     {
-      command: 'pnpm exec next start --port 3100',
+      command: `pnpm exec next start --port ${E2E_PORT}`,
       url: `${E2E_BASE_URL}/api/health`,
       env: appEnv,
       timeout: 120_000,
