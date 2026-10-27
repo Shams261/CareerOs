@@ -58,6 +58,7 @@ const ARGS: Record<ToolName, Record<string, unknown>> = {
   get_practice: {},
   get_jobs: {},
   get_patterns: {},
+  get_prep_docs: {},
   // Cards, handled by the message loop; through runTool they only refuse.
   propose_blocks: {},
   suggest_memory: {},

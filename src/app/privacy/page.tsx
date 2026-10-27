@@ -107,6 +107,10 @@ export default async function Privacy() {
           read to answer is not stored.
         </li>
         <li>
+          Interview prep docs Rumi writes for an application, with the web
+          sources they cite. They can be deleted and are in the export.
+        </li>
+        <li>
           Two cookies: the session cookie above and a theme preference. No
           analytics, advertising or tracking cookies.
         </li>
@@ -148,8 +152,19 @@ export default async function Privacy() {
         Notes, check-in notes, interview reflections, compensation, contacts,
         interviewer names and job descriptions are never sent. Rumi never
         changes anything itself: it can propose study blocks or a line to keep
-        in mind, and only the owner&rsquo;s press adds them. Nothing is shared
-        with anyone else, and nothing is sold.
+        in mind, and only the owner&rsquo;s press adds them.
+      </p>
+      <p>
+        Prepare with Rumi (optional) researches an application&rsquo;s interview
+        on the web when the owner presses it. Up to six searches go through the
+        same endpoint&rsquo;s web search, run by Exa, a third party without a
+        zero-retention promise; each search is only the company, the role and a
+        round type, such as &ldquo;Northwind Backend Engineer system design
+        interview questions&rdquo;, never anything the owner wrote. The doc is
+        then written on the zero-retention endpoint from what the searches
+        found, the upcoming rounds, and the titles of roadmap items (Study AI
+        on) and practice problems; the job description is sent only when the
+        owner ticks it. Nothing is shared with anyone else, and nothing is sold.
       </p>
 
       <h2>Keeping and removing data</h2>

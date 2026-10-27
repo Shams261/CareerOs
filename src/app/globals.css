@@ -6115,3 +6115,129 @@ button.attention-link {
     gap: 2px;
   }
 }
+/* WI-042: Prepare with Rumi and the prep doc. */
+.prep-panel {
+  display: grid;
+  gap: 16px;
+}
+.prep-panel .button {
+  justify-self: start;
+}
+.prep-queries {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  padding-left: 18px;
+  list-style: disc;
+  font-size: 14px;
+}
+.prep-note {
+  margin: 0;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+.prep-docs {
+  display: grid;
+  gap: 4px;
+  margin: 0 0 12px;
+}
+.prep-doc {
+  display: grid;
+  gap: 0;
+  max-width: var(--reading-max, 760px);
+}
+.prep-points {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding-left: 18px;
+  list-style: disc;
+  line-height: 1.55;
+}
+.prep-points ul {
+  margin: 4px 0 0;
+  padding-left: 18px;
+  list-style: circle;
+}
+.prep-cites {
+  display: inline-flex;
+  gap: 4px;
+}
+.prep-cite {
+  display: inline-flex;
+  align-items: center;
+  min-height: 20px;
+  padding: 0 6px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--primary);
+  text-decoration: none;
+  vertical-align: 1px;
+}
+.prep-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 6px;
+}
+.prep-link {
+  padding: 2px 8px;
+  border-radius: var(--radius-pill);
+  background: var(--primary-soft);
+  color: var(--text-primary);
+  font-size: 13px;
+  text-decoration: none;
+}
+.prep-plan {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.prep-plan li {
+  display: grid;
+  grid-template-columns: 64px minmax(0, 1fr);
+  gap: 10px;
+}
+.prep-day {
+  font-weight: 600;
+}
+.prep-sources {
+  display: grid;
+  gap: 10px;
+  margin: 0 0 12px;
+  padding: 0;
+  list-style: none;
+}
+.prep-sources li {
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr);
+  gap: 8px;
+  align-items: start;
+}
+.prep-source-main {
+  display: grid;
+  gap: 2px;
+  overflow-wrap: anywhere;
+}
+.prep-source-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+.prep-tier {
+  padding: 0 6px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+}
+.prep-tier.is-official {
+  border-color: var(--primary);
+  color: var(--primary);
+}

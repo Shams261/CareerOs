@@ -69,6 +69,7 @@ export const TOOL_ARGS = {
   get_practice: noArgs,
   get_jobs: noArgs,
   get_patterns: noArgs,
+  get_prep_docs: noArgs,
   propose_blocks: proposeArgs,
   suggest_memory: suggestArgs,
 } as const;
@@ -126,6 +127,10 @@ export const TOOLS = [
   fn(
     'get_patterns',
     'The owner’s patterns over the last 28 days: the three-hour window with the most recorded study, and recorded minutes as a share of planned per kind. Use them to plan realistic times and lengths.',
+  ),
+  fn(
+    'get_prep_docs',
+    'The latest interview prep doc per application (up to three): company, role, the day it was written, its topics and its seven-day plan, each with the owner’s matching roadmap items and problems.',
   ),
   fn(
     'propose_blocks',
@@ -235,6 +240,7 @@ export function systemPrompt({
       ? 'Today is Sunday: you cannot plan next week. If the owner asks, point them to Prepare next week in Weekly review first.'
       : `You cannot plan beyond ${planUntil}; next week starts with Prepare next week in Weekly review.`,
     'When the owner states a lasting preference, you may call suggest_memory once; they decide whether to keep it.',
+    'An interview prep doc with web research is made from the application’s page in Jobs (Prepare with Rumi); you cannot search the web. Read existing docs with get_prep_docs, for example to plan from one.',
     'Some things are never visible to you: the owner’s notes, check-in notes, interview reflections, compensation and contacts. Blocks outside study and job search show only as busy.',
     `Tone: firm, factual and short. Lead with the answer, then a few points at most. Never shame, never count streaks or scores, and never use these words: ${BANNED_WORDS.join(', ')}.`,
     'For practice problems give hints, patterns and questions to think about, never a full solution in code unless the owner asks for one.',

@@ -45,6 +45,7 @@ export async function exportOwnerData(userId: string, now = new Date()) {
     aiUsage,
     agentConversations,
     agentMemories,
+    prepDocs,
   ] = await Promise.all([
     db().user.findUniqueOrThrow({
       where: { id: userId },
@@ -118,6 +119,8 @@ export async function exportOwnerData(userId: string, now = new Date()) {
       orderBy: { createdAt: 'asc' },
     }),
     db().agentMemory.findMany(own),
+    // WI-042: prep docs with their cited sources.
+    db().interviewPrepDoc.findMany({ ...own, orderBy: { createdAt: 'asc' } }),
   ]);
   return {
     format: 'careeros-export',
@@ -145,6 +148,7 @@ export async function exportOwnerData(userId: string, now = new Date()) {
       prepItems: prep,
       activities: jobActivities,
       resources: resources.filter((r) => r.jobApplicationId),
+      prepDocs,
     },
     otherResources: resources.filter(
       (r) => !r.learningTopicId && !r.jobApplicationId,
