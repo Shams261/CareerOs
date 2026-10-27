@@ -42,6 +42,12 @@ import { PrepCheck } from '@/features/jobs/prep-check';
 import { randomUUID } from 'node:crypto';
 import { ActionForm } from '@/components/action-form';
 import { stageAction } from '@/features/jobs/actions';
+import { aiConfig } from '@/lib/env';
+import { isTestNamed } from '@/lib/test-data';
+import { AGENT_NAME } from '@/features/agent/domain';
+import { prepDocs } from '@/features/prep/service';
+import { estimateMicros, searchQueries } from '@/features/prep/domain';
+import { PreparePanel } from '@/features/prep/panel';
 export const metadata = { title: 'Jobs' };
 
 export default async function Application({
@@ -64,22 +70,44 @@ export default async function Application({
       (a, b) => +a.scheduledStart - +b.scheduledStart,
     )[0],
     at = (d: Date) => formatInTimeZone(d, zone, 'MMM d, HH:mm');
-  const [topics, problems, dsaTopics] = await Promise.all([
-    db().learningTopic.findMany({
-      where: { userId: user.id, subject: { status: { not: 'ARCHIVED' } } },
-      include: { subject: true },
-      orderBy: [{ subject: { ordering: 'asc' } }, { ordering: 'asc' }],
-    }),
-    db().dsaProblem.findMany({
-      where: { userId: user.id },
-      orderBy: { title: 'asc' },
-      select: { id: true, title: true },
-    }),
-    db().dsaTopic.findMany({
-      orderBy: { ordering: 'asc' },
-      select: { id: true, name: true },
-    }),
-  ]);
+  const ai = !!aiConfig();
+  const [topics, problems, dsaTopics, docs, studyItems, problemCount] =
+    await Promise.all([
+      db().learningTopic.findMany({
+        where: { userId: user.id, subject: { status: { not: 'ARCHIVED' } } },
+        include: { subject: true },
+        orderBy: [{ subject: { ordering: 'asc' } }, { ordering: 'asc' }],
+      }),
+      db().dsaProblem.findMany({
+        where: { userId: user.id },
+        orderBy: { title: 'asc' },
+        select: { id: true, title: true },
+      }),
+      db().dsaTopic.findMany({
+        orderBy: { ordering: 'asc' },
+        select: { id: true, name: true },
+      }),
+      // Prepare with Rumi (WI-042): the docs, and what a new one would send.
+      ai ? prepDocs(user, app.id) : [],
+      ai
+        ? db().roadmapItem.count({
+            where: {
+              userId: user.id,
+              roadmap: { studyAi: true, archivedAt: null },
+            },
+          })
+        : 0,
+      ai ? db().dsaProblem.count({ where: { userId: user.id } }) : 0,
+    ]);
+  // The rounds a doc would use: the upcoming ones, else every scheduled one (as `material`).
+  const scheduled = app.rounds.filter((r) => r.status === 'SCHEDULED');
+  const upcoming = scheduled.filter((r) => r.scheduledStart >= now);
+  const prepRounds = upcoming.length ? upcoming : scheduled;
+  const prepQueries = searchQueries({
+    company: app.company,
+    role: app.role,
+    roundTypes: prepRounds.map((r) => r.type),
+  });
   const links: LinkOption[] = [
     ...topics.map((t) => ({
       value: `learning:${t.id}`,
@@ -550,6 +578,43 @@ export default async function Application({
           </section>
         </section>
         <aside>
+          {ai && open && !isTestNamed(app.company, app.role) && (
+            <section className="card flat" aria-labelledby="prep-heading">
+              <h2 id="prep-heading">Prepare with {AGENT_NAME}</h2>
+              {docs.length > 0 && (
+                <ul className="plain-list prep-docs">
+                  {docs.map((d) => (
+                    <li key={d.id}>
+                      <Link
+                        className="link"
+                        href={`/jobs/${app.id}/prep/${d.id}`}
+                        prefetch={false}
+                      >
+                        Prep doc · {shortDate(dayKey(d.createdAt, zone))}
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              )}
+              <PanelButton panel="prep-rumi" className="button secondary small">
+                {docs.length ? 'Prepare again' : `Prepare with ${AGENT_NAME}`}
+              </PanelButton>
+              <SidePanel id="prep-rumi" title={`Prepare with ${AGENT_NAME}`}>
+                <PreparePanel
+                  applicationId={app.id}
+                  company={app.company}
+                  preview={{
+                    queries: prepQueries,
+                    rounds: prepRounds.length,
+                    roadmapItems: Math.min(studyItems, 60),
+                    problems: Math.min(problemCount, 40),
+                    hasJobDescription: !!app.jobDescription?.trim(),
+                    estimateMicros: estimateMicros(prepQueries.length),
+                  }}
+                />
+              </SidePanel>
+            </section>
+          )}
           <section className="card flat">
             <h2>Contacts</h2>
             {contacts.length ? (

@@ -172,6 +172,7 @@ model User {
   agentConversations AgentConversation[]
   agentMessages      AgentMessage[]
   agentMemories      AgentMemory[]
+  prepDocs           InterviewPrepDoc[]
 }
 
 model Goal {
@@ -396,19 +397,19 @@ model LearningTopic {
 }
 
 model JobApplication {
-  id                String           @id @default(cuid())
+  id                String             @id @default(cuid())
   userId            String
-  user              User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user              User               @relation(fields: [userId], references: [id], onDelete: Cascade)
   company           String
   role              String
   jobUrl            String?
   location          String?
-  workArrangement   WorkArrangement  @default(UNKNOWN)
+  workArrangement   WorkArrangement    @default(UNKNOWN)
   employmentType    String?
   source            String?
-  appliedAt         DateTime?        @db.Date
-  stage             JobStage         @default(SAVED)
-  priority          Int              @default(2)
+  appliedAt         DateTime?          @db.Date
+  stage             JobStage           @default(SAVED)
+  priority          Int                @default(2)
   recruiterName     String?
   recruiterContact  String?
   hiringContact     String?
@@ -416,13 +417,14 @@ model JobApplication {
   compensationNotes String?
   jobDescription    String?
   nextAction        String?
-  nextActionDate    DateTime?        @db.Date
-  actionOwner       ActionOwner      @default(NONE)
-  createdAt         DateTime         @default(now()) @db.Timestamptz(3)
-  updatedAt         DateTime         @updatedAt @db.Timestamptz(3)
+  nextActionDate    DateTime?          @db.Date
+  actionOwner       ActionOwner        @default(NONE)
+  createdAt         DateTime           @default(now()) @db.Timestamptz(3)
+  updatedAt         DateTime           @updatedAt @db.Timestamptz(3)
   resources         Resource[]
   activities        JobActivity[]
   rounds            InterviewRound[]
+  prepDocs          InterviewPrepDoc[]
 
   @@index([userId, nextActionDate])
   @@index([userId, stage])
@@ -972,6 +974,8 @@ enum AiFeature {
   LISTEN_ITEM
   /// WI-040: one model call of an Ask Rumi message (a message can take several).
   AGENT_CHAT
+  /// WI-042: one search or the writing call of an interview prep doc.
+  PREP_RESEARCH
 }
 
 enum AiOutcome {
@@ -1072,4 +1076,26 @@ model AgentMemory {
   createdAt DateTime @default(now()) @db.Timestamptz(3)
 
   @@index([userId, createdAt])
+}
+
+/// WI-042 (ADR-024): an interview prep doc Rumi wrote from web research. Owner material: deletable and in the export.
+model InterviewPrepDoc {
+  id                 String         @id @default(cuid())
+  userId             String
+  user               User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  applicationId      String
+  application        JobApplication @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  /// The company and role when it was written.
+  company            String
+  role               String
+  /// The searches sent (built by code from company, role and round types).
+  queries            String[]
+  usedJobDescription Boolean        @default(false)
+  /// The checked doc (`PrepDoc`) and its cited sources.
+  content            Json
+  sources            Json
+  costMicros         Int            @default(0)
+  createdAt          DateTime       @default(now()) @db.Timestamptz(3)
+
+  @@index([userId, applicationId, createdAt])
 }

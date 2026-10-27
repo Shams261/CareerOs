@@ -176,6 +176,70 @@ function agentAnswer(messages: ChatIn[], final: boolean) {
   };
 }
 
+/** A prep doc (WI-042) from what it was sent: every point cites the first sources. */
+function prepDoc(content: string) {
+  let input: {
+    sources?: { id: string }[];
+    roadmap?: { id: string }[];
+    problems?: { id: string }[];
+  } = {};
+  try {
+    input = JSON.parse(content);
+  } catch {
+    input = {};
+  }
+  const s = (input.sources ?? []).map((x) => x.id);
+  const r = (input.roadmap ?? []).map((x) => x.id);
+  const p = (input.problems ?? []).map((x) => x.id);
+  return {
+    process: [
+      {
+        text: 'A recruiter screen, then a coding round, then a system design round.',
+        sources: s.slice(0, 2),
+      },
+      {
+        text: 'Expect about four weeks from first call to decision.',
+        sources: ['S99'],
+      },
+    ],
+    rounds: [
+      {
+        name: 'Coding',
+        tests: ['Arrays and graphs', 'Talking through trade-offs'],
+        sources: s.slice(1, 2),
+      },
+      {
+        name: 'System design',
+        tests: ['Caching and queues', 'Scaling reads'],
+        sources: s.slice(0, 1),
+      },
+    ],
+    topics: [
+      {
+        name: 'Graphs',
+        why: 'Coding rounds often use BFS and DFS.',
+        sources: s.slice(0, 1),
+        links: [...r.slice(0, 1), ...p.slice(0, 1), 'R999'],
+      },
+      {
+        name: 'Caching',
+        why: 'System design asks about read-heavy services.',
+        sources: s.slice(1, 3),
+        links: r.slice(1, 2),
+      },
+    ],
+    plan: [1, 2, 3, 4, 5, 6, 7].map((day) => ({
+      day,
+      focus: day % 2 ? 'Graphs practice' : 'System design: caching',
+      links: day % 2 ? p.slice(0, 1) : r.slice(1, 2),
+    })),
+    questions: [
+      'How is the team’s on-call shared?',
+      'What does a strong first year look like?',
+    ],
+  };
+}
+
 createServer(async (req, res) => {
   const url = new URL(req.url ?? '/', `http://127.0.0.1:${port}`);
   const json = (status: number, data: unknown) => {
@@ -199,6 +263,38 @@ createServer(async (req, res) => {
       tools?: unknown[];
       tool_choice?: string;
     };
+    const plugins = (body as { plugins?: { id: string }[] }).plugins;
+    if (plugins?.some((p) => p.id === 'web')) {
+      // A search (WI-042): a short summary citing three generic pages, one on the company's site.
+      console.info(`[fake-openrouter] chat ${chats}`);
+      await new Promise((r) => setTimeout(r, 300));
+      const query = body.messages[1]?.content ?? '';
+      const company = query.split(' ')[0]?.toLowerCase() || 'company';
+      const n = chats;
+      return json(200, {
+        provider: 'Google',
+        usage: { prompt_tokens: 1200, completion_tokens: 180, cost: 0.0072 },
+        choices: [
+          {
+            message: {
+              content: `- The loop has a recruiter screen, a coding round and a system design round.\n- Interviewers look for clear trade-offs.`,
+              annotations: [
+                `https://${company}.jobs/interview-process-${n % 3}`,
+                `https://interview-guides.example.org/${company}-${n}`,
+                `https://engineering-blog.example.com/loops-${n % 2}`,
+              ].map((url, i) => ({
+                type: 'url_citation',
+                url_citation: {
+                  url,
+                  title: `Result ${i + 1} for ${query.slice(0, 40)}`,
+                },
+              })),
+            },
+            finish_reason: 'stop',
+          },
+        ],
+      });
+    }
     if (body.tools) {
       console.info(`[fake-openrouter] chat ${chats}`);
       await new Promise((r) => setTimeout(r, 400));
@@ -229,7 +325,9 @@ createServer(async (req, res) => {
                 : JSON.stringify(
                     format === 'listen'
                       ? listenScript(body.messages[1]?.content ?? '{}')
-                      : ladder(topic),
+                      : format === 'prep_doc'
+                        ? prepDoc(body.messages[1]?.content ?? '{}')
+                        : ladder(topic),
                   ),
           },
         },

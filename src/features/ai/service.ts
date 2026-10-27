@@ -198,7 +198,11 @@ export type ModelAnswer = {
   provider?: unknown;
   usage?: unknown;
   choices?: {
-    message?: { content?: unknown; tool_calls?: unknown };
+    message?: {
+      content?: unknown;
+      tool_calls?: unknown;
+      annotations?: unknown;
+    };
     finish_reason?: unknown;
   }[];
 };
@@ -237,7 +241,7 @@ export async function callModel({
 }: {
   user: ScheduleUser;
   cfg: AiConfig;
-  feature: 'GRILL_ITEM' | 'LISTEN_ITEM' | 'AGENT_CHAT';
+  feature: 'GRILL_ITEM' | 'LISTEN_ITEM' | 'AGENT_CHAT' | 'PREP_RESEARCH';
   body: unknown;
   reserve: number;
   now: Date;
@@ -246,12 +250,13 @@ export async function callModel({
 }) {
   const usage = await locked(user.id, async (tx) => {
     if (words.tooMany) {
-      // Ask Rumi counts owner messages instead, so its calls never use up these limits.
+      // Ask Rumi counts owner messages and prep docs count docs instead, so their calls
+      // never use up these limits.
       const hour = new Date(+now - 3600_000),
         day = new Date(+now - 24 * 3600_000);
       const scope = {
         userId: user.id,
-        feature: { not: 'AGENT_CHAT' as const },
+        feature: { notIn: ['AGENT_CHAT' as const, 'PREP_RESEARCH' as const] },
       };
       const [lastHour, lastDay] = await Promise.all([
         tx.aiUsage.count({ where: { ...scope, createdAt: { gte: hour } } }),
@@ -343,10 +348,11 @@ export async function ask<T>({
   now,
   fetcher,
   failure = 'Couldn’t build a useful ladder for this item. Try again later.',
+  words = GRILL_WORDS,
 }: {
   user: ScheduleUser;
   cfg: AiConfig;
-  feature: 'GRILL_ITEM' | 'LISTEN_ITEM';
+  feature: 'GRILL_ITEM' | 'LISTEN_ITEM' | 'PREP_RESEARCH';
   messages: Message[];
   format: OutputFormat;
   read: (
@@ -356,6 +362,8 @@ export async function ask<T>({
   fetcher: Fetcher;
   /** What the owner reads when both answers were unusable. */
   failure?: string;
+  /** Refusals and log lines: Grill Me's unless a feature brings its own (WI-042). */
+  words?: CallWords;
 }): Promise<T> {
   for (let attempt = 0; attempt < 2; attempt++) {
     const { usageId, answer, cost, durationMs } = await callModel({
@@ -366,7 +374,7 @@ export async function ask<T>({
       reserve: reservationMicros(messages, format.maxTokens),
       now,
       fetcher,
-      words: GRILL_WORDS,
+      words,
     });
     const content = answer.choices?.[0]?.message?.content;
     const result = read(content);

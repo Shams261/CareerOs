@@ -16,6 +16,7 @@ import { categoryGroup } from '@/features/review/domain';
 import { closedStages } from '@/features/jobs/domain';
 import { DEFAULT_NUDGES } from '@/features/nudges/domain';
 import { PATTERN_DAYS, patterns } from './plan-domain';
+import { latestPrepDocs } from '@/features/prep/service';
 import {
   ACTIVITY_DAYS,
   SCHEDULE_SPAN,
@@ -488,6 +489,8 @@ export function runTool(
       return getJobs(user, now);
     case 'get_patterns':
       return getPatterns(user, now);
+    case 'get_prep_docs':
+      return latestPrepDocs(user);
     case 'propose_blocks':
     case 'suggest_memory':
       // Cards, not reads: the message loop handles them (WI-041).
