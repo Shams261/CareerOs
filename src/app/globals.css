@@ -3202,6 +3202,10 @@ span > svg {
   background: transparent;
   width: auto;
 }
+.today-date-short,
+.today-util-date {
+  display: none;
+}
 .today-title .date-jump input:hover,
 .today-title .date-jump input:focus {
   border-color: var(--border);
@@ -3264,6 +3268,8 @@ span > svg {
 .today-workspace.is-today {
   grid-template-columns: minmax(0, 1fr) 340px;
   grid-template-areas: 'launcher rail' 'agenda rail';
+  /* The launcher row keeps its own height; a tall rail grows the agenda row (WI-049). */
+  grid-template-rows: auto 1fr;
 }
 .today-workspace > .launcher {
   grid-area: launcher;
@@ -3910,6 +3916,7 @@ a.attention-link:hover .attention-title {
   .today-workspace.is-today {
     grid-template-columns: minmax(0, 1fr);
     grid-template-areas: 'launcher' 'rail' 'agenda';
+    grid-template-rows: none;
     gap: 0;
   }
   .today-rail {
@@ -4135,6 +4142,7 @@ a.attention-link:hover .attention-title {
 .roadmap-workspace.is-today {
   grid-template-areas: 'main rail';
   grid-template-columns: minmax(0, 1fr) 340px;
+  grid-template-rows: none;
 }
 .jobs-main {
   grid-area: main;
@@ -6344,4 +6352,96 @@ button.attention-link {
 }
 .week-count.is-met {
   color: var(--success);
+}
+
+/* Today's header on a phone (WI-049): one row of title, short date, arrows and More; the
+   date field moves into More, so the launcher sits higher. */
+@media (max-width: 700px) {
+  .today-head .today-head-row {
+    flex-wrap: nowrap;
+    gap: 8px;
+  }
+  .today-head .today-title {
+    flex: 1 1 auto;
+    flex-wrap: nowrap;
+    align-items: center;
+    gap: 6px;
+  }
+  .today-head .today-title h1 {
+    font-size: 26px;
+    white-space: nowrap;
+  }
+  /* The tab bar's Today goes back to today, so the header keeps only the arrows. */
+  .today-head .day-nav > a:not(.day-nav-step) {
+    display: none;
+  }
+  .today-head .today-date {
+    font-size: 16px;
+    white-space: nowrap;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .today-head .today-title .date-jump {
+    display: none;
+  }
+  /* The long date stays for screen readers; the short one is what shows. */
+  .today-date-long {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+  .today-date-short {
+    display: inline;
+  }
+  /* Another day: the date is the heading; "Past day" stays for screen readers. */
+  .today-head.is-other-day .today-title h1 {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+  .today-head.is-other-day .today-date {
+    font-size: 24px;
+    font-weight: 600;
+    color: var(--ink);
+  }
+  .today-head .today-title .day-nav {
+    gap: 2px;
+    flex-wrap: nowrap;
+    flex-shrink: 0;
+  }
+  .today-head .today-title .day-nav-step {
+    min-width: 36px;
+    padding: 0;
+  }
+  .today-head .today-utils {
+    flex: 0 0 auto;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+  .today-head .today-utils.is-open .today-utils-items {
+    position: absolute;
+    top: calc(100% + 6px);
+    right: 0;
+    left: 0;
+    z-index: 20;
+    padding: 12px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    box-shadow: var(--shadow-md);
+  }
+  .today-head .today-head-row {
+    position: relative;
+  }
+  .today-util-date {
+    display: inline-flex;
+    flex-basis: 100%;
+  }
 }

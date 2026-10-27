@@ -278,3 +278,17 @@ export const sortAttention = (items: AttentionItem[]) =>
   items.sort(
     (a, b) => a.tier - b.tier || a.due - b.due || a.id.localeCompare(b.id),
   );
+
+/**
+ * On Jobs, the rail would only repeat the list (WI-049): a few applications are shown and every
+ * attention row points at one of them, so the list's own moves already say it all.
+ */
+export function railRepeatsList(
+  rows: { href: string | null }[],
+  visibleIds: string[],
+  limit: number,
+) {
+  if (!rows.length || visibleIds.length > limit) return false;
+  const app = (href: string | null) => href?.match(/^\/jobs\/([^/?#]+)/)?.[1];
+  return rows.every((r) => visibleIds.includes(app(r.href) ?? ''));
+}

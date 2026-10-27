@@ -40,3 +40,11 @@ export function blockReminderDue(
         now < block.plannedStart
     : now >= block.plannedEnd;
 }
+
+/**
+ * Reminder words in the brand's calm, factual voice (WI-049): what is true now, never what the
+ * owner failed to do. Checked against `BANNED_WORDS` in tests.
+ */
+export const DAILY_REVIEW_TEXT = 'Today is ready to review.';
+export const overdueText = (title: string, from: string, to: string) =>
+  `${title} (${from}–${to}) has nothing recorded yet.`;

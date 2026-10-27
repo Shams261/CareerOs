@@ -48,14 +48,20 @@ export function TodayHeader({
 }) {
   const isToday = day === today;
   return (
-    <header className="today-head">
+    <header className={`today-head${isToday ? '' : ' is-other-day'}`}>
       <div className="today-head-row">
         <div className="today-title">
           <h1>
             {isToday ? 'Today' : day < today ? 'Past day' : 'Upcoming day'}
           </h1>
           <span className="today-date">
-            {formatInTimeZone(bounds.start, zone, 'EEEE, d MMMM')}
+            <span className="today-date-long">
+              {formatInTimeZone(bounds.start, zone, 'EEEE, d MMMM')}
+            </span>
+            {/* One header row on a phone (WI-049): the short date. */}
+            <span className="today-date-short" aria-hidden="true">
+              {formatInTimeZone(bounds.start, zone, 'EEE d MMM')}
+            </span>
           </span>
           <nav className="day-nav" aria-label="Day navigation">
             <Link
@@ -87,6 +93,10 @@ export function TodayHeader({
           </nav>
         </div>
         <UtilityMenu>
+          {/* On a phone the date field moves into More, so the header stays one row. */}
+          <span className="today-util-date">
+            <DateJump key={day} value={day} path="/today" label="Open a date" />
+          </span>
           {isToday && (
             <PanelButton panel="activity" className="link-button today-util">
               Activity <ArrowUpRight size={14} aria-hidden="true" />

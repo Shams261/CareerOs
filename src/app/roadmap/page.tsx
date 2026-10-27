@@ -206,21 +206,17 @@ export default async function RoadmapPage() {
                     <span className="attention-icon" aria-hidden="true">
                       <Route size={22} />
                     </span>
+                    {/* Name first (WI-049): the roadmap, then what comes next in it. */}
                     <span className="attention-main">
-                      <span className="attention-label">{r.title}</span>
-                      <span className="attention-title">
-                        {r.next
-                          ? r.next.title
-                          : r.progress.total
-                            ? 'Everything done'
-                            : 'No items yet'}
-                      </span>
+                      <span className="attention-title">{r.title}</span>
                       <span className="attention-context">
                         {r.next
-                          ? `Continue · ${r.next.section}`
-                          : r.goal
-                            ? `Toward ${r.goal.title}`
-                            : 'Roadmap'}
+                          ? `Next: ${r.next.title} · ${r.next.section}`
+                          : r.progress.total
+                            ? 'Everything done'
+                            : r.goal
+                              ? `No items yet · Toward ${r.goal.title}`
+                              : 'No items yet'}
                       </span>
                     </span>
                     <span className="roadmap-counts">
