@@ -6268,3 +6268,59 @@ button.attention-link {
   --tile-bg: var(--primary-soft);
   --tile-fg: var(--primary);
 }
+
+/* Interview formats on an application (WI-047): one row per format, links to the material. */
+.format-list {
+  display: grid;
+}
+.format-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 4px 16px;
+  align-items: center;
+  padding: 10px 0;
+  border-top: 1px solid var(--border-subtle);
+}
+.format-row:first-child {
+  border-top: 0;
+  padding-top: 0;
+}
+.format-main {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+.format-main small {
+  color: var(--muted);
+  font-size: 13px;
+}
+.format-links {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 4px 14px;
+  font-size: 13px;
+  min-width: 0;
+}
+.format-links .link {
+  overflow-wrap: anywhere;
+}
+.format-choices {
+  display: grid;
+  gap: 6px;
+  border: 0;
+  padding: 0;
+  margin: 0 0 12px;
+}
+.format-choices legend {
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+@media (max-width: 700px) {
+  .format-row {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .format-links {
+    justify-content: flex-start;
+  }
+}

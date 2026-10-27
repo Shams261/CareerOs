@@ -420,6 +420,8 @@ model JobApplication {
   nextAction        String?
   nextActionDate    DateTime?          @db.Date
   actionOwner       ActionOwner        @default(NONE)
+  /// The interview formats this company's loop uses, before or beside its rounds (WI-047).
+  formats           InterviewType[]    @default([])
   createdAt         DateTime           @default(now()) @db.Timestamptz(3)
   updatedAt         DateTime           @updatedAt @db.Timestamptz(3)
   resources         Resource[]
@@ -464,6 +466,18 @@ enum InterviewType {
   HIRING_MANAGER
   FINAL
   OTHER
+  /// Interview formats of 2025–2026 (WI-047).
+  AI_ASSISTED
+  CODE_REVIEW
+  DEBUGGING
+  PRACTICAL
+}
+
+/// Whether an AI assistant may be used in a round (WI-047).
+enum AiPolicy {
+  UNKNOWN
+  ALLOWED
+  NOT_ALLOWED
 }
 
 enum InterviewStatus {
@@ -510,6 +524,7 @@ model InterviewRound {
   application    JobApplication      @relation(fields: [applicationId], references: [id], onDelete: Cascade)
   title          String
   type           InterviewType       @default(OTHER)
+  aiPolicy       AiPolicy            @default(UNKNOWN)
   scheduledStart DateTime            @db.Timestamptz(3)
   scheduledEnd   DateTime?           @db.Timestamptz(3)
   timezone       String

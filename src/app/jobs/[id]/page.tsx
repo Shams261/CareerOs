@@ -8,7 +8,8 @@ import { ResourceLink } from '@/components/resource-link';
 import { Disclosure } from '@/components/disclosure';
 import { FeedbackOutlet } from '@/components/feedback-outlet';
 import { PanelButton, SidePanel } from '@/components/side-panel';
-import { applicationDetail } from '@/features/jobs/service';
+import { applicationDetail, loopPractice } from '@/features/jobs/service';
+import { aiPolicyLabel, typeLabel, typeText } from '@/features/jobs/formats';
 import {
   calendarDate,
   followUpState,
@@ -26,6 +27,7 @@ import { dueContext } from '@/features/attention/domain';
 import {
   DetailsForm,
   FollowUpDoneForm,
+  FormatsForm,
   FollowUpForm,
   NoteForm,
   PrepForm,
@@ -71,7 +73,7 @@ export default async function Application({
     )[0],
     at = (d: Date) => formatInTimeZone(d, zone, 'MMM d, HH:mm');
   const ai = !!aiConfig();
-  const [topics, problems, dsaTopics, docs, studyItems, problemCount] =
+  const [topics, problems, dsaTopics, docs, studyItems, problemCount, loop] =
     await Promise.all([
       db().learningTopic.findMany({
         where: { userId: user.id, subject: { status: { not: 'ARCHIVED' } } },
@@ -98,6 +100,8 @@ export default async function Application({
           })
         : 0,
       ai ? db().dsaProblem.count({ where: { userId: user.id } }) : 0,
+      // Practise for this loop (WI-047).
+      open ? loopPractice(user, app, now) : [],
     ]);
   // The rounds a doc would use: the upcoming ones, else every scheduled one (as `material`).
   const scheduled = app.rounds.filter((r) => r.status === 'SCHEDULED');
@@ -106,7 +110,7 @@ export default async function Application({
   const prepQueries = searchQueries({
     company: app.company,
     role: app.role,
-    roundTypes: prepRounds.map((r) => r.type),
+    roundTypes: [...prepRounds.map((r) => r.type), ...app.formats],
   });
   const links: LinkOption[] = [
     ...topics.map((t) => ({
@@ -297,6 +301,79 @@ export default async function Application({
             </SidePanel>
           </section>
 
+          {open && (
+            <section className="card flat" aria-labelledby="formats-heading">
+              <div className="section-head">
+                <h2 id="formats-heading">Interview formats</h2>
+                <PanelButton panel="formats" className="link-button">
+                  {app.formats.length ? 'Edit formats' : 'Set formats'}
+                </PanelButton>
+              </div>
+              {!loop.length && (
+                <p className="empty">
+                  No formats yet. Tick the rounds this company uses, or add an
+                  interview with its type.
+                </p>
+              )}
+              {loop.length > 0 && (
+                <ul className="plain-list format-list">
+                  {loop.map((f) => {
+                    const href = (i: NonNullable<typeof f.next>) =>
+                      i.dsaProblemId
+                        ? `/dsa/${i.dsaProblemId}?from=${i.id}`
+                        : `/roadmap/${i.roadmapId}?section=${encodeURIComponent(i.section)}#item-${i.id}`;
+                    return (
+                      <li className="format-row" key={f.format}>
+                        <div className="format-main">
+                          <strong>{typeLabel[f.format]}</strong>
+                          <small>
+                            {[
+                              f.nextRound
+                                ? `Round ${shortDate(dayKey(f.nextRound, zone))}`
+                                : null,
+                              f.aiPolicy ? aiPolicyLabel[f.aiPolicy] : null,
+                              f.total ? `${f.done} of ${f.total} done` : null,
+                            ]
+                              .filter(Boolean)
+                              .join(' · ') || 'From this company’s loop'}
+                          </small>
+                        </div>
+                        <div className="format-links">
+                          {f.guide && (
+                            <Link
+                              className="link"
+                              href={href(f.guide)}
+                              prefetch={false}
+                            >
+                              What it tests
+                            </Link>
+                          )}
+                          {f.next && (
+                            <Link
+                              className="link"
+                              href={href(f.next)}
+                              prefetch={false}
+                            >
+                              Next: {f.next.title}
+                            </Link>
+                          )}
+                          {!f.guide && !f.next && (
+                            <span className="muted">
+                              No roadmap material for this yet
+                            </span>
+                          )}
+                        </div>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+              <SidePanel id="formats" title="Interview formats">
+                <FormatsForm id={app.id} formats={app.formats} />
+              </SidePanel>
+            </section>
+          )}
+
           <section className="card" aria-labelledby="interviews-heading">
             <h2 id="interviews-heading">Interviews</h2>
             <FeedbackOutlet channel="rounds" className="mb-3" />
@@ -329,7 +406,11 @@ export default async function Application({
                       </span>
                     </h3>
                     <p className="round-context">
-                      {label(r.type)} · {interviewTime(r, zone)}
+                      {typeText(r.type)}
+                      {r.aiPolicy !== 'UNKNOWN'
+                        ? ` · ${aiPolicyLabel[r.aiPolicy]}`
+                        : ''}{' '}
+                      · {interviewTime(r, zone)}
                       {r.interviewers ? ` · With ${r.interviewers}` : ''}
                       {r.location ? ` · ${r.location}` : ''}
                       {blockState === 'on' && r.scheduleBlock && (
@@ -495,7 +576,7 @@ export default async function Application({
                   </div>
                   <SidePanel id={panelId} title={r.title}>
                     <p className="muted">
-                      {label(r.type)} · {interviewTime(r, zone)}
+                      {typeText(r.type)} · {interviewTime(r, zone)}
                     </p>
                     {r.status !== 'CANCELLED' && (
                       <div className="panel-section">

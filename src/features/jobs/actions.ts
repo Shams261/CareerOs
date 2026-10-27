@@ -16,6 +16,7 @@ import {
   createApplication,
   recordRoundResult,
   rescheduleRound,
+  saveFormats,
   saveJobReminders,
   scheduleRound,
   setFollowUp,
@@ -172,5 +173,15 @@ export async function scheduleInterviewAction(_s: ActionState, f: FormData) {
     async () =>
       addInterviewToSchedule(await owner(), String(f.get('id') ?? '')),
     'Interview added to your schedule. It syncs to Google Calendar when connected.',
+  );
+}
+export async function formatsAction(_s: ActionState, f: FormData) {
+  return perform(
+    async () =>
+      saveFormats(await owner(), {
+        id: f.get('id'),
+        formats: f.getAll('formats'),
+      }),
+    'Formats saved.',
   );
 }

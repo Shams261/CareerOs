@@ -47,8 +47,24 @@ export const interviewTypes = [
   'BEHAVIORAL',
   'HIRING_MANAGER',
   'FINAL',
+  // Interview formats of 2025–2026 (WI-047).
+  'AI_ASSISTED',
+  'CODE_REVIEW',
+  'DEBUGGING',
+  'PRACTICAL',
   'OTHER',
 ] as const;
+/** Whether an AI assistant may be used in a round (WI-047). */
+export const aiPolicies = ['UNKNOWN', 'ALLOWED', 'NOT_ALLOWED'] as const;
+/** Rounds that test engineering skill; the weekly job-search summary counts them. */
+export const technicalRounds: readonly string[] = [
+  'CODING',
+  'SYSTEM_DESIGN',
+  'AI_ASSISTED',
+  'CODE_REVIEW',
+  'DEBUGGING',
+  'PRACTICAL',
+];
 export const interviewStatuses = [
   'SCHEDULED',
   'COMPLETED',
@@ -135,6 +151,7 @@ export const roundInput = z.object({
   applicationId: z.string().min(1),
   title: z.string().trim().max(120).optional(),
   type: z.enum(interviewTypes),
+  aiPolicy: z.enum(aiPolicies).default('UNKNOWN'),
   date: dateInput,
   start: localTime,
   end: z.preprocess(
@@ -151,6 +168,7 @@ export const roundDetailsInput = roundInput
   .pick({
     title: true,
     type: true,
+    aiPolicy: true,
     interviewers: true,
     meetingUrl: true,
     location: true,
@@ -580,9 +598,8 @@ export function weeklyJobSummary(input: WeeklyInput, now: Date, zone: string) {
   return {
     submitted: input.apps.filter((a) => dateInWeek(a.appliedAt)).length,
     recruiterScreens: liveRounds.filter((r) => r.type === 'RECRUITER').length,
-    technical: liveRounds.filter((r) =>
-      ['CODING', 'SYSTEM_DESIGN'].includes(r.type),
-    ).length,
+    technical: liveRounds.filter((r) => technicalRounds.includes(r.type))
+      .length,
     interviewsCompleted: input.rounds.filter(
       (r) => r.status === 'COMPLETED' && inWeek(r.completedAt),
     ).length,

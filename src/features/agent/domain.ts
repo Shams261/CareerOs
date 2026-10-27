@@ -122,7 +122,7 @@ export const TOOLS = [
   ),
   fn(
     'get_jobs',
-    'Active job applications (company, role, stage, next action date) and upcoming interview rounds with their prep items.',
+    'Active job applications (company, role, stage, next action date, the interview formats of the loop) and upcoming interview rounds with their type, whether AI is allowed, and their prep items. Practise the formats of the next interviews first.',
   ),
   fn(
     'get_patterns',

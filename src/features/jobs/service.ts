@@ -16,7 +16,6 @@ import {
   followUpState,
   interviewInterval,
   isOpen,
-  label,
   needsAction,
   nextRound,
   noteInput,
@@ -31,6 +30,14 @@ import {
   stageInput,
   weeklyJobSummary,
 } from './domain';
+import {
+  formatPractice,
+  formatSources,
+  formatsInput,
+  loopFormats,
+  typeText,
+  type FormatItem,
+} from './formats';
 
 type Tx = Prisma.TransactionClient;
 export const DUPLICATE_TOKEN = 'confirm-duplicate';
@@ -360,8 +367,9 @@ export async function scheduleRound(
         userId: user.id,
         applicationId: app.id,
         // The type is the title unless the owner wrote one ("Coding", "System design").
-        title: input.title || label(input.type),
+        title: input.title || typeText(input.type),
         type: input.type,
+        aiPolicy: input.aiPolicy,
         timezone: input.timezone,
         interviewers: input.interviewers,
         meetingUrl: input.meetingUrl ?? null,
@@ -894,3 +902,82 @@ export const jobTodaySummary = (user: ScheduleUser, now = new Date()) =>
 /** Cached for a few seconds per owner; every write drops it (see src/server/memo.ts). */
 export const todaysInterviews = (user: ScheduleUser, day: string) =>
   memo(user.id, `interviews:${day}`, () => loadTodaysInterviews(user, day));
+
+/** The formats this company's loop uses, as the owner ticked them (WI-047). */
+export async function saveFormats(user: ScheduleUser, raw: unknown) {
+  const { id, formats } = formatsInput.parse(raw);
+  return locked(user.id, async (tx) => {
+    const app = await ownedApplication(tx, user.id, id);
+    return tx.jobApplication.update({
+      where: { id: app.id },
+      data: { formats: [...new Set(formats)] },
+    });
+  });
+}
+
+/**
+ * Practise for this loop (WI-047): each format of the application and its upcoming rounds,
+ * with the guide item and the next item to work on from the owner's own roadmaps. One query.
+ */
+export async function loopPractice(
+  user: ScheduleUser,
+  app: {
+    company: string;
+    formats: readonly string[];
+    rounds: {
+      type: string;
+      aiPolicy: string;
+      status: string;
+      scheduledStart: Date;
+    }[];
+  },
+  now = new Date(),
+) {
+  const loop = loopFormats(app.formats, app.rounds, now);
+  if (!loop.length) return [];
+  const { guides, drills } = formatSources(loop.map((l) => l.format));
+  const OR: Prisma.RoadmapItemWhereInput[] = [
+    ...guides.map((g) => ({ slug: g.slug, roadmap: { title: g.roadmap } })),
+    ...drills.map((d) =>
+      d.p0Problems
+        ? {
+            roadmap: { title: d.roadmap },
+            priority: 1,
+            dsaProblemId: { not: null },
+          }
+        : d.companySection
+          ? {
+              roadmap: { title: d.roadmap },
+              section: { startsWith: 'Company: ' },
+            }
+          : {
+              roadmap: { title: d.roadmap },
+              ...(d.section ? { section: d.section } : {}),
+              ...(d.slugPrefix ? { slug: { startsWith: d.slugPrefix } } : {}),
+            },
+    ),
+  ];
+  const rows = await db().roadmapItem.findMany({
+    where: { userId: user.id, roadmap: { archivedAt: null }, OR },
+    select: {
+      id: true,
+      roadmapId: true,
+      section: true,
+      slug: true,
+      title: true,
+      status: true,
+      priority: true,
+      ordering: true,
+      dsaProblemId: true,
+      roadmap: { select: { title: true } },
+    },
+  });
+  const items: FormatItem[] = rows.map(({ roadmap, ...i }) => ({
+    ...i,
+    roadmapTitle: roadmap.title,
+  }));
+  return loop.map((l) => ({
+    ...l,
+    ...formatPractice(l.format, items, app.company),
+  }));
+}

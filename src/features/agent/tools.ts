@@ -1,4 +1,5 @@
 import 'server-only';
+import { aiPolicyLabel, typeText } from '@/features/jobs/formats';
 /**
  * Ask Rumi's tools (WI-040, ADR-024): compact, owner-scoped, read-only summaries. Each reader
  * selects only the fields it sends, so the never-read list (notes, check-in notes, interview
@@ -381,12 +382,14 @@ async function getJobs(user: ScheduleUser, now: Date) {
       appliedAt: true,
       nextActionDate: true,
       actionOwner: true,
+      formats: true,
       rounds: {
         where: { status: 'SCHEDULED', scheduledStart: { gte: now } },
         orderBy: { scheduledStart: 'asc' },
         select: {
           title: true,
           type: true,
+          aiPolicy: true,
           scheduledStart: true,
           prepItems: {
             orderBy: { ordering: 'asc' },
@@ -410,9 +413,16 @@ async function getJobs(user: ScheduleUser, now: Date) {
               nextActionBy: a.actionOwner.toLowerCase(),
             }
           : {}),
+        // The loop's formats and each round's AI rule (WI-047), only when the owner set them.
+        ...(a.formats.length
+          ? { formats: a.formats.map((f) => typeText(f).toLowerCase()) }
+          : {}),
         upcomingRounds: a.rounds.map((r) => ({
           title: r.title,
           type: r.type.toLowerCase().replace(/_/g, ' '),
+          ...(r.aiPolicy !== 'UNKNOWN'
+            ? { ai: aiPolicyLabel[r.aiPolicy].toLowerCase() }
+            : {}),
           on: dayKey(r.scheduledStart, user.timezone),
           at: hhmm(r.scheduledStart, user.timezone),
           prep: r.prepItems
