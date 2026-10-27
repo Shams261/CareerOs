@@ -22,14 +22,14 @@ Date: 2026-10-27. Branch `feat/wi-040-ask-rumi` from `main` `fd3f817` (R5 and AD
 
 **What Rumi reads** (`src/features/agent/tools.ts`): six read-only, owner-scoped tools that return compact summaries.
 
-| Tool           | Returns                                                                                                                                  |
-| -------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
-| `get_today`    | Local time, each block (time, kind, title, state, recorded minutes), the running session, rest day and closed                            |
-| `get_schedule` | Blocks per day, 14 days at a time, from 28 days back to 14 ahead                                                                         |
-| `get_activity` | Up to 28 days: minutes per kind per day, study block titles with their state, roadmap items done per roadmap, totals                     |
-| `get_roadmaps` | Roadmaps with Study AI on: done, left, in progress, next item, due for revision and the first five due. It also counts the hidden ones   |
-| `get_practice` | Problems by confidence, due for revision, the last 10 attempts (problem, difficulty, topic, confidence, solved alone, minutes)           |
-| `get_jobs`     | Active applications (company, role, stage, applied, next action date and owner) and upcoming rounds with their prep item titles and done |
+| Tool           | Returns                                                                                                                                                                           |
+| -------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `get_today`    | Local time, each block (time, kind, title, state, recorded minutes), the running session, rest day and closed                                                                     |
+| `get_schedule` | Blocks per day, 14 days at a time, from 28 days back to 14 ahead                                                                                                                  |
+| `get_activity` | Up to 28 days: every study kind with its total (0 when none) and last recorded day, minutes per kind per day, study block titles with their state, roadmap items done per roadmap |
+| `get_roadmaps` | Roadmaps with Study AI on: done, left, in progress, next item, due for revision and the first five due. It also counts the hidden ones                                            |
+| `get_practice` | Problems by confidence, due for revision, the last 10 attempts (problem, difficulty, topic, confidence, solved alone, minutes)                                                    |
+| `get_jobs`     | Active applications (company, role, stage, applied, next action date and owner) and upcoming rounds with their prep item titles and done                                          |
 
 **Privacy (ADR-024):**
 
@@ -92,3 +92,7 @@ Screenshots: `docs/screenshots/wi-040/`.
 3. Turn Study AI on for the roadmaps Rumi should see (each roadmap's settings). Rumi tells you how many it cannot see.
 4. Optional: tick your own study kinds (such as Backend) under Settings → Study nudges → Study categories, so their block titles are shared. Add a few lines under Settings → Data → Rumi knows.
 5. Rate about ten answers for the plan's measure.
+
+## Live check (2026-10-27)
+
+In the owner's Chrome, "What did I study least in the last 7 days?" answered from real records (DSA 30 minutes on Oct 21), and a Hinglish follow-up answered in Hinglish from `get_today`, with a work block sent only as "busy 07:30–09:00". The month stayed under US$0.01, and the console had no errors. One gap was found and fixed on `fix/rumi-study-kinds`: Rumi could not name kinds with no minutes, so `get_activity` now lists every study kind at 0 and the last day each was recorded.
