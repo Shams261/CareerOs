@@ -410,3 +410,66 @@ Attention is derived, not stored: overdue follow-up, result needed, interview be
 - **Nothing is stored.** The script exists only in the page. The ledger row (`AiFeature.LISTEN_ITEM`) holds no content. Logs carry counts only: sources fetched or failed, passages, lines kept and dropped by reason.
 
 **Consequences:** a line is only as good as its passages. The check tests that a passage states a line's words, not that the line is a correct reading of it. Showing every passage beside its line is how the owner judges the rest. The plan's test still applies: the owner rates five scripts useful before relying on Listen. Adding a site to a list is a reviewed code change.
+
+## ADR-024 — Rumi, the assistant: what it reads, writes and sends
+
+**Status:** Accepted (2026-10-27, owner sign-off below). WI-040 builds on it. It amends ADR-021, ADR-022 and ADR-023 for the Rumi plan (`docs/product/rumi-plan.md`).
+
+**Context:** ADR-021 kept the schedule, sessions and jobs away from any model. The owner now wants an assistant, Rumi, that reads them:
+
+- to say what was neglected;
+- to plan the next day;
+- to prepare a company interview doc from the web.
+
+The owner's decisions (2026-10-26) and the R5 spike (2026-10-27, `scripts/r5-spike.ts`, US$0.0133 in all) settle how.
+
+**What R5 showed** (model `anthropic/claude-haiku-5.5`, endpoint `google-vertex/global`, pinned with `only`, `allow_fallbacks: false`, `zdr: true`, `data_collection: "deny"`, `require_parameters: true`; every answer came from the pinned provider):
+
+| Check                              | Result                                                                                                                                                       |
+| ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Tools                              | The model called `get_activity({"days": 7})` unprompted, then answered in plain text from the result. Each call cost about US$0.0001 and took under a second |
+| Tools with a strict JSON format    | Accepted together; the model still chose the tool call                                                                                                       |
+| Web search, `web` plugin, Exa      | Ran on the pinned endpoint, cited 3 sites (amazon.jobs, jointaro.com, codesnatch.io), US$0.0076                                                              |
+| Web search, `web` plugin, Parallel | Ran, cited 2 sites (techinterview.coach, amazon.jobs), US$0.0055                                                                                             |
+| Output length with search          | Both search answers hit the 600-token ceiling despite asking for two sentences                                                                               |
+
+**Decision:**
+
+- **Reads, only through tools** that return compact, owner-scoped summaries:
+  - today and the schedule, up to 14 days;
+  - recorded activity per kind and day, up to 28 days, with study block titles and roadmap items done;
+  - roadmap progress, next and due items;
+  - practice confidence counts and recent attempts;
+  - active applications and upcoming rounds with their prep item titles.
+- **Never read:** any `notes` field, check-in notes, interview reflections (`topicsAsked`, `wentWell`, `toImprove`, `outcomeNotes`), `compensationNotes`, recruiter contacts and interviewer names.
+  - The job description only for a prep doc, when the owner ticks it in that doc's preview.
+  - Titles of blocks outside study and job categories (work, gym, personal) are sent only as "busy hh:mm–hh:mm".
+  - Roadmaps with `studyAi = false` and test-named records are left out.
+- **Writes only by confirmation.**
+  - A tool that would change something returns a proposal.
+  - Only the owner's press on its card applies it, re-checked under the owner lock, with Undo.
+  - Tool results and web pages are data, never instructions.
+- **Chat requests** use a separate `chatBody`: the same model and pinning as `requestBody`, plus `tools` and `tool_choice`, and free text with no strict format. The provider check also requires `tools` on the pinned endpoint.
+  - Each owner message allows at most 6 tool rounds and 20 seconds per call.
+  - It sends the last 12 messages and the "Rumi knows" list.
+- **Web search** (WI-042) runs through the `web` plugin with **Exa**, at most 8 searches for a doc, outside the chat loop. It has no write tools and its output ceiling is 3,000 tokens.
+  - The query is built by code from the company, role and round type, and sent as the whole user message. Nothing personal is ever in it.
+  - Exa and the other engines are third parties without a zero-retention promise. That is why the query stays generic, and why `/privacy` names them.
+  - Sources are shown with their site and date, marked **Official** when on the company's own domain (such as amazon.jobs) and **Other** otherwise.
+- **Stored, as owner records:** conversations and their messages, prep docs with their sources, and the "Rumi knows" list. All of them are deletable and in the export.
+  - The ledger (`AiUsage`) keeps cost and token counts only, with new features `AGENT_CHAT` and `PREP_RESEARCH`.
+- **Limits:**
+  - The US$3 monthly stop and the US$5 key limit stay.
+  - Agent use counts owner messages, at 30 an hour and 100 a day; existing features keep their limits.
+  - Haiku stays the model for everything.
+
+**Consequences:**
+
+- Rumi can see the owner's study and job picture, which is the point. The zero-retention endpoint and the never-read list are the protection.
+- A web search query leaves to a third party, but only as generic words.
+- R5's sources ranged from official to thin. The doc therefore marks which is which instead of claiming that everything is verified.
+- `/privacy`, `security.md` and CLAUDE.md change with WI-040 and WI-042.
+
+**Owner sign-off:**
+
+- 2026-10-27: the owner read the R5 results and these rules and signed off on ADR-024 as written.
