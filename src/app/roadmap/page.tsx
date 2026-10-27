@@ -14,7 +14,13 @@ import {
   goalsOverview,
   revisionDue,
   roadmapList,
+  weekPlan,
 } from '@/features/roadmap/service';
+import { planQuestion } from '@/features/roadmap/week';
+import { AskRumiButton } from '@/features/agent/ask-button';
+import { AGENT_NAME } from '@/features/agent/domain';
+import { aiConfig } from '@/lib/env';
+import { shortDate } from '@/lib/time';
 import { continueTarget, goalLine } from '@/features/roadmap/domain';
 import { roadmapRevisionRows } from '@/features/attention/domain';
 import { formatDuration } from '@/features/schedule/row';
@@ -34,10 +40,11 @@ export default async function RoadmapPage() {
   const user = await owner(),
     now = new Date(),
     today = dayKey(now, user.timezone);
-  const [goals, roadmaps, due] = await Promise.all([
+  const [goals, roadmaps, due, week] = await Promise.all([
     goalsOverview(user, now),
     roadmapList(user, now),
     revisionDue(user, now),
+    weekPlan(user, now),
   ]);
   const active = goals.filter((g) => g.status === 'ACTIVE'),
     rest = goals.filter((g) => g.status !== 'ACTIVE'),
@@ -94,6 +101,65 @@ export default async function RoadmapPage() {
       )}
       <div className="today-workspace is-today roadmap-workspace">
         <section className="jobs-main" aria-labelledby="roadmaps-heading">
+          {live.length > 0 && (
+            <section
+              className="card flat week-mix"
+              aria-labelledby="week-heading"
+            >
+              <div className="section-head">
+                <h2 id="week-heading">This week</h2>
+                {aiConfig() && (
+                  <AskRumiButton
+                    text={planQuestion(week.rows)}
+                    className="button secondary small"
+                  >
+                    Plan with {AGENT_NAME}
+                  </AskRumiButton>
+                )}
+              </div>
+              <p className="muted week-ready">{week.ready}</p>
+              <ul className="plain-list format-list">
+                {week.rows.map((r) => (
+                  <li className="format-row" key={r.format}>
+                    <div className="format-main">
+                      <strong>
+                        {r.label}{' '}
+                        <span
+                          className={`week-count${r.done >= r.target ? ' is-met' : ''}`}
+                        >
+                          {r.done} of {r.target}
+                        </span>
+                      </strong>
+                      {r.interview && (
+                        <small>
+                          {r.interview.company} · {shortDate(r.interview.on)}
+                        </small>
+                      )}
+                    </div>
+                    <div className="format-links">
+                      {r.next ? (
+                        <Link
+                          className="link"
+                          href={
+                            r.next.dsaProblemId
+                              ? `/dsa/${r.next.dsaProblemId}?from=${r.next.id}`
+                              : `/roadmap/${r.next.roadmapId}?section=${encodeURIComponent(r.next.section)}#item-${r.next.id}`
+                          }
+                          prefetch={false}
+                        >
+                          Next: {r.next.title}
+                        </Link>
+                      ) : (
+                        <span className="muted">
+                          No roadmap material for this yet
+                        </span>
+                      )}
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
           <div className="agenda-head">
             <h2 id="roadmaps-heading" className="agenda-heading">
               Roadmaps

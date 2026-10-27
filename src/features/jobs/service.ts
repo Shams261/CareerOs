@@ -36,6 +36,7 @@ import {
   formatsInput,
   loopFormats,
   typeText,
+  type Format,
   type FormatItem,
 } from './formats';
 
@@ -916,26 +917,15 @@ export async function saveFormats(user: ScheduleUser, raw: unknown) {
 }
 
 /**
- * Practise for this loop (WI-047): each format of the application and its upcoming rounds,
- * with the guide item and the next item to work on from the owner's own roadmaps. One query.
+ * The owner's roadmap items that any of these formats points at (guides and drill sets), in
+ * one query, leaving out archived roadmaps. Shared by the loop card and the weekly mix.
  */
-export async function loopPractice(
+export async function formatItems(
   user: ScheduleUser,
-  app: {
-    company: string;
-    formats: readonly string[];
-    rounds: {
-      type: string;
-      aiPolicy: string;
-      status: string;
-      scheduledStart: Date;
-    }[];
-  },
-  now = new Date(),
-) {
-  const loop = loopFormats(app.formats, app.rounds, now);
-  if (!loop.length) return [];
-  const { guides, drills } = formatSources(loop.map((l) => l.format));
+  formats: Format[],
+): Promise<FormatItem[]> {
+  if (!formats.length) return [];
+  const { guides, drills } = formatSources([...new Set(formats)]);
   const OR: Prisma.RoadmapItemWhereInput[] = [
     ...guides.map((g) => ({ slug: g.slug, roadmap: { title: g.roadmap } })),
     ...drills.map((d) =>
@@ -969,13 +959,40 @@ export async function loopPractice(
       priority: true,
       ordering: true,
       dsaProblemId: true,
+      completedAt: true,
       roadmap: { select: { title: true } },
     },
   });
-  const items: FormatItem[] = rows.map(({ roadmap, ...i }) => ({
+  return rows.map(({ roadmap, ...i }) => ({
     ...i,
     roadmapTitle: roadmap.title,
   }));
+}
+
+/**
+ * Practise for this loop (WI-047): each format of the application and its upcoming rounds,
+ * with the guide item and the next item to work on from the owner's own roadmaps. One query.
+ */
+export async function loopPractice(
+  user: ScheduleUser,
+  app: {
+    company: string;
+    formats: readonly string[];
+    rounds: {
+      type: string;
+      aiPolicy: string;
+      status: string;
+      scheduledStart: Date;
+    }[];
+  },
+  now = new Date(),
+) {
+  const loop = loopFormats(app.formats, app.rounds, now);
+  if (!loop.length) return [];
+  const items = await formatItems(
+    user,
+    loop.map((l) => l.format),
+  );
   return loop.map((l) => ({
     ...l,
     ...formatPractice(l.format, items, app.company),

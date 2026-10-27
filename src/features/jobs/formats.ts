@@ -124,6 +124,8 @@ export type FormatItem = {
   priority: number;
   ordering: number;
   dsaProblemId: string | null;
+  /** When the item turned Done; the weekly mix counts this week's (WI-048). */
+  completedAt?: Date | null;
 };
 
 /** "Stripe" matches "Company: Stripe" and "Company: Canadian scale-ups (Clio, Cohere, 1Password)". */
@@ -156,6 +158,21 @@ export type FormatPractice = {
   total: number;
 };
 
+/** A format's drill items: each set in roadmap order, the sets in turn, an item once. */
+export function formatSet(
+  format: Format,
+  items: FormatItem[],
+  company: string,
+) {
+  const set: FormatItem[] = [];
+  for (const d of FORMAT_PRACTICE[format].drills)
+    for (const i of items
+      .filter((x) => matches(d, x, company))
+      .sort((a, b) => a.ordering - b.ordering))
+      if (!set.includes(i)) set.push(i);
+  return set;
+}
+
 /**
  * One format's material from the owner's items: each drill set in roadmap order (`ordering`
  * runs across a roadmap's sections), the sets one after another, an item counted once.
@@ -165,13 +182,8 @@ export function formatPractice(
   items: FormatItem[],
   company: string,
 ): FormatPractice {
-  const { guide, drills } = FORMAT_PRACTICE[format];
-  const set: FormatItem[] = [];
-  for (const d of drills)
-    for (const i of items
-      .filter((x) => matches(d, x, company))
-      .sort((a, b) => a.ordering - b.ordering))
-      if (!set.includes(i)) set.push(i);
+  const { guide } = FORMAT_PRACTICE[format];
+  const set = formatSet(format, items, company);
   return {
     format,
     guide:

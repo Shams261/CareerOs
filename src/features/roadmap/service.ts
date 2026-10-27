@@ -23,6 +23,17 @@ import {
 } from './domain';
 import { z } from 'zod';
 import { followPractice } from './follow';
+import { isTestNamed } from '@/lib/test-data';
+import { closedStages } from '@/features/jobs/domain';
+import { loopFormats } from '@/features/jobs/formats';
+import { formatItems } from '@/features/jobs/service';
+import {
+  INTERVIEW_HORIZON_DAYS,
+  WEEKLY_MIX,
+  readyLine,
+  weekMix,
+  type WeekInterview,
+} from './week';
 
 const itemInclude = {
   learningTopic: {
@@ -556,3 +567,91 @@ export const goalsOverview = (user: ScheduleUser, now = new Date()) =>
   memo(user.id, 'goals', () => loadGoalsOverview(user, now));
 export const chainDays = (user: ScheduleUser, now = new Date(), length = 14) =>
   memo(user.id, `chain:${length}`, () => loadChainDays(user, now, length));
+
+/**
+ * This week on the Roadmap overview (WI-048): the weekly mix with its counts and next items,
+ * the formats of interviews in the next two weeks first, and the ready line (the nearest
+ * goal's date and the P0 items left). Reads only; memoized like the other snapshots.
+ */
+async function loadWeekPlan(user: ScheduleUser, now: Date) {
+  const today = dayKey(now, user.timezone),
+    days = weekDays(today),
+    start = dayBounds(days[0], user.timezone).start,
+    end = dayBounds(days[6], user.timezone).end,
+    horizon = new Date(+now + INTERVIEW_HORIZON_DAYS * 86400000);
+  const soon = {
+    status: 'SCHEDULED' as const,
+    scheduledStart: { gte: now, lt: horizon },
+  };
+  const [apps, attempted, p0Left, goal] = await Promise.all([
+    db().jobApplication.findMany({
+      where: {
+        userId: user.id,
+        stage: { notIn: [...closedStages] },
+        rounds: { some: soon },
+      },
+      select: {
+        company: true,
+        role: true,
+        formats: true,
+        rounds: {
+          where: soon,
+          orderBy: { scheduledStart: 'asc' },
+          select: {
+            type: true,
+            aiPolicy: true,
+            status: true,
+            scheduledStart: true,
+          },
+        },
+      },
+    }),
+    db().dsaAttempt.findMany({
+      where: { userId: user.id, attemptedAt: { gte: start, lt: end } },
+      distinct: ['problemId'],
+      select: { problemId: true },
+    }),
+    db().roadmapItem.count({
+      where: {
+        userId: user.id,
+        priority: 1,
+        status: { not: 'DONE' },
+        roadmap: { archivedAt: null },
+      },
+    }),
+    db().goal.findFirst({
+      where: {
+        userId: user.id,
+        status: 'ACTIVE',
+        targetDate: { gte: new Date(today) },
+      },
+      orderBy: { targetDate: 'asc' },
+      select: { title: true, targetDate: true },
+    }),
+  ]);
+  const interviews: WeekInterview[] = apps
+    .filter((a) => !isTestNamed(a.company, a.role))
+    .flatMap((a) =>
+      loopFormats(a.formats, a.rounds, now).map((l) => ({
+        company: a.company,
+        format: l.format,
+        // A ticked format without its own round takes the loop's first round.
+        on: dayKey(l.nextRound ?? a.rounds[0].scheduledStart, user.timezone),
+      })),
+    );
+  const items = await formatItems(user, [
+    ...WEEKLY_MIX.map((m) => m.format),
+    ...interviews.map((i) => i.format),
+  ]);
+  return {
+    rows: weekMix({
+      items,
+      problemsAttempted: attempted.length,
+      week: { start, end },
+      interviews,
+    }),
+    ready: readyLine(goal, p0Left, today),
+  };
+}
+export const weekPlan = (user: ScheduleUser, now = new Date()) =>
+  memo(user.id, 'week-plan', () => loadWeekPlan(user, now));

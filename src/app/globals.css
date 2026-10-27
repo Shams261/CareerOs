@@ -6324,3 +6324,24 @@ button.attention-link {
     justify-content: flex-start;
   }
 }
+
+/* This week on the Roadmap overview (WI-048): the weekly mix, reusing the format rows. */
+.week-mix {
+  margin-bottom: 18px;
+}
+.week-mix .section-head {
+  margin-bottom: 4px;
+}
+.week-ready {
+  font-size: 13px;
+  margin: 0 0 10px;
+}
+.week-count {
+  font-weight: 500;
+  font-size: 13px;
+  color: var(--muted);
+  margin-left: 6px;
+}
+.week-count.is-met {
+  color: var(--success);
+}

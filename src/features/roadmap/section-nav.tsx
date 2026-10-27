@@ -141,6 +141,7 @@ export function ItemFilters({ q, show }: { q: string; show: string }) {
         <select value={show} onChange={(e) => apply({ show: e.target.value })}>
           <option value="all">Everything</option>
           <option value="open">Not done</option>
+          <option value="p0">P0 not done</option>
           <option value="revision">Due for revision</option>
           <option value="asked">Asked in interviews</option>
         </select>
