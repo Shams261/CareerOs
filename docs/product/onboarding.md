@@ -1,6 +1,6 @@
 # Owner onboarding checklist
 
-For the owner's first days on a deployed Silsila. The app leads with the first step itself: Today shows a single **Start here** card until the first routine exists, and Practice, Learn and Jobs do the same for their first topic, subject and application. Settings → **Getting started** lists the remaining steps and disappears when they are done.
+For the owner's first days on a deployed Silsila. The app leads with the first step itself: Today shows a single **Start here** card until the first routine exists, and Practice, Learn and Jobs do the same for their first topic, subject and application. **Make Silsila yours** (WI-050) lists six steps, each ticked from the owner's own records: a goal date, study routines, study kinds, Google Calendar, notifications on a device and a real application. The list opens Today's rail, where each open step goes straight to its page or panel and Hide for now hides it for a week. Settings shows the same list. Both disappear once every step is done.
 
 ## First sign-in (10 minutes)
 

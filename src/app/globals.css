@@ -6445,3 +6445,39 @@ button.attention-link {
     flex-basis: 100%;
   }
 }
+
+/* Make Silsila yours on Today (WI-050): the steps, done ones quiet, open ones with a way on. */
+.setup-steps {
+  margin-bottom: 22px;
+}
+.setup-steps .section-head {
+  margin-bottom: 8px;
+}
+.setup-step {
+  display: grid;
+  grid-template-columns: 18px minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+  padding: 8px 0;
+  border-top: 1px solid var(--border-subtle);
+}
+.setup-step:first-child {
+  border-top: 0;
+}
+.setup-icon {
+  color: var(--muted);
+}
+.setup-step.is-done .setup-icon {
+  color: var(--success);
+}
+.setup-step.is-done .setup-title {
+  color: var(--muted);
+}
+.setup-title {
+  font-size: 14px;
+  min-width: 0;
+}
+.setup-hide {
+  margin-top: 6px;
+  font-size: 13px;
+}

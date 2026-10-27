@@ -1,4 +1,6 @@
 import { savedTheme } from '@/server/theme';
+import { setupState } from '@/features/setup/service';
+import { setupLine } from '@/features/setup/domain';
 import Link from 'next/link';
 import { formatDistance } from 'date-fns';
 import {
@@ -29,8 +31,6 @@ import { JobReminderForm } from '@/features/jobs/forms';
 import { ShortcutsToggle } from '@/components/shortcuts-toggle';
 import { UtilityMenu } from '@/features/today/utility-menu';
 import { signOutAction } from '@/features/auth/actions';
-import { currentWeek } from '@/features/review/domain';
-import { shiftDay } from '@/features/schedule/domain';
 import { SettingsIndex } from '@/features/settings/index-nav';
 import { SettingRow } from '@/features/settings/rows';
 import { NudgeSettingsForm } from '@/features/nudges/forms';
@@ -66,15 +66,13 @@ export default async function Settings({
       return null;
     }
   })();
-  const nextMonday = shiftDay(currentWeek(now, user.timezone), 7);
   const [
     prefs,
     devices,
     health,
     calendar,
     jobs,
-    routines,
-    nextWeekPlans,
+    setup,
     nudgeRow,
     routineCategories,
     ai,
@@ -97,14 +95,7 @@ export default async function Settings({
     healthCheck(),
     db().calendarConnection.findUnique({ where: { userId: user.id } }),
     db().jobRun.findMany(),
-    db().routineBlock.count({ where: { userId: user.id, enabled: true } }),
-    db().dailyPlan.count({
-      where: {
-        userId: user.id,
-        generatedAt: { not: null },
-        date: { gte: new Date(nextMonday) },
-      },
-    }),
+    setupState(user),
     db().studyNudgeSetting.findUnique({ where: { userId: user.id } }),
     db().routineBlock.findMany({
       where: { userId: user.id },
@@ -123,14 +114,9 @@ export default async function Settings({
     followUpPref = prefOf('JOB_FOLLOW_UP'),
     interviewPref = prefOf('INTERVIEW');
   const job = (name: string) => jobs.find((j) => j.name === name);
-  // The checklist disappears once everything on it is done.
-  const steps: [string, boolean, string][] = [
-    ['Add a routine', routines > 0, '/calendar'],
-    ['Enable notifications on a device', devices > 0, '#reminders'],
-    ['Connect Google Calendar', calendar?.status === 'CONNECTED', '#calendar'],
-    ['Prepare next week', nextWeekPlans > 0, '/review?step=plan'],
-  ];
-  const remaining = steps.filter(([, done]) => !done);
+  // Make Silsila yours (WI-050), the same steps as Today's; it disappears once all are done.
+  const steps = setup;
+  const remaining = steps.filter((s) => !s.done);
   const groups = [
     { id: 'reminders', label: 'Reminders' },
     { id: 'calendar', label: 'Calendar' },
@@ -188,18 +174,28 @@ export default async function Settings({
         <div className="settings-main">
           {remaining.length > 0 && (
             <section className="card" aria-labelledby="start-heading">
-              <h2 id="start-heading">Getting started</h2>
+              <h2 id="start-heading">Make Silsila yours</h2>
+              <p className="muted">{setupLine(steps)}</p>
               <ol className="plain-list checklist">
-                {steps.map(([label, done, href]) => (
-                  <li key={label}>
-                    {done ? (
+                {steps.map((s) => (
+                  <li key={s.key}>
+                    {s.done ? (
                       <Check size={14} aria-hidden="true" />
                     ) : (
                       <Circle size={14} aria-hidden="true" />
                     )}{' '}
-                    <span className="sr-only">{done ? 'Done:' : 'To do:'}</span>{' '}
-                    <Link className="link" href={href}>
-                      {label}
+                    <span className="sr-only">
+                      {s.done ? 'Done:' : 'To do:'}
+                    </span>{' '}
+                    <Link
+                      className="link"
+                      href={
+                        s.href.startsWith('/settings')
+                          ? s.href.slice('/settings'.length)
+                          : s.href
+                      }
+                    >
+                      {s.title}
                     </Link>
                   </li>
                 ))}
