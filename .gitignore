@@ -22,3 +22,6 @@ test-results/
 
 # Local dev-server launch config for the desktop app
 .claude/launch.json
+
+# Browser smoke suite (WI-052): the signed-in session of the throwaway e2e owner
+/e2e/.auth/

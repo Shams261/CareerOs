@@ -4198,6 +4198,8 @@ a.attention-link:hover .attention-title {
 }
 .next-move-main .attention-label {
   display: block;
+  /* Meta grey falls under 4.5:1 on the tinted box; the secondary ink does not (WI-052, axe). */
+  color: var(--text-secondary);
 }
 .next-move-main strong {
   font-size: 17px;
@@ -5708,10 +5710,18 @@ button.attention-link {
     justify-content: center;
     padding: 0;
   }
-  .command-button span,
   .command-button kbd,
   .command-foot > span[aria-hidden='true'] {
     display: none;
+  }
+  /* Icon only on a phone; the word stays the button's name for screen readers. */
+  .command-button .command-button-label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
   }
   .command-backdrop {
     padding-top: 8vh;
