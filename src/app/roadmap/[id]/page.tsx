@@ -29,7 +29,7 @@ export const metadata = { title: 'Roadmap' };
 
 const dateLabel = (d: Date) =>
   formatInTimeZone(new Date(`${revisionDay(d)}T12:00:00Z`), 'UTC', 'MMM d');
-const shows = ['all', 'open', 'revision', 'asked'] as const;
+const shows = ['all', 'open', 'p0', 'revision', 'asked'] as const;
 type Show = (typeof shows)[number];
 
 export default async function RoadmapDetail({
@@ -111,7 +111,13 @@ export default async function RoadmapDetail({
                 dayKey(item.completedAt, user.timezone) === today))) ||
           (show === 'revision' &&
             ['due', 'overdue'].includes(revisionState(item, today))) ||
-          (show === 'asked' && item.askedInInterview)) &&
+          (show === 'asked' && item.askedInInterview) ||
+          // P0 not done (WI-048): the deadline view; an item done today stays until tomorrow.
+          (show === 'p0' &&
+            item.priority === 1 &&
+            (item.status !== 'DONE' ||
+              (!!item.completedAt &&
+                dayKey(item.completedAt, user.timezone) === today)))) &&
         (!q || item.title.toLowerCase().includes(q)),
     )
     .map((item) => ({
