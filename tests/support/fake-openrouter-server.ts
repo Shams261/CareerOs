@@ -6,7 +6,9 @@
  *
  * It serves the two public lists the provider check reads and answers chat completions with
  * a fixed, generic five-rung ladder about the topic it was sent, or a Listen script built from
- * the passages it was sent. It prints request counts
+ * the passages it was sent. An Ask Rumi request (one with tools, WI-040) gets a tool call
+ * picked from the question's words, then a short answer that names what the tools returned.
+ * It prints request counts
  * only, never what was sent. FAKE_OPENROUTER_MODE=invalid answers with a broken ladder;
  * FAKE_OPENROUTER_MODE=no-zdr leaves the pinned endpoint off the ZDR list.
  */
@@ -25,7 +27,13 @@ async function read(req: IncomingMessage) {
 const endpoint = {
   tag: ENDPOINT,
   provider_name: 'Google',
-  supported_parameters: ['max_tokens', 'response_format', 'structured_outputs'],
+  supported_parameters: [
+    'max_tokens',
+    'response_format',
+    'structured_outputs',
+    'tools',
+    'tool_choice',
+  ],
   pricing: { prompt: '0.0000001', completion: '0.0000005' },
 };
 function ladder(topic: string) {
@@ -75,6 +83,59 @@ function listenScript(content: string) {
   return { lines };
 }
 
+type ChatIn = {
+  role: string;
+  content: string | null;
+  tool_call_id?: string;
+};
+/** The tool a question asks for, by its words, as the model would choose it. */
+function pickTool(question: string) {
+  const q = question.toLowerCase();
+  if (/today|aaj|now|start/.test(q)) return ['get_today', {}] as const;
+  if (/roadmap|revision|revise/.test(q)) return ['get_roadmaps', {}] as const;
+  if (/job|interview|prep|company/.test(q)) return ['get_jobs', {}] as const;
+  if (/practice|problem|dsa/.test(q)) return ['get_practice', {}] as const;
+  return ['get_activity', { days: 7 }] as const;
+}
+/** Ask Rumi: a tool call first; once a tool answered, a short reply naming its fields. */
+function agentAnswer(messages: ChatIn[], final: boolean) {
+  const lastUser = messages.map((m) => m.role).lastIndexOf('user');
+  const results = messages.slice(lastUser + 1).filter((m) => m.role === 'tool');
+  if (!results.length && !final) {
+    const [name, args] = pickTool(messages[lastUser]?.content ?? '');
+    return {
+      message: {
+        content: null,
+        tool_calls: [
+          {
+            id: `call_${chats}`,
+            type: 'function',
+            function: { name, arguments: JSON.stringify(args) },
+          },
+        ],
+      },
+      finish_reason: 'tool_calls',
+    };
+  }
+  let keys: string[] = [];
+  try {
+    keys = Object.keys(JSON.parse(results[0]?.content ?? '{}'));
+  } catch {
+    keys = [];
+  }
+  return {
+    message: {
+      content: [
+        `**From your records:** I read ${keys.slice(0, 4).join(', ') || 'nothing useful'}.`,
+        '',
+        '- This is the local stand-in, so the numbers are not read out.',
+        '- Ask about today, your roadmap, practice or jobs to try another tool.',
+      ].join('\n'),
+    },
+    finish_reason: 'stop',
+  };
+}
+
 createServer(async (req, res) => {
   const url = new URL(req.url ?? '/', `http://127.0.0.1:${port}`);
   const json = (status: number, data: unknown) => {
@@ -95,7 +156,18 @@ createServer(async (req, res) => {
     const body = JSON.parse(await read(req)) as {
       messages: { role: string; content: string }[];
       response_format?: { json_schema?: { name?: string } };
+      tools?: unknown[];
+      tool_choice?: string;
     };
+    if (body.tools) {
+      console.info(`[fake-openrouter] chat ${chats}`);
+      await new Promise((r) => setTimeout(r, 400));
+      return json(200, {
+        provider: 'Google',
+        usage: { prompt_tokens: 900, completion_tokens: 120, cost: 0.00015 },
+        choices: [agentAnswer(body.messages, body.tool_choice === 'none')],
+      });
+    }
     const format = body.response_format?.json_schema?.name;
     let topic = '';
     try {

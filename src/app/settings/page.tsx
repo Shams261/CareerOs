@@ -8,6 +8,7 @@ import {
   Download,
   ImageIcon,
   Keyboard,
+  MessageCircle,
   MessagesSquare,
   Server,
   Sun,
@@ -39,6 +40,9 @@ import { dayKey } from '@/lib/time';
 import { aiState } from '@/features/ai/service';
 import { dayPrintAction } from '@/features/day-print/actions';
 import { AiSettings, aiContext } from '@/features/ai/settings';
+import { memories } from '@/features/agent/service';
+import { MemorySettings, memoryContext } from '@/features/agent/memory';
+import { AGENT_NAME } from '@/features/agent/domain';
 import { ThemeSwitch } from '@/features/settings/theme-switch';
 import { reminderContext, settingsSummary } from '@/features/settings/domain';
 export const metadata = { title: 'Settings' };
@@ -74,6 +78,7 @@ export default async function Settings({
     nudgeRow,
     routineCategories,
     ai,
+    memoryLines,
   ] = await Promise.all([
     db().notificationPreference.findMany({
       where: {
@@ -107,6 +112,7 @@ export default async function Settings({
       distinct: ['category'],
     }),
     aiState(user, now),
+    memories(user),
   ]);
   const nudges = nudgeSetting(nudgeRow);
   const today = dayKey(now, user.timezone);
@@ -443,6 +449,16 @@ export default async function Settings({
                 context={aiContext(ai)}
                 panel="ai"
               />
+              {ai.configured && (
+                <SettingRow
+                  source="roadmap"
+                  icon={<MessageCircle size={22} />}
+                  label={AGENT_NAME}
+                  title={`${AGENT_NAME} knows`}
+                  context={memoryContext(memoryLines.length)}
+                  panel="rumi-memory"
+                />
+              )}
               <SettingRow
                 source="weekly"
                 icon={<Download size={22} />}
@@ -462,6 +478,9 @@ export default async function Settings({
             </ul>
             <SidePanel id="ai" title="Grill Me">
               <AiSettings state={ai} zone={user.timezone} />
+            </SidePanel>
+            <SidePanel id="rumi-memory" title={`${AGENT_NAME} knows`}>
+              <MemorySettings lines={memoryLines} />
             </SidePanel>
           </section>
         </div>

@@ -14,8 +14,10 @@ import { Search } from 'lucide-react';
 import { closePanel, openPanel } from '@/components/side-panel';
 import { addNoteAction } from '@/features/notes/actions';
 import { OPEN_ITEM_EVENT } from '@/features/roadmap/events';
+import { ASK_EVENT, ASK_KEY } from '@/features/agent/events';
 import {
   noteCommand,
+  askCommand,
   openKeyLabel,
   PLACES,
   rankCommands,
@@ -181,11 +183,13 @@ export function CommandBar() {
   const results = useMemo(() => {
     const q = query.trim();
     const note = noteCommand(q);
+    const ask = askCommand(q);
     return rankCommands(
       [
         ...today,
         ...(q && found.q === q ? found.commands : []),
         ...PLACES,
+        ...(ask ? [ask] : []),
         ...(note ? [note] : []),
       ],
       q,
@@ -200,6 +204,19 @@ export function CommandBar() {
       const result = await addNoteAction({ message: '' }, form);
       setStatus(result.message);
       if (result.ok) setQuery('');
+      return;
+    }
+    if (command.ask) {
+      // Handed over in this tab's storage, never in the URL.
+      try {
+        sessionStorage.setItem(ASK_KEY, command.ask);
+      } catch {
+        return;
+      }
+      hide(false);
+      if (location.pathname === '/rumi')
+        window.dispatchEvent(new Event(ASK_EVENT));
+      else router.push('/rumi');
       return;
     }
     if (!command.href) return;

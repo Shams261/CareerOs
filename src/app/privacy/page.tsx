@@ -26,7 +26,7 @@ export default async function Privacy() {
       )}
       <p className="eyebrow">Silsila · usesilsila.me</p>
       <h1 id="privacy-heading">Privacy</h1>
-      <p className="policy-updated">Last updated 23 October 2026</p>
+      <p className="policy-updated">Last updated 27 October 2026</p>
       <p>
         Silsila is a personal execution system run by one person for their own
         use: it turns routines into a dated plan, records what happened, tracks
@@ -97,8 +97,14 @@ export default async function Privacy() {
         </li>
         <li>
           Revision cards the owner keeps from Grill Me, and a ledger of each AI
-          request with its model, token counts and cost. No prompt or answer
-          text is stored.
+          request with its model, token counts and cost. No Grill Me or Listen
+          prompt or answer text is stored.
+        </li>
+        <li>
+          Ask Rumi conversations (the owner&rsquo;s questions and Rumi&rsquo;s
+          answers) and the &ldquo;Rumi knows&rdquo; lines the owner writes. They
+          can be deleted at any time and are in the export. What the assistant
+          read to answer is not stored.
         </li>
         <li>
           Two cookies: the session cookie above and a theme preference. No
@@ -129,9 +135,20 @@ export default async function Privacy() {
         scope and &ldquo;done when&rdquo; line with short passages Silsila
         fetched, when the owner presses it, from the item&rsquo;s own links on a
         fixed list of documentation and guide sites; those sites see an ordinary
-        request from Silsila&rsquo;s server and nothing about the owner. Notes,
-        the schedule, sessions, jobs and reflections are never sent. Nothing is
-        shared with anyone else, and nothing is sold.
+        request from Silsila&rsquo;s server and nothing about the owner.
+      </p>
+      <p>
+        Ask Rumi (optional) sends, on the same endpoint and only when the owner
+        asks a question, that question, the last messages of the conversation,
+        the &ldquo;Rumi knows&rdquo; lines, and compact summaries Rumi reads
+        from the owner&rsquo;s records: the schedule (blocks outside study and
+        job search only as &ldquo;busy&rdquo;), recorded minutes per kind,
+        roadmaps with Study AI on, practice confidence and recent attempts, and
+        active applications with upcoming rounds and their prep item titles.
+        Notes, check-in notes, interview reflections, compensation, contacts,
+        interviewer names and job descriptions are never sent. Rumi can read but
+        never change anything. Nothing is shared with anyone else, and nothing
+        is sold.
       </p>
 
       <h2>Keeping and removing data</h2>

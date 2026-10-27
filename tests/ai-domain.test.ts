@@ -256,6 +256,8 @@ describe('the provider check', () => {
             'max_tokens',
             'response_format',
             'structured_outputs',
+            'tools',
+            'tool_choice',
           ],
           pricing: { prompt: '0.0000001', completion: '0.0000005' },
           ...over,
