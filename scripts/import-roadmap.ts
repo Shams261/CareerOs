@@ -45,7 +45,7 @@ async function main() {
       })),
     );
     console.log(
-      `DSA topics: ${report.topics.created} created, ${report.topics.updated} updated · problems: ${report.problems.created} created, ${report.problems.updated} updated`,
+      `DSA topics: ${report.topics.created} created, ${report.topics.updated} updated · problems: ${report.problems.created} created, ${report.problems.updated} updated · problem items in step with Practice: ${report.problemItemsFollowed}`,
     );
   } finally {
     await prisma.$disconnect();

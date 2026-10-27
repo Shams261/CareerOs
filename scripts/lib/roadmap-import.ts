@@ -3,11 +3,13 @@
  * RoadmapItem (roadmapId, slug), DsaTopic.name and DsaProblem (userId, problemUrl). Re-runs
  * update scope, checkpoint, priority, estimate, references, URL, source, template and
  * scenarios; they never touch status, completedAt, askedInInterview, askedNote, attempts or
- * confidence, and write notes only while the item's notes are still empty.
+ * confidence, and write notes only while the item's notes are still empty. Problem items are the
+ * exception for status: it follows Practice (`followPractice`, WI-046).
  */
 import { Prisma, type PrismaClient } from '../../src/generated/prisma/client';
 import type { Bundle } from './roadmap-bundle';
 import { validateBundle } from './roadmap-bundle';
+import { followPractice } from '../../src/features/roadmap/follow';
 
 export type ImportReport = {
   goal: 'created' | 'kept' | 'none';
@@ -18,6 +20,8 @@ export type ImportReport = {
   }[];
   topics: { created: number; updated: number };
   problems: { created: number; updated: number };
+  /** Problem items whose status was brought in step with Practice. */
+  problemItemsFollowed: number;
 };
 
 export async function importBundle(
@@ -45,6 +49,7 @@ export async function importBundle(
     roadmaps: [],
     topics: { created: 0, updated: 0 },
     problems: { created: 0, updated: 0 },
+    problemItemsFollowed: 0,
   };
   return prisma.$transaction(
     async (tx) => {
@@ -221,6 +226,9 @@ export async function importBundle(
           items: counts,
         });
       }
+      // Problem items take their status from Practice (WI-046, ADR-025); this is derived, never
+      // a mark the owner wrote, so a re-run may set it.
+      report.problemItemsFollowed = await followPractice(tx, userId);
       return report;
     },
     { timeout: 600000, maxWait: 30000 },

@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { dateInput, shiftDay } from '@/features/schedule/domain';
+export { practiceStatus } from './follow';
 
 const text = (max: number) =>
   z
@@ -256,6 +257,13 @@ export function nextStatus(op: ItemOp, current: ItemStatus): ItemStatus {
   if (op === 'reopen') return 'IN_PROGRESS';
   return current;
 }
+
+/** The marks a problem-linked item still takes from the roadmap: the interview mark and removal. */
+export const practiceItemOps: readonly ItemOp[] = [
+  'asked',
+  'unasked',
+  'remove',
+];
 
 export type ProgressItem = { status: ItemStatus; askedInInterview: boolean };
 /** Counts only; no percentage score is shown to the owner. */

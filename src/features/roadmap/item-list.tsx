@@ -329,6 +329,10 @@ export function ItemList({
             const longScope = (item.scope?.length ?? 0) > SCOPE_CLAMP;
             const clamped = longScope && expandedScope !== item.id;
             const next = status === 'DONE' ? nextAfter(item.id) : null;
+            // A problem item follows Practice (WI-046): its marks come from attempts there.
+            const practice = links.dsaProblem
+              ? `/dsa/${links.dsaProblem.id}?from=${item.id}`
+              : null;
             return (
               <li
                 key={item.id}
@@ -364,7 +368,21 @@ export function ItemList({
                     className={`item-chevron${isOpen ? ' is-open' : ''}`}
                   />
                 </span>
-                {!isOpen && (
+                {!isOpen && practice && (
+                  <span className="row-quick">
+                    <span className="row-quick-cell">
+                      <Link
+                        className="button secondary small"
+                        href={practice}
+                        aria-label={`Record an attempt: ${item.title}`}
+                        title="Record an attempt"
+                      >
+                        Attempt
+                      </Link>
+                    </span>
+                  </span>
+                )}
+                {!isOpen && !practice && (
                   <ActionForm
                     action={itemOpAction}
                     className="row-quick"
@@ -466,13 +484,10 @@ export function ItemList({
                         )}
                         {links.dsaProblem && (
                           <>
-                            <Link
-                              className="link"
-                              href={`/dsa/${links.dsaProblem.id}?from=${item.id}`}
-                            >
-                              Record an attempt
-                            </Link>
                             <span className="item-practice">
+                              <span className="muted whitespace-nowrap">
+                                From Practice
+                              </span>
                               <span
                                 className={`pill ${links.dsaProblem.attemptsCount ? tone[links.dsaProblem.confidence] : ''}`}
                               >
@@ -596,7 +611,11 @@ export function ItemList({
                     >
                       <input type="hidden" name="id" value={item.id} />
                       <div className="item-actions">
-                        {status === 'DONE' ? (
+                        {practice ? (
+                          <Link className="button small" href={practice}>
+                            Record an attempt
+                          </Link>
+                        ) : status === 'DONE' ? (
                           revision === 'due' || revision === 'overdue' ? (
                             <button
                               className="button small"
@@ -612,7 +631,7 @@ export function ItemList({
                             <Check size={14} aria-hidden="true" /> Done
                           </Button>
                         )}
-                        {status === 'NOT_STARTED' && (
+                        {!practice && status === 'NOT_STARTED' && (
                           <button
                             className="button secondary small"
                             name="op"
@@ -621,7 +640,7 @@ export function ItemList({
                             Start
                           </button>
                         )}
-                        {status === 'DONE' && (
+                        {!practice && status === 'DONE' && (
                           <button
                             className="button secondary small"
                             name="op"

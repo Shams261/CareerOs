@@ -13,6 +13,7 @@ import {
   nextStatus,
   nextItem,
   parseBulkLines,
+  practiceItemOps,
   revisionQueue,
   roadmapInput,
   roadmapProgress,
@@ -21,6 +22,7 @@ import {
   type ItemOp,
 } from './domain';
 import { z } from 'zod';
+import { followPractice } from './follow';
 
 const itemInclude = {
   learningTopic: {
@@ -157,7 +159,7 @@ export async function saveItem(user: ScheduleUser, raw: unknown) {
         !(await tx.dsaTopic.findFirst({ where: { id: links.dsaTopicId } })))
     )
       throw new Error('Choose a topic or problem from your workspace.');
-    return tx.roadmapItem.update({
+    const saved = await tx.roadmapItem.update({
       where: { id: item.id },
       data: {
         title: input.title,
@@ -171,13 +173,19 @@ export async function saveItem(user: ScheduleUser, raw: unknown) {
         notes: input.notes,
         url: input.url,
         askedNote: input.askedNote,
-        // A typed date overrides the schedule; clearing it stops revision for this item.
-        nextRevisionAt: input.nextRevisionAt
-          ? new Date(input.nextRevisionAt)
-          : null,
+        // A typed date overrides the schedule; clearing it stops revision for this item. A
+        // problem item's revision lives in Practice (ADR-025).
+        nextRevisionAt:
+          input.nextRevisionAt && !links.dsaProblemId
+            ? new Date(input.nextRevisionAt)
+            : null,
         ...links,
       },
     });
+    // Linking a problem hands the item's status to Practice; unlinking keeps the last one.
+    if (links.dsaProblemId)
+      await followPractice(tx, user.id, { itemId: saved.id });
+    return saved;
   });
 }
 
@@ -221,6 +229,10 @@ export async function applyItemOp(
   const today = dayKey(now, user.timezone);
   return locked(user.id, async (tx) => {
     const item = await ownedItem(tx, user.id, id);
+    if (item.dsaProblemId && !practiceItemOps.includes(op))
+      throw new Error(
+        'This item follows Practice. Record an attempt on the problem instead.',
+      );
     if (op === 'revised') {
       if (item.status !== 'DONE')
         throw new Error('Mark the item done before recording a revision.');
