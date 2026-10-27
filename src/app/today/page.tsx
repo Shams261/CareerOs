@@ -1,4 +1,5 @@
 import { Suspense } from 'react';
+import { SetupRail } from '@/features/setup/rail';
 import { CalendarAttention } from '@/features/calendar/panel';
 import { RoutineIllustration } from '@/components/illustrations';
 import { Disclosure } from '@/components/disclosure';
@@ -296,6 +297,9 @@ export default async function Today({
             />
             {isToday && (
               <aside className="today-rail" aria-labelledby="attention-heading">
+                <Suspense fallback={null}>
+                  <SetupRail user={user} />
+                </Suspense>
                 <AttentionBoundary>
                   <Suspense fallback={<AttentionSkeleton />}>
                     <Attention

@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- WI-050 (Make Silsila yours, P1 from the UAT audit): Today's rail opens with six setup steps, each ticked only by the owner's own records, never by hand: set the goal date, add study routines, choose study kinds, connect Google Calendar (or reconnect it), turn on notifications on a device, and add a real application (test records do not count). Each open step's button goes to its page, and to its panel where there is one (Goals on Roadmap, Routines on Plan, Study nudges in Settings). The card reads "4 of 6 done", leaves once everything is done, and **Hide for now** hides it for a week (`silsila-setup-hidden` cookie). Settings' Getting started becomes the same list, so the two never disagree. No migration.
 - WI-049 (five UI fixes, P1 from the UAT audit):
   - **Today's empty band is gone.** The launcher row keeps its own height, and a tall Needs attention rail now grows the agenda row instead of pushing Your day down.
   - **Roadmap rows read name first.** The roadmap's name, then "Next: item · section". An item such as "Online assessment" no longer looks like a roadmap.
