@@ -6,6 +6,7 @@ import { PanelButton, SidePanel } from '@/components/side-panel';
 import { aiState } from '@/features/ai/service';
 import { budgetLine } from '@/features/ai/domain';
 import { AGENT_NAME } from '@/features/agent/domain';
+import { readMetadata } from '@/features/agent/plan-domain';
 import { conversation, conversations } from '@/features/agent/service';
 import { RumiChat } from '@/features/agent/chat';
 
@@ -122,8 +123,10 @@ export default async function Rumi({
             id: m.id,
             role: m.role,
             content: m.content,
+            ...readMetadata(m.metadata),
           }))}
           budget={budgetLine(state.spent)}
+          today={dayKey(new Date(), user.timezone)}
         />
       </div>
       <SidePanel id="rumi-conversations" title="Conversations">

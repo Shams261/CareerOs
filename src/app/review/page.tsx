@@ -1,4 +1,6 @@
 import Link from 'next/link';
+import { getPatterns } from '@/features/agent/tools';
+import { patternLine } from '@/features/agent/plan-domain';
 import { ChevronLeft, ChevronRight, ArrowRight, Briefcase } from 'lucide-react';
 import { formatInTimeZone } from 'date-fns-tz';
 import { db, owner } from '@/server/db';
@@ -157,20 +159,24 @@ export default async function Review({
   // Each step loads only what it shows; Details loads everything.
   const details = step === 'details',
     plan = step === 'plan' || details;
-  const [w, carry, next, trend, history, goals, reminders] = await Promise.all([
-    weekReview(user, monday, now),
-    details ? carryForward(user, now) : { dsa: [], learning: [], jobs: [] },
-    plan && planning ? nextWeekContext(user, nextMonday, now) : null,
-    details ? recentTrend(user, monday, now) : [],
-    details ? reviewHistory(user.id) : [],
-    plan
-      ? db().goal.findMany({
-          where: { userId: user.id },
-          select: { id: true, title: true },
-        })
-      : [],
-    plan ? remindersPreview(user, nextMonday) : [],
-  ]);
+  const [w, carry, next, trend, history, goals, reminders, habits] =
+    await Promise.all([
+      weekReview(user, monday, now),
+      details ? carryForward(user, now) : { dsa: [], learning: [], jobs: [] },
+      plan && planning ? nextWeekContext(user, nextMonday, now) : null,
+      details ? recentTrend(user, monday, now) : [],
+      details ? reviewHistory(user.id) : [],
+      plan
+        ? db().goal.findMany({
+            where: { userId: user.id },
+            select: { id: true, title: true },
+          })
+        : [],
+      plan ? remindersPreview(user, nextMonday) : [],
+      // WI-041: the owner's patterns over the last four weeks, on the first step only.
+      step === 'week' ? getPatterns(user, now) : null,
+    ]);
+  const habitLine = habits ? patternLine(habits) : null;
   const s = w.schedule;
   const max = Math.max(
     s.focus.planned,
@@ -321,6 +327,7 @@ export default async function Review({
               <span className="legend legend-p">Planned</span>
               <span className="legend legend-a">Recorded</span>
             </p>
+            {habitLine && <p className="review-patterns">{habitLine}</p>}
             <div className="review-days">
               {s.days.map((d) => (
                 <section
