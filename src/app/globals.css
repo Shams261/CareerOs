@@ -5813,3 +5813,227 @@ button.attention-link {
   line-height: 1.55;
   overflow-wrap: anywhere;
 }
+/* WI-040: Ask Rumi. The conversation list beside the chat; on a phone the list is a panel. */
+.rumi-layout {
+  display: grid;
+  grid-template-columns: 240px minmax(0, 1fr);
+  gap: 20px;
+  align-items: start;
+}
+.rumi-side {
+  display: grid;
+  gap: 12px;
+  position: sticky;
+  top: 16px;
+}
+.rumi-side .button,
+.rumi-memory .button {
+  justify-self: start;
+}
+.rumi-list-button {
+  display: none;
+}
+.rumi-conversations {
+  display: grid;
+  gap: 2px;
+  margin: 0;
+}
+.rumi-conversations a {
+  display: grid;
+  gap: 2px;
+  padding: 8px 10px;
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
+  text-decoration: none;
+}
+.rumi-conversations a:hover {
+  background: var(--surface-2);
+}
+.rumi-conversations a[aria-current='page'] {
+  background: var(--primary-soft);
+}
+/* Meta text on the teal tint needs the secondary ink for contrast. */
+.rumi-conversations a[aria-current='page'] .rumi-conversation-date,
+.rumi-message[data-role='owner'] .rumi-who {
+  color: var(--text-secondary);
+}
+.rumi-conversation-title {
+  font-size: 14px;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+.rumi-conversation-date {
+  font-size: 12px;
+  color: var(--muted);
+}
+.rumi-chat {
+  display: grid;
+  gap: 14px;
+  min-width: 0;
+  padding: var(--space-6);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+}
+.rumi-chat-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 16px;
+}
+.rumi-chat-title {
+  margin: 0;
+  font-size: 17px;
+  overflow-wrap: anywhere;
+}
+.rumi-confirm fieldset {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 14px;
+  font-size: 14px;
+}
+.rumi-log {
+  display: grid;
+  gap: 16px;
+}
+.rumi-empty {
+  display: grid;
+  gap: 12px;
+}
+.rumi-empty-lead {
+  margin: 0;
+  color: var(--ink-2);
+}
+.rumi-prompts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.rumi-prompt {
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  background: var(--surface-2);
+  color: var(--text-primary);
+  font: inherit;
+  font-size: 14px;
+  text-align: left;
+  cursor: pointer;
+}
+.rumi-prompt:hover {
+  border-color: var(--primary);
+}
+.rumi-message {
+  display: grid;
+  gap: 4px;
+  max-width: 72ch;
+}
+.rumi-message[data-role='owner'] {
+  justify-self: end;
+  padding: 10px 14px;
+  background: var(--primary-soft);
+  border-radius: var(--radius-lg);
+}
+.rumi-who {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+}
+.rumi-own {
+  margin: 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.rumi-reply {
+  display: grid;
+  gap: 8px;
+  line-height: 1.55;
+  overflow-wrap: anywhere;
+}
+.rumi-reply p,
+.rumi-reply ul,
+.rumi-reply ol {
+  margin: 0;
+}
+.rumi-reply ul,
+.rumi-reply ol {
+  display: grid;
+  gap: 4px;
+  padding-left: 20px;
+}
+.rumi-reply ul {
+  list-style: disc;
+}
+.rumi-reply ol {
+  list-style: decimal;
+}
+.rumi-reading {
+  margin: 0;
+  color: var(--ink-2);
+  font-size: 14px;
+}
+.rumi-error {
+  margin: 0;
+}
+.rumi-compose {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: end;
+}
+.rumi-compose textarea {
+  width: 100%;
+  min-height: 52px;
+  max-height: 200px;
+  resize: vertical;
+}
+.rumi-send {
+  width: 44px;
+  height: 44px;
+  padding: 0;
+}
+.rumi-budget {
+  margin: 0;
+  font-size: 12px;
+  color: var(--muted);
+}
+.rumi-memory {
+  display: grid;
+  gap: 14px;
+}
+.rumi-memory-list {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+}
+.rumi-memory-list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  overflow-wrap: anywhere;
+}
+@media (max-width: 900px) {
+  .rumi-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .rumi-side {
+    display: none;
+  }
+  .rumi-list-button {
+    display: inline-flex;
+  }
+  .rumi-chat {
+    padding: var(--space-4);
+  }
+}

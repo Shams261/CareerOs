@@ -178,6 +178,17 @@ export const LADDER_FORMAT: OutputFormat = {
  * endpoint's supported list (checked 2026-10-26; `temperature` is not, so it is never sent).
  */
 export const SENT_PARAMETERS = ['max_tokens', 'response_format'] as const;
+/** What Ask Rumi's chat body adds (WI-040, ADR-024); the provider check requires them too. */
+export const CHAT_PARAMETERS = ['tools', 'tool_choice'] as const;
+/** ADR-022's routing, shared by every request (and Ask Rumi's chat body, ADR-024). */
+export const PINNED_PROVIDER = {
+  order: [ENDPOINT],
+  only: [ENDPOINT],
+  allow_fallbacks: false,
+  zdr: true,
+  data_collection: 'deny',
+  require_parameters: true,
+} as const;
 /**
  * The whole request body (ADR-022): one model and no `models` array, the endpoint pinned with
  * `order` and `only`, no fallback, ZDR and no data collection, every parameter required, a
@@ -195,14 +206,7 @@ export function requestBody(
       type: 'json_schema',
       json_schema: { name: format.name, strict: true, schema: format.schema },
     },
-    provider: {
-      order: [ENDPOINT],
-      only: [ENDPOINT],
-      allow_fallbacks: false,
-      zdr: true,
-      data_collection: 'deny',
-      require_parameters: true,
-    },
+    provider: PINNED_PROVIDER,
     usage: { include: true },
   };
 }
@@ -319,7 +323,8 @@ type EndpointRow = {
 };
 /**
  * The provider check (ADR-022), over OpenRouter's public endpoint and ZDR lists: the pinned
- * endpoint must be ZDR-listed, offer strict structured outputs and cost no more than pinned.
+ * endpoint must be ZDR-listed, offer strict structured outputs and tools (ADR-024), and cost
+ * no more than pinned.
  */
 export function evaluateProvider(endpoints: unknown, zdr: unknown) {
   const list = (v: unknown, path: (o: Record<string, unknown>) => unknown) => {
@@ -349,11 +354,11 @@ export function evaluateProvider(endpoints: unknown, zdr: unknown) {
     : [];
   if (
     !params.includes('structured_outputs') ||
-    SENT_PARAMETERS.some((p) => !params.includes(p))
+    [...SENT_PARAMETERS, ...CHAT_PARAMETERS].some((p) => !params.includes(p))
   )
     return {
       ok: false as const,
-      reason: `${ENDPOINT} no longer offers the parameters Grill Me needs`,
+      reason: `${ENDPOINT} no longer offers the parameters Silsila's AI needs`,
     };
   const input = Number(row.pricing?.prompt) * 1e6,
     output = Number(row.pricing?.completion) * 1e6;

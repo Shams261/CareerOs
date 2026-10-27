@@ -43,6 +43,8 @@ export async function exportOwnerData(userId: string, now = new Date()) {
     revisionCards,
     aiSetting,
     aiUsage,
+    agentConversations,
+    agentMemories,
   ] = await Promise.all([
     db().user.findUniqueOrThrow({
       where: { id: userId },
@@ -109,6 +111,13 @@ export async function exportOwnerData(userId: string, now = new Date()) {
     db().aiSetting.findUnique({ where: { userId } }),
     // The ledger holds no prompt or answer: model, endpoint, tokens, cost and time only.
     db().aiUsage.findMany(own),
+    // Ask Rumi (WI-040): the owner's conversations and "Rumi knows" lines.
+    db().agentConversation.findMany({
+      ...own,
+      include: { messages: { orderBy: { createdAt: 'asc' } } },
+      orderBy: { createdAt: 'asc' },
+    }),
+    db().agentMemory.findMany(own),
   ]);
   return {
     format: 'careeros-export',
@@ -145,6 +154,7 @@ export async function exportOwnerData(userId: string, now = new Date()) {
     studyNudges,
     revisionCards,
     ai: { setting: aiSetting, usage: aiUsage },
+    rumi: { conversations: agentConversations, knows: agentMemories },
     notifications,
     googleCalendar: calendar,
   };

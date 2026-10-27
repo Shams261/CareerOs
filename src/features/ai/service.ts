@@ -163,7 +163,7 @@ export async function dailyProviderCheck(
   });
 }
 
-const settle = (
+export const settle = (
   id: string,
   data: {
     outcome: 'OK' | 'FAILED';
@@ -180,9 +180,11 @@ export async function ready(
   cfg: AiConfig,
   now: Date,
   fetcher: Fetcher,
+  /** Ask Rumi (WI-040) runs only on the owner's own message, so the Grill Me switch is not its. */
+  { requireEnabled = true }: { requireEnabled?: boolean } = {},
 ) {
   let setting = await db().aiSetting.findUnique({ where: { userId: user.id } });
-  if (setting && !setting.enabled)
+  if (requireEnabled && setting && !setting.enabled)
     throw new AiRefusal('Grill Me is turned off in Settings.');
   if (!setting?.checkedAt || +now - +setting.checkedAt > CHECK_MAX_AGE_MS) {
     await applyCheck(user.id, await checkProvider(cfg, fetcher), false, now);
@@ -191,12 +193,145 @@ export async function ready(
   if (setting?.blockedAt) throw new AiRefusal(UNAVAILABLE);
 }
 
+/** What OpenRouter answers: the parts Silsila reads. */
+export type ModelAnswer = {
+  provider?: unknown;
+  usage?: unknown;
+  choices?: {
+    message?: { content?: unknown; tool_calls?: unknown };
+    finish_reason?: unknown;
+  }[];
+};
+/** How one feature's refusals and log lines read. */
+export type CallWords = {
+  unavailable: string;
+  /** The rate-limit refusal; without it, this call skips the per-call rate limit. */
+  tooMany?: string;
+  budgetUsed: (resetDay: string) => string;
+  /** The log prefix, such as "[study] grill". */
+  log: string;
+};
+const GRILL_WORDS: CallWords = {
+  unavailable: UNAVAILABLE,
+  tooMany: 'That is enough Grill Me for now. Try again in a while.',
+  budgetUsed: (day) =>
+    `This month’s AI budget is used. Grill Me returns on ${shortDate(day)}.`,
+  log: '[study] grill',
+};
+
+/**
+ * One model call, shared by `ask()` and Ask Rumi (WI-040). It is reserved in the ledger under
+ * the owner lock before it is sent, so the cap (and, for one-shot features, the rate limit)
+ * holds; the answer must come from the pinned provider, else AI is blocked until the owner
+ * checks again. The caller settles the reservation once it has read the answer.
+ */
+export async function callModel({
+  user,
+  cfg,
+  feature,
+  body,
+  reserve,
+  now,
+  fetcher,
+  words,
+}: {
+  user: ScheduleUser;
+  cfg: AiConfig;
+  feature: 'GRILL_ITEM' | 'LISTEN_ITEM' | 'AGENT_CHAT';
+  body: unknown;
+  reserve: number;
+  now: Date;
+  fetcher: Fetcher;
+  words: CallWords;
+}) {
+  const usage = await locked(user.id, async (tx) => {
+    if (words.tooMany) {
+      // Ask Rumi counts owner messages instead, so its calls never use up these limits.
+      const hour = new Date(+now - 3600_000),
+        day = new Date(+now - 24 * 3600_000);
+      const scope = {
+        userId: user.id,
+        feature: { not: 'AGENT_CHAT' as const },
+      };
+      const [lastHour, lastDay] = await Promise.all([
+        tx.aiUsage.count({ where: { ...scope, createdAt: { gte: hour } } }),
+        tx.aiUsage.count({ where: { ...scope, createdAt: { gte: day } } }),
+      ]);
+      if (lastHour >= RATE.hour || lastDay >= RATE.day)
+        throw new AiRefusal(words.tooMany);
+    }
+    const spend = await monthSpend(tx, user, now);
+    if (!withinCap(spend.spent, reserve))
+      throw new AiRefusal(words.budgetUsed(spend.resetDay));
+    return tx.aiUsage.create({
+      data: {
+        userId: user.id,
+        feature,
+        model: MODEL,
+        provider: ENDPOINT,
+        costMicros: reserve,
+        createdAt: now,
+      },
+    });
+  });
+  const started = Date.now();
+  let answer: ModelAnswer;
+  try {
+    const res = await fetcher(`${cfg.baseUrl}/chat/completions`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${cfg.apiKey}`,
+        'Content-Type': 'application/json',
+        'X-Title': 'Silsila',
+      },
+      body: JSON.stringify(body),
+      signal: AbortSignal.timeout(TIMEOUT_MS),
+    });
+    if (!res.ok) throw new AiUnavailable(`HTTP ${res.status}`);
+    answer = await res.json();
+  } catch (error) {
+    await settle(usage.id, {
+      outcome: 'FAILED',
+      costMicros: 0,
+      durationMs: Date.now() - started,
+    });
+    console.error(
+      `${words.log} failed`,
+      error instanceof Error ? error.name : 'Error',
+    );
+    throw new AiUnavailable(words.unavailable);
+  }
+  const cost = costMicros(answer.usage);
+  const durationMs = Date.now() - started;
+  if (answer.provider !== PROVIDER_NAME) {
+    // Answered outside the pinned endpoint: count it, block AI until the owner checks again.
+    await settle(usage.id, {
+      outcome: 'FAILED',
+      costMicros: cost.micros,
+      inputTokens: cost.input,
+      outputTokens: cost.output,
+      durationMs,
+    });
+    await applyCheck(
+      user.id,
+      {
+        ok: false,
+        reason: 'A request was answered outside the pinned endpoint',
+      },
+      false,
+      now,
+    );
+    console.error(`${words.log} failed ProviderMismatch`);
+    throw new AiUnavailable(words.unavailable);
+  }
+  return { usageId: usage.id, answer, cost, durationMs };
+}
+
 /**
  * One AI answer in a strict format, shared by Grill Me (WI-031) and Listen (WI-037). (The
- * problem hints of WI-032 used it too until WI-038 removed them.) Each call is reserved in the ledger under the owner lock before it is sent, so
- * the cap and the rate limits hold; the answer must come from the pinned provider; a
- * malformed answer gets one retry (a cut-off one is asked again, briefly). Nothing of the
- * prompt or the answer is stored.
+ * problem hints of WI-032 used it too until WI-038 removed them.) Each call goes through
+ * `callModel`; a malformed answer gets one retry (a cut-off one is asked again, briefly).
+ * Nothing of the prompt or the answer is stored.
  */
 export async function ask<T>({
   user,
@@ -223,95 +358,19 @@ export async function ask<T>({
   failure?: string;
 }): Promise<T> {
   for (let attempt = 0; attempt < 2; attempt++) {
-    const reserve = reservationMicros(messages, format.maxTokens);
-    const usage = await locked(user.id, async (tx) => {
-      const hour = new Date(+now - 3600_000),
-        day = new Date(+now - 24 * 3600_000);
-      const [lastHour, lastDay, spend] = await Promise.all([
-        tx.aiUsage.count({
-          where: { userId: user.id, createdAt: { gte: hour } },
-        }),
-        tx.aiUsage.count({
-          where: { userId: user.id, createdAt: { gte: day } },
-        }),
-        monthSpend(tx, user, now),
-      ]);
-      if (lastHour >= RATE.hour || lastDay >= RATE.day)
-        throw new AiRefusal(
-          'That is enough Grill Me for now. Try again in a while.',
-        );
-      if (!withinCap(spend.spent, reserve))
-        throw new AiRefusal(
-          `This month’s AI budget is used. Grill Me returns on ${shortDate(spend.resetDay)}.`,
-        );
-      return tx.aiUsage.create({
-        data: {
-          userId: user.id,
-          feature,
-          model: MODEL,
-          provider: ENDPOINT,
-          costMicros: reserve,
-          createdAt: now,
-        },
-      });
+    const { usageId, answer, cost, durationMs } = await callModel({
+      user,
+      cfg,
+      feature,
+      body: requestBody(messages, format),
+      reserve: reservationMicros(messages, format.maxTokens),
+      now,
+      fetcher,
+      words: GRILL_WORDS,
     });
-    const started = Date.now();
-    let body: {
-      provider?: unknown;
-      usage?: unknown;
-      choices?: { message?: { content?: unknown }; finish_reason?: unknown }[];
-    };
-    try {
-      const res = await fetcher(`${cfg.baseUrl}/chat/completions`, {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${cfg.apiKey}`,
-          'Content-Type': 'application/json',
-          'X-Title': 'Silsila',
-        },
-        body: JSON.stringify(requestBody(messages, format)),
-        signal: AbortSignal.timeout(TIMEOUT_MS),
-      });
-      if (!res.ok) throw new AiUnavailable(`HTTP ${res.status}`);
-      body = await res.json();
-    } catch (error) {
-      await settle(usage.id, {
-        outcome: 'FAILED',
-        costMicros: 0,
-        durationMs: Date.now() - started,
-      });
-      console.error(
-        '[study] grill failed',
-        error instanceof Error ? error.name : 'Error',
-      );
-      throw new AiUnavailable(UNAVAILABLE);
-    }
-    const cost = costMicros(body.usage);
-    const durationMs = Date.now() - started;
-    if (body.provider !== PROVIDER_NAME) {
-      // Answered outside the pinned endpoint: count it, block AI until the owner checks again.
-      await settle(usage.id, {
-        outcome: 'FAILED',
-        costMicros: cost.micros,
-        inputTokens: cost.input,
-        outputTokens: cost.output,
-        durationMs,
-      });
-      await applyCheck(
-        user.id,
-        {
-          ok: false,
-          reason: 'A request was answered outside the pinned endpoint',
-        },
-        false,
-        now,
-      );
-      console.error('[study] grill failed ProviderMismatch');
-      throw new AiUnavailable(UNAVAILABLE);
-    }
-    const content = body.choices?.[0]?.message?.content;
+    const content = answer.choices?.[0]?.message?.content;
     const result = read(content);
-    await settle(usage.id, {
+    await settle(usageId, {
       outcome: result.ok ? 'OK' : 'FAILED',
       costMicros: cost.micros,
       inputTokens: cost.input,
@@ -324,7 +383,7 @@ export async function ask<T>({
       );
       return result.value;
     }
-    const cutOff = body.choices?.[0]?.finish_reason === 'length';
+    const cutOff = answer.choices?.[0]?.finish_reason === 'length';
     console.error(
       `[study] grill failed ${cutOff ? 'CutOff' : `InvalidLadder ${result.codes}`}`,
     );

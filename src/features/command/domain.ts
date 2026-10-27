@@ -10,6 +10,7 @@ export const GROUPS = [
   'Practice',
   'Jobs',
   'Go to',
+  'Rumi',
   'Note',
 ] as const;
 export type Group = (typeof GROUPS)[number];
@@ -17,7 +18,7 @@ export type Group = (typeof GROUPS)[number];
 /**
  * What running a command does after the bar closes: open `href`, then (once that page shows
  * it) open a side panel by its `data-panel` name or press a control by its selector. `note`
- * saves the typed words as a note to self instead.
+ * saves the typed words as a note to self instead; `ask` hands them to Ask Rumi (WI-040).
  */
 export type Command = {
   id: string;
@@ -29,6 +30,7 @@ export type Command = {
   panel?: string;
   press?: string;
   note?: string;
+  ask?: string;
   /** Extra words that find it ("search", "week") without being shown. */
   keywords?: string;
   /** Listed only when a typed word starts its verb ("grill"), so it never crowds Open. */
@@ -111,8 +113,22 @@ export function noteCommand(query: string): Command | null {
   };
 }
 
+/** "Ask Rumi · “…”" for the typed words, offered beside the note whenever something is typed. */
+export function askCommand(query: string): Command | null {
+  const body = query.trim().replace(/\s+/g, ' ');
+  if (!body || body.length > NOTE_MAX) return null;
+  return {
+    id: 'ask',
+    group: 'Rumi',
+    verb: 'Ask Rumi',
+    title: `“${body}”`,
+    ask: body,
+  };
+}
+
 /** The places in the navigation and the pages beside them, always available. */
 export const PLACES: Command[] = [
+  ['/rumi', 'Ask Rumi', 'assistant chat ai'],
   ['/today', 'Today', 'day agenda'],
   ['/calendar', 'Plan', 'week calendar routines'],
   ['/roadmap', 'Roadmap', 'study revision'],
