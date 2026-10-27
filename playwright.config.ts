@@ -31,7 +31,12 @@ export default defineConfig({
       dependencies: ['sign-in'],
       testMatch: /\.spec\.ts/,
       use: {
-        ...devices['Desktop Chrome'],
+        // E2E_BROWSER=webkit runs the same journeys in Safari's engine (WI-057).
+        ...devices[
+          process.env.E2E_BROWSER === 'webkit'
+            ? 'Desktop Safari'
+            : 'Desktop Chrome'
+        ],
         viewport: { width: 1440, height: 900 },
         storageState: 'e2e/.auth/owner.json',
       },

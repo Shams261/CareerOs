@@ -10,6 +10,7 @@ import {
   Download,
   ImageIcon,
   Keyboard,
+  Laptop,
   MessageCircle,
   MessagesSquare,
   Server,
@@ -30,7 +31,10 @@ import { LearningReminderForm } from '@/features/learning/forms';
 import { JobReminderForm } from '@/features/jobs/forms';
 import { ShortcutsToggle } from '@/components/shortcuts-toggle';
 import { UtilityMenu } from '@/features/today/utility-menu';
-import { signOutAction } from '@/features/auth/actions';
+import { signOutAction, signOutOthersAction } from '@/features/auth/actions';
+import { activeSessions, currentSession } from '@/server/session';
+import { deviceLabel } from '@/lib/user-agent';
+import { formatInTimeZone } from 'date-fns-tz';
 import { SettingsIndex } from '@/features/settings/index-nav';
 import { SettingRow } from '@/features/settings/rows';
 import { NudgeSettingsForm } from '@/features/nudges/forms';
@@ -77,6 +81,7 @@ export default async function Settings({
     routineCategories,
     ai,
     memoryLines,
+    sessions,
   ] = await Promise.all([
     db().notificationPreference.findMany({
       where: {
@@ -104,6 +109,8 @@ export default async function Settings({
     }),
     aiState(user, now),
     memories(user),
+    // Signed-in devices (WI-057); this request's session is marked.
+    currentSession().then((c) => activeSessions(user.id, c?.id ?? null, now)),
   ]);
   const nudges = nudgeSetting(nudgeRow);
   const today = dayKey(now, user.timezone);
@@ -423,7 +430,52 @@ export default async function Settings({
                 title={user.email}
                 context={`${user.timezone} · signed in with Google`}
               />
+              <SettingRow
+                source="job"
+                icon={<Laptop size={22} />}
+                label="Sessions"
+                title={
+                  sessions.length === 1
+                    ? 'Signed in on this device only'
+                    : `Signed in on ${sessions.length} devices`
+                }
+                context="Where you are signed in, and sign out the others"
+                panel="sessions"
+              />
             </ul>
+            <SidePanel id="sessions" title="Sessions">
+              <ul className="plain-list session-list">
+                {sessions.map((s) => (
+                  <li key={s.id} className="session-row">
+                    <strong>
+                      {deviceLabel(s.userAgent)}
+                      {s.current && (
+                        <span className="pill success">This device</span>
+                      )}
+                    </strong>
+                    <span className="muted">
+                      Last active{' '}
+                      {formatInTimeZone(
+                        s.lastSeenAt,
+                        user.timezone,
+                        'MMM d, HH:mm',
+                      )}{' '}
+                      · signed in{' '}
+                      {formatInTimeZone(s.createdAt, user.timezone, 'MMM d')}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+              {sessions.length > 1 && (
+                <ActionForm
+                  action={signOutOthersAction}
+                  label="Sign out other devices"
+                  className="mt-4"
+                >
+                  <Button className="secondary">Sign out other devices</Button>
+                </ActionForm>
+              )}
+            </SidePanel>
           </section>
 
           <section
