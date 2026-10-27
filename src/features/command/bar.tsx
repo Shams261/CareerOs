@@ -83,13 +83,13 @@ export function CommandButton({ className }: { className?: string }) {
     <button
       type="button"
       className={className}
-      aria-label="Search"
       aria-haspopup="dialog"
       aria-keyshortcuts="Meta+K Control+K"
       onClick={() => window.dispatchEvent(new Event(OPEN_EVENT))}
     >
       <Search size={16} aria-hidden="true" />
-      <span>Search</span>
+      {/* The name is this word, so it matches what shows (WI-052, WCAG 2.5.3). */}
+      <span className="command-button-label">Search</span>
       <kbd aria-hidden="true">{key}</kbd>
     </button>
   );

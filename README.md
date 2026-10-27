@@ -64,6 +64,8 @@ pnpm docs:check
 # With TEST_DATABASE_URL set to a disposable migrated database:
 pnpm test:ci
 pnpm build
+# After a build: browser journeys with axe against a fresh silsila_e2e database (WI-052)
+pnpm test:e2e
 pnpm start
 pnpm format
 pnpm db:migrate --name describe_change
