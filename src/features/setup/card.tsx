@@ -24,9 +24,12 @@ export function SetupCard({
     if (s.panel) openPanelAfterNavigation(s.href.split('#')[0], s.panel);
   };
   return (
-    <section className="card flat setup-steps" aria-labelledby="setup-heading">
+    <section
+      className="card flat setup-steps"
+      aria-labelledby="make-yours-heading"
+    >
       <div className="section-head">
-        <h2 id="setup-heading">Make Silsila yours</h2>
+        <h2 id="make-yours-heading">Make Silsila yours</h2>
         <span className="muted">{line}</span>
       </div>
       <ol className="plain-list">

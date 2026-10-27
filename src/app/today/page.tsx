@@ -201,6 +201,12 @@ export default async function Today({
               </Disclosure>
             </div>
           </section>
+          {/* An empty workspace is when the setup steps matter most (WI-050). */}
+          <div className="mt-5 setup-first-run">
+            <Suspense fallback={null}>
+              <SetupRail user={user} />
+            </Suspense>
+          </div>
         </>
       ) : (
         <>
