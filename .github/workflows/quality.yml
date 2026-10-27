@@ -44,13 +44,13 @@ jobs:
         id: store
         run: echo "path=$(pnpm store path --silent)" >> "$GITHUB_OUTPUT"
       - name: Restore dependency cache
-        uses: actions/cache@caa296126883cff596d87d8935842f9db880ef25 # v5
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ${{ steps.store.outputs.path }}
           key: ${{ runner.os }}-node24-pnpm11-${{ hashFiles('pnpm-lock.yaml') }}
           restore-keys: ${{ runner.os }}-node24-pnpm11-
       - name: Restore Next compiler cache
-        uses: actions/cache@caa296126883cff596d87d8935842f9db880ef25 # v5
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: .next/cache
           key: ${{ runner.os }}-next-${{ hashFiles('pnpm-lock.yaml') }}-${{ github.sha }}
@@ -133,7 +133,7 @@ jobs:
         id: store
         run: echo "path=$(pnpm store path --silent)" >> "$GITHUB_OUTPUT"
       - name: Restore dependency cache
-        uses: actions/cache@caa296126883cff596d87d8935842f9db880ef25 # v5
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ${{ steps.store.outputs.path }}
           key: ${{ runner.os }}-node24-pnpm11-${{ hashFiles('pnpm-lock.yaml') }}
