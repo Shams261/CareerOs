@@ -19,6 +19,7 @@ import {
   addMemory,
   conversation,
   deleteConversation,
+  askRumi,
   sendMessage,
 } from '../src/features/agent/service';
 import { grill } from '../src/features/ai/service';
@@ -420,6 +421,38 @@ describe.skipIf(!url)('Ask Rumi (PostgreSQL)', () => {
       ['AGENT_CHAT', 'OK'],
       ['AGENT_CHAT', 'OK'],
     ]);
+  });
+
+  it('tells the page each read as it starts and keeps the reads on the answer (WI-055)', async () => {
+    await seed(user.id);
+    const r = fakeRouter([
+      {
+        tools: [
+          { name: 'get_today', args: {} },
+          { name: 'get_roadmaps', args: {} },
+        ],
+      },
+      { content: 'Start with the roadmap item due today.' },
+    ]);
+    const reads: string[] = [];
+    const result = await askRumi(
+      user,
+      null,
+      'What should I start with today?',
+      (tool) => reads.push(tool),
+      r.fetcher,
+    );
+    expect(reads).toEqual(['get_today', 'get_roadmaps']);
+    expect(result).toMatchObject({
+      ok: true,
+      reply: {
+        content: 'Start with the roadmap item due today.',
+        tools: ['get_today', 'get_roadmaps'],
+        proposals: [],
+        suggestions: [],
+      },
+    });
+    expect(result.ok && result.budget).toMatch(/of US\$3/);
   });
 
   it('sends the last twelve messages and the owner’s lines, in the owner’s conversation only', async () => {

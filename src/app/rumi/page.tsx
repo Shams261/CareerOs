@@ -6,7 +6,7 @@ import { PanelButton, SidePanel } from '@/components/side-panel';
 import { aiState } from '@/features/ai/service';
 import { budgetLine } from '@/features/ai/domain';
 import { AGENT_NAME } from '@/features/agent/domain';
-import { readMetadata } from '@/features/agent/plan-domain';
+import { readMetadata, readTools } from '@/features/agent/plan-domain';
 import { conversation, conversations } from '@/features/agent/service';
 import { RumiChat } from '@/features/agent/chat';
 
@@ -99,7 +99,7 @@ export default async function Rumi({
         <p className="today-summary">
           {state.blocked
             ? `${AGENT_NAME} is off: ${state.blocked}. Check the provider again in Settings.`
-            : `Reads your schedule, study, practice and jobs · never your notes · ${budgetLine(state.spent)}`}
+            : 'Reads your schedule, study, practice and jobs · never your notes'}
         </p>
       </header>
       {c && !open && (
@@ -124,6 +124,7 @@ export default async function Rumi({
             role: m.role,
             content: m.content,
             ...readMetadata(m.metadata),
+            tools: readTools(m.metadata),
           }))}
           budget={budgetLine(state.spent)}
           today={dayKey(new Date(), user.timezone)}

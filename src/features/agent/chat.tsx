@@ -4,13 +4,15 @@ import { useRouter } from 'next/navigation';
 import { ArrowUp } from 'lucide-react';
 import { ActionForm } from '@/components/action-form';
 import { Button } from '@/components/ui/button';
-import { askAction, deleteConversationAction } from './actions';
+import { deleteConversationAction, type AskResult } from './actions';
 import { ASK_EVENT, ASK_KEY } from './events';
 import { ProposalCard, SuggestionCard } from './cards';
 import type { Proposal, Suggestion } from './plan-domain';
 import {
   AGENT_NAME,
   MESSAGE_MAX,
+  readingLine,
+  readLine,
   renderText,
   SUGGESTED_PROMPTS,
 } from './domain';
@@ -21,7 +23,53 @@ type Message = {
   content: string;
   proposals?: Proposal[];
   suggestions?: Suggestion[];
+  /** The reads behind an answer, for its "Read:" line (WI-055). */
+  tools?: string[];
 };
+
+/**
+ * Sends one question to the streaming route and calls `onRead` as each read starts; resolves
+ * with the same result the server action gives (WI-055).
+ */
+async function askStreaming(
+  conversationId: string | null,
+  text: string,
+  onRead: (tool: string) => void,
+): Promise<AskResult> {
+  const failed: AskResult = {
+    ok: false,
+    message: `${AGENT_NAME} couldn’t answer right now. Try again.`,
+  };
+  const response = await fetch('/api/rumi/ask', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ conversationId, text }),
+  }).catch(() => null);
+  if (!response?.ok || !response.body) return failed;
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = '';
+  for (;;) {
+    const { value, done } = await reader.read();
+    if (value) buffer += decoder.decode(value, { stream: true });
+    let cut: number;
+    while ((cut = buffer.indexOf('\n')) >= 0) {
+      const raw = buffer.slice(0, cut);
+      buffer = buffer.slice(cut + 1);
+      try {
+        const event = JSON.parse(raw) as {
+          read?: string;
+          done?: AskResult;
+        };
+        if (event.read) onRead(event.read);
+        if (event.done) return event.done;
+      } catch {
+        /* a broken line is skipped */
+      }
+    }
+    if (done) return failed;
+  }
+}
 
 /** The model's text as paragraphs, lists and bold, rendered as text only (`renderText`). */
 export function RumiText({ text }: { text: string }) {
@@ -72,6 +120,7 @@ export function RumiChat({
   const [error, setError] = useState<string | null>(null);
   const [budget, setBudget] = useState(initialBudget);
   const [pending, start] = useTransition();
+  const [reads, setReads] = useState<string[]>([]);
   const [confirmDelete, setConfirmDelete] = useState(false);
   // A refresh (after Add to plan, or Undo) brings the stored cards; keep any question in flight.
   const [seenInitial, setSeenInitial] = useState(initial);
@@ -92,8 +141,11 @@ export function RumiChat({
       content: question,
     };
     setMessages((m) => [...m, local]);
+    setReads([]);
     start(async () => {
-      const result = await askAction(current, question);
+      const result = await askStreaming(current, question, (tool) =>
+        setReads((r) => [...r, tool]),
+      );
       if (result.budget) setBudget(result.budget);
       if (!result.ok) {
         setError(result.message);
@@ -199,6 +251,9 @@ export function RumiChat({
             ) : (
               <div className="rumi-reply">
                 <RumiText text={m.content} />
+                {m.tools && readLine(m.tools) && (
+                  <p className="rumi-read">{readLine(m.tools)}</p>
+                )}
                 {m.proposals?.map((p) => (
                   <ProposalCard
                     key={p.id}
@@ -216,7 +271,7 @@ export function RumiChat({
         ))}
         {pending && (
           <p className="rumi-reading" role="status">
-            {AGENT_NAME} is reading your records…
+            {readingLine(reads)}
           </p>
         )}
         {error && (
