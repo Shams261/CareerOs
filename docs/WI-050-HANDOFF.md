@@ -62,3 +62,7 @@ Nothing to run: merge and deploy. On usesilsila.me the card should read 3 of 6: 
 ## Gate
 
 Lint, typecheck, build and docs check (88 files) pass on an export of the working tree; `pnpm test:ci`: 95 files, 551 tests; `git diff --check` clean.
+
+## Fixed after the merge (2026-10-28, with WI-051)
+
+The live check found the card missing on an empty production Today. With no routine and no block, Today shows only the first-run Start here card, and the rail with the steps never renders, which is exactly when the steps matter most. The steps now also sit under the Start here card, at its reading width. The card's heading id became `make-yours-heading`, because the Start here card already uses `setup-heading`.

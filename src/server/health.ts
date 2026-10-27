@@ -1,5 +1,6 @@
 import 'server-only';
 import { db } from './db';
+import { staleJobs } from '@/lib/job-health';
 
 /** Must equal the newest prisma/migrations directory (enforced by a test). */
 export const LATEST_MIGRATION = '20261028090000_interview_formats';
@@ -29,5 +30,21 @@ export async function healthCheck() {
       sessionTimeZone: 'unknown' as const,
       schema: 'unknown' as const,
     };
+  }
+}
+
+/**
+ * Whether the scheduled jobs are running (WI-051): "ok" or "stale", never their names or
+ * times, so the public health check can feed an external alert without saying more. It is
+ * separate from readiness: a stale job must not make the host restart a healthy app.
+ */
+export async function jobFreshness(now = new Date()) {
+  try {
+    const runs = await db().jobRun.findMany({
+      select: { name: true, lastSucceededAt: true },
+    });
+    return staleJobs(runs, now).length ? ('stale' as const) : ('ok' as const);
+  } catch {
+    return 'unknown' as const;
   }
 }

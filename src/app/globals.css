@@ -6481,3 +6481,7 @@ button.attention-link {
   margin-top: 6px;
   font-size: 13px;
 }
+/* Under the first-run card, the same reading width. */
+.setup-first-run {
+  max-width: var(--reading-max);
+}

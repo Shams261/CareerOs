@@ -28,6 +28,20 @@ A fresh local install follows the [README](../../README.md). An existing owner s
 
 In production (ADR-014; also the Heroku alternative) the caller is [cron-job.org](https://cron-job.org): free, per-minute schedules, custom request headers, a 30 s execution limit (both jobs finish in seconds) and failure notifications. The per-minute call is also what keeps a Render free instance (or a Heroku Eco dyno) from spinning down, so a silent cron outage shows up as a sleeping app and a stale "last success" in Settings. Any other caller gets 401. Each run records `lastStartedAt`, `lastSucceededAt`/`lastFailedAt` and a count summary in `JobRun`; Settings → System status shows "last success". If a job has not succeeded for longer than three of its intervals, check the scheduler's own log first (401 means a wrong secret, connection errors mean the app or TLS), then the app log. Missed minutes are not replayed as alerts, but inbox reminders still appear once processing resumes.
 
+## Uptime and job alerts (WI-051)
+
+`.github/workflows/uptime.yml` reads `https://usesilsila.me/api/health` every hour at minute 17. It tries three times, 30 seconds apart, so a free instance can wake. It fails unless `status` is `ok`, `schema` is `current` and `jobs` is `ok`, and a failed run is an email from GitHub to the owner.
+
+`jobs` comes from `jobFreshness` (`src/server/health.ts`, `staleJobs` in `src/lib/job-health.ts`). A job is stale once it has gone three of its intervals without a success:
+
+- reminders: 15 minutes;
+- calendar sync: 60 minutes;
+- the AI provider check: three days.
+
+Reminders must always have run. The other two count only once they have run at least once.
+
+The health check gives only `ok`, `stale` or `unknown`, never names or times, and the field never changes the status code, so the host does not restart a healthy app over a cron outage. When it reads `stale`, Settings → System status shows which job and when it last succeeded. Then check the scheduler first, as above. cron-job.org's own failure emails remain the first signal for the scheduler itself.
+
 ## Backups and restoration
 
 See [backup and restore](backup-restore.md) for `pnpm db:backup`, `pnpm db:restore:verify`, the schedule, recovery and the personal database migration checklist. Supabase Free (ADR-014) has no automated backups: `pnpm db:backup` from a workstation against the session-pooler URL, weekly and before every migration, is the only copy; it needs `pg_dump` 17 or newer (`brew install libpq`). On the Heroku alternative, `heroku pg:backups:capture` adds a provider-side snapshot. Proposed RPO/RTO are in the NFR register. Restore rehearsals always go into a new scratch database, never over a live one. Do not commit backups.
@@ -100,4 +114,4 @@ Stop writes if integrity is at risk. Roll back the app only if the prior build s
 
 ## Evidence still needed
 
-WI-008 provides the procedures and tooling (health, job runs, backups with restore verification, security headers, sanitized logs, local accessibility and timing checks). The hosted environment itself, real backup retention and timed restores, TLS/ingress checks on the real host, external uptime/cron-freshness alerting, real-device push checks and load measurements remain to be recorded after deployment. This runbook does not establish that those controls have been deployed.
+WI-008 provides the procedures and tooling (health, job runs, backups with restore verification, security headers, sanitized logs, local accessibility and timing checks). The hosted environment itself, real backup retention and timed restores, TLS/ingress checks on the real host, real-device push checks and load measurements remain to be recorded after deployment. This runbook does not establish that those controls have been deployed.
