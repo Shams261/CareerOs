@@ -247,7 +247,7 @@ export default async function Settings({
                 source="notification"
                 icon={<Bell size={22} />}
                 label="Daily"
-                title="Remind me when I haven’t reviewed my day"
+                title="Remind me to review my day"
                 context={reminderContext(pref, { time: '21:30' })}
                 panel="reminder-daily"
               />
@@ -322,7 +322,7 @@ export default async function Settings({
                     name="enabled"
                     defaultChecked={pref?.enabled ?? false}
                   />
-                  Remind me when I haven’t reviewed my day
+                  Remind me to review my day
                 </label>
                 <label>
                   Time

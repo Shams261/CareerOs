@@ -267,6 +267,9 @@ export const BANNED_WORDS = [
   'streak',
   "don't break",
   'don’t break',
+  // Reminder copy says what is true now, not what was not done (WI-049).
+  "haven't",
+  'haven’t',
 ];
 
 const time = z

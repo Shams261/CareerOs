@@ -1,7 +1,12 @@
 import 'server-only';
 import { db } from '@/server/db';
 import { dayKey, hhmm, localInstant } from '@/lib/time';
-import { reminderKey, reviewReminderDue } from './domain';
+import {
+  DAILY_REVIEW_TEXT,
+  overdueText,
+  reminderKey,
+  reviewReminderDue,
+} from './domain';
 import { locked } from '@/features/schedule/service';
 import { blockReminderDue } from './domain';
 import { followUpReminderDue, interviewWindow } from '@/features/jobs/domain';
@@ -64,7 +69,7 @@ export async function processNotifications(now = new Date()) {
           await queue(
             'day',
             day,
-            "You haven't checked today's progress yet.",
+            DAILY_REVIEW_TEXT,
             localInstant(day, pref.preferredTime, pref.timezone),
             !!(await tx.notificationLog.findUnique({
               where: { dedupeKey: nudgeKey(user.id, 'STUDY_EVENING', day) },
@@ -120,7 +125,11 @@ export async function processNotifications(now = new Date()) {
               await queue(
                 b.id,
                 b.plannedEnd.toISOString(),
-                `You planned ${b.title} from ${hhmm(b.plannedStart, user.timezone)}–${hhmm(b.plannedEnd, user.timezone)} and haven’t recorded progress.`,
+                overdueText(
+                  b.title,
+                  hhmm(b.plannedStart, user.timezone),
+                  hhmm(b.plannedEnd, user.timezone),
+                ),
                 b.plannedEnd,
               );
           }

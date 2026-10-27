@@ -21,6 +21,7 @@ import {
   interviewPrepRows,
   jobAttentionRows,
   sortAttention,
+  railRepeatsList,
 } from '@/features/attention/domain';
 import { ApplicationRow } from '@/features/jobs/components';
 import { QuickAddForm } from '@/features/jobs/forms';
@@ -86,6 +87,12 @@ export default async function Jobs({
     apps.length > FILTER_THRESHOLD ||
     !!(filter.q || filter.focus || filter.source);
   const visible = filterApplications(apps, filter, now, zone);
+  // A short list already carries each move; the rail says so instead of repeating it (WI-049).
+  const repeats = railRepeatsList(
+    attention,
+    visible.map((a) => a.id),
+    PREVIEW,
+  );
   const view = views.includes(filter.view as (typeof views)[number])
     ? filter.view
     : 'active';
@@ -304,12 +311,20 @@ export default async function Jobs({
             {!attention.length && (
               <p className="attention-empty">Nothing needs your attention.</p>
             )}
-            {preview.length > 0 && (
-              <ul className="plain-list attention-list attention-preview">
-                {preview.map((item) => (
-                  <AttentionRow key={item.id} item={item} />
-                ))}
-              </ul>
+            {repeats ? (
+              <p className="attention-empty">
+                {attention.length === 1
+                  ? 'The move is in Applications.'
+                  : `The ${attention.length} moves are in Applications.`}
+              </p>
+            ) : (
+              preview.length > 0 && (
+                <ul className="plain-list attention-list attention-preview">
+                  {preview.map((item) => (
+                    <AttentionRow key={item.id} item={item} />
+                  ))}
+                </ul>
+              )
             )}
             {attention.length > 0 && (
               <p className="attention-more">
