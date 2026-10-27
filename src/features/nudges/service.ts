@@ -125,7 +125,8 @@ export async function processStudyNudges(
           ],
         },
       },
-      select: { type: true, createdAt: true },
+      // The time each was due (the run's `now`), not the row's database clock.
+      select: { type: true, scheduledFor: true },
     }),
     s.blockStartEnabled
       ? tx.notificationLog.findMany({
@@ -155,9 +156,9 @@ export async function processStudyNudges(
     closed: !!plan?.reviewedAt,
     running: !!running,
     morningAt:
-      logged.find((l) => l.type === 'STUDY_MORNING')?.createdAt ?? null,
+      logged.find((l) => l.type === 'STUDY_MORNING')?.scheduledFor ?? null,
     eveningAt:
-      logged.find((l) => l.type === 'STUDY_EVENING')?.createdAt ?? null,
+      logged.find((l) => l.type === 'STUDY_EVENING')?.scheduledFor ?? null,
     blockNudged: blockLogs.map((l) => blockIdOf(l.metadata) ?? ''),
   };
   /** Another day's study blocks, read only when a nudge that names them is due. */
