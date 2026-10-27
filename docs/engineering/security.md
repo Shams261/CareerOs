@@ -58,7 +58,12 @@ Secrets are environment-only and validated at start-up without printing values (
 
 ## Dependencies
 
-`pnpm audit` (2026-09-24) reports three advisories, all inside the Prisma CLI's tooling dependencies (`deepmerge-ts` < 8, `mysql2` < 3.23.1). The application uses PostgreSQL through `@prisma/adapter-pg` at runtime; neither package is loaded by the served app. They are carried over from before WI-008 and tracked under US-027; no forced major-version override was applied. `web-push` has no open advisories.
+`pnpm audit` reports no known vulnerabilities (2026-10-27, WI-044), in production and development dependencies alike. The UAT audit of that day found Next.js 16.3.6 exposed to two critical advisories (GHSA-2464-fhr4-w9xw and GHSA-673q-mjm6-r5xr, unauthenticated remote code execution in Image Optimization and `use cache`; `/_next/image` is outside the auth proxy) and several high ones. The fix:
+
+- Next.js and `eslint-config-next` 16.4.3, zod 4.6.7, Prisma 7.10.1, vitest 5.0.5;
+- `pnpm-workspace.yaml` overrides for transitive packages without a patched parent (`source-map-js` ≥ 1.2.2, `fast-uri` ≥ 3.1.9, `vite` ≥ 8.3.3).
+
+CI now runs `pnpm audit --prod --audit-level high` after installing, so a high or critical advisory in a production dependency fails the build, and Dependabot (`.github/dependabot.yml`) opens weekly update pull requests for the owner to review.
 
 ## Known limits
 
