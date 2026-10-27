@@ -4,7 +4,7 @@ import { userInfo } from 'node:os';
  * The browser smoke suite's environment (WI-052). Every value is a throwaway for a local or CI
  * run against fakes on loopback: no real Google, OpenRouter or database is ever reached.
  */
-export const E2E_PORT = 3100;
+export const E2E_PORT = 3197;
 export const E2E_BASE_URL = `http://localhost:${E2E_PORT}`;
 export const E2E_OWNER = 'owner@example.com';
 export const E2E_DATABASE_URL =

@@ -19,7 +19,7 @@ import {
 } from '@/features/schedule/row';
 import {
   currentWeek,
-  dayHeading,
+  weekSummary,
   defaultReviewWeek,
   formatMinutes,
   isMonday,
@@ -177,6 +177,7 @@ export default async function Review({
       step === 'week' ? getPatterns(user, now) : null,
     ]);
   const habitLine = habits ? patternLine(habits) : null;
+  const summary = weekSummary(w.schedule.days);
   const s = w.schedule;
   const max = Math.max(
     s.focus.planned,
@@ -328,56 +329,76 @@ export default async function Review({
               <span className="legend legend-a">Recorded</span>
             </p>
             {habitLine && <p className="review-patterns">{habitLine}</p>}
-            <div className="review-days">
-              {s.days.map((d) => (
-                <section
-                  key={d.day}
-                  className={`week-day-section${d.day === w.today ? ' is-today' : ''}`}
-                  aria-labelledby={`day-heading-${d.day}`}
-                >
-                  <div className="week-day-head">
-                    <h3 id={`day-heading-${d.day}`}>
-                      <Link href={`/today?date=${d.day}`} prefetch={false}>
-                        {weekday(d.day)} {label(d.day, 'd')}
-                      </Link>
-                      {d.day === w.today && (
-                        <span className="pill success">Today</span>
-                      )}
-                    </h3>
-                    <span className="muted">{dayHeading(d.items)}</span>
-                  </div>
-                  {d.items.length > 0 && (
-                    <ol className="plain-list agenda-rows">
-                      {d.items.map((b) => {
-                        const resolution = blockResolution(b, now);
-                        const title = blockTitle(b, null);
-                        return (
-                          <BlockRowShell
-                            key={b.id}
-                            resolution={resolution}
-                            time={hhmm(b.plannedStart, zone)}
-                            icon={
-                              b.interviewRoundId ? (
-                                <Briefcase
-                                  size={16}
-                                  aria-hidden="true"
-                                  className="category-icon"
-                                />
-                              ) : (
-                                <CategoryIcon category={b.category} size={16} />
-                              )
-                            }
-                            title={title}
-                            meta={rowMeta(b, null, now, zone)}
-                            status={resolutionText[resolution]}
-                          />
-                        );
-                      })}
-                    </ol>
+            {/* A summary, not the week again (WI-054): what is left to decide, then a
+                way to every day. */}
+            <section
+              className="review-summary"
+              aria-labelledby="summary-heading"
+            >
+              <h3 id="summary-heading">The week in short</h3>
+              <p className="muted">{summary.line}</p>
+              {s.rows.length > 0 && (
+                <ul className="plain-list review-kinds">
+                  {s.rows.map((r) => (
+                    <li key={r.label}>
+                      <span>{r.label}</span>
+                      <span className="muted">
+                        {formatMinutes(r.actual)} recorded of{' '}
+                        {formatMinutes(r.planned)} planned
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+              {summary.open.length > 0 && (
+                <>
+                  <h4>Still to decide</h4>
+                  <ol className="plain-list agenda-rows">
+                    {summary.open.map(({ day, item: b }) => {
+                      const resolution = blockResolution(b, now);
+                      return (
+                        <BlockRowShell
+                          key={b.id}
+                          resolution={resolution}
+                          time={hhmm(b.plannedStart, zone)}
+                          icon={
+                            b.interviewRoundId ? (
+                              <Briefcase
+                                size={16}
+                                aria-hidden="true"
+                                className="category-icon"
+                              />
+                            ) : (
+                              <CategoryIcon category={b.category} size={16} />
+                            )
+                          }
+                          title={
+                            <Link href={`/today?date=${day}`} prefetch={false}>
+                              {blockTitle(b, null)}
+                            </Link>
+                          }
+                          meta={`${weekday(day)} · ${rowMeta(b, null, now, zone)}`}
+                          status={resolutionText[resolution]}
+                        />
+                      );
+                    })}
+                  </ol>
+                  {summary.more > 0 && (
+                    <p className="muted">And {summary.more} more.</p>
                   )}
-                </section>
-              ))}
-            </div>
+                </>
+              )}
+              <p className="mt-3">
+                <Link
+                  className="link"
+                  href={`/calendar?date=${monday}`}
+                  prefetch={false}
+                >
+                  See every day on Plan{' '}
+                  <ArrowRight size={14} aria-hidden="true" />
+                </Link>
+              </p>
+            </section>
             <div className="step-foot">
               <Link className="button" href={href('reflect')}>
                 Next: Reflect <ArrowRight size={14} aria-hidden="true" />

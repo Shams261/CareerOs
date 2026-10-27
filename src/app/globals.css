@@ -4412,28 +4412,31 @@ a.attention-link:hover .attention-title {
 }
 
 /* WI-024: the Weekly review closes the week with Today's rows. */
-.review-days {
-  margin-top: 8px;
-}
-.review-days .week-day-section {
+/* Weekly review step 1 as a summary (WI-054). */
+.review-summary {
   margin-top: 22px;
+  padding-top: 18px;
+  border-top: 1px solid var(--border-subtle);
 }
-.review-days .week-day-head h3 {
-  margin: 0;
+.review-summary h3 {
+  margin: 0 0 4px;
   font-size: 17px;
+}
+.review-summary h4 {
+  margin: 16px 0 4px;
+  font-size: 15px;
+}
+.review-kinds {
+  display: grid;
+  gap: 4px;
+  margin: 10px 0 0;
+}
+.review-kinds li {
   display: flex;
-  align-items: center;
-  gap: 10px;
-}
-.review-days .week-day-head h3 a {
-  color: inherit;
-  text-decoration: none;
-}
-.review-days .week-day-head h3 a:hover {
-  color: var(--primary);
-}
-.review-days .week-day-section.is-today .week-day-head h3 a {
-  color: var(--primary);
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  font-size: 14px;
 }
 .next-rows {
   margin: 0 0 12px;
