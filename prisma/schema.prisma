@@ -120,6 +120,8 @@ enum NotificationType {
   DSA_REVISION
   STUDY_MORNING
   STUDY_EVENING
+  /// WI-039: a study block's start passed with no session or decision.
+  STUDY_BLOCK
 }
 
 model User {
@@ -937,22 +939,25 @@ model QuickNote {
 
 /// Study Nudges (WI-028): off by default; evaluated against the latest plan at each cron run.
 model StudyNudgeSetting {
-  id              String    @id @default(cuid())
-  userId          String    @unique
-  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  morningEnabled  Boolean   @default(false)
-  morningTime     String    @default("08:00")
-  eveningEnabled  Boolean   @default(false)
-  eveningTime     String    @default("19:30")
+  id                String    @id @default(cuid())
+  userId            String    @unique
+  user              User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  morningEnabled    Boolean   @default(false)
+  morningTime       String    @default("08:00")
+  eveningEnabled    Boolean   @default(false)
+  eveningTime       String    @default("19:30")
   /// Weekdays as bits, Monday = 1 … Sunday = 64; Mon–Fri by default.
-  days            Int       @default(31)
-  onlyStudyDays   Boolean   @default(true)
-  quietStart      String    @default("22:00")
-  quietEnd        String    @default("07:30")
+  days              Int       @default(31)
+  onlyStudyDays     Boolean   @default(true)
+  quietStart        String    @default("22:00")
+  quietEnd          String    @default("07:30")
   /// Paused through this owner-calendar day (DATE label).
-  pausedUntil     DateTime? @db.Date
-  studyCategories String[]  @default(["DSA", "Technical"])
-  updatedAt       DateTime  @updatedAt @db.Timestamptz(3)
+  pausedUntil       DateTime? @db.Date
+  studyCategories   String[]  @default(["DSA", "Technical"])
+  /// WI-039: a nudge when a study block's start has passed by this many minutes with nothing begun.
+  blockStartEnabled Boolean   @default(false)
+  blockStartMinutes Int       @default(15)
+  updatedAt         DateTime  @updatedAt @db.Timestamptz(3)
 }
 
 /// WI-031: what a Grill Me request is for (the ledger never holds content).

@@ -7,16 +7,18 @@
 3. In the same request, `deliverPending` sends each new, unread, unsent reminder to every active `PushSubscription` of the owner, as an encrypted Web Push message (VAPID, RFC 8291 `aes128gcm`, TTL 12 hours, urgency normal).
 4. The browser's push service wakes the service worker (`public/sw.js`), which shows the notification. Clicking it focuses an open CareerOS window or opens one at the reminder's page (`/dsa`, `/learn`, `/jobs/<id>`, `/review` or `/today`). Only same-origin paths are accepted; anything else opens `/today`.
 
-## Study Nudges (WI-028)
+## Study Nudges (WI-028, coach in WI-039)
 
-Two optional reminders, both off until the owner turns them on in Settings → Reminders → Study nudges. The rules are `morningDue` and `eveningDue` in `src/features/nudges/domain.ts`; `processStudyNudges` runs first in the same job and lock.
+Three optional reminders, all off until the owner turns them on in Settings → Reminders → Study nudges. The rules are `morningDue` and `eveningDue` in `src/features/nudges/domain.ts`; `processStudyNudges` runs first in the same job and lock.
 
 - **Morning:** from the chosen local time for up to three hours, on chosen days, by default only when the day has a study block.
 - **Evening check-in:** from the chosen time until quiet hours, only when a study block has ended, is still planned and has no session, and the day is not rested or closed.
 - **Never:** in quiet hours (default 22:00–07:30), while paused, on a rest day, while a session is running, more than once per mode a day, or within four hours of the morning nudge.
 - **In the app only:** when Silsila was seen in the last five minutes. The shell posts `POST /api/presence` at most every two minutes while a page is visible, which stamps `User.lastActiveAt`. Such rows are `NotificationLog.inAppOnly`, and `deliverPending` never pushes them.
-- **No doubling up:** an evening check-in keeps that day's daily reminder in the app, and overdue alerts skip study blocks while the check-in is on.
-- **Lock screen:** "Good morning" or "Study check-in" with the general line. A tap opens `/today#study-nudge`, where the card names the block.
+- **Block start (WI-039):** the owner can turn it on separately. It is one nudge when a study block's start has passed by the chosen minutes (5, 10, 15, 20 or 30; 15 by default) with no session and no decision, while the block has not ended. It sends once per block and at most once a day, and respects quiet hours, pause, rest, close and a running session (`blockStartDue`, type `STUDY_BLOCK`). Its card offers Start 20 min, Move to tomorrow and Let go (skipped with the reason "Let go", with Undo).
+- **Facts in the text (WI-039):** the morning row lists today's study blocks and any study block from yesterday with no session recorded (`morningBody`). The evening row names the block left and how tomorrow starts (`eveningBody`). These appear only in the app.
+- **No doubling up:** an evening check-in keeps that day's daily reminder in the app, and overdue alerts skip study blocks while the check-in is on. While the block-start nudge is on, upcoming and overdue reminders skip study blocks entirely, so one block never produces two notifications.
+- **Lock screen:** "Good morning" or "Study check-in" with the general line; a block start reads "A study block has started. Open Silsila to begin or move it." A tap opens `/today#study-nudge`, where the card names the block.
 
 The OS permission prompt still appears only from the Enable button in Settings. Without permission, or on iPhone outside the Home Screen app, nudges stay on Today.
 

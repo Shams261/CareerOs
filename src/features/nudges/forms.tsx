@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import { categoryGroup } from '@/features/review/domain';
 import { nudgePauseAction, nudgeSettingsAction } from './actions';
 import {
+  BLOCK_START_OFFSETS,
   EVENING_LINES,
   MORNING_LINES,
   PAUSED_FOREVER,
@@ -61,6 +62,34 @@ export function NudgeSettingsForm({
             />
           </label>
           <p className="nudge-copy">“{MORNING_LINES[0]}”</p>
+        </fieldset>
+        <fieldset className="nudge-mode">
+          <legend>When a study block starts</legend>
+          <label className="check">
+            <input
+              type="checkbox"
+              name="blockStartEnabled"
+              defaultChecked={setting.blockStartEnabled}
+            />
+            Nudge once if nothing has begun
+          </label>
+          <label>
+            After
+            <select
+              name="blockStartMinutes"
+              defaultValue={String(setting.blockStartMinutes)}
+            >
+              {BLOCK_START_OFFSETS.map((m) => (
+                <option key={m} value={m}>
+                  {m} minutes
+                </option>
+              ))}
+            </select>
+          </label>
+          <p className="nudge-copy">
+            “18:00–19:30 DSA practice started 15 minutes ago and no session has
+            begun yet. 75 minutes of it are left.”
+          </p>
         </fieldset>
         <fieldset className="nudge-mode">
           <legend>Evening check-in</legend>

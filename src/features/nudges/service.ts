@@ -7,13 +7,15 @@ import { reminderKey } from '@/features/notifications/domain';
 import { locked, type ScheduleUser } from '@/features/schedule/service';
 import { shiftDay } from '@/features/schedule/domain';
 import {
+  blockBody,
+  blockStartDue,
   DEFAULT_NUDGES,
+  eveningBody,
   eveningDue,
-  eveningLine,
   inAppOnly,
   isStudyCategory,
+  morningBody,
   morningDue,
-  morningLine,
   nudgeInput,
   type NudgeSetting,
 } from './domain';
@@ -29,6 +31,8 @@ type Row = {
   quietEnd: string;
   pausedUntil: Date | null;
   studyCategories: string[];
+  blockStartEnabled: boolean;
+  blockStartMinutes: number;
 };
 /** The stored row as pure settings (the pause date is a DATE label). */
 export const nudgeSetting = (row: Row | null | undefined): NudgeSetting =>
@@ -49,6 +53,35 @@ export const nudgeKey = (
   type: 'STUDY_MORNING' | 'STUDY_EVENING',
   day: string,
 ) => reminderKey(userId, type, 'study', day);
+/** One block-start nudge per block and day (WI-039). */
+export const blockNudgeKey = (userId: string, blockId: string, day: string) =>
+  reminderKey(userId, 'STUDY_BLOCK', blockId, day);
+/** Every block-start nudge of one owner-day, for counting and closing. */
+const blockNudgesOf = (userId: string, day: string) => ({
+  startsWith: `${userId}:STUDY_BLOCK:`,
+  endsWith: `:${day}`,
+});
+
+const studyOf = (
+  blocks: {
+    id: string;
+    title: string;
+    status: string;
+    category: string;
+    plannedStart: Date;
+    plannedEnd: Date;
+    sessions: { id: string }[];
+  }[],
+  chosen: string[],
+) =>
+  blocks
+    .filter(
+      (b) =>
+        b.status !== 'CANCELLED' &&
+        isStudyCategory(b.category, chosen) &&
+        !isTestNamed(b.title),
+    )
+    .sort((a, b) => +a.plannedStart - +b.plannedStart);
 
 /**
  * Queues today's Study Nudges for one owner, inside the reminder job's owner lock. Every rule
@@ -61,11 +94,11 @@ export async function processStudyNudges(
   now: Date,
 ) {
   const s = nudgeSetting(row);
-  if (!s.morningEnabled && !s.eveningEnabled) return 0;
+  if (!s.morningEnabled && !s.eveningEnabled && !s.blockStartEnabled) return 0;
   const zone = user.timezone,
     day = dayKey(now, zone),
     bounds = dayBounds(day, zone);
-  const [plan, sessions, running, logged] = await Promise.all([
+  const [plan, sessions, running, logged, blockLogs] = await Promise.all([
     tx.dailyPlan.findUnique({
       where: { userId_date: { userId: user.id, date: new Date(day) } },
       include: {
@@ -94,23 +127,27 @@ export async function processStudyNudges(
       },
       select: { type: true, createdAt: true },
     }),
+    s.blockStartEnabled
+      ? tx.notificationLog.findMany({
+          where: {
+            userId: user.id,
+            type: 'STUDY_BLOCK',
+            dedupeKey: blockNudgesOf(user.id, day),
+          },
+          select: { metadata: true },
+        })
+      : [],
   ]);
+  const study = studyOf(plan?.blocks ?? [], s.studyCategories);
   const facts = {
-    studyBlocks: (plan?.blocks ?? [])
-      .filter(
-        (b) =>
-          b.status !== 'CANCELLED' &&
-          isStudyCategory(b.category, s.studyCategories) &&
-          !isTestNamed(b.title),
-      )
-      .map((b) => ({
-        id: b.id,
-        title: b.title,
-        status: b.status,
-        plannedStart: b.plannedStart,
-        plannedEnd: b.plannedEnd,
-        recorded: b.sessions.length > 0,
-      })),
+    studyBlocks: study.map((b) => ({
+      id: b.id,
+      title: b.title,
+      status: b.status,
+      plannedStart: b.plannedStart,
+      plannedEnd: b.plannedEnd,
+      recorded: b.sessions.length > 0,
+    })),
     studySessionToday: sessions.some((x) =>
       isStudyCategory(x.category, s.studyCategories),
     ),
@@ -121,17 +158,32 @@ export async function processStudyNudges(
       logged.find((l) => l.type === 'STUDY_MORNING')?.createdAt ?? null,
     eveningAt:
       logged.find((l) => l.type === 'STUDY_EVENING')?.createdAt ?? null,
+    blockNudged: blockLogs.map((l) => blockIdOf(l.metadata) ?? ''),
   };
+  /** Another day's study blocks, read only when a nudge that names them is due. */
+  const studyOn = async (other: string) =>
+    studyOf(
+      (
+        await tx.dailyPlan.findUnique({
+          where: { userId_date: { userId: user.id, date: new Date(other) } },
+          include: {
+            blocks: { include: { sessions: { select: { id: true } } } },
+          },
+        })
+      )?.blocks ?? [],
+      s.studyCategories,
+    );
   const quiet = inAppOnly(user.lastActiveAt, now);
   let queued = 0;
   const queue = async (
-    type: 'STUDY_MORNING' | 'STUDY_EVENING',
+    type: 'STUDY_MORNING' | 'STUDY_EVENING' | 'STUDY_BLOCK',
+    dedupeKey: string,
     title: string,
     body: string,
     blockId: string | null,
   ) => {
     await tx.notificationLog.upsert({
-      where: { dedupeKey: nudgeKey(user.id, type, day) },
+      where: { dedupeKey },
       update: {},
       create: {
         userId: user.id,
@@ -139,56 +191,96 @@ export async function processStudyNudges(
         title,
         body,
         scheduledFor: now,
-        dedupeKey: nudgeKey(user.id, type, day),
+        dedupeKey,
         inAppOnly: quiet,
         metadata: blockId ? { blockId } : undefined,
       },
     });
     queued++;
   };
-  if (morningDue(s, facts, now, zone))
+  if (morningDue(s, facts, now, zone)) {
+    const yesterdayLeft = (await studyOn(shiftDay(day, -1))).filter(
+      (b) =>
+        b.status === 'PLANNED' && !b.sessions.length && b.plannedEnd <= now,
+    );
     await queue(
       'STUDY_MORNING',
+      nudgeKey(user.id, 'STUDY_MORNING', day),
       'Good morning',
-      morningLine(day),
-      facts.studyBlocks
-        .filter((b) => b.plannedEnd > now && b.status === 'PLANNED')
-        .sort((a, b) => +a.plannedStart - +b.plannedStart)[0]?.id ?? null,
+      morningBody(
+        study.filter((b) => b.status !== 'SKIPPED'),
+        yesterdayLeft,
+        day,
+        zone,
+      ),
+      facts.studyBlocks.find(
+        (b) => b.plannedEnd > now && b.status === 'PLANNED',
+      )?.id ?? null,
+    );
+  }
+  const started = blockStartDue(s, facts, now, zone);
+  if (started)
+    await queue(
+      'STUDY_BLOCK',
+      blockNudgeKey(user.id, started.id, day),
+      'Block started',
+      blockBody(started, now, zone),
+      started.id,
     );
   const block = eveningDue(s, facts, now, zone);
-  if (block)
-    await queue('STUDY_EVENING', 'Study check-in', eveningLine(day), block.id);
+  if (block) {
+    const tomorrow = (await studyOn(shiftDay(day, 1))).find(
+      (b) => b.status === 'PLANNED',
+    );
+    await queue(
+      'STUDY_EVENING',
+      nudgeKey(user.id, 'STUDY_EVENING', day),
+      'Study check-in',
+      eveningBody(block, tomorrow ?? null, day, zone),
+      block.id,
+    );
+  }
   return queued;
 }
+
+const blockIdOf = (metadata: unknown) =>
+  metadata && typeof metadata === 'object' && 'blockId' in metadata
+    ? String((metadata as { blockId: unknown }).blockId)
+    : null;
 
 /** Today's open nudge for the card on Today (one statement), with the block it is about. */
 export async function todaysNudge(user: ScheduleUser, day: string) {
   const n = await db().notificationLog.findFirst({
     where: {
       userId: user.id,
-      type: { in: ['STUDY_MORNING', 'STUDY_EVENING'] },
       readAt: null,
-      dedupeKey: {
-        in: [
-          nudgeKey(user.id, 'STUDY_MORNING', day),
-          nudgeKey(user.id, 'STUDY_EVENING', day),
-        ],
-      },
+      OR: [
+        {
+          type: { in: ['STUDY_MORNING', 'STUDY_EVENING'] },
+          dedupeKey: {
+            in: [
+              nudgeKey(user.id, 'STUDY_MORNING', day),
+              nudgeKey(user.id, 'STUDY_EVENING', day),
+            ],
+          },
+        },
+        { type: 'STUDY_BLOCK', dedupeKey: blockNudgesOf(user.id, day) },
+      ],
     },
     orderBy: { createdAt: 'desc' },
     select: { id: true, type: true, body: true, metadata: true },
   });
   if (!n) return null;
-  const blockId =
-    n.metadata && typeof n.metadata === 'object' && 'blockId' in n.metadata
-      ? String((n.metadata as { blockId: unknown }).blockId)
-      : null;
   return {
     id: n.id,
     kind:
-      n.type === 'STUDY_MORNING' ? ('morning' as const) : ('evening' as const),
+      n.type === 'STUDY_MORNING'
+        ? ('morning' as const)
+        : n.type === 'STUDY_BLOCK'
+          ? ('block' as const)
+          : ('evening' as const),
     body: n.body,
-    blockId,
+    blockId: blockIdOf(n.metadata),
   };
 }
 
@@ -203,7 +295,7 @@ export async function nudgeFeedback(
     where: {
       id,
       userId: user.id,
-      type: { in: ['STUDY_MORNING', 'STUDY_EVENING'] },
+      type: { in: ['STUDY_MORNING', 'STUDY_EVENING', 'STUDY_BLOCK'] },
     },
     data: { feedback: value, readAt: now },
   });
@@ -245,12 +337,17 @@ export async function closeNudges(
     where: {
       userId,
       readAt: null,
-      dedupeKey: {
-        in: [
-          nudgeKey(userId, 'STUDY_MORNING', day),
-          nudgeKey(userId, 'STUDY_EVENING', day),
-        ],
-      },
+      OR: [
+        {
+          dedupeKey: {
+            in: [
+              nudgeKey(userId, 'STUDY_MORNING', day),
+              nudgeKey(userId, 'STUDY_EVENING', day),
+            ],
+          },
+        },
+        { dedupeKey: blockNudgesOf(userId, day) },
+      ],
     },
     data: { readAt: now },
   });

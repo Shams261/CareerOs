@@ -3,9 +3,10 @@ import { categoryGroup } from '@/features/review/domain';
 import { dayKey, hhmm, localInstant } from '@/lib/time';
 
 /**
- * Study Nudges (WI-028, Version 2 plan §7): pure rules. Both modes are off by default. The
- * copy is fixed, reviewed Silsila text: it never says the owner did not study and never names
- * a task on a lock screen.
+ * Study Nudges (WI-028, Version 2 plan §7) and the coach of WI-039 (Rumi plan): pure rules.
+ * Every mode is off by default. The copy is fixed, reviewed Silsila text filled with the
+ * owner's facts: it never says the owner did not study and never names a task on a lock
+ * screen.
  */
 export type NudgeSetting = {
   morningEnabled: boolean;
@@ -20,6 +21,9 @@ export type NudgeSetting = {
   /** Paused through this owner-calendar day ("yyyy-MM-dd"), or null. */
   pausedUntil: string | null;
   studyCategories: string[];
+  /** WI-039: nudge once a study block's start has passed by `blockStartMinutes`. */
+  blockStartEnabled: boolean;
+  blockStartMinutes: number;
 };
 export const DEFAULT_NUDGES: NudgeSetting = {
   morningEnabled: false,
@@ -32,7 +36,13 @@ export const DEFAULT_NUDGES: NudgeSetting = {
   quietEnd: '07:30',
   pausedUntil: null,
   studyCategories: ['DSA', 'Technical'],
+  blockStartEnabled: false,
+  blockStartMinutes: 15,
 };
+/** At most this many block-start nudges in one day, so the coach never nags (WI-039). */
+export const BLOCK_NUDGES_PER_DAY = 1;
+/** The offsets the Settings form offers after a block's start. */
+export const BLOCK_START_OFFSETS = [5, 10, 15, 20, 30] as const;
 /** The morning nudge is skipped (never sent late) once this window after its time has passed. */
 export const MORNING_WINDOW_MIN = 180;
 /** At least this long between the morning and the evening nudge. */
@@ -95,6 +105,8 @@ export type NudgeDay = {
   running: boolean;
   morningAt: Date | null;
   eveningAt: Date | null;
+  /** Blocks already nudged at their start today (WI-039). */
+  blockNudged?: string[];
 };
 
 const active = (s: NudgeSetting, day: string) =>
@@ -142,6 +154,85 @@ export function eveningDue(
       )
       .sort((a, b) => +a.plannedStart - +b.plannedStart)[0] ?? null
   );
+}
+
+/**
+ * The block a block-start nudge is about (WI-039), or null: a study block whose start passed
+ * by the chosen minutes, that is still planned, has no session and has not ended, on an
+ * active day that is not rested or closed, outside quiet hours, with no session running,
+ * once per block and at most `BLOCK_NUDGES_PER_DAY` a day.
+ */
+export function blockStartDue(
+  s: NudgeSetting,
+  d: NudgeDay,
+  now: Date,
+  zone: string,
+) {
+  const day = dayKey(now, zone);
+  if (!s.blockStartEnabled || !active(s, day)) return null;
+  const nudged = d.blockNudged ?? [];
+  if (nudged.length >= BLOCK_NUDGES_PER_DAY) return null;
+  if (inQuietHours(hhmm(now, zone), s.quietStart, s.quietEnd)) return null;
+  if (d.rested || d.closed || d.running) return null;
+  const after = s.blockStartMinutes * 60_000;
+  return (
+    d.studyBlocks
+      .filter(
+        (b) =>
+          b.status === 'PLANNED' &&
+          !b.recorded &&
+          !nudged.includes(b.id) &&
+          +b.plannedStart + after <= +now &&
+          now < b.plannedEnd,
+      )
+      .sort((a, b) => +a.plannedStart - +b.plannedStart)[0] ?? null
+  );
+}
+
+type Slot = { title: string; plannedStart: Date; plannedEnd: Date };
+const span = (b: Slot, zone: string) =>
+  `${hhmm(b.plannedStart, zone)}–${hhmm(b.plannedEnd, zone)}`;
+const sentence = (b: Slot, zone: string) => `${span(b, zone)} ${b.title}`;
+
+/**
+ * The morning card's facts (WI-039): today's study blocks, then any study block from
+ * yesterday that has no session recorded, then the day's reviewed line.
+ */
+export function morningBody(
+  today: Slot[],
+  yesterdayLeft: Slot[],
+  day: string,
+  zone: string,
+) {
+  const plan = today.length
+    ? `Today: ${today.map((b) => sentence(b, zone)).join(' · ')}.`
+    : 'No study blocks are planned today.';
+  const left = !yesterdayLeft.length
+    ? ''
+    : yesterdayLeft.length === 1
+      ? ` Yesterday ${sentence(yesterdayLeft[0], zone)} had no session recorded.`
+      : ` Yesterday ${yesterdayLeft.length} study blocks had no session recorded.`;
+  return `${plan}${left} ${morningLine(day)}`;
+}
+
+/** The evening check-in's facts (WI-039): the block left, and how tomorrow starts. */
+export function eveningBody(
+  block: Slot,
+  tomorrowFirst: Slot | null,
+  day: string,
+  zone: string,
+) {
+  const next = tomorrowFirst
+    ? ` Tomorrow starts with ${sentence(tomorrowFirst, zone)}.`
+    : '';
+  return `${eveningLine(day)} Left today: ${sentence(block, zone)}.${next}`;
+}
+
+/** The block-start nudge (WI-039): what started, and how much of it is left. */
+export function blockBody(block: Slot, now: Date, zone: string) {
+  const ago = Math.max(1, Math.round((+now - +block.plannedStart) / 60_000));
+  const left = Math.max(1, Math.round((+block.plannedEnd - +now) / 60_000));
+  return `${sentence(block, zone)} started ${ago} minutes ago and no session has begun yet. ${left} minutes of it are left.`;
 }
 
 /** "Until I turn it on": a pause date far beyond any real day. */
@@ -196,6 +287,16 @@ export const nudgeInput = z
       .array(z.string().trim().min(1).max(40))
       .min(1, 'Choose at least one study category.')
       .max(20),
+    // Optional with defaults, so a form without the WI-039 fields keeps them off.
+    blockStartEnabled: z.boolean().default(false),
+    blockStartMinutes: z.coerce
+      .number()
+      .int()
+      .refine(
+        (m) => (BLOCK_START_OFFSETS as readonly number[]).includes(m),
+        'Choose 5, 10, 15, 20 or 30 minutes.',
+      )
+      .default(15),
   })
   .refine(
     (v) =>
@@ -211,11 +312,14 @@ export const nudgeInput = z
   );
 export type NudgeInput = z.infer<typeof nudgeInput>;
 
-/** "Weekdays · 08:00 · Evenings from 19:30" for the Settings row. */
+/** "Mornings 08:00 · Block start +15 min · Check-in from 19:30 · Weekdays" for the Settings row. */
 export function nudgeContext(s: NudgeSetting | null) {
-  if (!s || (!s.morningEnabled && !s.eveningEnabled)) return 'Off';
+  if (!s || (!s.morningEnabled && !s.eveningEnabled && !s.blockStartEnabled))
+    return 'Off';
   const parts = [] as string[];
   if (s.morningEnabled) parts.push(`Mornings ${s.morningTime}`);
+  if (s.blockStartEnabled)
+    parts.push(`Block start +${s.blockStartMinutes} min`);
   if (s.eveningEnabled) parts.push(`Check-in from ${s.eveningTime}`);
   const days =
     s.days === 127
