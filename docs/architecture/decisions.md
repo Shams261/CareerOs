@@ -237,6 +237,8 @@ Attention is derived, not stored: overdue follow-up, result needed, interview be
 - **A resolved session is kept 60 seconds** (`SESSION_CACHE_MS` in `src/server/session.ts`) on `globalThis`, so the proxy bundle and the page share it. Sign-out and Sign out other devices clear it at once, and so does every write (`onForget`), because the cached row carries the owner's `User` (theme, Day Print answer). In a second process, a device signed out elsewhere could keep working for up to a minute; that is accepted for one owner and one process.
 - The roadmap detail and the application page join the memoized snapshots (`roadmap:<id>`, `application:<id>`).
 
+**Amendment (2026-10-28, WI-062):** the snapshot map and its listeners now live on `globalThis`. The build compiles `memo.ts` once per webpack layer, so a server action imported by a client component (Undo, Dismiss, notes, Rumi, nudges) cleared its own empty copy and left the pages' snapshots in place for up to the full window. Snapshots that depend on the date carry the owner's day in their key, so a new day never reads yesterday's. The session cache keeps only real sessions and at most fifty.
+
 ## ADR-018 — The roadmap is the tracker: items carry scope, checkpoint, references and study prompts; problems live in Practice
 
 **Status:** Accepted (2026-10-21, WI-012). Amended by ADR-025: a problem item's status and revision follow Practice.

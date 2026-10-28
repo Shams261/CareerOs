@@ -210,20 +210,53 @@ describe.skipIf(!url)('Deletes on every record (WI-060)', () => {
         endedAt: at('2026-10-27T11:45:00Z'),
       },
     });
+    // An attempt recorded from the session keeps its link through delete and Undo (WI-062).
+    const sessionTopic = await prisma.dsaTopic.upsert({
+      where: { name: 'Arrays & Hashing' },
+      create: { name: 'Arrays & Hashing' },
+      update: {},
+    });
+    const solved = await prisma.dsaProblem.create({
+      data: {
+        userId: user.id,
+        title: 'Two Sum',
+        platform: 'LeetCode',
+        problemUrl: `https://leetcode.com/problems/two-sum-${randomUUID()}/`,
+        difficulty: 'EASY',
+        topicId: sessionTopic.id,
+      },
+    });
+    const attempt = await prisma.dsaAttempt.create({
+      data: {
+        userId: user.id,
+        problemId: solved.id,
+        requestId: randomUUID(),
+        attemptedAt: at('2026-10-27T11:40:00Z'),
+        confidenceAfter: 'GREEN',
+        solvedIndependently: 'YES',
+        actualSessionId: session.id,
+      },
+    });
     const gone = await deleteSession(user, session.id);
     expect(
       await prisma.actualSession.count({ where: { id: session.id } }),
     ).toBe(0);
+    expect(gone.attemptIds).toEqual([attempt.id]);
     await restore(user, 'restore-session', {
       category: gone.category,
       startedAt: gone.startedAt.toISOString(),
       endedAt: gone.endedAt!.toISOString(),
+      attemptIds: gone.attemptIds,
+      activityIds: gone.activityIds,
     });
+    const back = await prisma.actualSession.findMany({
+      where: { userId: user.id, startedAt: gone.startedAt },
+    });
+    expect(back).toHaveLength(1);
     expect(
-      await prisma.actualSession.count({
-        where: { userId: user.id, startedAt: gone.startedAt },
-      }),
-    ).toBe(1);
+      (await prisma.dsaAttempt.findUniqueOrThrow({ where: { id: attempt.id } }))
+        .actualSessionId,
+    ).toBe(back[0].id);
   });
 
   it('hides an imported problem and deletes one the owner added', async () => {

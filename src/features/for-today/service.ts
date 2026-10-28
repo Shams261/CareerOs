@@ -44,7 +44,9 @@ async function loadPicks(user: ScheduleUser, now: Date) {
  * Practice. Read-only and memoized like the snapshots it reads (ADR-017).
  */
 export const forTodayPicks = (user: ScheduleUser, now = new Date()) =>
-  memo(user.id, 'for-today', () => loadPicks(user, now));
+  memo(user.id, `for-today:${dayKey(now, user.timezone)}`, () =>
+    loadPicks(user, now),
+  );
 
 /**
  * Start 20 min on a pick (WI-059): a 20-minute block added for today from the next whole

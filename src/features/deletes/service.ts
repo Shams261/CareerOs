@@ -185,7 +185,22 @@ export async function deleteSession(user: ScheduleUser, id: string) {
     if (!session) throw new Error('This session no longer exists.');
     if (!session.endedAt)
       throw new Error('Stop the running session before deleting it.');
+    // Attempts and activities recorded from it lose the link (SetNull); Undo puts it back.
+    const [attempts, activities] = await Promise.all([
+      tx.dsaAttempt.findMany({
+        where: { actualSessionId: session.id, userId: user.id },
+        select: { id: true },
+      }),
+      tx.learningActivity.findMany({
+        where: { actualSessionId: session.id, userId: user.id },
+        select: { id: true },
+      }),
+    ]);
     await tx.actualSession.delete({ where: { id: session.id } });
-    return session;
+    return {
+      ...session,
+      attemptIds: attempts.map((a) => a.id),
+      activityIds: activities.map((a) => a.id),
+    };
   });
 }

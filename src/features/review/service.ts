@@ -672,7 +672,10 @@ export const weekReview = (
   user: ScheduleUser,
   monday: string,
   now = new Date(),
-) => memo(user.id, `review:${monday}`, () => loadWeekReview(user, monday, now));
+) =>
+  memo(user.id, `review:${monday}:${dayKey(now, user.timezone)}`, () =>
+    loadWeekReview(user, monday, now),
+  );
 
 /** Sunday only: true while this week's review is open, with no query on other days. */
 export async function weeklyReviewOpen(user: ScheduleUser, now = new Date()) {

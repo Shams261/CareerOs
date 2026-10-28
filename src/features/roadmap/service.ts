@@ -443,7 +443,9 @@ async function loadRoadmapList(user: ScheduleUser, now: Date) {
  * share one read of all items in a request (WI-060).
  */
 export const roadmapList = (user: ScheduleUser, now = new Date()) =>
-  memo(user.id, 'roadmap-list', () => loadRoadmapList(user, now));
+  memo(user.id, `roadmap-list:${dayKey(now, user.timezone)}`, () =>
+    loadRoadmapList(user, now),
+  );
 
 /** Items due or overdue for revision across the owner's live roadmaps, for Today. */
 async function loadRevisionDue(user: ScheduleUser, now = new Date()) {
@@ -470,7 +472,9 @@ async function loadRevisionDue(user: ScheduleUser, now = new Date()) {
   return revisionQueue(items, today);
 }
 export const revisionDue = (user: ScheduleUser, now = new Date()) =>
-  memo(user.id, 'roadmap-revision', () => loadRevisionDue(user, now));
+  memo(user.id, `roadmap-revision:${dayKey(now, user.timezone)}`, () =>
+    loadRevisionDue(user, now),
+  );
 
 /** One roadmap with its items, memoized like the overview (WI-061: as slow warm as cold before). */
 export const roadmapDetail = (user: ScheduleUser, id: string) =>
@@ -575,9 +579,13 @@ async function loadChainDays(
 }
 /** Cached for a few seconds per owner; every write drops it (see src/server/memo.ts). */
 export const goalsOverview = (user: ScheduleUser, now = new Date()) =>
-  memo(user.id, 'goals', () => loadGoalsOverview(user, now));
+  memo(user.id, `goals:${dayKey(now, user.timezone)}`, () =>
+    loadGoalsOverview(user, now),
+  );
 export const chainDays = (user: ScheduleUser, now = new Date(), length = 14) =>
-  memo(user.id, `chain:${length}`, () => loadChainDays(user, now, length));
+  memo(user.id, `chain:${length}:${dayKey(now, user.timezone)}`, () =>
+    loadChainDays(user, now, length),
+  );
 
 /**
  * This week on the Roadmap overview (WI-048): the weekly mix with its counts and next items,
@@ -666,4 +674,6 @@ async function loadWeekPlan(user: ScheduleUser, now: Date) {
   };
 }
 export const weekPlan = (user: ScheduleUser, now = new Date()) =>
-  memo(user.id, 'week-plan', () => loadWeekPlan(user, now));
+  memo(user.id, `week-plan:${dayKey(now, user.timezone)}`, () =>
+    loadWeekPlan(user, now),
+  );

@@ -2,7 +2,7 @@ import 'server-only';
 import { z } from 'zod';
 import { db } from '@/server/db';
 import { Prisma } from '@/generated/prisma/client';
-import type { ScheduleUser } from '@/features/schedule/service';
+import { locked, type ScheduleUser } from '@/features/schedule/service';
 import { execute } from '@/features/execution/service';
 import { addNote } from '@/features/notes/service';
 import { addPriority, removePriority } from '@/features/review/service';
@@ -44,6 +44,8 @@ const kinds = {
     startedAt: z.iso.datetime(),
     endedAt: z.iso.datetime(),
     notes: z.string().max(1000).nullable().optional(),
+    attemptIds: z.array(z.string().min(1)).max(200).optional(),
+    activityIds: z.array(z.string().min(1)).max(200).optional(),
   }),
   'problem-unhide': z.object({ id: z.string().min(1) }),
   'restore-note': z.object({ body: z.string().min(1).max(500) }),
@@ -165,26 +167,48 @@ export async function restore(
     }
     case 'restore-session': {
       const p = kinds[k].parse(payload);
-      const task = p.taskId
-        ? await db().timeBlock.findFirst({
-            where: { id: p.taskId, dailyPlan: { userId: user.id } },
-          })
-        : null;
-      const goal = p.goalId
-        ? await db().goal.findFirst({
-            where: { id: p.goalId, userId: user.id },
-          })
-        : null;
-      await db().actualSession.create({
-        data: {
-          userId: user.id,
-          taskId: task?.id ?? null,
-          goalId: goal?.id ?? null,
-          category: p.category,
-          startedAt: new Date(p.startedAt),
-          endedAt: new Date(p.endedAt),
-          notes: p.notes ?? null,
-        },
+      // Under the owner lock like every session write (WI-062), and the attempts and
+      // activities recorded from it are linked again, if still the owner's and unlinked.
+      await locked(user.id, async (tx) => {
+        const task = p.taskId
+          ? await tx.timeBlock.findFirst({
+              where: { id: p.taskId, dailyPlan: { userId: user.id } },
+            })
+          : null;
+        const goal = p.goalId
+          ? await tx.goal.findFirst({
+              where: { id: p.goalId, userId: user.id },
+            })
+          : null;
+        const session = await tx.actualSession.create({
+          data: {
+            userId: user.id,
+            taskId: task?.id ?? null,
+            goalId: goal?.id ?? null,
+            category: p.category,
+            startedAt: new Date(p.startedAt),
+            endedAt: new Date(p.endedAt),
+            notes: p.notes ?? null,
+          },
+        });
+        if (p.attemptIds?.length)
+          await tx.dsaAttempt.updateMany({
+            where: {
+              id: { in: p.attemptIds },
+              userId: user.id,
+              actualSessionId: null,
+            },
+            data: { actualSessionId: session.id },
+          });
+        if (p.activityIds?.length)
+          await tx.learningActivity.updateMany({
+            where: {
+              id: { in: p.activityIds },
+              userId: user.id,
+              actualSessionId: null,
+            },
+            data: { actualSessionId: session.id },
+          });
       });
       return 'Session restored.';
     }

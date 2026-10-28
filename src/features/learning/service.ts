@@ -371,4 +371,6 @@ async function loadLearningSnapshot(user: ScheduleUser, now = new Date()) {
 }
 /** Cached for a few seconds per owner; every write drops it (see src/server/memo.ts). */
 export const learningSnapshot = (user: ScheduleUser, now = new Date()) =>
-  memo(user.id, 'learning', () => loadLearningSnapshot(user, now));
+  memo(user.id, `learning:${dayKey(now, user.timezone)}`, () =>
+    loadLearningSnapshot(user, now),
+  );

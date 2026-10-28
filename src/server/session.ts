@@ -55,6 +55,8 @@ export async function createSession(
  * hit. Off under test, like the snapshots, so database tests stay exact.
  */
 export const SESSION_CACHE_MS = 60_000;
+/** One owner signs in on a handful of devices; the cap only bounds memory. */
+export const SESSION_CACHE_MAX = 50;
 type Resolved = Awaited<ReturnType<typeof loadSession>>;
 // On globalThis: the middleware is a separate bundle in the same process, and a sign-out
 // must clear the copy it reads too.
@@ -80,11 +82,18 @@ export async function resolveSession(
   if (hit && hit.until > Date.now()) session = hit.value;
   else {
     session = await loadSession(tokenHash);
-    if (cacheEnabled())
+    // Only real sessions are kept (WI-062): an unknown token is never cached, so made-up
+    // cookies cannot grow the map, and the few entries left expire on the next insert.
+    if (cacheEnabled() && session) {
+      const now = Date.now();
+      for (const [key, entry] of sessions)
+        if (entry.until <= now) sessions.delete(key);
+      if (sessions.size >= SESSION_CACHE_MAX) sessions.clear();
       sessions.set(tokenHash, {
         value: session,
-        until: Date.now() + SESSION_CACHE_MS,
+        until: now + SESSION_CACHE_MS,
       });
+    }
   }
   if (
     !session ||

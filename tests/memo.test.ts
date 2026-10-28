@@ -43,6 +43,22 @@ describe('snapshot memo', () => {
     await expect(memo('u', 'f', failing)).rejects.toThrow('db down');
     expect(failing).toHaveBeenCalledTimes(2);
   });
+  it('shares one cache between copies of the module, so any copy clears it (WI-062)', async () => {
+    // The build compiles memo.ts once per layer; a fresh import stands in for the second copy.
+    vi.resetModules();
+    const other = await import('../src/server/memo');
+    expect(other.memo).not.toBe(memo);
+    const load = vi.fn(async () => 1);
+    await memo('u', 'shared', load);
+    await other.memo('u', 'shared', load);
+    expect(load).toHaveBeenCalledTimes(1);
+    const cleared = vi.fn();
+    other.onForget(cleared);
+    forgetAll();
+    expect(cleared).toHaveBeenCalled();
+    await other.memo('u', 'shared', load);
+    expect(load).toHaveBeenCalledTimes(2);
+  });
   it('is off under test unless switched on', async () => {
     delete process.env.SNAPSHOT_CACHE;
     const load = vi.fn(async () => 1);
