@@ -16,7 +16,8 @@ describe.skipIf(!url)('WI-060 goal role and hidden problems upgrade', () => {
       const all = (await readdir('prisma/migrations'))
         .filter((d) => !d.endsWith('.toml'))
         .sort();
-      expect(all.at(-1)).toBe(target);
+      // Later migrations exist since WI-064; this one must still be there.
+      expect(all).toContain(target);
       for (const m of all.slice(0, all.indexOf(target)))
         await client.query(
           await readFile(`prisma/migrations/${m}/migration.sql`, 'utf8'),

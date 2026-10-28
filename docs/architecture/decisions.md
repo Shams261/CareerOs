@@ -519,3 +519,40 @@ The owner's decisions (2026-10-26) and the R5 spike (2026-10-27, `scripts/r5-spi
 - A Done problem item now means Green in Practice, so a roadmap's "N done" counts proof rather than a click.
 - Items left stale by an earlier version catch up on the next attempt or import. Production had no progress when this shipped (WI-045), so nothing was stale there.
 - Unlinking a problem keeps the item's last status; from then on the roadmap marks it again.
+
+## ADR-026 — The curriculum is the app's default; goals are the owner's own
+
+**Status:** Accepted (2026-10-28, WI-064).
+
+**Context:** The roadmaps and practice problems were imported into the owner's workspace as their records. Wiping the workspace for a fresh UAT took them too, and the import also created a goal ("Offer from a product company") and tied every roadmap to it. The owner decided that the curriculum (five roadmaps, 219 problems) is part of the app and must always be there, and that goals are the owner's own, for any horizon (the next two days, a week, a month), with no relation to the curriculum.
+
+**Decision:**
+
+- **The material lives in the database, never in the repository.**
+  - The owner publishes the bundle once with `pnpm curriculum:publish <bundle.json>`. It goes into `CurriculumBundle` (one row, `id = "default"`), without its goal.
+  - The repository is public and the bundle is the owner's material, so it is never committed.
+- **Every workspace gets a copy on its first sign-in.**
+  - The sign-in callback runs `ensureCurriculum` while the workspace has no `Roadmap.curriculum` row.
+  - `copyCurriculum` (`src/features/curriculum/copy.ts`) creates only what is missing, in about twenty bulk statements, so it stays quick across regions.
+  - A failure never blocks sign-in.
+- **Settings → Restore default curriculum** runs the same copy under the owner lock. It brings back what is missing, archived or hidden, and never touches marks, attempts, confidence or notes.
+- **A default roadmap is never deleted.**
+  - It is marked `curriculum` and can be archived, never deleted (`deleteRoadmap` refuses).
+  - It keeps its name, which Restore finds it by, and has no goal.
+  - A curriculum problem is hidden, not deleted, as before (WI-060).
+- **No goal from the curriculum.**
+  - The import and the copy create no goal and link none.
+  - The migration unlinked the imported roadmaps from their goal; the goal itself stays for the owner to keep or delete.
+- **Goals for any horizon.** The goal form offers In 2 days, This week (Sunday), This month (the month's last day) or any date (`src/features/goals/horizon.ts`). Today's goal line names the horizon: "This week · Finish Arrays & Hashing · 4 days left".
+
+**Alternatives rejected:**
+
+- **A shared, read-only catalogue with per-user progress rows.** Cleaner for many users, but it would rewrite every roadmap and practice query and the marks model.
+- **The bundle in the repository.** It would publish the owner's material.
+- **Copying on every sign-in.** It would undo the owner's Archive and Hide.
+
+**Consequences:**
+
+- **Wipes and resets keep the curriculum, or the next sign-in copies it back.** `scripts/fresh-start.sql` keeps it; a workspace that lost it gets it back on Restore, or on its next first sign-in.
+- **Bundle changes reach existing workspaces only through Restore,** which adds what is missing. Existing items keep their text; `pnpm roadmap:import` still updates text for the single owner.
+- **More users would share the material.** That requires its licence to be checked first.

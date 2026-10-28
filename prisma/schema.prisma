@@ -892,6 +892,8 @@ model Roadmap {
   scenarios      Json?
   /// Grill Me may send this roadmap's items (WI-031): off for owner-made roadmaps and the behavioural one.
   studyAi        Boolean       @default(false)
+  /// Part of the default curriculum (WI-064): copied into every workspace, archived but never deleted.
+  curriculum     Boolean       @default(false)
   createdAt      DateTime      @default(now()) @db.Timestamptz(3)
   updatedAt      DateTime      @updatedAt @db.Timestamptz(3)
   items          RoadmapItem[]
@@ -1137,4 +1139,15 @@ model NoticedAnswer {
   updatedAt   DateTime  @updatedAt @db.Timestamptz(3)
 
   @@unique([userId, key])
+}
+
+/// The default curriculum (WI-064): the owner's roadmap bundle, published once with
+/// `pnpm curriculum:publish` and copied into a workspace on its first sign-in or on Restore.
+/// One row (`id = "default"`); the material lives here, never in the public repository.
+model CurriculumBundle {
+  id          String   @id
+  builtAt     DateTime @db.Timestamptz(3)
+  payload     Json
+  publishedAt DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt   DateTime @updatedAt @db.Timestamptz(3)
 }

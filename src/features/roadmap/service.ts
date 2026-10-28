@@ -99,7 +99,13 @@ export async function saveRoadmap(user: ScheduleUser, raw: unknown) {
       });
       if (!existing)
         throw new Error('Roadmap no longer exists. Reload the page.');
-      return tx.roadmap.update({ where: { id: existing.id }, data });
+      // A default roadmap keeps its name (Restore finds it by name) and no goal (WI-064).
+      return tx.roadmap.update({
+        where: { id: existing.id },
+        data: existing.curriculum
+          ? { ...data, title: existing.title, goalId: null }
+          : data,
+      });
     }
     const count = await tx.roadmap.count({ where: { userId: user.id } });
     return tx.roadmap.create({

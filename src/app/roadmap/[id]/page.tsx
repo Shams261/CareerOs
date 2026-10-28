@@ -203,7 +203,11 @@ export default async function RoadmapDetail({
         <ArrowLeft size={14} aria-hidden="true" /> Roadmap
       </Link>
       <p className="eyebrow mt-4">
-        {roadmap.goal ? `Toward ${roadmap.goal.title}` : 'Roadmap'}
+        {roadmap.curriculum
+          ? 'Default roadmap'
+          : roadmap.goal
+            ? `Toward ${roadmap.goal.title}`
+            : 'Roadmap'}
         {roadmap.archivedAt ? ' · Archived' : ''}
       </p>
       <div className="page-head">
@@ -259,14 +263,17 @@ export default async function RoadmapDetail({
       </div>
       <SidePanel id="roadmap-edit" title={`Edit ${roadmap.title}`}>
         <RoadmapForm roadmap={roadmap} goals={goals} />
-        <div className="panel-danger">
-          <ConfirmDelete
-            action={deleteRoadmapAction}
-            id={roadmap.id}
-            label="Delete roadmap"
-            question={`Delete ${roadmap.title} and its ${roadmap.progress.total} item${roadmap.progress.total === 1 ? '' : 's'}? Archive keeps them; this cannot be undone.`}
-          />
-        </div>
+        {/* The default curriculum is archived, never deleted (WI-064). */}
+        {!roadmap.curriculum && (
+          <div className="panel-danger">
+            <ConfirmDelete
+              action={deleteRoadmapAction}
+              id={roadmap.id}
+              label="Delete roadmap"
+              question={`Delete ${roadmap.title} and its ${roadmap.progress.total} item${roadmap.progress.total === 1 ? '' : 's'}? Archive keeps them; this cannot be undone.`}
+            />
+          </div>
+        )}
       </SidePanel>
       {!roadmap.items.length ? (
         <section className="card">

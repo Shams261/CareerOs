@@ -12,6 +12,7 @@ import {
   ImageIcon,
   Keyboard,
   Laptop,
+  Library,
   MessageCircle,
   MessagesSquare,
   Server,
@@ -23,6 +24,8 @@ import { reminderAction } from '@/server/actions';
 import { ActionForm } from '@/components/action-form';
 import { Button } from '@/components/ui/button';
 import { SidePanel } from '@/components/side-panel';
+import { curriculumSummary } from '@/features/curriculum/service';
+import { restoreCurriculumAction } from '@/features/curriculum/actions';
 import { pushConfig } from '@/lib/env';
 import { healthCheck } from '@/server/health';
 import { activeDevices } from '@/features/push/service';
@@ -41,7 +44,7 @@ import { SettingRow } from '@/features/settings/rows';
 import { NudgeSettingsForm } from '@/features/nudges/forms';
 import { nudgeContext } from '@/features/nudges/domain';
 import { nudgeSetting } from '@/features/nudges/service';
-import { dayKey } from '@/lib/time';
+import { dayKey, shortDate } from '@/lib/time';
 import { aiState } from '@/features/ai/service';
 import { dayPrintAction } from '@/features/day-print/actions';
 import { AiSettings, aiContext } from '@/features/ai/settings';
@@ -88,6 +91,7 @@ export default async function Settings({
     memoryLines,
     sessions,
     sentRows,
+    curriculum,
   ] = await Promise.all([
     db().notificationPreference.findMany({
       where: {
@@ -123,6 +127,7 @@ export default async function Settings({
       where: { userId: user.id, scheduledFor: { lte: new Date() } },
       _max: { scheduledFor: true },
     }),
+    curriculumSummary(),
   ]);
   const nudges = nudgeSetting(nudgeRow);
   const today = dayKey(now, user.timezone);
@@ -526,6 +531,16 @@ export default async function Settings({
                   panel="rumi-memory"
                 />
               )}
+              {curriculum && (
+                <SettingRow
+                  source="roadmap"
+                  icon={<Library size={22} />}
+                  label="Default curriculum"
+                  title={`${curriculum.roadmaps} roadmaps · ${curriculum.problems} practice problems`}
+                  context={`Published ${shortDate(dayKey(curriculum.publishedAt, user.timezone))} · in every workspace`}
+                  panel="curriculum"
+                />
+              )}
               <SettingRow
                 source="weekly"
                 icon={<Download size={22} />}
@@ -548,6 +563,19 @@ export default async function Settings({
             </ul>
             <SidePanel id="ai" title="Grill Me">
               <AiSettings state={ai} zone={user.timezone} />
+            </SidePanel>
+            <SidePanel id="curriculum" title="Default curriculum">
+              <p>
+                Restore brings back any default roadmap, item or practice
+                problem that is missing, archived or hidden. Your marks,
+                attempts and notes stay as they are.
+              </p>
+              <ActionForm
+                action={restoreCurriculumAction}
+                label="Restore default curriculum"
+              >
+                <Button variant="secondary">Restore default curriculum</Button>
+              </ActionForm>
             </SidePanel>
             <SidePanel id="rumi-memory" title={`${AGENT_NAME} knows`}>
               <MemorySettings lines={memoryLines} />

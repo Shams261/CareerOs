@@ -168,9 +168,19 @@ export async function deleteRoadmap(user: ScheduleUser, id: string) {
   return locked(user.id, async (tx) => {
     const roadmap = await tx.roadmap.findFirst({
       where: { id, userId: user.id },
-      select: { id: true, title: true, _count: { select: { items: true } } },
+      select: {
+        id: true,
+        title: true,
+        curriculum: true,
+        _count: { select: { items: true } },
+      },
     });
     if (!roadmap) throw new Error('This roadmap no longer exists.');
+    // The default curriculum stays in every workspace (WI-064): it is archived, never deleted.
+    if (roadmap.curriculum)
+      throw new Error(
+        'A default roadmap is archived, not deleted. Archive it to hide it.',
+      );
     await tx.roadmap.delete({ where: { id: roadmap.id } });
     return roadmap.title;
   });

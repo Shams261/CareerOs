@@ -66,6 +66,14 @@ The five roadmaps (Backend engineering, System design, Technical mastery, DSA pa
 
    Idempotent: keyed by roadmap title, item slug, DSA topic name and problem URL. A re-run updates scope, checkpoint, priority, estimate, references, link, source, prompt template and scenarios, and never touches status, completion, "asked in interview", attempts, confidence, or an item's notes once the owner has written any (the report prints `notes_kept`). Items the owner adds by hand have no slug and are never touched. Re-run after editing a source or `scripts/lib/{dsa-curriculum,interview-research}.ts`.
 
+3. **Publish** it as the default curriculum (WI-064, ADR-026), so every workspace gets it on its first sign-in and Settings can restore it:
+
+   ```sh
+   DATABASE_URL=<session-pooler url> DATABASE_SSL=no-verify pnpm curriculum:publish "<sources folder>/roadmap-bundle.json"
+   ```
+
+   Re-running replaces the stored bundle; workspaces keep their copies and gain new items through Settings → Restore default curriculum. Neither the import nor the copy creates a goal.
+
 Before the first import on a workspace that already holds test data, run the reset in [backup and restore](backup-restore.md#reset-the-owners-domain-data).
 
 ## Legacy timestamp repair

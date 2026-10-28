@@ -1,4 +1,5 @@
 import { ActionForm } from '@/components/action-form';
+import { TargetDateField } from '@/features/goals/target-date';
 import type { Goal, Roadmap } from '@/generated/prisma/client';
 import {
   DEFAULT_PROMPT_TEMPLATE,
@@ -45,13 +46,10 @@ export function GoalForm({
             required
             maxLength={160}
             defaultValue={goal?.title}
-            placeholder="Offer from a product company"
+            placeholder="Finish Arrays & Hashing"
           />
         </label>
-        <label>
-          Target date
-          <input name="targetDate" type="date" defaultValue={target} />
-        </label>
+        <TargetDateField defaultValue={target} />
         <label>
           Target role (optional)
           <input
@@ -61,16 +59,25 @@ export function GoalForm({
             placeholder="Backend engineer, product company"
           />
         </label>
-        <label>
-          Category
+        {/* A quick goal skips the category (WI-064); it keeps its own or "Career". */}
+        {compact ? (
           <input
+            type="hidden"
             name="category"
-            required
-            maxLength={80}
-            list="goal-categories"
-            defaultValue={goal?.category ?? 'Career'}
+            value={goal?.category ?? 'Career'}
           />
-        </label>
+        ) : (
+          <label>
+            Category
+            <input
+              name="category"
+              required
+              maxLength={80}
+              list="goal-categories"
+              defaultValue={goal?.category ?? 'Career'}
+            />
+          </label>
+        )}
         {!compact && (
           <>
             <label>
@@ -138,19 +145,23 @@ export function RoadmapForm({
             maxLength={160}
             defaultValue={roadmap?.title}
             placeholder="Technical interview roadmap"
+            readOnly={roadmap?.curriculum}
           />
         </label>
-        <label>
-          Goal
-          <select name="goalId" defaultValue={roadmap?.goalId ?? ''}>
-            <option value="">No goal</option>
-            {goals.map((g) => (
-              <option key={g.id} value={g.id}>
-                {g.title}
-              </option>
-            ))}
-          </select>
-        </label>
+        {/* A default roadmap belongs to no goal (WI-064). */}
+        {!roadmap?.curriculum && (
+          <label>
+            Goal
+            <select name="goalId" defaultValue={roadmap?.goalId ?? ''}>
+              <option value="">No goal</option>
+              {goals.map((g) => (
+                <option key={g.id} value={g.id}>
+                  {g.title}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
       </div>
       <label>
         Description
