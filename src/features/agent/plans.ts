@@ -171,6 +171,8 @@ export async function applyProposal(
   messageId: string,
   proposalId: string,
   now = new Date(),
+  /** Positions in the card the owner removed before adding (WI-058). */
+  skip: readonly number[] = [],
 ) {
   const study = await studyKinds(user.id);
   return locked(user.id, async (tx) => {
@@ -179,7 +181,7 @@ export async function applyProposal(
     if (!p) throw new Error('This plan no longer exists.');
     if (p.status === 'applied') throw new Error('This plan is already added.');
     if (p.status === 'dismissed') throw new Error('This plan was dismissed.');
-    const blocks = addable(p);
+    const blocks = addable(p, skip);
     if (!blocks.length) throw new Error('Nothing in this plan can be added.');
     if (p.day < dayKey(now, user.timezone))
       throw new Error('This plan is for a day that has passed.');

@@ -12,6 +12,7 @@ import {
   practiceRevisionRows,
   revisionContext,
   roadmapRevisionRows,
+  foldRevisionRows,
   sortAttention,
   type AttentionItem,
   type AttentionSource,
@@ -300,8 +301,24 @@ export function attentionItems(input: AttentionInput): AttentionItem[] {
       zone,
       new Set(prep.map((i) => i.id.slice('prep:'.length))),
     ),
-    ...practiceRevisionRows(input.practice, now, zone),
-    ...roadmapRevisionRows(input.roadmap, now, zone),
+    ...foldRevisionRows(
+      practiceRevisionRows(input.practice, now, zone),
+      {
+        many: 'problems',
+        label: 'Practice',
+        href: '/dsa#revision-queue',
+      },
+      today,
+    ),
+    ...foldRevisionRows(
+      roadmapRevisionRows(input.roadmap, now, zone),
+      {
+        many: 'roadmap items',
+        label: 'Roadmap',
+        href: '/roadmap#revision-heading',
+      },
+      today,
+    ),
     ...[revisionDeckRow(input.roadmap)].filter((r): r is AttentionItem => !!r),
   ];
   // Interview rows by round id (prep, result, upcoming) and follow-up rows by application

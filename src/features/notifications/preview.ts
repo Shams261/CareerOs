@@ -5,10 +5,6 @@ import type { ScheduleUser } from '@/features/schedule/service';
 import { dayBounds } from '@/lib/time';
 import { shiftDay } from '@/features/schedule/domain';
 
-const clock12 = (hhmm: string) => {
-  const [h, m] = hhmm.split(':').map(Number);
-  return `${((h + 11) % 12) + 1}:${String(m).padStart(2, '0')} ${h < 12 ? 'am' : 'pm'}`;
-};
 const dayName = (day: string) =>
   formatInTimeZone(new Date(`${day}T12:00:00Z`), 'UTC', 'EEE');
 
@@ -67,26 +63,27 @@ export async function remindersPreview(user: ScheduleUser, monday: string) {
       }),
     ]);
   const pref = (type: string) => prefs.find((p) => p.type === type);
-  const on = (type: string, fallback: boolean) =>
-    pref(type)?.enabled ?? fallback;
+  // A missing preference is off, as the scheduler reads it (it loads enabled rows only).
+  const on = (type: string) => pref(type)?.enabled ?? false;
+  // Preferred times are stored as 24-hour "HH:MM", the app's one clock style.
   const time = (type: string, fallback: string) =>
-    clock12(pref(type)?.preferredTime ?? fallback);
+    pref(type)?.preferredTime ?? fallback;
   const lines: { title: string; detail: string; on: boolean }[] = [
     {
       title: 'Daily reminder',
-      on: on('DAILY_PROGRESS', true),
+      on: on('DAILY_PROGRESS'),
       detail: `Evenings at ${time('DAILY_PROGRESS', '21:30')}, only when the day is not reviewed.`,
     },
     {
       title: 'DSA revisions',
-      on: on('DSA_REVISION', false),
+      on: on('DSA_REVISION'),
       detail: dsaDue
         ? `${time('DSA_REVISION', '18:00')} on days with something due · ${dsaDue} due this week.`
         : `${time('DSA_REVISION', '18:00')} on days with something due · nothing due this week.`,
     },
     {
       title: 'Roadmap and topic revisions',
-      on: on('TECHNICAL_REVIEW', false),
+      on: on('TECHNICAL_REVIEW'),
       detail:
         reviewsDue + itemsDue
           ? `${time('TECHNICAL_REVIEW', '18:00')} on days with something due · ${reviewsDue + itemsDue} due this week.`
@@ -94,7 +91,7 @@ export async function remindersPreview(user: ScheduleUser, monday: string) {
     },
     {
       title: 'Job follow-ups',
-      on: on('JOB_FOLLOW_UP', false),
+      on: on('JOB_FOLLOW_UP'),
       detail: followUps.length
         ? `${time('JOB_FOLLOW_UP', '09:00')} on ${followUps
             .map(
@@ -106,7 +103,7 @@ export async function remindersPreview(user: ScheduleUser, monday: string) {
     },
     {
       title: 'Interviews',
-      on: on('INTERVIEW', false),
+      on: on('INTERVIEW'),
       detail: interviews.length
         ? `About a day before and ${pref('INTERVIEW')?.offsetMinutes ?? 60} minutes before: ${interviews
             .map(
@@ -118,7 +115,7 @@ export async function remindersPreview(user: ScheduleUser, monday: string) {
     },
     {
       title: 'Weekly review',
-      on: on('WEEKLY_REVIEW', false),
+      on: on('WEEKLY_REVIEW'),
       detail: `Sunday at ${time('WEEKLY_REVIEW', '18:00')}, only when the review is not completed.`,
     },
   ];

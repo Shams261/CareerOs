@@ -27,8 +27,10 @@ export function soundsLine(value: string | null | undefined) {
 
 /**
  * When the ring closes. The block's planned end while there is still a minute of it left
- * when the session starts; a late start instead gets the block's planned length from its own
- * start. A block without a length (or an unlinked session) has no target: the ring is untimed.
+ * when the session starts; a late start, and an early one (WI-058: a 60-minute block begun
+ * three hours ahead is 60 minutes, not 182), instead gets the block's planned length from its
+ * own start. A block without a length (or an unlinked session) has no target: the ring is
+ * untimed.
  */
 export function focusTarget({
   startedAt,
@@ -40,7 +42,8 @@ export function focusTarget({
   plannedEnd?: Date | null;
 }): Date | null {
   if (!plannedStart || !plannedEnd) return null;
-  if (+plannedEnd - +startedAt >= 60_000) return plannedEnd;
+  if (startedAt >= plannedStart && +plannedEnd - +startedAt >= 60_000)
+    return plannedEnd;
   const length = +plannedEnd - +plannedStart;
   return length > 0 ? new Date(+startedAt + length) : null;
 }

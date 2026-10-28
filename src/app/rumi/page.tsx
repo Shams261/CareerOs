@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { Plus } from 'lucide-react';
 import { owner } from '@/server/db';
-import { shortDate, dayKey } from '@/lib/time';
+import { dayKey, hhmm, shortDate } from '@/lib/time';
 import { PanelButton, SidePanel } from '@/components/side-panel';
 import { aiState } from '@/features/ai/service';
 import { budgetLine } from '@/features/ai/domain';
@@ -38,6 +38,10 @@ function ConversationList({
                 <span className="rumi-conversation-title">{c.title}</span>
                 <span className="rumi-conversation-date">
                   {shortDate(dayKey(c.updatedAt, zone))}
+                  {/* Two conversations with the same title are told apart by time (WI-058). */}
+                  {list.some((o) => o.id !== c.id && o.title === c.title)
+                    ? ` · ${hhmm(c.updatedAt, zone)}`
+                    : ''}
                 </span>
               </Link>
             </li>

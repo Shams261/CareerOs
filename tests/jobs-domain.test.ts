@@ -12,6 +12,7 @@ import {
   interviewInterval,
   interviewTime,
   interviewWindow,
+  label,
   nextRound,
   prepInput,
   quickAddInput,
@@ -492,5 +493,12 @@ describe('the next move and the page primary (WI-022)', () => {
     expect(scheduleBlockTitle('Example Labs', 'Coding')).toBe(
       'Example Labs — Coding',
     );
+  });
+});
+
+describe('label', () => {
+  it('reads an enum as words and an empty value as nothing (WI-058)', () => {
+    expect(label('RECRUITER_SCREEN')).toBe('Recruiter screen');
+    expect(label('')).toBe('');
   });
 });

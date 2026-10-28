@@ -273,6 +273,34 @@ export function revisionDeckRow(
     notificationIds: [],
   };
 }
+/** More rows of one revision source than this fold into one row on Today (WI-058). */
+export const FOLD_REVISIONS = 2;
+/**
+ * Today keeps revision rows short: more than `FOLD_REVISIONS` from one source become one row,
+ * "6 roadmap items due for revision · Oldest overdue by 3 days", linked to the place that
+ * lists them. Fewer stay as they are.
+ */
+export function foldRevisionRows(
+  rows: AttentionItem[],
+  what: { many: string; label: string; href: string },
+  today: string,
+): AttentionItem[] {
+  if (rows.length <= FOLD_REVISIONS) return rows;
+  const oldest = rows.reduce((a, b) => (b.due < a.due ? b : a));
+  return [
+    {
+      id: `fold:${oldest.source}`,
+      source: oldest.source,
+      label: what.label,
+      title: `${rows.length} ${what.many} due for revision`,
+      context: `Oldest: ${revisionContext(dateLabel(new Date(oldest.due)), today).replace(/^Revision /, '')}`,
+      href: what.href,
+      tier: 3,
+      due: oldest.due,
+      notificationIds: [],
+    },
+  ];
+}
 /** Urgency tier, then due instant, then a stable id. */
 export const sortAttention = (items: AttentionItem[]) =>
   items.sort(

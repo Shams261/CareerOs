@@ -784,15 +784,23 @@ export function JobReminderForm({
 }
 export function ScheduleInterviewForm({
   roundId,
+  name,
   label: text = 'Add interview to schedule',
 }: {
   roundId: string;
+  /** The round's title, so each form on the page has its own name (WI-058). */
+  name?: string;
   label?: string;
 }) {
   return (
-    <ActionForm action={scheduleInterviewAction} label={text}>
+    <ActionForm
+      action={scheduleInterviewAction}
+      label={name ? `${text}: ${name}` : text}
+    >
       <input type="hidden" name="id" value={roundId} />
-      <Button variant="link">{text}</Button>
+      <Button variant="secondary" className="small">
+        {text}
+      </Button>
     </ActionForm>
   );
 }

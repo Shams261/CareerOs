@@ -1,6 +1,7 @@
+import { cookies } from 'next/headers';
 import { savedTheme } from '@/server/theme';
 import { setupState } from '@/features/setup/service';
-import { setupLine } from '@/features/setup/domain';
+import { setupLine, SETUP_COOKIE } from '@/features/setup/domain';
 import Link from 'next/link';
 import { formatDistance } from 'date-fns';
 import {
@@ -122,8 +123,10 @@ export default async function Settings({
     interviewPref = prefOf('INTERVIEW');
   const job = (name: string) => jobs.find((j) => j.name === name);
   // Make Silsila yours (WI-050), the same steps as Today's; it disappears once all are done.
+  // Today shows it; Settings repeats it only while Today's card is hidden for now (WI-058).
   const steps = setup;
-  const remaining = steps.filter((s) => !s.done);
+  const hiddenOnToday = !!(await cookies()).get(SETUP_COOKIE);
+  const remaining = hiddenOnToday ? steps.filter((s) => !s.done) : [];
   const groups = [
     { id: 'reminders', label: 'Reminders' },
     { id: 'calendar', label: 'Calendar' },
@@ -152,9 +155,6 @@ export default async function Settings({
             <h1>Settings</h1>
           </div>
           <UtilityMenu>
-            <a className="link-button today-util" href="/api/export" download>
-              Download my data
-            </a>
             <form action={signOutAction}>
               <Button className="secondary">Sign out</Button>
             </form>
@@ -395,7 +395,7 @@ export default async function Settings({
                     ? 'Off'
                     : user.dayPrint
                       ? 'On'
-                      : 'On · you have not chosen yet'
+                      : 'On (default)'
                 }
                 control={
                   <ActionForm action={dayPrintAction} label="Day print">

@@ -33,7 +33,11 @@ export const LIMITS = {
 
 const clip = (text: string, max: number) => {
   const t = text.replace(/\s+/g, ' ').trim();
-  return t.length > max ? `${t.slice(0, max - 1).trimEnd()}…` : t;
+  if (t.length <= max) return t;
+  // Cut at the last space when one is near, so a title never ends mid-word (WI-058).
+  const cut = t.slice(0, max - 1);
+  const space = cut.lastIndexOf(' ');
+  return `${(space > max * 0.6 ? cut.slice(0, space) : cut).trimEnd()}…`;
 };
 
 const TYPE_WORDS: Record<string, string> = {
@@ -112,11 +116,43 @@ const words = (s: string) =>
  * letters ("amazon.jobs", "aws.amazon.com", "careers.google.com"), or the job posting's host.
  * Everything else is Other, never "verified".
  */
+/** Words a company name often ends with that its domain leaves out ("Northwind Labs"). */
+const COMPANY_SUFFIXES = new Set([
+  'labs',
+  'lab',
+  'inc',
+  'llc',
+  'ltd',
+  'limited',
+  'corp',
+  'corporation',
+  'co',
+  'company',
+  'group',
+  'technologies',
+  'technology',
+  'tech',
+  'software',
+  'systems',
+  'solutions',
+  'hq',
+  'ai',
+  'io',
+]);
+/** The company's name in letters, with and without its trailing suffix words (WI-058). */
+const companyNames = (company: string) => {
+  const parts = company
+    .toLowerCase()
+    .split(/[\s,.]+/)
+    .filter(Boolean);
+  while (parts.length > 1 && COMPANY_SUFFIXES.has(parts.at(-1)!)) parts.pop();
+  return new Set([words(company), words(parts.join(' '))].filter(Boolean));
+};
 export function isOfficial(host: string, company: string, jobHost?: string) {
   const h = host.toLowerCase().replace(/^www\./, '');
   if (jobHost && h === jobHost.toLowerCase().replace(/^www\./, '')) return true;
-  const name = words(company);
-  return !!name && h.split('.').some((label) => label === name);
+  const names = companyNames(company);
+  return h.split('.').some((label) => names.has(words(label)));
 }
 /** A citation's URL as a key: HTTPS only, without its fragment; null when unusable. */
 export function sourceKey(annotation: unknown) {

@@ -300,6 +300,7 @@ export default async function Today({
               now={now}
               goals={goals}
               launcherBlockId={launcherBlockId}
+              hasRoutines={routines > 0}
             />
             {isToday && (
               <aside className="today-rail" aria-labelledby="attention-heading">

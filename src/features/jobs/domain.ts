@@ -75,7 +75,8 @@ export const arrangements = ['UNKNOWN', 'REMOTE', 'HYBRID', 'ONSITE'] as const;
 export const owners = ['ME', 'COMPANY', 'NONE'] as const;
 export const label = (value: string) => {
   const text = value.toLowerCase().replaceAll('_', ' ');
-  return text[0].toUpperCase() + text.slice(1);
+  // An empty value (an older stage change without its from-stage) reads as nothing, never throws.
+  return text ? text[0].toUpperCase() + text.slice(1) : '';
 };
 /** One pair of words for who moves next, used everywhere the owner is shown. */
 export const ownerLabel = (o: string) =>

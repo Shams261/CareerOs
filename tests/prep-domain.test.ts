@@ -79,6 +79,12 @@ describe('sources', () => {
       isOfficial('boards.greenhouse.io', 'Northwind', 'boards.greenhouse.io'),
     ).toBe(true);
     expect(isOfficial('jobs.lever.co', 'Northwind Traders')).toBe(false);
+    // A trailing suffix word the domain leaves out still counts (WI-058).
+    expect(isOfficial('northwind.jobs', 'Northwind Labs')).toBe(true);
+    expect(isOfficial('careers.northwind-labs.com', 'Northwind Labs')).toBe(
+      true,
+    );
+    expect(isOfficial('labs.example.com', 'Northwind Labs')).toBe(false);
   });
   it('are deduplicated, HTTPS only, and numbered in order', () => {
     const s = collectSources(

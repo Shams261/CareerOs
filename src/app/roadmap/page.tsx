@@ -117,7 +117,12 @@ export default async function RoadmapPage() {
                   </AskRumiButton>
                 )}
               </div>
-              <p className="muted week-ready">{week.ready}</p>
+              {/* The goal already reads in the header; here only the P0 count (WI-058). */}
+              <p className="muted week-ready">
+                {active.length
+                  ? `P0 first · ${week.p0Left} not done`
+                  : week.ready}
+              </p>
               <ul className="plain-list format-list">
                 {week.rows.map((r) => (
                   <li className="format-row" key={r.format}>
@@ -127,7 +132,9 @@ export default async function RoadmapPage() {
                         <span
                           className={`week-count${r.done >= r.target ? ' is-met' : ''}`}
                         >
-                          {r.done} of {r.target}
+                          {r.done >= r.target
+                            ? `${r.done} done`
+                            : `${r.done} of ${r.target}`}
                         </span>
                       </strong>
                       {r.interview && (

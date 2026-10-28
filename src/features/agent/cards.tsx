@@ -1,6 +1,7 @@
 'use client';
 import { useState } from 'react';
 import Link from 'next/link';
+import { X } from 'lucide-react';
 import { ActionForm } from '@/components/action-form';
 import { Button } from '@/components/ui/button';
 import { FeedbackOutlet } from '@/components/feedback-outlet';
@@ -34,7 +35,16 @@ export function ProposalCard({
   today: string;
 }) {
   const [status, setStatus] = useState(proposal.status);
-  const can = addable(proposal).length;
+  // Blocks the owner took out before adding; they stay listed under Left out (WI-058).
+  const [skip, setSkip] = useState<number[]>([]);
+  const can = addable(proposal, skip).length;
+  const open = status !== 'applied' && status !== 'dismissed';
+  const kept = proposal.blocks
+    .map((b, i) => ({ b, i }))
+    .filter(({ b, i }) => !b.conflict && !skip.includes(i));
+  const leftOut = proposal.blocks
+    .map((b, i) => ({ b, i }))
+    .filter(({ b, i }) => b.conflict || skip.includes(i));
   const where =
     proposal.day === today ? '/today' : `/calendar?date=${proposal.day}`;
   const channel = `rumi-plan-${proposal.id}`;
@@ -50,23 +60,57 @@ export function ProposalCard({
           {proposal.day === today ? 'Today' : weekdayDate(proposal.day)}
         </span>
       </p>
-      <ul className="plain-list rumi-plan">
-        {proposal.blocks.map((b, i) => (
-          <li key={i} className={b.conflict ? 'is-off' : undefined}>
-            <span className="rumi-plan-time">
-              {b.start}–{b.end}
-            </span>
-            <span className="rumi-plan-main">
-              <span className="rumi-plan-title">
-                {b.title} <span className="rumi-plan-kind">· {b.kind}</span>
+      {kept.length > 0 && (
+        <ul className="plain-list rumi-plan">
+          {kept.map(({ b, i }) => (
+            <li key={i}>
+              <span className="rumi-plan-time">
+                {b.start}–{b.end}
               </span>
-              <span className="rumi-plan-reason">
-                {b.conflict ? `Won’t be added: ${b.conflict}` : b.reason}
+              <span className="rumi-plan-main">
+                <span className="rumi-plan-title">
+                  {b.title} <span className="rumi-plan-kind">· {b.kind}</span>
+                </span>
+                <span className="rumi-plan-reason">{b.reason}</span>
               </span>
-            </span>
-          </li>
-        ))}
-      </ul>
+              {open && (
+                <button
+                  type="button"
+                  className="rumi-plan-remove"
+                  aria-label={`Leave out ${b.title} ${b.start}–${b.end}`}
+                  onClick={() => setSkip((s) => [...s, i])}
+                >
+                  <X size={16} aria-hidden="true" />
+                </button>
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
+      {leftOut.length > 0 && (
+        <div className="rumi-left-out">
+          <p className="rumi-plan-reason">Left out · {leftOut.length}</p>
+          <ul className="plain-list">
+            {leftOut.map(({ b, i }) => (
+              <li key={i} className="rumi-plan-reason">
+                {b.start}–{b.end} {b.title}: {b.conflict ?? 'you took it out'}
+                {!b.conflict && open && (
+                  <>
+                    {' '}
+                    <button
+                      type="button"
+                      className="link-button"
+                      onClick={() => setSkip((s) => s.filter((x) => x !== i))}
+                    >
+                      Put back
+                    </button>
+                  </>
+                )}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
       <FeedbackOutlet channel={channel} />
       {status === 'applied' ? (
         <p className="rumi-card-done">
@@ -87,6 +131,9 @@ export function ProposalCard({
               onSuccess={() => setStatus('applied')}
             >
               <Ids messageId={messageId} cardId={proposal.id} />
+              {skip.map((i) => (
+                <input key={i} type="hidden" name="skip" value={i} />
+              ))}
               <Button className="small">
                 Add {can === 1 ? 'block' : `${can} blocks`} to plan
               </Button>

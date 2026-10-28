@@ -324,6 +324,16 @@ describe.skipIf(!url)('Rumi plans (PostgreSQL)', () => {
     expect(wed.map((b) => b.category)).toEqual(['GYM']);
   });
 
+  it('adds nothing when the owner took out every block that fits (WI-058)', async () => {
+    const { message, meta } = await propose();
+    const p = meta.proposals[0];
+    await expect(
+      applyProposal(user, message.id, p.id, now, [0]),
+    ).rejects.toThrow(/Nothing in this plan can be added/);
+    const wed = await blocksOn('2026-10-28');
+    expect(wed.map((b) => b.category)).toEqual(['GYM']);
+  });
+
   it('adds the clear blocks as blocks added for the day, once, with Undo that reopens the card', async () => {
     const { message, meta } = await propose();
     const p = meta.proposals[0];

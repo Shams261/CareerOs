@@ -30,6 +30,15 @@ describe('focus target', () => {
       }),
     ).toEqual(t('11:30'));
   });
+  it('gives an early start the planned length too, not the time to the planned end (WI-058)', () => {
+    expect(
+      focusTarget({
+        startedAt: t('17:00'),
+        plannedStart: t('20:00'),
+        plannedEnd: t('21:00'),
+      }),
+    ).toEqual(t('18:00'));
+  });
   it('is untimed without a planned window', () => {
     expect(focusTarget({ startedAt: t('09:00') })).toBeNull();
     expect(

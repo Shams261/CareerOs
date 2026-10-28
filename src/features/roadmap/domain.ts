@@ -374,8 +374,14 @@ export function sectionSummary(items: SummaryItem[]) {
   return [...order.values()];
 }
 /**
+ * A roadmap's own guide ("How to use this roadmap"): reading about the roadmap, not study.
+ * Next and Continue pass over it while there is anything else to do (WI-058).
+ */
+export const isGuideSection = (section: string) =>
+  /^how to use\b/i.test(section.trim());
+/**
  * "Continue": the first item in progress, else the first not started, walking sections in
- * their order and items in theirs. Null once everything is done.
+ * their order and items in theirs, guide sections last. Null once everything is done.
  */
 export function nextItem(items: SummaryItem[]) {
   const sections = sectionSummary(items).map((s) => s.name);
@@ -388,7 +394,10 @@ export function nextItem(items: SummaryItem[]) {
     const [x, y] = [rank(a), rank(b)];
     return x[0] - y[0] || x[1] - y[1] || x[2] - y[2];
   });
+  const study = sorted.filter((i) => !isGuideSection(i.section));
   const pick =
+    study.find((i) => i.status === 'IN_PROGRESS') ??
+    study.find((i) => i.status === 'NOT_STARTED') ??
     sorted.find((i) => i.status === 'IN_PROGRESS') ??
     sorted.find((i) => i.status === 'NOT_STARTED');
   return pick

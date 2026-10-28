@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { aiPolicies, interviewTypes } from './domain';
+import { isGuideSection } from '@/features/roadmap/domain';
 
 /**
  * Interview formats (WI-047). A company's loop is a few of these; each points at the owner's
@@ -190,7 +191,11 @@ export function formatPractice(
       items.find(
         (i) => i.roadmapTitle === guide.roadmap && i.slug === guide.slug,
       ) ?? null,
-    next: set.find((i) => i.status !== 'DONE') ?? null,
+    // The roadmap's guide is for reading once; the next step is study (WI-058).
+    next:
+      set.find((i) => i.status !== 'DONE' && !isGuideSection(i.section)) ??
+      set.find((i) => i.status !== 'DONE') ??
+      null,
     done: set.filter((i) => i.status === 'DONE').length,
     total: set.length,
   };

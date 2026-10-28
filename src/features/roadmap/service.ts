@@ -651,6 +651,7 @@ async function loadWeekPlan(user: ScheduleUser, now: Date) {
       interviews,
     }),
     ready: readyLine(goal, p0Left, today),
+    p0Left,
   };
 }
 export const weekPlan = (user: ScheduleUser, now = new Date()) =>
