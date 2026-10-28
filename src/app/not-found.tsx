@@ -9,7 +9,7 @@ export default function NotFound() {
       <p className="muted mb-5">
         The link may be old, or the record was removed.
       </p>
-      <Link className="button secondary" href="/today">
+      <Link prefetch={false} className="button secondary" href="/today">
         Back to Today
       </Link>
     </section>

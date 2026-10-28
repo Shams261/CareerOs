@@ -176,7 +176,8 @@ export async function scheduleRevision(
 async function loadDsaSnapshot(user: ScheduleUser) {
   const [problems, topics, current] = await Promise.all([
     db().dsaProblem.findMany({
-      where: { userId: user.id },
+      // A hidden problem (WI-060) leaves Practice, For today, drills and revisions.
+      where: { userId: user.id, hiddenAt: null },
       include: { topic: true },
       orderBy: { title: 'asc' },
     }),

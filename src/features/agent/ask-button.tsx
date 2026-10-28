@@ -1,6 +1,6 @@
 'use client';
 import { useRouter } from 'next/navigation';
-import { ASK_KEY } from './events';
+import { askRumi } from './events';
 
 /** Opens Ask Rumi with a question already asked (WI-042), handed over in this tab's storage. */
 export function AskRumiButton({
@@ -17,14 +17,7 @@ export function AskRumiButton({
     <button
       type="button"
       className={className}
-      onClick={() => {
-        try {
-          sessionStorage.setItem(ASK_KEY, text);
-        } catch {
-          return;
-        }
-        router.push('/rumi');
-      }}
+      onClick={() => askRumi(text, (href) => router.push(href))}
     >
       {children}
     </button>

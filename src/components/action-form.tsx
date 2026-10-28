@@ -229,7 +229,7 @@ export function ActionForm({
           {shown.ok && <Check size={14} aria-hidden="true" />}
           {shown.message}
           {shown.ok && shown.link && (
-            <Link className="link" href={shown.link.href}>
+            <Link prefetch={false} className="link" href={shown.link.href}>
               {shown.link.label}
             </Link>
           )}

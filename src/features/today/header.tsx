@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import Link from 'next/link';
 import { ArrowUpRight, ChevronLeft, ChevronRight, Plus } from 'lucide-react';
 import { formatInTimeZone } from 'date-fns-tz';
@@ -26,6 +27,7 @@ export function TodayHeader({
   closing = false,
   rested = false,
   facts = '',
+  goal = null,
 }: {
   day: string;
   today: string;
@@ -48,6 +50,8 @@ export function TodayHeader({
   rested?: boolean;
   /** Yesterday and the week so far as counts (WI-059); empty when there are none. */
   facts?: string;
+  /** The goal line with Edit goal (WI-060). */
+  goal?: ReactNode;
 }) {
   const isToday = day === today;
   return (
@@ -130,6 +134,7 @@ export function TodayHeader({
         {rested && <span className="pill">Rest day</span>}
       </p>
       {facts && <p className="today-facts">{facts}</p>}
+      {goal}
       <FeedbackOutlet channel="review" className="mt-2" />
     </header>
   );

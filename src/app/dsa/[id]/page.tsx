@@ -1,4 +1,11 @@
 import Link from 'next/link';
+import { ConfirmDelete } from '@/components/confirm-delete';
+import { ActionForm } from '@/components/action-form';
+import { Button } from '@/components/ui/button';
+import {
+  removeProblemAction,
+  unhideProblemAction,
+} from '@/features/deletes/actions';
 import { notFound } from 'next/navigation';
 import { randomUUID } from 'node:crypto';
 import { formatInTimeZone } from 'date-fns-tz';
@@ -43,7 +50,7 @@ export default async function Problem({
     },
   });
   if (!p) notFound();
-  const [topics, origin, running] = await Promise.all([
+  const [topics, origin, running, imported] = await Promise.all([
     db().dsaTopic.findMany({ orderBy: [{ ordering: 'asc' }, { name: 'asc' }] }),
     // The roadmap item this problem stands for: the one the owner came from, else the first.
     db().roadmapItem.findFirst({
@@ -74,6 +81,10 @@ export default async function Problem({
       where: { userId: user.id, endedAt: null },
       select: { startedAt: true, category: true },
     }),
+    // From the imported curriculum: Hide, not Delete, since an import brings it back (WI-060).
+    db().roadmapItem.count({
+      where: { userId: user.id, dsaProblemId: p.id, slug: { not: null } },
+    }),
   ]);
   const date = (d: Date | null) =>
     d ? formatInTimeZone(d, user.timezone, 'MMM d, yyyy · HH:mm') : 'Not yet';
@@ -89,14 +100,28 @@ export default async function Problem({
   return (
     <>
       {origin && from ? (
-        <Link className="link" href={back!}>
+        <Link prefetch={false} className="link" href={back!}>
           <ArrowLeft size={14} aria-hidden="true" /> Back to {origin.title} on
           the roadmap
         </Link>
       ) : (
-        <Link className="link" href="/dsa">
+        <Link prefetch={false} className="link" href="/dsa">
           <ArrowLeft size={14} aria-hidden="true" /> Practice
         </Link>
+      )}
+      {p.hiddenAt && (
+        <div className="status-line mt-4" role="status">
+          <span>Hidden from Practice, For today and revisions.</span>
+          <ActionForm
+            action={unhideProblemAction}
+            label="Show this problem again"
+          >
+            <input type="hidden" name="id" value={p.id} />
+            <Button variant="secondary" className="small">
+              Show again
+            </Button>
+          </ActionForm>
+        </div>
       )}
       <p className="eyebrow mt-4">
         {p.topic.name} · {p.platform} · {p.difficulty.toLowerCase()}
@@ -172,7 +197,7 @@ export default async function Problem({
         />
         {origin && from && (
           <p className="status-line mt-4">
-            <Link className="link" href={back!}>
+            <Link prefetch={false} className="link" href={back!}>
               <ArrowLeft size={14} aria-hidden="true" /> Back to {origin.title}
             </Link>
           </p>
@@ -182,7 +207,7 @@ export default async function Problem({
         <section className="card flat" aria-labelledby="study-heading">
           <div className="section-head">
             <h2 id="study-heading">Study</h2>
-            <Link className="link" href={back!}>
+            <Link prefetch={false} className="link" href={back!}>
               {origin.roadmap.title} · {origin.section}
             </Link>
           </div>
@@ -259,6 +284,20 @@ export default async function Problem({
         </div>
       </section>
       <InterviewMentions userId={user.id} dsaProblemId={p.id} />
+      {!p.hiddenAt && (
+        <div className="panel-danger">
+          <ConfirmDelete
+            action={removeProblemAction}
+            id={p.id}
+            label={imported ? 'Hide problem' : 'Delete problem'}
+            question={
+              imported
+                ? `Hide ${p.title} from Practice, For today and revisions? Its attempts stay, and Show again brings it back.`
+                : `Delete ${p.title} and its ${p.attemptsCount} attempt${p.attemptsCount === 1 ? '' : 's'}? This cannot be undone.`
+            }
+          />
+        </div>
+      )}
     </>
   );
 }

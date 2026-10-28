@@ -14,7 +14,7 @@ import {
   type CallWords,
   type Fetcher,
 } from '@/features/ai/service';
-import { budgetLine, ENDPOINT, MODEL } from '@/features/ai/domain';
+import { budgetLine, ENDPOINT, MODEL, nearCap } from '@/features/ai/domain';
 import { issueMessages } from '@/lib/validation';
 import { z } from 'zod';
 import {
@@ -192,7 +192,15 @@ export async function sendMessage(
     });
     return { conversationId: id, history: history.reverse() };
   });
-  const memory = (await memories(user)).map((m) => m.text);
+  const [memory, goal] = await Promise.all([
+    memories(user).then((list) => list.map((m) => m.text)),
+    // The nearest active goal with a date, else any active goal (WI-060).
+    db().goal.findFirst({
+      where: { userId: user.id, status: 'ACTIVE' },
+      orderBy: [{ targetDate: { sort: 'asc', nulls: 'last' } }],
+      select: { title: true, targetDate: true, targetRole: true },
+    }),
+  ]);
   const messages: ChatMessage[] = [
     {
       role: 'system',
@@ -203,6 +211,13 @@ export async function sendMessage(
         zone: user.timezone,
         memory,
         planUntil: planWindow(dayKey(now, user.timezone)).last,
+        goal: goal
+          ? {
+              title: goal.title,
+              targetDate: goal.targetDate?.toISOString().slice(0, 10) ?? null,
+              targetRole: goal.targetRole,
+            }
+          : null,
       }),
     },
     ...historyWindow(history),
@@ -334,8 +349,16 @@ export type AskResult =
         tools: string[];
       };
       budget: string;
+      /** Whether the month is near its cap; the chat shows the budget only then (WI-060). */
+      nearCap: boolean;
     }
-  | { ok: false; message: string; conversationId?: string; budget?: string };
+  | {
+      ok: false;
+      message: string;
+      conversationId?: string;
+      budget?: string;
+      nearCap?: boolean;
+    };
 
 /**
  * One question to Rumi as the page needs it (WI-040, WI-055): the answer with its cards and
@@ -373,18 +396,25 @@ export async function askRumi(
         tools: readTools(result.message.metadata),
       },
       budget: budgetLine(state.spent),
+      nearCap: nearCap(state.spent),
     };
   } catch (error) {
     const state = await aiState(user).catch(() => null);
     const budget = state ? budgetLine(state.spent) : undefined;
+    const near = state ? nearCap(state.spent) : false;
     if (error instanceof z.ZodError)
-      return { ok: false, message: issueMessages(error.issues), budget };
+      return {
+        ok: false,
+        message: issueMessages(error.issues),
+        budget,
+        nearCap: near,
+      };
     if (error instanceof AiRefusal || error instanceof AiUnavailable)
-      return { ok: false, message: error.message, budget };
+      return { ok: false, message: error.message, budget, nearCap: near };
     console.error(
       '[agent] chat failed',
       error instanceof Error ? error.name : 'Error',
     );
-    return { ok: false, message: UNAVAILABLE, budget };
+    return { ok: false, message: UNAVAILABLE, budget, nearCap: near };
   }
 }

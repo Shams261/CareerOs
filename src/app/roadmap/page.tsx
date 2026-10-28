@@ -1,3 +1,5 @@
+import { ConfirmDelete } from '@/components/confirm-delete';
+import { deleteGoalAction } from '@/features/deletes/actions';
 import Link from 'next/link';
 import { forTodayPicks } from '@/features/for-today/service';
 import { ForTodayCard } from '@/features/for-today/card';
@@ -54,7 +56,10 @@ export default async function RoadmapPage() {
     live = roadmaps.filter((r) => !r.archivedAt),
     archived = roadmaps.filter((r) => r.archivedAt),
     next = continueTarget(roadmaps),
-    dueRows = roadmapRevisionRows(due, now, user.timezone),
+    // The rail leaves out what For today already offers (WI-060).
+    dueRows = roadmapRevisionRows(due, now, user.timezone).filter(
+      (r) => !picks.some((p) => p.key === `revise:item:${r.id.split(':')[1]}`),
+    ),
     preview = dueRows.slice(0, PREVIEW);
   return (
     <>
@@ -259,7 +264,11 @@ export default async function RoadmapPage() {
             >
               {archived.map((r) => (
                 <p key={r.id}>
-                  <Link className="link" href={`/roadmap/${r.id}`}>
+                  <Link
+                    prefetch={false}
+                    className="link"
+                    href={`/roadmap/${r.id}`}
+                  >
                     {r.title}
                   </Link>
                 </p>
@@ -315,6 +324,14 @@ export default async function RoadmapPage() {
               {g.title}
             </h3>
             <GoalForm goal={g} />
+            <div className="panel-danger">
+              <ConfirmDelete
+                action={deleteGoalAction}
+                id={g.id}
+                label="Delete goal"
+                question={`Delete the goal ${g.title}? Its roadmaps, routines and blocks stay, no longer linked to it.`}
+              />
+            </div>
           </div>
         ))}
         <div className="panel-section">
@@ -339,6 +356,12 @@ export default async function RoadmapPage() {
                   srLabel={`Edit goal ${g.title}`}
                 >
                   <GoalForm goal={g} />
+                  <ConfirmDelete
+                    action={deleteGoalAction}
+                    id={g.id}
+                    label="Delete goal"
+                    question={`Delete the goal ${g.title}?`}
+                  />
                 </Disclosure>
               </div>
             ))}

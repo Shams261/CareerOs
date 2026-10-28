@@ -289,7 +289,11 @@ export default async function Review({
             <Link className="button" href="/calendar" prefetch={false}>
               Plan this week <ArrowRight size={14} aria-hidden="true" />
             </Link>
-            <Link className="button secondary" href={href('reflect')}>
+            <Link
+              prefetch={false}
+              className="button secondary"
+              href={href('reflect')}
+            >
               Reflect anyway
             </Link>
           </div>
@@ -418,7 +422,7 @@ export default async function Review({
               </p>
             </section>
             <div className="step-foot">
-              <Link className="button" href={href('reflect')}>
+              <Link prefetch={false} className="button" href={href('reflect')}>
                 Next: Reflect <ArrowRight size={14} aria-hidden="true" />
               </Link>
             </div>
@@ -459,7 +463,11 @@ export default async function Review({
                   The week after this one is already planned. Prepare is for the
                   coming week.
                 </span>
-                <Link className="link" href={href('plan', thisWeek)}>
+                <Link
+                  prefetch={false}
+                  className="link"
+                  href={href('plan', thisWeek)}
+                >
                   Open this week&apos;s review{' '}
                   <ArrowRight size={14} aria-hidden="true" />
                 </Link>
@@ -545,7 +553,11 @@ export default async function Review({
           <section className="card flat" aria-labelledby="reminders-heading">
             <div className="section-head">
               <h2 id="reminders-heading">Reminders next week</h2>
-              <Link className="link" href="/settings#notifications-heading">
+              <Link
+                prefetch={false}
+                className="link"
+                href="/settings#notifications-heading"
+              >
                 Change in Settings
               </Link>
             </div>
@@ -717,6 +729,7 @@ export default async function Review({
                   <article className="learning-history" key={r.id}>
                     <h4>
                       <Link
+                        prefetch={false}
                         className="link"
                         href={`/jobs/${r.applicationId}#round-${r.id}`}
                       >
@@ -748,6 +761,7 @@ export default async function Review({
                     DSA revisions overdue: {carry.dsa.length}{' '}
                     {carry.dsa.slice(0, 3).map((p) => (
                       <Link
+                        prefetch={false}
                         key={p.id}
                         className="link mr-2"
                         href={`/dsa/${p.id}`}
@@ -762,6 +776,7 @@ export default async function Review({
                     Technical reviews overdue: {carry.learning.length}{' '}
                     {carry.learning.slice(0, 3).map((t) => (
                       <Link
+                        prefetch={false}
                         key={t.id}
                         className="link mr-2"
                         href={`/learn/topics/${t.id}`}
@@ -776,6 +791,7 @@ export default async function Review({
                     Job follow-ups overdue: {carry.jobs.length}{' '}
                     {carry.jobs.slice(0, 3).map((a) => (
                       <Link
+                        prefetch={false}
                         key={a.id}
                         className="link mr-2"
                         href={`/jobs/${a.id}`}
@@ -790,6 +806,7 @@ export default async function Review({
                     Blocks not recorded this week: {s.unrecordedBlocks.length}{' '}
                     {s.unrecordedBlocks.slice(0, 3).map((b) => (
                       <Link
+                        prefetch={false}
                         key={b.id}
                         className="link mr-2"
                         href={`/today?date=${b.day}`}
@@ -859,7 +876,11 @@ export default async function Review({
                   const m = h.weekStart.toISOString().slice(0, 10);
                   return (
                     <li key={m}>
-                      <Link className="link" href={`/review?week=${m}`}>
+                      <Link
+                        prefetch={false}
+                        className="link"
+                        href={`/review?week=${m}`}
+                      >
                         {weekLabel(m)}
                       </Link>{' '}
                       · {h.completedAt ? 'Completed' : 'Draft'} ·{' '}
@@ -873,7 +894,11 @@ export default async function Review({
               <p className="muted">No written reviews yet.</p>
             )}
             <p className="status-line mt-4">
-              <Link className="link" href="/settings#notifications-heading">
+              <Link
+                prefetch={false}
+                className="link"
+                href="/settings#notifications-heading"
+              >
                 Reminder preference in Settings
               </Link>
             </p>

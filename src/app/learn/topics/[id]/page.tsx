@@ -46,7 +46,11 @@ export default async function Topic({
   });
   return (
     <>
-      <Link className="link" href={`/learn/subjects/${topic.subjectId}`}>
+      <Link
+        prefetch={false}
+        className="link"
+        href={`/learn/subjects/${topic.subjectId}`}
+      >
         <ArrowLeft size={14} aria-hidden="true" /> {topic.subject.name}
       </Link>
       <p className="eyebrow mt-4">{statusLabel(topic.status)}</p>
@@ -55,7 +59,11 @@ export default async function Topic({
       {topic.parent && (
         <p className="muted">
           Part of{' '}
-          <Link className="link" href={`/learn/topics/${topic.parent.id}`}>
+          <Link
+            prefetch={false}
+            className="link"
+            href={`/learn/topics/${topic.parent.id}`}
+          >
             {topic.parent.title}
           </Link>
         </p>

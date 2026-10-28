@@ -53,6 +53,15 @@ export function GoalForm({
           <input name="targetDate" type="date" defaultValue={target} />
         </label>
         <label>
+          Target role (optional)
+          <input
+            name="targetRole"
+            maxLength={120}
+            defaultValue={goal?.targetRole ?? ''}
+            placeholder="Backend engineer, product company"
+          />
+        </label>
+        <label>
           Category
           <input
             name="category"

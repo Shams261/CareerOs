@@ -334,3 +334,6 @@ export function nudgeContext(s: NudgeSetting | null) {
             .join(' ');
   return `${parts.join(' · ')} · ${days}`;
 }
+
+/** Hides Today's "Study nudges are off" card for 30 days (WI-060). */
+export const NUDGES_CARD_COOKIE = 'silsila-nudges-card-hidden';

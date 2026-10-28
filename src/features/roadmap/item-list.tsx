@@ -372,6 +372,7 @@ export function ItemList({
                   <span className="row-quick">
                     <span className="row-quick-cell">
                       <Link
+                        prefetch={false}
                         className="button secondary small"
                         href={practice}
                         aria-label={`Record an attempt: ${item.title}`}
@@ -511,6 +512,7 @@ export function ItemList({
                         )}
                         {links.learningTopic && (
                           <Link
+                            prefetch={false}
                             className="link"
                             href={`/learn/topics/${links.learningTopic.id}`}
                           >
@@ -652,7 +654,11 @@ export function ItemList({
                       <input type="hidden" name="id" value={item.id} />
                       <div className="item-actions">
                         {practice ? (
-                          <Link className="button small" href={practice}>
+                          <Link
+                            prefetch={false}
+                            className="button small"
+                            href={practice}
+                          >
                             Record an attempt
                           </Link>
                         ) : status === 'DONE' ? (
@@ -812,6 +818,7 @@ export function ItemList({
             <li className="muted">
               Nothing due in this section.{' '}
               <Link
+                prefetch={false}
                 className="link"
                 href={`/roadmap/${roadmap.id}?section=${encodeURIComponent(nextDue.name)}&show=revision`}
               >
@@ -830,6 +837,7 @@ export function ItemList({
                     <span key={s.name}>
                       {i > 0 && ' · '}
                       <Link
+                        prefetch={false}
                         className="link"
                         href={`/roadmap/${roadmap.id}?section=${encodeURIComponent(s.name)}&q=${encodeURIComponent(q)}`}
                       >
@@ -853,6 +861,7 @@ export function ItemList({
             <span key={s.name}>
               {i > 0 && ' · '}
               <Link
+                prefetch={false}
                 className="link"
                 href={`/roadmap/${roadmap.id}?section=${encodeURIComponent(s.name)}&q=${encodeURIComponent(q)}`}
               >

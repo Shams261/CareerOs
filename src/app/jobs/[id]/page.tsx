@@ -1,7 +1,13 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { formatInTimeZone } from 'date-fns-tz';
-import { ArrowLeft, ChevronRight } from 'lucide-react';
+import { ArrowLeft, ChevronRight, X } from 'lucide-react';
+import { ConfirmDelete } from '@/components/confirm-delete';
+import {
+  deleteApplicationAction,
+  deletePrepItemAction,
+  deleteRoundAction,
+} from '@/features/deletes/actions';
 import { db, owner } from '@/server/db';
 import { dayKey, shortDate, weekdayDate } from '@/lib/time';
 import { ResourceLink } from '@/components/resource-link';
@@ -82,7 +88,7 @@ export default async function Application({
         orderBy: [{ subject: { ordering: 'asc' } }, { ordering: 'asc' }],
       }),
       db().dsaProblem.findMany({
-        where: { userId: user.id },
+        where: { userId: user.id, hiddenAt: null },
         orderBy: { title: 'asc' },
         select: { id: true, title: true },
       }),
@@ -100,7 +106,11 @@ export default async function Application({
             },
           })
         : 0,
-      ai ? db().dsaProblem.count({ where: { userId: user.id } }) : 0,
+      ai
+        ? db().dsaProblem.count({
+            where: { userId: user.id, hiddenAt: null },
+          })
+        : 0,
       // Practise for this loop (WI-047).
       open ? loopPractice(user, app, now) : [],
     ]);
@@ -541,6 +551,24 @@ export default async function Application({
                                     {p.title}
                                   </PrepCheck>
                                   <PrepLink item={p} />
+                                  <ActionForm
+                                    action={deletePrepItemAction}
+                                    broadcast={`round-${r.id}`}
+                                    label={`Delete ${p.title}`}
+                                    className="inline-delete"
+                                  >
+                                    <input
+                                      type="hidden"
+                                      name="id"
+                                      value={p.id}
+                                    />
+                                    <button
+                                      className="icon-button"
+                                      aria-label={`Delete ${p.title}`}
+                                    >
+                                      <X size={14} aria-hidden="true" />
+                                    </button>
+                                  </ActionForm>
                                 </li>
                               ))}
                             </ul>
@@ -563,6 +591,24 @@ export default async function Application({
                                     {p.title}
                                   </PrepCheck>
                                   <PrepLink item={p} />
+                                  <ActionForm
+                                    action={deletePrepItemAction}
+                                    broadcast={`round-${r.id}`}
+                                    label={`Delete ${p.title}`}
+                                    className="inline-delete"
+                                  >
+                                    <input
+                                      type="hidden"
+                                      name="id"
+                                      value={p.id}
+                                    />
+                                    <button
+                                      className="icon-button"
+                                      aria-label={`Delete ${p.title}`}
+                                    >
+                                      <X size={14} aria-hidden="true" />
+                                    </button>
+                                  </ActionForm>
                                 </li>
                               ))}
                             </ul>
@@ -682,6 +728,15 @@ export default async function Application({
                       </h3>
                       <RoundDetailsForm round={r} />
                     </div>
+                    <div className="panel-danger">
+                      <ConfirmDelete
+                        action={deleteRoundAction}
+                        id={r.id}
+                        label="Delete interview"
+                        question={`Delete the ${r.title} interview and its prep? This cannot be undone.`}
+                        broadcast="rounds"
+                      />
+                    </div>
                   </SidePanel>
                 </article>
               );
@@ -786,6 +841,14 @@ export default async function Application({
           </PanelButton>
           <SidePanel id="details" title="Edit application">
             <DetailsForm app={app} />
+            <div className="panel-danger">
+              <ConfirmDelete
+                action={deleteApplicationAction}
+                id={app.id}
+                label="Delete application"
+                question={`Delete ${app.company}${app.rounds.length ? `, its ${app.rounds.length} interview${app.rounds.length === 1 ? '' : 's'}` : ''} and its history? This cannot be undone.`}
+              />
+            </div>
           </SidePanel>
         </aside>
       </div>
@@ -810,7 +873,11 @@ function PrepLink({
     return (
       <>
         {' · '}
-        <Link className="link" href={`/learn/topics/${item.learningTopic.id}`}>
+        <Link
+          prefetch={false}
+          className="link"
+          href={`/learn/topics/${item.learningTopic.id}`}
+        >
           {item.learningTopic.subject.name} — {item.learningTopic.title}
         </Link>
       </>
@@ -819,7 +886,11 @@ function PrepLink({
     return (
       <>
         {' · '}
-        <Link className="link" href={`/dsa/${item.dsaProblem.id}`}>
+        <Link
+          prefetch={false}
+          className="link"
+          href={`/dsa/${item.dsaProblem.id}`}
+        >
           DSA: {item.dsaProblem.title}
         </Link>
       </>

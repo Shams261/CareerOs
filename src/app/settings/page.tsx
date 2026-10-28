@@ -49,7 +49,11 @@ import { memories } from '@/features/agent/service';
 import { MemorySettings, memoryContext } from '@/features/agent/memory';
 import { AGENT_NAME } from '@/features/agent/domain';
 import { ThemeSwitch } from '@/features/settings/theme-switch';
-import { reminderContext, settingsSummary } from '@/features/settings/domain';
+import {
+  lastSentText,
+  reminderContext,
+  settingsSummary,
+} from '@/features/settings/domain';
 export const metadata = { title: 'Settings' };
 
 const ago = (d: Date | null | undefined, now: Date) =>
@@ -83,6 +87,7 @@ export default async function Settings({
     ai,
     memoryLines,
     sessions,
+    sentRows,
   ] = await Promise.all([
     db().notificationPreference.findMany({
       where: {
@@ -112,6 +117,12 @@ export default async function Settings({
     memories(user),
     // Signed-in devices (WI-057); this request's session is marked.
     currentSession().then((c) => activeSessions(user.id, c?.id ?? null, now)),
+    // When each kind of reminder last came out, so the owner can see it really goes (WI-060).
+    db().notificationLog.groupBy({
+      by: ['type'],
+      where: { userId: user.id, scheduledFor: { lte: new Date() } },
+      _max: { scheduledFor: true },
+    }),
   ]);
   const nudges = nudgeSetting(nudgeRow);
   const today = dayKey(now, user.timezone);
@@ -147,6 +158,13 @@ export default async function Settings({
     `reminder job ${ago(job('notifications')?.lastSucceededAt, now)}`,
     `calendar sync ${ago(job('calendar-sync')?.lastSucceededAt, now)}`,
   ].join(' · ');
+  const sent = (types: string[]) =>
+    lastSentText(
+      sentRows
+        .filter((r) => types.includes(r.type))
+        .map((r) => r._max.scheduledFor),
+      user.timezone,
+    );
   return (
     <>
       <header className="today-head">
@@ -195,6 +213,7 @@ export default async function Settings({
                       {s.done ? 'Done:' : 'To do:'}
                     </span>{' '}
                     <Link
+                      prefetch={false}
                       className="link"
                       href={
                         s.href.startsWith('/settings')
@@ -243,7 +262,7 @@ export default async function Settings({
                 icon={<Bell size={22} />}
                 label="Study nudges"
                 title="A morning plan, a block-start nudge and an evening check-in"
-                context={`${nudgeContext(nudges)}${nudgesPaused ? ' · Paused' : ''}`}
+                context={`${nudgeContext(nudges)}${nudgesPaused ? ' · Paused' : ''}${sent(['STUDY_MORNING', 'STUDY_EVENING', 'STUDY_BLOCK'])}`}
                 panel="reminder-study"
               />
               <SettingRow
@@ -251,7 +270,7 @@ export default async function Settings({
                 icon={<Bell size={22} />}
                 label="Daily"
                 title="Remind me to review my day"
-                context={reminderContext(pref, { time: '21:30' })}
+                context={`${reminderContext(pref, { time: '21:30' })}${sent(['DAILY_PROGRESS'])}`}
                 panel="reminder-daily"
               />
               <SettingRow
@@ -259,7 +278,7 @@ export default async function Settings({
                 icon={<Bell size={22} />}
                 label="Revision"
                 title="Roadmap items and topics due for revision"
-                context={reminderContext(revisionPref, { time: '18:00' })}
+                context={`${reminderContext(revisionPref, { time: '18:00' })}${sent(['TECHNICAL_REVIEW', 'DSA_REVISION'])}`}
                 panel="reminder-revision"
               />
               <SettingRow
@@ -267,7 +286,7 @@ export default async function Settings({
                 icon={<Bell size={22} />}
                 label="Job follow-up"
                 title="Follow-ups on their planned date"
-                context={reminderContext(followUpPref, { time: '09:00' })}
+                context={`${reminderContext(followUpPref, { time: '09:00' })}${sent(['JOB_FOLLOW_UP'])}`}
                 panel="reminder-jobs"
                 focus="follow-up"
               />
@@ -276,7 +295,7 @@ export default async function Settings({
                 icon={<Bell size={22} />}
                 label="Interview"
                 title="About 24 hours before, and shortly before"
-                context={reminderContext(interviewPref, { offset: 60 })}
+                context={`${reminderContext(interviewPref, { offset: 60 })}${sent(['INTERVIEW'])}`}
                 panel="reminder-jobs"
                 focus="interview"
               />

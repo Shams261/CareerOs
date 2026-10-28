@@ -52,6 +52,7 @@ export default async function Learn() {
                 <h2 className="mt-3">
                   {current ? (
                     <Link
+                      prefetch={false}
                       className="link"
                       href={`/learn/subjects/${current.id}`}
                     >
@@ -131,6 +132,7 @@ export default async function Learn() {
                   <>
                     No unstarted topics.{' '}
                     <Link
+                      prefetch={false}
                       className="link"
                       href={`/learn/subjects/${current.id}`}
                     >
@@ -151,7 +153,11 @@ export default async function Learn() {
               const ts = data.topics.filter((t) => t.subjectId === s.id);
               return (
                 <div className="dsa-item" key={s.id}>
-                  <Link className="link" href={`/learn/subjects/${s.id}`}>
+                  <Link
+                    prefetch={false}
+                    className="link"
+                    href={`/learn/subjects/${s.id}`}
+                  >
                     {s.name}
                     {s.id === current?.id ? ' · Current focus' : ''}
                   </Link>
@@ -177,7 +183,11 @@ export default async function Learn() {
                   .filter((s) => s.status !== 'ACTIVE')
                   .map((s) => (
                     <p key={s.id}>
-                      <Link className="link" href={`/learn/subjects/${s.id}`}>
+                      <Link
+                        prefetch={false}
+                        className="link"
+                        href={`/learn/subjects/${s.id}`}
+                      >
                         {s.name}
                       </Link>{' '}
                       <span className="muted">· {statusLabel(s.status)}</span>
@@ -191,7 +201,11 @@ export default async function Learn() {
               <h2 id="recent-heading">Recent activity</h2>
               {data.recent.map((a) => (
                 <div className="dsa-item" key={a.id}>
-                  <Link className="link" href={`/learn/topics/${a.topicId}`}>
+                  <Link
+                    prefetch={false}
+                    className="link"
+                    href={`/learn/topics/${a.topicId}`}
+                  >
                     {a.topic.subject.name} — {a.topic.title}
                   </Link>
                   <p className="muted">
@@ -205,7 +219,11 @@ export default async function Learn() {
             </section>
           )}
           <p className="status-line mb-5">
-            <Link className="link" href="/settings#notifications-heading">
+            <Link
+              prefetch={false}
+              className="link"
+              href="/settings#notifications-heading"
+            >
               Reminder settings
             </Link>
           </p>

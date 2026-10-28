@@ -48,7 +48,11 @@ export async function todayCommands(
   ]);
   // One practice problem to record (WI-059): the oldest revision due, if any.
   const due = await db().dsaProblem.findFirst({
-    where: { userId: user.id, nextRevisionAt: { lte: new Date(today) } },
+    where: {
+      userId: user.id,
+      hiddenAt: null,
+      nextRevisionAt: { lte: new Date(today) },
+    },
     orderBy: { nextRevisionAt: 'asc' },
     select: { id: true, title: true },
   });
@@ -192,7 +196,11 @@ export async function searchCommands(
       },
     }),
     db().dsaProblem.findMany({
-      where: { userId: user.id, OR: contains('title', terms) },
+      where: {
+        userId: user.id,
+        hiddenAt: null,
+        OR: contains('title', terms),
+      },
       orderBy: { title: 'asc' },
       take: TAKE,
       select: {

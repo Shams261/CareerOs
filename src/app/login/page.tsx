@@ -56,7 +56,7 @@ export default async function Login({
       </p>
       <p className="login-continuity">Keep the chain going.</p>
       <p className="login-note">
-        <Link className="link" href="/privacy">
+        <Link prefetch={false} className="link" href="/privacy">
           Privacy
         </Link>
       </p>

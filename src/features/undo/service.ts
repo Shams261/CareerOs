@@ -13,6 +13,7 @@ import { setRestDay } from '@/features/nudges/service';
 import { cardInput, keepCard } from '@/features/ai/service';
 import { reopenProposal } from '@/features/agent/plans';
 import { followPractice } from '@/features/roadmap/follow';
+import { unhideProblem } from '@/features/deletes/service';
 
 /**
  * Undo for destructive one-click actions (WI-011). Nothing is soft-deleted: an undo re-creates
@@ -25,6 +26,26 @@ const kinds = {
   'blocks-reset': z.object({
     ids: z.array(z.string().min(1)).min(1).max(50),
   }),
+  // Deletes on every record (WI-060).
+  'restore-prep-item': z.object({
+    roundId: z.string().min(1),
+    kind: z.enum(['PREP', 'GAP']),
+    title: z.string().min(1).max(300),
+    notes: z.string().max(2000).nullable().optional(),
+    completed: z.boolean().optional(),
+    learningTopicId: z.string().nullable().optional(),
+    dsaProblemId: z.string().nullable().optional(),
+    dsaTopicId: z.string().nullable().optional(),
+  }),
+  'restore-session': z.object({
+    taskId: z.string().nullable().optional(),
+    goalId: z.string().nullable().optional(),
+    category: z.string().min(1).max(80),
+    startedAt: z.iso.datetime(),
+    endedAt: z.iso.datetime(),
+    notes: z.string().max(1000).nullable().optional(),
+  }),
+  'problem-unhide': z.object({ id: z.string().min(1) }),
   'restore-note': z.object({ body: z.string().min(1).max(500) }),
   'restore-priority': z.object({
     weekStart: z.string(),
@@ -105,6 +126,71 @@ export async function restore(
       return ids.length === 1
         ? 'Block restored.'
         : `${ids.length} blocks restored.`;
+    }
+    case 'restore-prep-item': {
+      const p = kinds[k].parse(payload);
+      const round = await db().interviewRound.findFirst({
+        where: { id: p.roundId, userId: user.id },
+      });
+      if (!round) throw new Error('The interview no longer exists.');
+      // Links come back only when they still point at the owner's own records.
+      const own = async <T>(
+        id: string | null | undefined,
+        find: () => Promise<T | null>,
+      ) => (id && (await find()) ? id : null);
+      await db().interviewPrepItem.create({
+        data: {
+          userId: user.id,
+          roundId: round.id,
+          kind: p.kind,
+          title: p.title,
+          notes: p.notes ?? null,
+          completed: p.completed ?? false,
+          learningTopicId: await own(p.learningTopicId, () =>
+            db().learningTopic.findFirst({
+              where: { id: p.learningTopicId!, userId: user.id },
+            }),
+          ),
+          dsaProblemId: await own(p.dsaProblemId, () =>
+            db().dsaProblem.findFirst({
+              where: { id: p.dsaProblemId!, userId: user.id },
+            }),
+          ),
+          dsaTopicId: await own(p.dsaTopicId, () =>
+            db().dsaTopic.findFirst({ where: { id: p.dsaTopicId! } }),
+          ),
+        },
+      });
+      return 'Prep item restored.';
+    }
+    case 'restore-session': {
+      const p = kinds[k].parse(payload);
+      const task = p.taskId
+        ? await db().timeBlock.findFirst({
+            where: { id: p.taskId, dailyPlan: { userId: user.id } },
+          })
+        : null;
+      const goal = p.goalId
+        ? await db().goal.findFirst({
+            where: { id: p.goalId, userId: user.id },
+          })
+        : null;
+      await db().actualSession.create({
+        data: {
+          userId: user.id,
+          taskId: task?.id ?? null,
+          goalId: goal?.id ?? null,
+          category: p.category,
+          startedAt: new Date(p.startedAt),
+          endedAt: new Date(p.endedAt),
+          notes: p.notes ?? null,
+        },
+      });
+      return 'Session restored.';
+    }
+    case 'problem-unhide': {
+      await unhideProblem(user, kinds[k].parse(payload).id);
+      return 'Problem shown again.';
     }
     case 'restore-note': {
       await addNote(user, kinds[k].parse(payload));

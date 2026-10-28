@@ -188,6 +188,8 @@ model Goal {
   category         String
   status           GoalStatus        @default(ACTIVE)
   targetDate       DateTime?         @db.Date
+  /// The role this goal aims at ("Backend engineer, product company"), shown with the goal (WI-060).
+  targetRole       String?
   priority         Int               @default(2)
   createdAt        DateTime          @default(now()) @db.Timestamptz(3)
   updatedAt        DateTime          @updatedAt @db.Timestamptz(3)
@@ -312,6 +314,8 @@ model DsaProblem {
   lastAttemptedAt DateTime?           @db.Timestamptz(3)
   nextRevisionAt  DateTime?           @db.Date
   attemptsCount   Int                 @default(0)
+  /// Hidden by the owner (WI-060): an imported problem leaves every list but stays for the import.
+  hiddenAt        DateTime?           @db.Timestamptz(3)
   createdAt       DateTime            @default(now()) @db.Timestamptz(3)
   updatedAt       DateTime            @updatedAt @db.Timestamptz(3)
   resources       Resource[]

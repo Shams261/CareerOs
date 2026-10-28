@@ -90,7 +90,7 @@ async function material(user: ScheduleUser, applicationId: string, now: Date) {
       },
     }),
     db().dsaProblem.findMany({
-      where: { userId: user.id },
+      where: { userId: user.id, hiddenAt: null },
       orderBy: [{ confidence: 'asc' }, { lastAttemptedAt: 'asc' }],
       take: 80,
       select: {

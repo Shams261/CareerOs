@@ -2,7 +2,7 @@
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { MessageCircle, X } from 'lucide-react';
-import { ASK_KEY } from '@/features/agent/events';
+import { askRumi } from '@/features/agent/events';
 import { openPanelAfterNavigation } from '@/features/command/bar';
 import { AGENT_NAME } from '@/features/agent/domain';
 import { answerNoticedAction } from './actions';
@@ -25,12 +25,7 @@ export function NoticedRows({ cards }: { cards: NoticedCard[] }) {
     });
     if (!acted) return;
     if ('ask' in c.action) {
-      try {
-        sessionStorage.setItem(ASK_KEY, c.action.ask);
-      } catch {
-        return;
-      }
-      router.push('/rumi');
+      askRumi(c.action.ask, (href) => router.push(href));
       return;
     }
     router.push(c.action.href);

@@ -23,7 +23,11 @@ export function TopicList({
       {topics.map((t) => (
         <li className="dsa-item" key={t.id}>
           <div>
-            <Link className="link" href={`/learn/topics/${t.id}`}>
+            <Link
+              prefetch={false}
+              className="link"
+              href={`/learn/topics/${t.id}`}
+            >
               {t.parentId ? (
                 <CornerDownRight size={12} aria-hidden="true" />
               ) : null}{' '}

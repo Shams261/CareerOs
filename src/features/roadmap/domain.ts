@@ -19,6 +19,13 @@ export const goalInput = z.object({
     .union([z.literal(''), dateInput])
     .optional()
     .transform((v) => v || null),
+  /** The role this goal aims at (WI-060); empty means none. */
+  targetRole: z
+    .string()
+    .trim()
+    .max(120)
+    .optional()
+    .transform((v) => v || null),
   status: z
     .enum(['ACTIVE', 'PAUSED', 'COMPLETED', 'ARCHIVED'])
     .default('ACTIVE'),
@@ -451,6 +458,8 @@ export function goalLine(
   g: {
     title: string;
     targetDate: Date | null;
+    /** WI-060: "Backend engineer, product company", read with the goal. */
+    targetRole?: string | null;
     roadmap: { total: number; done: number };
     week: { actual: number };
   },
@@ -458,7 +467,7 @@ export function goalLine(
   duration: (minutes: number) => string,
 ) {
   const parts = [
-    g.title,
+    g.targetRole ? `${g.title} (${g.targetRole})` : g.title,
     targetLabel(g.targetDate?.toISOString().slice(0, 10) ?? null, today),
   ];
   if (g.roadmap.total)

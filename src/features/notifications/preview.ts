@@ -22,6 +22,7 @@ export async function remindersPreview(user: ScheduleUser, monday: string) {
       db().dsaProblem.count({
         where: {
           userId: user.id,
+          hiddenAt: null,
           nextRevisionAt: { gte: new Date(monday), lte: new Date(sunday) },
         },
       }),

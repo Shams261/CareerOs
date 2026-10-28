@@ -3,7 +3,7 @@ import { db } from './db';
 import { staleJobs } from '@/lib/job-health';
 
 /** Must equal the newest prisma/migrations directory (enforced by a test). */
-export const LATEST_MIGRATION = '20261028090000_interview_formats';
+export const LATEST_MIGRATION = '20261028150000_goal_role_problem_hidden';
 
 /** Safe to expose: statuses only, never URLs, versions of secrets or user data. */
 export async function healthCheck() {

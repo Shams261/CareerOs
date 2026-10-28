@@ -85,7 +85,7 @@ async function loadWeekReview(
       where: { userId: user.id, attemptedAt: { gte: b.start, lt: b.end } },
     }),
     db().dsaProblem.findMany({
-      where: { userId: user.id },
+      where: { userId: user.id, hiddenAt: null },
       select: {
         id: true,
         title: true,
@@ -215,6 +215,7 @@ export async function carryForward(user: ScheduleUser, now = new Date()) {
     db().dsaProblem.findMany({
       where: {
         userId: user.id,
+        hiddenAt: null,
         attemptsCount: { gt: 0 },
         nextRevisionAt: { lt: date(today) },
       },
@@ -272,7 +273,7 @@ export async function nextWeekContext(
         },
       }),
       db().dsaProblem.findMany({
-        where: { userId: user.id, attemptsCount: { gt: 0 } },
+        where: { userId: user.id, hiddenAt: null, attemptsCount: { gt: 0 } },
         select: {
           id: true,
           title: true,

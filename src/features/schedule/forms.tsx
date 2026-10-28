@@ -417,8 +417,9 @@ export function ExecutionControls({
               !hideStart &&
               !(more && !current) &&
               (running ? (
-                <>
-                  {launcher && (
+                launcher ? (
+                  // The launcher's running session finishes with Complete first (WI-060).
+                  <>
                     <Link
                       className="button secondary"
                       href="/focus"
@@ -426,12 +427,22 @@ export function ExecutionControls({
                     >
                       Focus<span className="sr-only">: {block.title}</span>
                     </Link>
-                  )}
+                    <button
+                      className="button secondary"
+                      name="action"
+                      value="stop"
+                    >
+                      Stop<span className="sr-only">: {block.title}</span>
+                    </button>
+                    <button className="button" name="action" value="complete">
+                      Complete<span className="sr-only">: {block.title}</span>
+                    </button>
+                  </>
+                ) : (
                   <button className="button" name="action" value="stop">
-                    {launcher ? 'Stop session' : 'Stop'}
-                    <span className="sr-only">: {block.title}</span>
+                    Stop<span className="sr-only">: {block.title}</span>
                   </button>
-                </>
+                )
               ) : (
                 // Start opens Focus (WI-027): an intention, then Begin starts the session.
                 <Link
