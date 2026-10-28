@@ -1,5 +1,6 @@
 import { cookies, headers } from 'next/headers';
 import { authConfig, env } from '@/lib/env';
+import { ensureCurriculum } from '@/features/curriculum/service';
 import {
   decryptSecret,
   parseEncryptionKey,
@@ -71,6 +72,13 @@ export async function GET(request: Request) {
       maxAge: SESSION_DAYS * 86400,
     });
     console.info('[auth] signed-in');
+    // A new workspace gets the default curriculum (WI-064); a failure never blocks sign-in.
+    await ensureCurriculum(user.id).catch((error) =>
+      console.error(
+        '[curriculum] copy failed',
+        error instanceof Error ? error.name : 'Error',
+      ),
+    );
     return Response.redirect(new URL(safeNext(saved.next), cfg.baseUrl), 303);
   } catch (error) {
     const code = error instanceof AuthError ? error.code : 'exchange_failed';

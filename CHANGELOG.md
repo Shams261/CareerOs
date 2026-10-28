@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- WI-064 (the curriculum is the app's default; goals are the owner's own; ADR-026). Migration `20261029090000_default_curriculum`:
+  - **Always there.** The roadmaps and practice problems are published once (`pnpm curriculum:publish <bundle.json>`, stored in the database, never in the repository) and copied into a workspace on its first sign-in. Settings → Default curriculum → Restore brings back anything missing, archived or hidden, without touching marks, attempts or notes.
+  - **Never deleted.** A default roadmap can be archived but not deleted, keeps its name and reads "Default roadmap"; its edit form has no goal field.
+  - **No goal from the curriculum.** The import no longer creates "Offer from a product company" or links roadmaps to a goal; the migration unlinks the imported roadmaps (the goal stays for the owner to keep or delete).
+  - **Goals for any horizon.** The goal's date has quick picks: In 2 days, This week, This month, or any date. Today's goal line names the horizon ("This week · Finish Arrays & Hashing · 4 days left"). The Roadmap header always offers Set a goal; the goal card above the Roadmap is gone.
+
 - WI-063 (a simpler app, the owner's six choices from the 2026-10-28 audit). No migration, no data or feature removed; less-used actions sit one click away:
   - **One "next" list.** Roadmap and Practice lead with For today; This week and the revision queue open in panels from one line ("This week · 11 due for revision"), and roadmap rows show their counts without a second "Next". Links that end in a panel's id (`/dsa#revision-queue`, `/roadmap#revision`) open it on arrival.
   - **A lighter Today header.** The title, date and arrows, then one More menu (date, Activity, Notes, Add, Review day, Edit goal); Close the day stays outside in the evening. A day with nothing planned or recorded skips the line of zeros.

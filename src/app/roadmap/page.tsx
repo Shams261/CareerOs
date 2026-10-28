@@ -9,7 +9,6 @@ import { dayKey } from '@/lib/time';
 import { Disclosure } from '@/components/disclosure';
 import { PageShortcuts } from '@/components/shortcuts';
 import { UtilityMenu } from '@/features/today/utility-menu';
-import { BrandMark } from '@/components/brand';
 import { RoadmapIllustration } from '@/components/illustrations';
 import { FeedbackOutlet } from '@/components/feedback-outlet';
 import { PanelButton, SidePanel } from '@/components/side-panel';
@@ -69,13 +68,16 @@ export default async function RoadmapPage() {
             <h1>Roadmap</h1>
           </div>
           <div className="today-head-actions">
-            {goals.length > 0 && (
-              <UtilityMenu>
-                <PanelButton panel="goals" className="link-button today-util">
-                  {active.length === 1 ? 'Edit goal' : 'Goals'}
-                </PanelButton>
-              </UtilityMenu>
-            )}
+            {/* Always there: with no goal yet, this is where one is set (WI-064). */}
+            <UtilityMenu>
+              <PanelButton panel="goals" className="link-button today-util">
+                {!goals.length
+                  ? 'Set a goal'
+                  : active.length === 1
+                    ? 'Edit goal'
+                    : 'Goals'}
+              </PanelButton>
+            </UtilityMenu>
             {/* For today leads with the page's primary; Continue stays when it has no picks. */}
             {next && !picks.length && (
               <Link className="button" href={next.href} prefetch={false}>
@@ -93,18 +95,7 @@ export default async function RoadmapPage() {
           </p>
         )}
       </header>
-      {!goals.length && (
-        <section className="card setup-card" aria-labelledby="setup-heading">
-          <BrandMark className="setup-mark" />
-          <p className="eyebrow">Start here</p>
-          <h2 id="setup-heading">What are you aiming for?</h2>
-          <p>
-            One goal with a date. Routines, subjects, priorities and roadmaps
-            attach to it, and Today shows how the week is going toward it.
-          </p>
-          <GoalForm compact />
-        </section>
-      )}
+      {/* Goals are set on Today and in Goals; the curriculum needs none (WI-064). */}
       {/* One "next" list (WI-063): For today leads; This week and the revision queue open in
           panels from one line, and roadmap rows show their counts without a second "Next". */}
       <div className="roadmap-single">
@@ -131,12 +122,8 @@ export default async function RoadmapPage() {
             </h2>
             <Disclosure
               label="New roadmap"
-              // Until a goal exists the goal form is the page's primary (WI-059).
-              variant={
-                live.length ? 'link' : goals.length ? 'primary' : 'secondary'
-              }
+              variant={live.length ? 'link' : 'primary'}
               shortcut="new-roadmap"
-              defaultOpen={!live.length && goals.length > 0}
               draft="roadmap:new"
               className="agenda-add"
             >
@@ -314,8 +301,13 @@ export default async function RoadmapPage() {
           </div>
         ))}
         <div className="panel-section">
-          <Disclosure variant="link" label="Add goal" draft="goal:new">
-            <GoalForm />
+          <Disclosure
+            variant="link"
+            label="Add goal"
+            draft="goal:new"
+            defaultOpen={!active.length}
+          >
+            <GoalForm compact />
           </Disclosure>
         </div>
         {rest.length > 0 && (

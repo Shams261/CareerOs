@@ -47,6 +47,7 @@ import { Attention, AttentionSkeleton } from '@/features/today/attention';
 import { AttentionBoundary } from '@/features/today/attention-boundary';
 import { PanelButton, SidePanel } from '@/features/today/panels';
 import { goalLine } from '@/features/roadmap/domain';
+import { horizonLabel } from '@/features/goals/horizon';
 import { GoalForm } from '@/features/roadmap/forms';
 import { formatDuration } from '@/features/schedule/row';
 import { NudgeCard } from '@/features/nudges/card';
@@ -336,15 +337,26 @@ export default async function Today({
                 <p className="today-goal">
                   <span>
                     {nearestGoal
-                      ? goalLine(
-                          {
-                            ...nearestGoal,
-                            roadmap: { total: 0, done: 0 },
-                            week: { actual: 0 },
-                          },
-                          today,
-                          formatDuration,
-                        )
+                      ? [
+                          // "This week · Finish Arrays · 4 days left" (WI-064).
+                          horizonLabel(
+                            nearestGoal.targetDate
+                              ?.toISOString()
+                              .slice(0, 10) ?? null,
+                            today,
+                          ),
+                          goalLine(
+                            {
+                              ...nearestGoal,
+                              roadmap: { total: 0, done: 0 },
+                              week: { actual: 0 },
+                            },
+                            today,
+                            formatDuration,
+                          ),
+                        ]
+                          .filter(Boolean)
+                          .join(' · ')
                       : 'No goal yet'}
                   </span>
                 </p>
@@ -363,7 +375,11 @@ export default async function Today({
               id="goal"
               title={nearestGoal ? 'Edit goal' : 'Set a goal'}
             >
-              <GoalForm goal={nearestGoal ?? undefined} />
+              {/* A new goal is the short form; editing shows status, so it can be marked done. */}
+              <GoalForm
+                goal={nearestGoal ?? undefined}
+                compact={!nearestGoal}
+              />
               {nearestGoal && (
                 <div className="panel-danger">
                   <ConfirmDelete

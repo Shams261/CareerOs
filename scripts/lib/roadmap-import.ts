@@ -12,7 +12,6 @@ import { validateBundle } from './roadmap-bundle';
 import { followPractice } from '../../src/features/roadmap/follow';
 
 export type ImportReport = {
-  goal: 'created' | 'kept' | 'none';
   roadmaps: {
     title: string;
     created: boolean;
@@ -45,7 +44,6 @@ export async function importBundle(
     userId = users[0].id;
   }
   const report: ImportReport = {
-    goal: 'none',
     roadmaps: [],
     topics: { created: 0, updated: 0 },
     problems: { created: 0, updated: 0 },
@@ -53,33 +51,8 @@ export async function importBundle(
   };
   return prisma.$transaction(
     async (tx) => {
-      // Goal: created once by title; never updated.
-      let goalId: string | null = null;
-      if (bundle.goal) {
-        const existing = await tx.goal.findFirst({
-          where: { userId, title: bundle.goal.title },
-        });
-        if (existing) {
-          goalId = existing.id;
-          report.goal = 'kept';
-        } else {
-          goalId = (
-            await tx.goal.create({
-              data: {
-                userId,
-                title: bundle.goal.title,
-                category: bundle.goal.category,
-                description: bundle.goal.description ?? null,
-                targetDate: bundle.goal.targetDate
-                  ? new Date(bundle.goal.targetDate)
-                  : null,
-                priority: 1,
-              },
-            })
-          ).id;
-          report.goal = 'created';
-        }
-      }
+      // No goal (WI-064): the curriculum has nothing to do with the owner's goals; a bundle's
+      // `goal` is ignored and existing goal links stay as the owner set them.
       // DSA topics and problems first so items can link to them.
       const topicIds = new Map<string, string>();
       for (const t of bundle.dsa.topics) {
@@ -152,14 +125,14 @@ export async function importBundle(
         const roadmap = existing
           ? await tx.roadmap.update({
               where: { id: existing.id },
-              data: { ...data, goalId: existing.goalId ?? goalId },
+              data: { ...data, curriculum: true },
             })
           : await tx.roadmap.create({
               data: {
                 ...data,
                 userId,
                 title: r.title,
-                goalId,
+                curriculum: true,
                 ordering: ordering++,
                 // Grill Me may use imported study roadmaps; the behavioural one is the owner's
                 // own material (WI-031). An existing roadmap keeps the owner's choice.

@@ -7212,3 +7212,32 @@ button.attention-link {
     left: 0;
   }
 }
+
+/* The goal's date with quick picks (WI-064). */
+.target-date {
+  border: 0;
+  padding: 0;
+  margin: 0;
+  min-width: 0;
+  grid-column: 1 / -1;
+}
+.target-date legend {
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 6px;
+  padding: 0;
+}
+.target-picks {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.target-picks input[type='date'] {
+  width: auto;
+  min-width: 160px;
+}
+
+.template-chips.target-picks {
+  margin-bottom: 0;
+}

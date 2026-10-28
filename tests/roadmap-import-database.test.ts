@@ -81,7 +81,6 @@ describe.skipIf(!url)('roadmap bundle import', () => {
   });
   it('creates everything once, then updates without touching marks or notes', async () => {
     const first = await importBundle(prisma, bundle, { userId });
-    expect(first.goal).toBe('created');
     expect(first.roadmaps[0]).toMatchObject({
       created: true,
       items: { created: 2, updated: 0, notesKept: 0 },
@@ -92,7 +91,10 @@ describe.skipIf(!url)('roadmap bundle import', () => {
       where: { userId, title: 'DSA patterns (test)' },
       include: { items: { orderBy: { ordering: 'asc' } }, goal: true },
     });
-    expect(roadmap.goal?.title).toBe('Offer from a product company');
+    // WI-064: the curriculum is never tied to a goal, even when the bundle names one.
+    expect(roadmap.goal).toBeNull();
+    expect(roadmap.curriculum).toBe(true);
+    expect(await prisma.goal.count({ where: { userId } })).toBe(0);
     expect(roadmap.promptTemplate).toContain('{{scenario}}');
     expect(roadmap.scenarios).toEqual([
       { id: 'learn', name: 'Learn', intro: 'Teach it' },
@@ -145,7 +147,6 @@ describe.skipIf(!url)('roadmap bundle import', () => {
     });
     next.dsa.problems[0].title = '3Sum (renamed)';
     const second = await importBundle(prisma, next, { userId });
-    expect(second.goal).toBe('kept');
     expect(second.roadmaps[0]).toMatchObject({
       created: false,
       items: { created: 1, updated: 2, notesKept: 1 },

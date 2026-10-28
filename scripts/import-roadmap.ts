@@ -34,7 +34,6 @@ async function main() {
   });
   try {
     const report = await importBundle(prisma, bundle);
-    console.log(`Goal: ${report.goal}`);
     console.table(
       report.roadmaps.map((r) => ({
         roadmap: r.title,
