@@ -527,6 +527,7 @@ function Running({
           action={executionAction}
           label={`Finish ${block.title}`}
           className="focus-finish"
+          broadcast="blocks"
           onPending={(form) => {
             submitted.current = String(form.get('action') ?? '');
             form.set('sound', playedSounds(session.id).read());

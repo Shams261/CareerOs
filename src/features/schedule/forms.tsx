@@ -1,6 +1,8 @@
 import Link from 'next/link';
 import { ActionForm } from '@/components/action-form';
 import { FormMore } from '@/components/form-more';
+import { TemplateChips } from './template-chips';
+import type { RoutineTemplate } from './templates';
 import {
   blockAction,
   routineAction,
@@ -217,10 +219,13 @@ export function RoutineForm({
   routine,
   goals,
   compact = false,
+  templates = [],
 }: {
   routine?: RoutineBlock;
   goals: GoalOption[];
   compact?: boolean;
+  /** Template chips for a new routine (WI-059); they only fill the form. */
+  templates?: RoutineTemplate[];
 }) {
   // The short form: title, days and time. Everything else sits behind More and opens by
   // itself when an existing routine uses any of it.
@@ -243,6 +248,7 @@ export function RoutineForm({
         name="version"
         value={routine?.updatedAt.toISOString() ?? ''}
       />
+      {!routine && <TemplateChips templates={templates} />}
       <label>
         Title
         <input

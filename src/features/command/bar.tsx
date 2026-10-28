@@ -59,7 +59,7 @@ function afterNavigation(command: Command, target: URL) {
       );
       // A narrow screen may keep the opener in a closed menu; the panel still opens.
       if (opener || Date.now() - started > 1500) {
-        openPanel(command.panel, opener);
+        openPanel(command.panel, opener, command.focus ?? null);
         return;
       }
     }
@@ -89,7 +89,7 @@ export function CommandButton({ className }: { className?: string }) {
     >
       <Search size={16} aria-hidden="true" />
       {/* The name is this word, so it matches what shows (WI-052, WCAG 2.5.3). */}
-      <span className="command-button-label">Search</span>
+      <span className="command-button-label">Search or do</span>
       <kbd aria-hidden="true">{key}</kbd>
     </button>
   );

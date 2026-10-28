@@ -1,4 +1,6 @@
 import Link from 'next/link';
+import { forTodayPicks } from '@/features/for-today/service';
+import { ForTodayCard } from '@/features/for-today/card';
 import { BrandMark } from '@/components/brand';
 import { db, owner } from '@/server/db';
 import { dsaSnapshot } from '@/features/dsa/service';
@@ -37,7 +39,10 @@ export default async function Dsa({
     query = await searchParams,
     now = new Date(),
     day = dayKey(now, user.timezone);
-  const { problems, topics, currentTopic } = await dsaSnapshot(user);
+  const [{ problems, topics, currentTopic }, picks] = await Promise.all([
+    dsaSnapshot(user),
+    forTodayPicks(user, now),
+  ]);
   const weekday = new Date(`${day}T12:00:00Z`).getUTCDay();
   const weekStart = localInstant(
     shiftDay(day, -((weekday + 6) % 7)),
@@ -166,7 +171,7 @@ export default async function Dsa({
                 Which pattern?
               </Link>
             )}
-            {nextProblem && (
+            {nextProblem && !picks.length && (
               <Link
                 className="button"
                 href={`/dsa/${nextProblem.id}`}
@@ -227,6 +232,7 @@ export default async function Dsa({
               </span>
             )}
           </p>
+          <ForTodayCard picks={picks} />
           {queue.length > 0 && (
             <section
               className="card flat"

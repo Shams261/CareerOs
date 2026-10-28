@@ -39,12 +39,19 @@ export async function todayCommands(
             title: true,
             plannedStart: true,
             plannedEnd: true,
+            _count: { select: { sessions: true } },
           },
         },
       },
     }),
     stopTime(user.id),
   ]);
+  // One practice problem to record (WI-059): the oldest revision due, if any.
+  const due = await db().dsaProblem.findFirst({
+    where: { userId: user.id, nextRevisionAt: { lte: new Date(today) } },
+    orderBy: { nextRevisionAt: 'asc' },
+    select: { id: true, title: true },
+  });
   const out: Command[] = [];
   if (running)
     out.push({
@@ -68,6 +75,33 @@ export async function todayCommands(
         keywords: 'session timer begin',
       });
     }
+  // Blocks that ended without a record: Log time opens their panel at the form (WI-059).
+  const logs: Command[] = [];
+  for (const b of plan?.blocks ?? []) {
+    if (+b.plannedEnd > +now || b._count.sessions) continue;
+    logs.push({
+      id: `log:${b.id}`,
+      group: 'Today',
+      verb: 'Log time',
+      title: b.title,
+      meta: `${hhmm(b.plannedStart, user.timezone)}–${hhmm(b.plannedEnd, user.timezone)}`,
+      href: '/today',
+      panel: `block:${b.id}`,
+      focus: 'log',
+      keywords: 'record session done mark',
+    });
+  }
+  const addRoutine: Command = {
+    id: 'plan:add-routine',
+    group: 'Today',
+    verb: 'Add routine',
+    title: '',
+    href: '/calendar',
+    panel: 'routines',
+    keywords: 'routine weekly repeat plan',
+  };
+  // An empty day starts with a routine, not with its review.
+  if (!plan?.blocks.length) out.push(addRoutine);
   const reviewed = !!plan?.reviewedAt && !!plan.checkIn;
   const closing = closeDayOpen({
     day: today,
@@ -96,6 +130,30 @@ export async function todayCommands(
       press: '[data-shortcut="add-block"]',
       keywords: 'new plan one-time',
     },
+    ...logs,
+    ...(plan?.blocks.length ? [addRoutine] : []),
+    {
+      id: 'jobs:add-application',
+      group: 'Jobs',
+      verb: 'Add application',
+      title: '',
+      href: '/jobs',
+      press: '[data-shortcut="add-application"]',
+      keywords: 'job apply company role new',
+    },
+    ...(due
+      ? [
+          {
+            id: `practice:attempt:${due.id}`,
+            group: 'Practice' as const,
+            verb: 'Record an attempt',
+            title: due.title,
+            meta: 'revision due',
+            href: `/dsa/${due.id}#attempt-heading`,
+            keywords: 'practice problem attempt dsa log',
+          },
+        ]
+      : []),
   );
   return out;
 }

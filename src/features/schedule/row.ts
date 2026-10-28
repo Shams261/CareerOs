@@ -156,3 +156,18 @@ export function factsLine(f: ReturnType<typeof blockFacts>) {
   parts.push(`${formatDuration(f.plannedMinutes)} planned`);
   return parts.join(' · ');
 }
+
+/**
+ * What Complete says (WI-059): the time recorded on the block and the next planned block today,
+ * "Done · 45 min recorded. Next: System design at 20:00". Facts only.
+ */
+export function completedLine(
+  recorded: number,
+  next: { title: string; at: string } | null,
+) {
+  return `Done${recorded > 0 ? ` · ${formatDuration(recorded)} recorded` : ''}.${
+    next
+      ? ` Next: ${next.title} at ${next.at}.`
+      : ' Nothing else is planned today.'
+  }`;
+}

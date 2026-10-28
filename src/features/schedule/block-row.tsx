@@ -21,6 +21,7 @@ export function BlockRowShell({
   id,
   resolution,
   unresolved = false,
+  justDone = false,
   time,
   icon,
   title,
@@ -32,6 +33,8 @@ export function BlockRowShell({
   id?: string;
   resolution: Resolution;
   unresolved?: boolean;
+  /** Completed in the last minute or two: the check draws in once (WI-059). */
+  justDone?: boolean;
   time: ReactNode;
   icon: ReactNode;
   title: ReactNode;
@@ -43,7 +46,7 @@ export function BlockRowShell({
   return (
     <li
       id={id}
-      className={`agenda-row is-${resolution}${unresolved ? ' is-unresolved' : ''}`}
+      className={`agenda-row is-${resolution}${unresolved ? ' is-unresolved' : ''}${justDone ? ' is-just-done' : ''}`}
     >
       <span className="agenda-time">{time}</span>
       <span className="agenda-dot" aria-hidden="true" />

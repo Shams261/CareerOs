@@ -28,6 +28,8 @@ export type Command = {
   meta?: string;
   href?: string;
   panel?: string;
+  /** A `data-panel-focus` target inside the panel (WI-059: Log time). */
+  focus?: string;
   press?: string;
   note?: string;
   ask?: string;

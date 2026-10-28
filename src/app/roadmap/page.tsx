@@ -1,4 +1,6 @@
 import Link from 'next/link';
+import { forTodayPicks } from '@/features/for-today/service';
+import { ForTodayCard } from '@/features/for-today/card';
 import { ArrowRight, ChevronRight, Route } from 'lucide-react';
 import { owner } from '@/server/db';
 import { dayKey } from '@/lib/time';
@@ -40,11 +42,12 @@ export default async function RoadmapPage() {
   const user = await owner(),
     now = new Date(),
     today = dayKey(now, user.timezone);
-  const [goals, roadmaps, due, week] = await Promise.all([
+  const [goals, roadmaps, due, week, picks] = await Promise.all([
     goalsOverview(user, now),
     roadmapList(user, now),
     revisionDue(user, now),
     weekPlan(user, now),
+    forTodayPicks(user, now),
   ]);
   const active = goals.filter((g) => g.status === 'ACTIVE'),
     rest = goals.filter((g) => g.status !== 'ACTIVE'),
@@ -71,7 +74,8 @@ export default async function RoadmapPage() {
                 </PanelButton>
               </UtilityMenu>
             )}
-            {next && (
+            {/* For today leads with the page's primary; Continue stays when it has no picks. */}
+            {next && !picks.length && (
               <Link className="button" href={next.href} prefetch={false}>
                 Continue · {next.title}{' '}
                 <ArrowRight size={14} aria-hidden="true" />
@@ -101,6 +105,7 @@ export default async function RoadmapPage() {
       )}
       <div className="today-workspace is-today roadmap-workspace">
         <section className="jobs-main" aria-labelledby="roadmaps-heading">
+          <ForTodayCard picks={picks} />
           {live.length > 0 && (
             <section
               className="card flat week-mix"
@@ -173,7 +178,10 @@ export default async function RoadmapPage() {
             </h2>
             <Disclosure
               label="New roadmap"
-              variant={live.length ? 'link' : 'primary'}
+              // Until a goal exists the goal form is the page's primary (WI-059).
+              variant={
+                live.length ? 'link' : goals.length ? 'primary' : 'secondary'
+              }
               shortcut="new-roadmap"
               defaultOpen={!live.length && goals.length > 0}
               draft="roadmap:new"

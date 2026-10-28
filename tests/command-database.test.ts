@@ -72,7 +72,16 @@ describe.skipIf(!url)('Command bar (PostgreSQL)', () => {
       'Start focus|Graphs|18:00–19:00',
       'Review day||',
       'Add a block||',
+      // WI-059: a block that ended without a record, and the everyday adds.
+      'Log time|Earlier drill|07:00–08:00',
+      'Add routine||',
+      'Add application||',
     ]);
+    expect(today[3]).toMatchObject({
+      href: '/today',
+      panel: expect.stringMatching(/^block:/),
+      focus: 'log',
+    });
     expect(today[0].href).toBe(`/focus?block=${later.id}`);
     expect(today[1]).toMatchObject({ href: '/today', panel: 'review' });
     // From the stop time (21:30 by default) the review is Close the day.
@@ -92,6 +101,37 @@ describe.skipIf(!url)('Command bar (PostgreSQL)', () => {
       verb: 'Back to focus',
       title: 'Graphs',
       href: '/focus',
+    });
+  });
+
+  it('starts an empty day with Add routine and offers a due problem (WI-059)', async () => {
+    const topic = await prisma.dsaTopic.upsert({
+      where: { name: 'Two Pointers' },
+      create: { name: 'Two Pointers' },
+      update: {},
+    });
+    const due = await prisma.dsaProblem.create({
+      data: {
+        userId: user.id,
+        title: 'Two Sum II',
+        platform: 'LeetCode',
+        problemUrl: 'https://leetcode.com/problems/two-sum-ii/',
+        difficulty: 'MEDIUM',
+        topicId: topic.id,
+        nextRevisionAt: new Date('2026-10-26'),
+      },
+    });
+    const list = await todayCommands(user, at('12:00'));
+    expect(list.map((c) => c.verb)).toEqual([
+      'Add routine',
+      'Review day',
+      'Add a block',
+      'Add application',
+      'Record an attempt',
+    ]);
+    expect(list.at(-1)).toMatchObject({
+      title: 'Two Sum II',
+      href: `/dsa/${due.id}#attempt-heading`,
     });
   });
 

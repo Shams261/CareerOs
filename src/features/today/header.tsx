@@ -25,6 +25,7 @@ export function TodayHeader({
   reviewed,
   closing = false,
   rested = false,
+  facts = '',
 }: {
   day: string;
   today: string;
@@ -45,6 +46,8 @@ export function TodayHeader({
   closing?: boolean;
   /** The owner marked this day as rest (WI-028). */
   rested?: boolean;
+  /** Yesterday and the week so far as counts (WI-059); empty when there are none. */
+  facts?: string;
 }) {
   const isToday = day === today;
   return (
@@ -126,6 +129,7 @@ export function TodayHeader({
         {reviewed && <span className="pill success">Reviewed</span>}
         {rested && <span className="pill">Rest day</span>}
       </p>
+      {facts && <p className="today-facts">{facts}</p>}
       <FeedbackOutlet channel="review" className="mt-2" />
     </header>
   );

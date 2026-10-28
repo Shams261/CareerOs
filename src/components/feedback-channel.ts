@@ -12,13 +12,28 @@ type Listener = (f: Feedback) => void;
 const listeners = new Map<string, Set<Listener>>();
 let sequence = 0;
 
+/**
+ * A result published while no outlet listens (Focus completes, then opens Today) waits this
+ * long for the first outlet on its channel to mount, so the message survives the page change
+ * (WI-059).
+ */
+const HANDOFF_MS = 10_000;
+const pending = new Map<string, { f: Feedback; at: number }>();
+
 export function publishFeedback(channel: string, state: ActionState) {
   const f = { id: ++sequence, state };
-  for (const fn of listeners.get(channel) ?? []) fn(f);
+  const fns = listeners.get(channel);
+  if (!fns?.size) pending.set(channel, { f, at: Date.now() });
+  for (const fn of fns ?? []) fn(f);
 }
 export function subscribeFeedback(channel: string, fn: Listener) {
   if (!listeners.has(channel)) listeners.set(channel, new Set());
   listeners.get(channel)!.add(fn);
+  const waiting = pending.get(channel);
+  if (waiting) {
+    pending.delete(channel);
+    if (Date.now() - waiting.at < HANDOFF_MS) fn(waiting.f);
+  }
   return () => {
     listeners.get(channel)?.delete(fn);
   };

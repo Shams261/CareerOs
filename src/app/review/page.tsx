@@ -177,6 +177,7 @@ export default async function Review({
   const habitLine = habits ? patternLine(habits) : null;
   const summary = weekSummary(w.schedule.days);
   const s = w.schedule;
+  const weekEmpty = s.totals.planned === 0 && s.focus.actual === 0;
   const max = Math.max(
     s.focus.planned,
     s.focus.actual,
@@ -275,7 +276,26 @@ export default async function Review({
         ))}
       </nav>
 
-      {step === 'week' && (
+      {step === 'week' && weekEmpty && (
+        // An empty week says what to do and what this step will show (WI-059).
+        <section className="card setup-card" aria-labelledby="week-heading">
+          <p className="eyebrow">Start here</p>
+          <h2 id="week-heading">Nothing planned this week</h2>
+          <p>
+            Once blocks are planned, this shows planned against recorded time
+            for each day, and what is left to decide.
+          </p>
+          <div className="actions">
+            <Link className="button" href="/calendar" prefetch={false}>
+              Plan this week <ArrowRight size={14} aria-hidden="true" />
+            </Link>
+            <Link className="button secondary" href={href('reflect')}>
+              Reflect anyway
+            </Link>
+          </div>
+        </section>
+      )}
+      {step === 'week' && !weekEmpty && (
         <>
           <section className="card" aria-labelledby="week-heading">
             <h2 id="week-heading">Planned versus done</h2>

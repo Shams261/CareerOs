@@ -6,6 +6,8 @@ import { LiveTimer } from '@/features/execution/live';
 import { stopUnlinkedAction } from '@/features/schedule/actions';
 import { ExecutionControls } from '@/features/schedule/forms';
 import { categoryGroup } from '@/features/review/domain';
+import { letGoDayAction, startPickAction } from '@/features/for-today/actions';
+import type { TodayPick } from '@/features/for-today/domain';
 
 import type { TimeBlock } from '@/generated/prisma/client';
 import { blockTitle, hhmm, type LauncherState, type RoundLike } from './domain';
@@ -31,6 +33,8 @@ export function Launcher({
   now,
   closing = false,
   closed = false,
+  pick = null,
+  quiet = null,
 }: {
   state: LauncherState;
   blocks: TimeBlock[];
@@ -41,6 +45,10 @@ export function Launcher({
   closing?: boolean;
   /** The day was closed or reviewed. */
   closed?: boolean;
+  /** The first "For today" pick, offered when nothing is current or next (WI-059). */
+  pick?: TodayPick | null;
+  /** Yesterday's blocks when none of them was recorded: the launcher says so (WI-059). */
+  quiet?: { day: string; planned: number; recorded: number } | null;
 }) {
   const full = (id: string) => blocks.find((b) => b.id === id) ?? null;
   const roundOf = (block: { interviewRoundId: string | null } | null) =>
@@ -144,6 +152,54 @@ export function Launcher({
       <PanelButton panel="review" className="button">
         Close the day
       </PanelButton>
+    );
+  } else if (
+    pick &&
+    (state.kind === 'reconcile' || (state.kind === 'done' && !closed))
+  ) {
+    // Free time: the first pick, started as a short session, with the facts that make it
+    // the move. Earlier blocks without a decision stay one quiet link away.
+    eyebrow = quiet ? 'Start from here' : 'Free now';
+    title = pick.title;
+    context = quiet
+      ? `Yesterday: ${quiet.recorded} of ${quiet.planned} block${quiet.planned === 1 ? '' : 's'} recorded · ${pick.reason}`
+      : pick.reason;
+    action = (
+      <ActionForm
+        action={startPickAction}
+        label={`Start 20 min: ${pick.title}`}
+      >
+        <input type="hidden" name="title" value={pick.title} />
+        <input type="hidden" name="category" value={pick.category} />
+        <Button>Start 20 min</Button>
+      </ActionForm>
+    );
+    next = (
+      <>
+        <Link className="link" href={pick.href} prefetch={false}>
+          Open it first
+        </Link>
+        {state.kind === 'reconcile' && (
+          <>
+            {' · '}
+            <a className="link" href={`#block-${state.blocks[0].id}`}>
+              {state.blocks.length} earlier block
+              {state.blocks.length === 1 ? '' : 's'} without a decision
+            </a>
+          </>
+        )}
+        {quiet && (
+          <ActionForm
+            action={letGoDayAction}
+            label="Let go of yesterday's blocks"
+            broadcast="blocks"
+            className="launcher-letgo"
+          >
+            <input type="hidden" name="day" value={quiet.day} />
+            <Button variant="link">Let go of yesterday&apos;s blocks</Button>
+          </ActionForm>
+        )}
+      </>
     );
   } else if (state.kind === 'reconcile') {
     eyebrow = 'Earlier today';
