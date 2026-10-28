@@ -6,7 +6,7 @@ import { dsaSnapshot } from '@/features/dsa/service';
 import { drillDeck } from '@/features/drills/deck';
 import { WhichPattern } from '@/features/drills/which-pattern';
 
-export const metadata = { title: 'Which pattern?' };
+export const metadata = { title: 'Pattern quiz' };
 
 /**
  * Which Pattern? (WI-030): ten of the owner's own problems, chosen by code (Red and Yellow
@@ -23,7 +23,7 @@ export default async function Drill() {
       </Link>
       <p className="eyebrow mt-4">Practice</p>
       <div className="page-head">
-        <h1>Which pattern?</h1>
+        <h1>Pattern quiz</h1>
       </div>
       {deck ? (
         <WhichPattern deck={deck} />

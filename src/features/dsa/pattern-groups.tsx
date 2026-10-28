@@ -1,5 +1,6 @@
 'use client';
 import Link from 'next/link';
+import { confidenceWord } from './words';
 import { useState } from 'react';
 import { ChevronDown, ExternalLink } from 'lucide-react';
 
@@ -112,7 +113,9 @@ export function PatternGroups({
                     <span
                       className={`pill ${p.attempted ? tone[p.confidence] : ''}`}
                     >
-                      {p.attempted ? p.confidence : 'Unattempted'}
+                      {p.attempted
+                        ? confidenceWord(p.confidence)
+                        : 'Unattempted'}
                     </span>
                     {p.revision?.state === 'overdue' && (
                       <span className="problem-date is-overdue">

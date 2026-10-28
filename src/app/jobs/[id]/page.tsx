@@ -46,6 +46,7 @@ import {
   type LinkOption,
 } from '@/features/jobs/forms';
 import { NextActionBox } from '@/features/jobs/next-action';
+import { MoreMenu } from '@/components/more-menu';
 import { PrepCheck } from '@/features/jobs/prep-check';
 import { randomUUID } from 'node:crypto';
 import { ActionForm } from '@/components/action-form';
@@ -233,52 +234,7 @@ export default async function Application({
           : ''}
       </p>
       <h1>{app.role}</h1>
-      <ActionForm action={stageAction} className="stage-steps-form mb-4">
-        <input type="hidden" name="id" value={app.id} />
-        <input type="hidden" name="requestId" value={randomUUID()} />
-        <div className="stage-steps" role="group" aria-label="Stage">
-          {pipelineStages.map((s, i) => {
-            const at = pipelineStages.indexOf(
-              app.stage as (typeof pipelineStages)[number],
-            );
-            const state =
-              s === app.stage
-                ? 'is-current'
-                : at >= 0 && i < at
-                  ? 'is-done'
-                  : '';
-            return (
-              <button
-                key={s}
-                className={`stage-step ${state}`}
-                name="stage"
-                value={s}
-                disabled={s === app.stage}
-                aria-current={s === app.stage ? 'step' : undefined}
-                title={
-                  s === app.stage ? 'Current stage' : `Move to ${label(s)}`
-                }
-              >
-                {label(s)}
-              </button>
-            );
-          })}
-          <span className="stage-steps-closed">
-            {closedStages.map((s) => (
-              <button
-                key={s}
-                className={`stage-step is-closed${s === app.stage ? ' is-current' : ''}`}
-                name="stage"
-                value={s}
-                disabled={s === app.stage}
-              >
-                {label(s)}
-              </button>
-            ))}
-          </span>
-        </div>
-      </ActionForm>
-      {/* On a phone the eleven stage buttons take four rows; one select does the same (WI-058). */}
+      {/* The stage as one select at every width (WI-063): eleven buttons read as a wall. */}
       <ActionForm action={stageAction} className="stage-select-form mb-4">
         <input type="hidden" name="id" value={app.id} />
         <input type="hidden" name="requestId" value={randomUUID()} />
@@ -338,24 +294,34 @@ export default async function Application({
                       primary={primary === 'mark-done'}
                     />
                   )}
-                  {hasAction && (
+                  {hasAction ? (
+                    <MoreMenu label="More for the next action">
+                      <PanelButton
+                        panel="next-action"
+                        focus="done"
+                        className="more-menu-item"
+                      >
+                        Done with a note
+                      </PanelButton>
+                      <PanelButton
+                        panel="next-action"
+                        focus="edit"
+                        className="more-menu-item"
+                      >
+                        Edit next action
+                      </PanelButton>
+                    </MoreMenu>
+                  ) : (
                     <PanelButton
                       panel="next-action"
-                      focus="done"
-                      className="link-button"
+                      focus="edit"
+                      className={
+                        primary === 'set-next-action' ? 'button' : 'link-button'
+                      }
                     >
-                      Done with a note
+                      Set next action
                     </PanelButton>
                   )}
-                  <PanelButton
-                    panel="next-action"
-                    focus="edit"
-                    className={
-                      primary === 'set-next-action' ? 'button' : 'link-button'
-                    }
-                  >
-                    {hasAction ? 'Edit' : 'Set next action'}
-                  </PanelButton>
                 </div>
               )}
             </div>
@@ -643,49 +609,61 @@ export default async function Application({
                           Log the result
                         </PanelButton>
                       )}
-                      {r.status === 'SCHEDULED' && !awaitingResult && (
-                        <PanelButton
-                          panel={panelId}
-                          focus="prep"
-                          className="button secondary small"
-                        >
-                          Add prep
-                        </PanelButton>
-                      )}
-                      {r.status === 'COMPLETED' && (
-                        <PanelButton
-                          panel={panelId}
-                          focus="result"
-                          className="button secondary small"
-                        >
-                          {r.outcomeNotes || r.toImprove
-                            ? 'Edit reflection'
-                            : 'Add reflection'}
-                        </PanelButton>
-                      )}
-                      {r.status !== 'COMPLETED' && (
-                        <PanelButton
-                          panel={panelId}
-                          focus="reschedule"
-                          className="button secondary small"
-                        >
-                          Reschedule
-                        </PanelButton>
-                      )}
-                      {r.status === 'SCHEDULED' && blockState !== 'on' && (
-                        <ScheduleInterviewForm
-                          roundId={r.id}
-                          name={r.title}
-                          label={
-                            blockState === 'cancelled'
-                              ? 'Add back to schedule'
-                              : 'Add to schedule'
-                          }
-                        />
-                      )}
                     </div>
                   </div>
                   <div className="round-side">
+                    {/* Prep, reschedule and the schedule block in one menu (WI-063). */}
+                    {r.status !== 'CANCELLED' && (
+                      <MoreMenu label={`More for ${r.title}`}>
+                        {r.status === 'SCHEDULED' && !awaitingResult && (
+                          <PanelButton
+                            panel={panelId}
+                            focus="prep"
+                            className="more-menu-item"
+                          >
+                            Add prep
+                          </PanelButton>
+                        )}
+                        {r.status === 'COMPLETED' && (
+                          <PanelButton
+                            panel={panelId}
+                            focus="result"
+                            className="button secondary small"
+                          >
+                            {r.outcomeNotes || r.toImprove
+                              ? 'Edit reflection'
+                              : 'Add reflection'}
+                          </PanelButton>
+                        )}
+                        {r.status !== 'COMPLETED' && (
+                          <PanelButton
+                            panel={panelId}
+                            focus="reschedule"
+                            className="more-menu-item"
+                          >
+                            Reschedule
+                          </PanelButton>
+                        )}
+                        {r.status === 'SCHEDULED' && blockState !== 'on' && (
+                          <ScheduleInterviewForm
+                            roundId={r.id}
+                            name={r.title}
+                            label={
+                              blockState === 'cancelled'
+                                ? 'Add back to schedule'
+                                : 'Add to schedule'
+                            }
+                          />
+                        )}
+                        <PanelButton
+                          panel={panelId}
+                          focus="edit"
+                          className="more-menu-item"
+                        >
+                          Edit details
+                        </PanelButton>
+                      </MoreMenu>
+                    )}
                     <PanelButton
                       panel={panelId}
                       className="agenda-details"

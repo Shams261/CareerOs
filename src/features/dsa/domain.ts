@@ -1,6 +1,8 @@
 import { z } from 'zod';
 import { dayKey } from '@/lib/time';
 import { shiftDay } from '@/features/schedule/domain';
+import { CONFIDENCE_WORD } from './words';
+export { CONFIDENCE_WORD, confidenceWord, type ConfidenceValue } from './words';
 export const confidence = z.enum(['RED', 'YELLOW', 'GREEN']);
 export const attemptInput = z
   .object({
@@ -22,7 +24,7 @@ export const attemptInput = z
         : v.confidenceAfter !== 'GREEN',
     {
       message:
-        'Solved on your own needs Yellow or Green; with hints or the solution, Red or Yellow.',
+        'Solved on your own needs Okay or Solid; with hints or the solution, Shaky or Okay.',
       path: ['confidenceAfter'],
     },
   );
@@ -95,9 +97,9 @@ export function todayDsaSummary<T extends QueueProblem>(
 export const STATUS_FILTERS = {
   '': 'Any status',
   unattempted: 'Unattempted',
-  RED: 'Red',
-  YELLOW: 'Yellow',
-  GREEN: 'Green',
+  RED: CONFIDENCE_WORD.RED,
+  YELLOW: CONFIDENCE_WORD.YELLOW,
+  GREEN: CONFIDENCE_WORD.GREEN,
   due: 'Due today',
   overdue: 'Overdue',
 } as const;

@@ -66,7 +66,7 @@ function MenuLink({
   );
 }
 
-export function Navigation({ capture }: { capture?: ReactNode }) {
+export function Navigation() {
   const path = usePathname();
   const [more, setMore] = useState(false);
   // The sheet closes on navigation (derived from the previous path) and on Escape.
@@ -118,7 +118,6 @@ export function Navigation({ capture }: { capture?: ReactNode }) {
       </nav>
       {more && (
         <div className="nav-more" id="nav-more" role="dialog" aria-label="More">
-          {capture}
           {rest.map(([href, title, Icon]) => (
             <Link
               key={href}

@@ -85,11 +85,11 @@ export function AttemptForm({
             <option value="" disabled>
               Answer above first
             </option>
-            <option value="GREEN">Green — can solve and explain it</option>
+            <option value="GREEN">Solid — can solve and explain it</option>
             <option value="YELLOW">
-              Yellow — understand it, not yet reliable
+              Okay — understand it, not yet reliable
             </option>
-            <option value="RED">Red — can’t derive the approach yet</option>
+            <option value="RED">Shaky — can’t derive the approach yet</option>
           </select>
         </label>
         <label>

@@ -317,7 +317,7 @@ export function attentionItems(input: AttentionInput): AttentionItem[] {
       {
         many: 'roadmap items',
         label: 'Roadmap',
-        href: '/roadmap#revision-heading',
+        href: '/roadmap#revision',
       },
       today,
     ),

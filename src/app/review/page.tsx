@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { confidenceWord } from '@/features/dsa/words';
 import { getPatterns } from '@/features/agent/tools';
 import { patternLine } from '@/features/agent/plan-domain';
 import { ChevronLeft, ChevronRight, ArrowRight, Briefcase } from 'lucide-react';
@@ -679,8 +680,8 @@ export default async function Review({
                 ['Problems', w.dsa.uniqueProblems],
                 ['New', w.dsa.newProblems],
                 ['Revisions', w.dsa.revisionAttempts],
-                ['Red to Yellow', w.dsa.redToYellow],
-                ['Yellow to Green', w.dsa.yellowToGreen],
+                ['Shaky to Okay', w.dsa.redToYellow],
+                ['Okay to Solid', w.dsa.yellowToGreen],
                 ['Revisions overdue', w.dsa.overdue],
               ]}
             />
@@ -830,9 +831,12 @@ export default async function Review({
               </h2>
               {next.dsa.weak.length > 0 && (
                 <p className="status-line">
-                  Red and yellow problems:{' '}
+                  Shaky and okay problems:{' '}
                   {next.dsa.weak
-                    .map((p) => `${p.title} (${p.confidence.toLowerCase()})`)
+                    .map(
+                      (p) =>
+                        `${p.title} (${confidenceWord(p.confidence).toLowerCase()})`,
+                    )
                     .join(', ')}
                 </p>
               )}

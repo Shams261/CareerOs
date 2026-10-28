@@ -1,5 +1,6 @@
 'use client';
 import Link from 'next/link';
+import { confidenceWord } from '@/features/dsa/words';
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import {
   Check,
@@ -11,6 +12,7 @@ import {
   ArrowRight,
 } from 'lucide-react';
 import { PanelButton, SidePanel } from '@/components/side-panel';
+import { MoreMenu } from '@/components/more-menu';
 import { ActionForm } from '@/components/action-form';
 import { FeedbackOutlet } from '@/components/feedback-outlet';
 import type { RoadmapItem } from '@/generated/prisma/client';
@@ -143,6 +145,8 @@ export function ItemList({
     return () => window.removeEventListener(OPEN_ITEM_EVENT, onOpen);
   }, [rows]);
   const [expandedScope, setExpandedScope] = useState<string | null>(null);
+  // An open item shows Study or Notes (WI-063); Study unless the owner picked Notes.
+  const [notesFor, setNotesFor] = useState<string | null>(null);
   const open =
     chosen !== undefined
       ? chosen
@@ -417,233 +421,297 @@ export function ItemList({
                 )}
                 {isOpen && (
                   <div id={`panel-${item.id}`} className="item-panel">
-                    {item.checkpoint && (
-                      <div className="item-checkpoint">
-                        <b>Done when</b>
-                        {item.checkpoint}
-                      </div>
-                    )}
-                    {(item.scope || item.priority === 1) && (
-                      <p
-                        className={`item-scope${clamped ? ' is-clamped' : ''}`}
-                      >
-                        {item.priority === 1 && (
-                          <span className="pill priority">P0</span>
-                        )}
-                        {item.scope}
-                        {longScope && (
-                          <>
-                            {' '}
-                            <Button
-                              type="button"
-                              variant="link"
-                              onClick={() =>
-                                setExpandedScope(clamped ? item.id : null)
-                              }
-                            >
-                              {clamped ? 'Read more' : 'Show less'}
-                            </Button>
-                          </>
-                        )}
-                      </p>
-                    )}
-                    {references.length > 0 && (
-                      <ul className="plain-list reference-list">
-                        {references.map((r) => (
-                          <li key={r.url}>
-                            <a
-                              className="reference-chip"
-                              href={r.url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              title={
-                                r.kind ? `${r.label} · ${r.kind}` : r.label
-                              }
-                            >
-                              {r.label}
-                              <ExternalLink size={12} aria-hidden="true" />
-                            </a>
-                          </li>
-                        ))}
-                      </ul>
-                    )}
-                    {(item.url ||
-                      links.dsaProblem ||
-                      links.learningTopic ||
-                      links.dsaTopic) && (
-                      <p className="item-links">
-                        {item.url && (
-                          <a
-                            className="link"
-                            href={item.url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                          >
-                            Open link
-                            <ExternalLink size={12} aria-hidden="true" />
-                          </a>
-                        )}
-                        {links.dsaProblem && (
-                          <>
-                            <span className="item-practice">
-                              <span className="muted whitespace-nowrap">
-                                From Practice
-                              </span>
-                              <span
-                                className={`pill ${links.dsaProblem.attemptsCount ? tone[links.dsaProblem.confidence] : ''}`}
-                              >
-                                {links.dsaProblem.attemptsCount
-                                  ? links.dsaProblem.confidence
-                                  : 'Unattempted'}
-                              </span>
-                              {links.dsaProblem.attemptsCount > 0 && (
-                                <span className="muted">
-                                  {links.dsaProblem.attemptsCount} attempt
-                                  {links.dsaProblem.attemptsCount === 1
-                                    ? ''
-                                    : 's'}
-                                  {links.dsaProblem.nextRevision
-                                    ? ` · next revision ${links.dsaProblem.nextRevision}`
-                                    : ''}
-                                </span>
-                              )}
-                            </span>
-                          </>
-                        )}
-                        {links.learningTopic && (
-                          <Link
-                            prefetch={false}
-                            className="link"
-                            href={`/learn/topics/${links.learningTopic.id}`}
-                          >
-                            {links.learningTopic.subject} —{' '}
-                            {links.learningTopic.title}
-                          </Link>
-                        )}
-                        {links.dsaTopic && (
-                          <span className="muted">
-                            Practice topic: {links.dsaTopic.name}
-                          </span>
-                        )}
-                      </p>
-                    )}
-                    {/* Study first (WI-053): the prompt is the main path; Grill me and Listen
-                        check what stuck, so they sit together under it. */}
-                    <section
-                      className="study-aids"
-                      aria-labelledby={`study-${item.id}`}
+                    <div
+                      className="item-tabs"
+                      role="tablist"
+                      aria-label={`${item.title}: study or notes`}
                     >
-                      <p className="eyebrow" id={`study-${item.id}`}>
-                        Study
-                      </p>
-                      <StudyHint />
-                      <StudyPrompt
-                        roadmap={{ title: roadmap.title }}
-                        template={roadmap.promptTemplate}
-                        scenarios={scenarios}
-                        storageKey={`silsila-scenario:${roadmap.id}`}
-                        item={{
-                          title: item.title,
-                          section: item.section,
-                          scope: item.scope,
-                          checkpoint: item.checkpoint,
-                          priority: item.priority,
-                          estimateMinutes: item.estimateMinutes,
-                          references,
-                          notes: item.notes,
-                          url: item.url,
-                        }}
-                      />
-                      {grill && (grillable || listenable) && (
-                        <div
-                          className="check-yourself"
-                          role="group"
-                          aria-label="Check yourself"
-                        >
-                          <span className="check-yourself-label">
-                            Check yourself
-                          </span>
-                          {grillable && (
-                            <PanelButton
-                              panel={`grill:${item.id}`}
-                              className="button secondary small"
-                              data-grill-open
-                            >
-                              Grill me
-                            </PanelButton>
-                          )}
-                          {listenable && (
-                            <PanelButton
-                              panel={`listen:${item.id}`}
-                              className="button secondary small"
-                              data-listen-open
-                            >
-                              Listen
-                            </PanelButton>
-                          )}
+                      {(['study', 'notes'] as const).map((t) => {
+                        const selected =
+                          (notesFor === item.id ? 'notes' : 'study') === t;
+                        return (
+                          <button
+                            key={t}
+                            type="button"
+                            role="tab"
+                            id={`tab-${t}-${item.id}`}
+                            aria-selected={selected}
+                            aria-controls={`tabpanel-${t}-${item.id}`}
+                            tabIndex={selected ? 0 : -1}
+                            className="item-tab"
+                            onClick={() =>
+                              setNotesFor(t === 'notes' ? item.id : null)
+                            }
+                            onKeyDown={(e) => {
+                              if (
+                                e.key !== 'ArrowRight' &&
+                                e.key !== 'ArrowLeft'
+                              )
+                                return;
+                              const other = t === 'study' ? 'notes' : 'study';
+                              setNotesFor(other === 'notes' ? item.id : null);
+                              document
+                                .getElementById(`tab-${other}-${item.id}`)
+                                ?.focus();
+                            }}
+                          >
+                            {t === 'study'
+                              ? 'Study'
+                              : `Notes${item.notes || cards.length ? ' ·' : ''}`}
+                            {t === 'notes' && (item.notes || cards.length) ? (
+                              <span className="muted">
+                                {' '}
+                                {cards.length + (item.notes ? 1 : 0)}
+                              </span>
+                            ) : null}
+                          </button>
+                        );
+                      })}
+                    </div>
+                    <div
+                      role="tabpanel"
+                      id={`tabpanel-study-${item.id}`}
+                      aria-labelledby={`tab-study-${item.id}`}
+                      hidden={notesFor === item.id}
+                      className="item-tabpanel"
+                    >
+                      {item.checkpoint && (
+                        <div className="item-checkpoint">
+                          <b>Done when</b>
+                          {item.checkpoint}
                         </div>
                       )}
-                    </section>
-                    {cards.length > 0 && (
-                      <section
-                        className="kept-cards"
-                        aria-label={`Kept cards for ${item.title}`}
-                      >
-                        <p className="eyebrow">Kept cards · {cards.length}</p>
-                        <ul className="plain-list">
-                          {cards.map((c) => (
-                            <li key={c.id} className="kept-card">
-                              <p className="kept-card-q">{c.question}</p>
-                              {c.change && (
-                                <p className="muted kept-card-change">
-                                  {c.change}
-                                </p>
-                              )}
-                              <ul>
-                                {c.points.map((p) => (
-                                  <li key={p}>{p}</li>
-                                ))}
-                              </ul>
-                              <ActionForm
-                                action={removeCardAction}
-                                broadcast="roadmap-items"
-                                label={`Remove the card ${c.question}`}
+                      {(item.scope || item.priority === 1) && (
+                        <p
+                          className={`item-scope${clamped ? ' is-clamped' : ''}`}
+                        >
+                          {item.priority === 1 && (
+                            <span className="pill priority">P0</span>
+                          )}
+                          {item.scope}
+                          {longScope && (
+                            <>
+                              {' '}
+                              <Button
+                                type="button"
+                                variant="link"
+                                onClick={() =>
+                                  setExpandedScope(clamped ? item.id : null)
+                                }
                               >
-                                <input type="hidden" name="id" value={c.id} />
-                                <Button variant="link" className="danger small">
-                                  Remove card
-                                </Button>
-                              </ActionForm>
+                                {clamped ? 'Read more' : 'Show less'}
+                              </Button>
+                            </>
+                          )}
+                        </p>
+                      )}
+                      {references.length > 0 && (
+                        <ul className="plain-list reference-list">
+                          {references.map((r) => (
+                            <li key={r.url}>
+                              <a
+                                className="reference-chip"
+                                href={r.url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                title={
+                                  r.kind ? `${r.label} · ${r.kind}` : r.label
+                                }
+                              >
+                                {r.label}
+                                <ExternalLink size={12} aria-hidden="true" />
+                              </a>
                             </li>
                           ))}
                         </ul>
-                      </section>
-                    )}
-                    <ActionForm
-                      action={noteAction}
-                      label={`Note for ${item.title}`}
-                      className="note-form"
-                    >
-                      <input type="hidden" name="id" value={item.id} />
-                      <label>
-                        My note{' '}
-                        <span className="muted">
-                          (saves when you leave the field)
-                        </span>
-                        <textarea
-                          name="notes"
-                          rows={2}
-                          maxLength={20000}
-                          defaultValue={item.notes ?? ''}
-                          placeholder="What tripped me up, a link, a reminder for next time"
-                          onBlur={(e) => {
-                            if (e.currentTarget.value !== (item.notes ?? ''))
-                              e.currentTarget.form?.requestSubmit();
+                      )}
+                      {(item.url ||
+                        links.dsaProblem ||
+                        links.learningTopic ||
+                        links.dsaTopic) && (
+                        <p className="item-links">
+                          {item.url && (
+                            <a
+                              className="link"
+                              href={item.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                            >
+                              Open link
+                              <ExternalLink size={12} aria-hidden="true" />
+                            </a>
+                          )}
+                          {links.dsaProblem && (
+                            <>
+                              <span className="item-practice">
+                                <span className="muted whitespace-nowrap">
+                                  From Practice
+                                </span>
+                                <span
+                                  className={`pill ${links.dsaProblem.attemptsCount ? tone[links.dsaProblem.confidence] : ''}`}
+                                >
+                                  {links.dsaProblem.attemptsCount
+                                    ? confidenceWord(
+                                        links.dsaProblem.confidence,
+                                      )
+                                    : 'Unattempted'}
+                                </span>
+                                {links.dsaProblem.attemptsCount > 0 && (
+                                  <span className="muted">
+                                    {links.dsaProblem.attemptsCount} attempt
+                                    {links.dsaProblem.attemptsCount === 1
+                                      ? ''
+                                      : 's'}
+                                    {links.dsaProblem.nextRevision
+                                      ? ` · next revision ${links.dsaProblem.nextRevision}`
+                                      : ''}
+                                  </span>
+                                )}
+                              </span>
+                            </>
+                          )}
+                          {links.learningTopic && (
+                            <Link
+                              prefetch={false}
+                              className="link"
+                              href={`/learn/topics/${links.learningTopic.id}`}
+                            >
+                              {links.learningTopic.subject} —{' '}
+                              {links.learningTopic.title}
+                            </Link>
+                          )}
+                          {links.dsaTopic && (
+                            <span className="muted">
+                              Practice topic: {links.dsaTopic.name}
+                            </span>
+                          )}
+                        </p>
+                      )}
+                      {/* Study first (WI-053): the prompt is the main path; Grill me and Listen
+                        check what stuck, so they sit together under it. */}
+                      <section
+                        className="study-aids"
+                        aria-labelledby={`study-${item.id}`}
+                      >
+                        <p className="eyebrow" id={`study-${item.id}`}>
+                          Study
+                        </p>
+                        <StudyHint />
+                        <StudyPrompt
+                          roadmap={{ title: roadmap.title }}
+                          template={roadmap.promptTemplate}
+                          scenarios={scenarios}
+                          storageKey={`silsila-scenario:${roadmap.id}`}
+                          item={{
+                            title: item.title,
+                            section: item.section,
+                            scope: item.scope,
+                            checkpoint: item.checkpoint,
+                            priority: item.priority,
+                            estimateMinutes: item.estimateMinutes,
+                            references,
+                            notes: item.notes,
+                            url: item.url,
                           }}
                         />
-                      </label>
-                      <Button className="secondary small">Save note</Button>
-                    </ActionForm>
+                      </section>
+                    </div>
+                    <div
+                      role="tabpanel"
+                      id={`tabpanel-notes-${item.id}`}
+                      aria-labelledby={`tab-notes-${item.id}`}
+                      hidden={notesFor !== item.id}
+                      className="item-tabpanel"
+                    >
+                      {cards.length > 0 && (
+                        <section
+                          className="kept-cards"
+                          aria-label={`Kept cards for ${item.title}`}
+                        >
+                          <p className="eyebrow">Kept cards · {cards.length}</p>
+                          <ul className="plain-list">
+                            {cards.map((c) => (
+                              <li key={c.id} className="kept-card">
+                                <p className="kept-card-q">{c.question}</p>
+                                {c.change && (
+                                  <p className="muted kept-card-change">
+                                    {c.change}
+                                  </p>
+                                )}
+                                <ul>
+                                  {c.points.map((p) => (
+                                    <li key={p}>{p}</li>
+                                  ))}
+                                </ul>
+                                <ActionForm
+                                  action={removeCardAction}
+                                  broadcast="roadmap-items"
+                                  label={`Remove the card ${c.question}`}
+                                >
+                                  <input type="hidden" name="id" value={c.id} />
+                                  <Button
+                                    variant="link"
+                                    className="danger small"
+                                  >
+                                    Remove card
+                                  </Button>
+                                </ActionForm>
+                              </li>
+                            ))}
+                          </ul>
+                        </section>
+                      )}
+                      <ActionForm
+                        action={noteAction}
+                        label={`Note for ${item.title}`}
+                        className="note-form"
+                      >
+                        <input type="hidden" name="id" value={item.id} />
+                        <label>
+                          My note{' '}
+                          <span className="muted">
+                            (saves when you leave the field)
+                          </span>
+                          <textarea
+                            name="notes"
+                            rows={2}
+                            maxLength={20000}
+                            defaultValue={item.notes ?? ''}
+                            placeholder="What tripped me up, a link, a reminder for next time"
+                            onBlur={(e) => {
+                              if (e.currentTarget.value !== (item.notes ?? ''))
+                                e.currentTarget.form?.requestSubmit();
+                            }}
+                          />
+                        </label>
+                        <Button className="secondary small">Save note</Button>
+                      </ActionForm>
+                      {item.askedInInterview && (
+                        <ActionForm
+                          action={askedNoteAction}
+                          label={`Where ${item.title} came up`}
+                          className="asked-form"
+                        >
+                          <input type="hidden" name="id" value={item.id} />
+                          <label>
+                            Asked at
+                            <input
+                              name="askedNote"
+                              maxLength={200}
+                              defaultValue={item.askedNote ?? ''}
+                              placeholder="Amazon phone screen, Oct 2026"
+                              onBlur={(e) => {
+                                if (
+                                  e.currentTarget.value !==
+                                  (item.askedNote ?? '')
+                                )
+                                  e.currentTarget.form?.requestSubmit();
+                              }}
+                            />
+                          </label>
+                        </ActionForm>
+                      )}
+                    </div>
                     <ActionForm
                       action={itemOpAction}
                       broadcast="roadmap-items"
@@ -695,61 +763,55 @@ export function ItemList({
                             Reopen
                           </button>
                         )}
-                        <button
-                          className="button secondary small"
-                          name="op"
-                          value={item.askedInInterview ? 'unasked' : 'asked'}
-                          aria-pressed={item.askedInInterview}
-                        >
-                          {item.askedInInterview ? (
-                            <>
-                              <Check size={14} aria-hidden="true" /> Asked
-                            </>
-                          ) : (
-                            'Asked in interview'
-                          )}
-                        </button>
+                        {item.askedInInterview && (
+                          <span className="pill">Asked in interview</span>
+                        )}
                         <span className="item-actions-spacer" />
-                        <PanelButton
-                          panel={`item-edit:${item.id}`}
-                          className="link-button"
-                        >
-                          Edit
-                        </PanelButton>
-                        <Button
-                          variant="link"
-                          className="danger"
-                          name="op"
-                          value="remove"
-                        >
-                          Remove
-                        </Button>
+                        {/* Less-used actions in one menu (WI-063). */}
+                        <MoreMenu label={`More for ${item.title}`}>
+                          {grill && grillable && (
+                            <PanelButton
+                              panel={`grill:${item.id}`}
+                              className="more-menu-item"
+                              data-grill-open
+                            >
+                              Grill me
+                            </PanelButton>
+                          )}
+                          {grill && listenable && (
+                            <PanelButton
+                              panel={`listen:${item.id}`}
+                              className="more-menu-item"
+                              data-listen-open
+                            >
+                              Listen
+                            </PanelButton>
+                          )}
+                          <button
+                            className="more-menu-item"
+                            name="op"
+                            value={item.askedInInterview ? 'unasked' : 'asked'}
+                          >
+                            {item.askedInInterview
+                              ? 'Not asked in interview'
+                              : 'Asked in interview'}
+                          </button>
+                          <PanelButton
+                            panel={`item-edit:${item.id}`}
+                            className="more-menu-item"
+                          >
+                            Edit
+                          </PanelButton>
+                          <button
+                            className="more-menu-item danger"
+                            name="op"
+                            value="remove"
+                          >
+                            Remove
+                          </button>
+                        </MoreMenu>
                       </div>
                     </ActionForm>
-                    {item.askedInInterview && (
-                      <ActionForm
-                        action={askedNoteAction}
-                        label={`Where ${item.title} came up`}
-                        className="asked-form"
-                      >
-                        <input type="hidden" name="id" value={item.id} />
-                        <label>
-                          Asked at
-                          <input
-                            name="askedNote"
-                            maxLength={200}
-                            defaultValue={item.askedNote ?? ''}
-                            placeholder="Amazon phone screen, Oct 2026"
-                            onBlur={(e) => {
-                              if (
-                                e.currentTarget.value !== (item.askedNote ?? '')
-                              )
-                                e.currentTarget.form?.requestSubmit();
-                            }}
-                          />
-                        </label>
-                      </ActionForm>
-                    )}
                     {next && (
                       <p className="item-next">
                         Next:{' '}

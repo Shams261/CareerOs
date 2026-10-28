@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+- WI-063 (a simpler app, the owner's six choices from the 2026-10-28 audit). No migration, no data or feature removed; less-used actions sit one click away:
+  - **One "next" list.** Roadmap and Practice lead with For today; This week and the revision queue open in panels from one line ("This week · 11 due for revision"), and roadmap rows show their counts without a second "Next". Links that end in a panel's id (`/dsa#revision-queue`, `/roadmap#revision`) open it on arrival.
+  - **A lighter Today header.** The title, date and arrows, then one More menu (date, Activity, Notes, Add, Review day, Edit goal); Close the day stays outside in the evening. A day with nothing planned or recorded skips the line of zeros.
+  - **Study and Notes on a roadmap item.** Study holds Done when, references and Copy prompt; Notes holds the note, kept cards and where it was asked. Done (or Mark revised, Record an attempt), Start and Reopen stay in the row; Grill me, Listen, Asked in interview, Edit and Remove move to a "⋯" menu (`MoreMenu`, `src/components/more-menu.tsx`).
+  - **Plain words.** Confidence reads Shaky, Okay and Solid (`confidenceWord`, `src/features/dsa/words.ts`; stored values unchanged). "Which pattern?" is Pattern quiz, revision rows say Revise, and Settings shows the system line only when something needs attention.
+  - **A lighter application page.** The stage is one select at every width; Done with a note and Edit sit in the next action's "⋯"; each interview's Add prep, Reschedule, Add to schedule and Edit details sit in its "⋯".
+  - **No note box in the sidebar.** Notes are written in Today's Notes panel or with ⌘K → Add a note.
+
 - WI-062 (wrap-up fixes from the 2026-10-28 audit). No migration:
   - **Fresh after every write again.** The build compiles the snapshot cache once per layer, so Undo, Dismiss on Rumi noticed, Mark revised in the deck, notes, nudges, Rumi and prep actions cleared a copy the pages never read; since WI-061 the page could show the old state for three minutes. The cache now lives once per process.
   - **A new day reads fresh.** Snapshots that depend on the date carry the owner's day, so For today, revisions, jobs, Noticed and the week never show yesterday's after midnight.

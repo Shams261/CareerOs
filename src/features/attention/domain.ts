@@ -13,7 +13,7 @@ export type AttentionItem = {
   source: AttentionSource;
   /** The small source label: Jobs, Practice, Roadmap, Reminder, Weekly review. */
   label: string;
-  /** Names the move: "Send follow-up", "Prepare Coding", "Revisit HTTP semantics". */
+  /** Names the move: "Send follow-up", "Prepare Coding", "Revise HTTP semantics". */
   title: string;
   /** The entity and its due context: "Example Labs · Tomorrow at 14:00". */
   context: string;
@@ -219,7 +219,7 @@ export function practiceRevisionRows(
       : [],
   );
 }
-/** Roadmap items due for revision: "Revisit HTTP semantics · Revision overdue by 2 days · Backend". */
+/** Roadmap items due for revision: "Revise HTTP semantics · Revision overdue by 2 days · Backend". */
 export function roadmapRevisionRows(
   items: {
     id: string;
@@ -239,7 +239,7 @@ export function roadmapRevisionRows(
             id: `roadmap:${i.id}`,
             source: 'roadmap' as const,
             label: 'Roadmap',
-            title: `Revisit ${i.title}`,
+            title: `Revise ${i.title}`,
             context: `${revisionContext(dateLabel(i.nextRevisionAt), today)} · ${i.roadmap.title}`,
             href: `/roadmap/${i.roadmap.id}?section=${encodeURIComponent(i.section)}&show=revision#item-${i.id}`,
             tier: 3 as const,

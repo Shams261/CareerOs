@@ -10,9 +10,10 @@ import { LiveSummary } from './live-summary';
 import { UtilityMenu } from './utility-menu';
 
 /**
- * The Today header: the heading with the date beside it and compact day navigation, the
- * utilities (Activity, Notes, Review day; behind More on narrow screens) and one factual
- * summary line. "Add a block" lives in the agenda heading.
+ * The Today header (WI-063): the heading with the date and the day arrows, one More menu for
+ * the utilities (date, Activity, Notes, Add, Review day, Edit goal), then at most two fact
+ * lines. Close the Day stays outside More in the evening, since it is the day's decision.
+ * "Add a block" also lives in the agenda heading.
  */
 export function TodayHeader({
   day,
@@ -28,6 +29,7 @@ export function TodayHeader({
   rested = false,
   facts = '',
   goal = null,
+  goalAction = null,
 }: {
   day: string;
   today: string;
@@ -50,9 +52,17 @@ export function TodayHeader({
   rested?: boolean;
   /** Yesterday and the week so far as counts (WI-059); empty when there are none. */
   facts?: string;
-  /** The goal line with Edit goal (WI-060). */
+  /** The goal line (WI-060). */
   goal?: ReactNode;
+  /** Edit goal or Set a goal, kept in More (WI-063). */
+  goalAction?: ReactNode;
 }) {
+  const quiet =
+    !running &&
+    summary.planned === 0 &&
+    summary.recordedMinutes === 0 &&
+    !reviewed &&
+    !rested;
   const isToday = day === today;
   return (
     <header className={`today-head${isToday ? '' : ' is-other-day'}`}>
@@ -96,11 +106,14 @@ export function TodayHeader({
                 Today
               </Link>
             )}
-            <DateJump key={day} value={day} path="/today" label="Open a date" />
           </nav>
         </div>
+        {closing && reviewed === false && (
+          <PanelButton panel="review" className="button secondary small">
+            Close the day
+          </PanelButton>
+        )}
         <UtilityMenu>
-          {/* On a phone the date field moves into More, so the header stays one row. */}
           <span className="today-util-date">
             <DateJump key={day} value={day} path="/today" label="Open a date" />
           </span>
@@ -117,22 +130,22 @@ export function TodayHeader({
           <PressButton press="add-block" className="button secondary">
             <Plus size={14} aria-hidden="true" /> Add
           </PressButton>
-          {reviewed !== null && (
+          {reviewed !== null && !(closing && reviewed === false) && (
             <PanelButton panel="review" className="button secondary">
-              {closing
-                ? 'Close the day'
-                : reviewed
-                  ? 'Edit review'
-                  : 'Review day'}
+              {reviewed ? 'Edit review' : 'Review day'}
             </PanelButton>
           )}
+          {goalAction}
         </UtilityMenu>
       </div>
-      <p className="today-summary">
-        <LiveSummary {...summary} running={running} renderedAt={renderedAt} />
-        {reviewed && <span className="pill success">Reviewed</span>}
-        {rested && <span className="pill">Rest day</span>}
-      </p>
+      {/* A day with nothing planned or recorded skips the line of zeros (WI-063). */}
+      {!quiet && (
+        <p className="today-summary">
+          <LiveSummary {...summary} running={running} renderedAt={renderedAt} />
+          {reviewed && <span className="pill success">Reviewed</span>}
+          {rested && <span className="pill">Rest day</span>}
+        </p>
+      )}
       {facts && <p className="today-facts">{facts}</p>}
       {goal}
       <FeedbackOutlet channel="review" className="mt-2" />

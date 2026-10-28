@@ -131,6 +131,10 @@ export function SidePanel({
   const search = useSearchParams();
   const url = `${pathname}?${search.toString()}`;
   const seenUrl = useRef(url);
+  // A link that ends in the panel's id (`/dsa#revision-queue`) opens it on arrival (WI-063).
+  useEffect(() => {
+    if (window.location.hash === `#${id}`) openPanel(id, null);
+  }, [id]);
   // Navigating away (a chain day, a link in a row) closes the panel.
   useEffect(() => {
     if (seenUrl.current === url) return;

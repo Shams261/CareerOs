@@ -2843,9 +2843,10 @@ span > svg {
     border-radius: var(--radius-md);
   }
 }
-/* The stage as one select on a phone, the buttons from 640px up (WI-058). */
+/* The stage as one select at every width (WI-063). */
 .stage-select-form {
-  display: none;
+  display: block;
+  max-width: 380px;
 }
 .stage-select-form fieldset {
   display: flex;
@@ -7032,4 +7033,182 @@ button.attention-link {
 }
 .today-rail > .nudges-off {
   order: 1;
+}
+
+/* Today's header at every width (WI-063): the title, date and arrows on one row, and the
+   utilities in one More menu that opens below it. */
+.today-head .today-head-row {
+  position: relative;
+  flex-wrap: nowrap;
+  align-items: center;
+}
+.today-head .today-title {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.today-head .today-utils-toggle {
+  display: inline-flex;
+}
+.today-head .today-utils-items {
+  display: none;
+}
+.today-head .today-utils.is-open .today-utils-items {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 6px;
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 20;
+  min-width: 240px;
+  padding: 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: var(--shadow-md);
+}
+.today-head .today-util-date {
+  display: inline-flex;
+  margin-bottom: 4px;
+}
+/* Every item reads as a row of the menu, like the "⋯" menus. */
+.today-head .today-utils-items .today-util,
+.today-head .today-utils-items .button.secondary {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 6px;
+  width: 100%;
+  min-height: 40px;
+  margin: 0;
+  padding: 8px 12px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  box-shadow: none;
+  color: var(--foreground);
+  font-size: 15px;
+  font-weight: 500;
+  text-align: left;
+  text-decoration: none;
+}
+.today-head .today-utils-items .today-util:hover,
+.today-head .today-utils-items .button.secondary:hover {
+  background: var(--subtle);
+  color: var(--foreground);
+}
+
+/* One column on the Roadmap overview (WI-063): For today, one line of panels, the roadmaps. */
+.roadmap-single {
+  max-width: 820px;
+  margin-top: 8px;
+}
+.more-line {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 20px;
+  margin: 14px 0 6px;
+  font-size: 15px;
+}
+.more-line .link-button svg {
+  vertical-align: -0.12em;
+}
+
+/* The "⋯" menu (WI-063): less-used actions of a row, in a short list below the button. */
+.more-menu {
+  position: relative;
+  display: inline-flex;
+}
+.more-menu-toggle {
+  min-width: 36px;
+  padding: 0 8px;
+  justify-content: center;
+}
+.more-menu-items {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 25;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  min-width: 220px;
+  padding: 6px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: var(--shadow-md);
+}
+.more-menu-items[hidden] {
+  display: none;
+}
+.more-menu-items form {
+  display: contents;
+}
+.more-menu-item,
+.more-menu-items .button {
+  display: block;
+  width: 100%;
+  min-height: 40px;
+  padding: 8px 12px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--foreground);
+  font: inherit;
+  font-size: 15px;
+  font-weight: 500;
+  text-align: left;
+  cursor: pointer;
+  box-shadow: none;
+}
+.more-menu-item:hover,
+.more-menu-items .button:hover {
+  background: var(--subtle);
+}
+.more-menu-item:focus-visible,
+.more-menu-items .button:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: -2px;
+}
+.more-menu-item.danger {
+  color: var(--danger);
+}
+/* Study and Notes on an open roadmap item (WI-063). */
+.item-tabs {
+  display: flex;
+  gap: 4px;
+  margin: 0 0 12px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+.item-tab {
+  padding: 8px 12px;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  margin-bottom: -1px;
+}
+.item-tab[aria-selected='true'] {
+  color: var(--primary);
+  border-bottom-color: var(--primary);
+}
+.item-tab:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+.item-tabpanel[hidden] {
+  display: none;
+}
+@media (max-width: 700px) {
+  /* The round's menu sits at the start of its row on a phone, so its list opens rightward. */
+  .round-side .more-menu-items {
+    right: auto;
+    left: 0;
+  }
 }

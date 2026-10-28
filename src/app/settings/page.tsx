@@ -535,13 +535,16 @@ export default async function Settings({
                 href="/api/export"
                 download
               />
-              <SettingRow
-                source="weekly"
-                icon={<Server size={22} />}
-                label="System"
-                title={healthy ? 'All healthy' : 'Needs attention'}
-                context={statusLine}
-              />
+              {/* The technical line shows only when something needs the owner (WI-063). */}
+              {!healthy && (
+                <SettingRow
+                  source="weekly"
+                  icon={<Server size={22} />}
+                  label="System"
+                  title="Needs attention"
+                  context={statusLine}
+                />
+              )}
             </ul>
             <SidePanel id="ai" title="Grill Me">
               <AiSettings state={ai} zone={user.timezone} />

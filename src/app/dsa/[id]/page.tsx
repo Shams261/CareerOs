@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { confidenceWord } from '@/features/dsa/words';
 import { ConfirmDelete } from '@/components/confirm-delete';
 import { ActionForm } from '@/components/action-form';
 import { Button } from '@/components/ui/button';
@@ -146,7 +147,7 @@ export default async function Problem({
             <span
               className={`pill ${p.attemptsCount ? tone[p.confidence] : ''}`}
             >
-              {p.attemptsCount ? p.confidence : 'Unattempted'}
+              {p.attemptsCount ? confidenceWord(p.confidence) : 'Unattempted'}
             </span>
           </dd>
         </div>
@@ -255,7 +256,7 @@ export default async function Problem({
               <span className="attempt-when">{date(a.attemptedAt)}</span>
               <span>
                 <span className={`pill ${tone[a.confidenceAfter]}`}>
-                  {a.confidenceAfter}
+                  {confidenceWord(a.confidenceAfter)}
                 </span>{' '}
                 {solvedText[a.solvedIndependently]}
                 {a.durationMinutes ? ` · ${a.durationMinutes} min` : ''}

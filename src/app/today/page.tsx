@@ -22,7 +22,7 @@ import { ExecutionRefresh } from '@/features/execution/refresh';
 import { Chain } from '@/features/roadmap/summary';
 import { todaysInterviews } from '@/features/jobs/service';
 import { openNotes } from '@/features/notes/service';
-import { NoteList } from '@/features/notes/forms';
+import { CaptureForm, NoteList } from '@/features/notes/forms';
 import {
   agendaEntries,
   daySummary,
@@ -347,10 +347,14 @@ export default async function Today({
                         )
                       : 'No goal yet'}
                   </span>
-                  <PanelButton panel="goal" className="link-button">
-                    {nearestGoal ? 'Edit goal' : 'Set a goal'}
-                  </PanelButton>
                 </p>
+              ) : null
+            }
+            goalAction={
+              isToday ? (
+                <PanelButton panel="goal" className="link-button today-util">
+                  {nearestGoal ? 'Edit goal' : 'Set a goal'}
+                </PanelButton>
               ) : null
             }
           />
@@ -540,12 +544,14 @@ export default async function Today({
                   : 'Notes to self'
               }
             >
+              {/* The note field left the sidebar (WI-063); notes are written here or from ⌘K. */}
+              <CaptureForm />
               <FeedbackOutlet channel="notes" className="mb-3" />
               {notes.length ? (
                 <NoteList notes={notes} />
               ) : (
                 <p className="muted">
-                  Nothing waiting. The note field in the sidebar lands here.
+                  Nothing waiting. ⌘K → Add a note works anywhere.
                 </p>
               )}
             </SidePanel>
