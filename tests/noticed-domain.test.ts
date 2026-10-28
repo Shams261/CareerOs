@@ -92,10 +92,19 @@ describe('Rumi noticed', () => {
   });
 
   it('counts a never-recorded kind as silent only since it was first planned (WI-058)', () => {
-    // A fresh start planned yesterday: nothing to notice on the first mornings.
+    // A fresh start planned yesterday is not "28 days" silent; since WI-059 it is named the
+    // next morning as yesterday's fact.
     expect(
-      noticed(base({ blocks: [block('2026-10-26', '07:00', '08:00')] })),
-    ).toEqual([]);
+      noticed(base({ blocks: [block('2026-10-26', '07:00', '08:00')] })).map(
+        (c) => [c.key, c.title, c.context],
+      ),
+    ).toEqual([
+      [
+        'yesterday:dsa:2026-10-26',
+        'No DSA recorded yesterday',
+        'Planned 1h, nothing recorded',
+      ],
+    ]);
     const cards = noticed(
       base({
         blocks: [
@@ -107,6 +116,39 @@ describe('Rumi noticed', () => {
     expect(cards.map((c) => [c.title, c.context])).toEqual([
       ['No DSA recorded since Oct 21', 'Planned, not recorded'],
     ]);
+  });
+
+  it('names yesterday every day, unless that kind was recorded since (WI-059)', () => {
+    const planned = [
+      block('2026-10-26', '07:00', '08:30'),
+      block('2026-10-26', '20:00', '21:00', { category: 'TECHNICAL' }),
+    ];
+    const cards = noticed(
+      base({
+        blocks: planned,
+        sessions: [
+          session('2026-10-25'),
+          session('2026-10-24', '20:00', '21:00', 'Technical'),
+        ],
+      }),
+    );
+    expect(cards.map((c) => [c.title, c.context])).toEqual([
+      ['No DSA recorded yesterday', 'Planned 1.5h, nothing recorded'],
+      ['No Technical recorded yesterday', 'Planned 1h, nothing recorded'],
+    ]);
+    expect(cards.every(cleanCopy)).toBe(true);
+    // DSA recorded this morning: only Technical is named.
+    expect(
+      noticed(
+        base({
+          blocks: planned,
+          sessions: [
+            session('2026-10-27', '07:00', '07:30'),
+            session('2026-10-24', '20:00', '21:00', 'Technical'),
+          ],
+        }),
+      ).map((c) => c.title),
+    ).toEqual(['No Technical recorded yesterday']);
   });
 
   it('puts an interview in the next three days with open prep first, and caps the day at two', () => {

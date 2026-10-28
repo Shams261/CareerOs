@@ -195,6 +195,7 @@ export default async function Jobs({
               <Disclosure
                 label="Add application"
                 variant="primary"
+                shortcut="add-application"
                 draft="application:new"
                 className="agenda-add"
               >

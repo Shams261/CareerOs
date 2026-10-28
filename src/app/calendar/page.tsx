@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { openTemplates } from '@/features/schedule/templates';
 import { Briefcase, ChevronLeft, ChevronRight } from 'lucide-react';
 import { formatInTimeZone } from 'date-fns-tz';
 import { Disclosure } from '@/components/disclosure';
@@ -111,6 +112,8 @@ export default async function Calendar({
     (day) => day > thisWeek[6] && !planOf(day)?.generatedAt,
   );
   const weekBlocks = plans.flatMap((p) => p.blocks);
+  // No routine and nothing this week: one card that starts the plan, not seven empty days.
+  const empty = !routines.length && !weekBlocks.length;
   const dayLine = (day: string) => {
     const plan = planOf(day);
     const facts = blockFacts(plan?.blocks ?? [], now);
@@ -169,15 +172,17 @@ export default async function Calendar({
           </div>
           <div className="today-utils">
             <div className="today-utils-items">
-              <PanelButton
-                panel="routines"
-                className={`button${routines.length ? ' secondary' : ''}`}
-                data-shortcut="routines"
-              >
-                {routines.length
-                  ? `Routines · ${routines.length}`
-                  : 'Add routine'}
-              </PanelButton>
+              {!empty && (
+                <PanelButton
+                  panel="routines"
+                  className={`button${routines.length ? ' secondary' : ''}`}
+                  data-shortcut="routines"
+                >
+                  {routines.length
+                    ? `Routines · ${routines.length}`
+                    : 'Add routine'}
+                </PanelButton>
+              )}
             </div>
           </div>
         </div>
@@ -190,106 +195,129 @@ export default async function Calendar({
           This week could not be planned from your routines: {generationError}
         </p>
       )}
-      <nav className="week-strip" aria-label="Days of the week">
-        {days.map((day, index) => {
-          const n = planOf(day)?.blocks.filter(
-            (b) => b.status !== 'CANCELLED',
-          ).length;
-          return (
-            <a
-              key={day}
-              href={`#day-${day}`}
-              className={`week-chip${day === today ? ' is-today' : ''}`}
-              aria-current={day === today ? 'date' : undefined}
-            >
-              <strong>
-                {WEEKDAY[(index + 1) % 7]} {label(day, 'd')}
-              </strong>
-              <span className="muted">{n || '—'}</span>
-            </a>
-          );
-        })}
-      </nav>
-      {days.map((day, index) => {
-        const plan = planOf(day);
-        const blocks = plan?.blocks ?? [];
-        const isToday = day === today;
-        const dayName = `${WEEKDAY[(index + 1) % 7]} ${label(day, 'd')}`;
-        return (
-          <section
-            key={day}
-            id={`day-${day}`}
-            className={`week-day-section${isToday ? ' is-today' : ''}`}
-            aria-labelledby={`day-heading-${day}`}
-            aria-current={isToday ? 'date' : undefined}
+      {empty ? (
+        <section
+          className="card setup-card"
+          aria-labelledby="plan-empty-heading"
+        >
+          <p className="eyebrow">Start here</p>
+          <h2 id="plan-empty-heading">No routines yet</h2>
+          <p>
+            A routine fills every week from here on: what, which days, what
+            time. Start with one.
+          </p>
+          <PanelButton
+            panel="routines"
+            className="button"
+            data-shortcut="routines"
           >
-            <div className="week-day-head">
-              <h2 id={`day-heading-${day}`}>
-                <Link href={`/today?date=${day}`} prefetch={false}>
-                  {dayName}
-                </Link>
-                {isToday && <span className="pill success">Today</span>}
-              </h2>
-              <span className="muted">{dayLine(day)}</span>
-            </div>
-            {blocks.length > 0 && (
-              <ol className="plain-list agenda-rows">
-                {blocks.map((b) => {
-                  const resolution = blockResolution(b, now);
-                  const sync = syncing
-                    ? blockSyncView(
-                        b,
-                        connection.calendarId,
-                        connection.excludedCategories,
-                      )
-                    : null;
-                  const google =
-                    sync && sync !== 'Synced' && sync !== 'Not synced'
-                      ? ` · Google: ${sync.toLowerCase()}`
-                      : '';
-                  const round = roundOf(b);
-                  const title = blockTitle(b, round);
-                  return (
-                    <BlockRowShell
-                      key={b.id}
-                      resolution={resolution}
-                      unresolved={
-                        resolution === 'not-recorded' ||
-                        resolution === 'needs-update'
-                      }
-                      time={hhmm(b.plannedStart, user.timezone)}
-                      icon={
-                        round ? (
-                          <Briefcase
-                            size={16}
-                            aria-hidden="true"
-                            className="category-icon"
-                          />
-                        ) : (
-                          <CategoryIcon category={b.category} size={16} />
-                        )
-                      }
-                      title={title}
-                      meta={`${rowMeta(b, round, now, user.timezone)}${google}`}
-                      status={resolutionText[resolution]}
-                      side={
-                        <Link
-                          className="agenda-details"
-                          href={`/today?date=${day}#block-${b.id}`}
-                          aria-label={`Open ${title} on Today, ${dayName}`}
-                          prefetch={false}
-                        >
-                          <ChevronRight size={18} aria-hidden="true" />
-                        </Link>
-                      }
-                    />
-                  );
-                })}
-              </ol>
-            )}
-          </section>
-        );
-      })}
+            Add your first routine
+          </PanelButton>
+        </section>
+      ) : (
+        <>
+          <nav className="week-strip" aria-label="Days of the week">
+            {days.map((day, index) => {
+              const n = planOf(day)?.blocks.filter(
+                (b) => b.status !== 'CANCELLED',
+              ).length;
+              return (
+                <a
+                  key={day}
+                  href={`#day-${day}`}
+                  className={`week-chip${day === today ? ' is-today' : ''}`}
+                  aria-current={day === today ? 'date' : undefined}
+                >
+                  <strong>
+                    {WEEKDAY[(index + 1) % 7]} {label(day, 'd')}
+                  </strong>
+                  <span className="muted">{n || '—'}</span>
+                </a>
+              );
+            })}
+          </nav>
+          {days.map((day, index) => {
+            const plan = planOf(day);
+            const blocks = plan?.blocks ?? [];
+            const isToday = day === today;
+            const dayName = `${WEEKDAY[(index + 1) % 7]} ${label(day, 'd')}`;
+            return (
+              <section
+                key={day}
+                id={`day-${day}`}
+                className={`week-day-section${isToday ? ' is-today' : ''}`}
+                aria-labelledby={`day-heading-${day}`}
+                aria-current={isToday ? 'date' : undefined}
+              >
+                <div className="week-day-head">
+                  <h2 id={`day-heading-${day}`}>
+                    <Link href={`/today?date=${day}`} prefetch={false}>
+                      {dayName}
+                    </Link>
+                    {isToday && <span className="pill success">Today</span>}
+                  </h2>
+                  <span className="muted">{dayLine(day)}</span>
+                </div>
+                {blocks.length > 0 && (
+                  <ol className="plain-list agenda-rows">
+                    {blocks.map((b) => {
+                      const resolution = blockResolution(b, now);
+                      const sync = syncing
+                        ? blockSyncView(
+                            b,
+                            connection.calendarId,
+                            connection.excludedCategories,
+                          )
+                        : null;
+                      const google =
+                        sync && sync !== 'Synced' && sync !== 'Not synced'
+                          ? ` · Google: ${sync.toLowerCase()}`
+                          : '';
+                      const round = roundOf(b);
+                      const title = blockTitle(b, round);
+                      return (
+                        <BlockRowShell
+                          key={b.id}
+                          resolution={resolution}
+                          unresolved={
+                            resolution === 'not-recorded' ||
+                            resolution === 'needs-update'
+                          }
+                          time={hhmm(b.plannedStart, user.timezone)}
+                          icon={
+                            round ? (
+                              <Briefcase
+                                size={16}
+                                aria-hidden="true"
+                                className="category-icon"
+                              />
+                            ) : (
+                              <CategoryIcon category={b.category} size={16} />
+                            )
+                          }
+                          title={title}
+                          meta={`${rowMeta(b, round, now, user.timezone)}${google}`}
+                          status={resolutionText[resolution]}
+                          side={
+                            <Link
+                              className="agenda-details"
+                              href={`/today?date=${day}#block-${b.id}`}
+                              aria-label={`Open ${title} on Today, ${dayName}`}
+                              prefetch={false}
+                            >
+                              <ChevronRight size={18} aria-hidden="true" />
+                            </Link>
+                          }
+                        />
+                      );
+                    })}
+                  </ol>
+                )}
+              </section>
+            );
+          })}
+        </>
+      )}
       {unplanned && (
         <div className="week-prepare">
           <PrepareNextWeekForm monday={days[0]} />
@@ -312,7 +340,11 @@ export default async function Calendar({
             defaultOpen={!routines.length}
             draft="routine:new"
           >
-            <RoutineForm goals={goals} compact />
+            <RoutineForm
+              goals={goals}
+              compact
+              templates={openTemplates(routines)}
+            />
           </Disclosure>
           {routines.map((r) => (
             <div key={r.id} className="routine-row">

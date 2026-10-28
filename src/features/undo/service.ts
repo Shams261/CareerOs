@@ -21,6 +21,10 @@ import { followPractice } from '@/features/roadmap/follow';
  */
 const kinds = {
   'block-reset': z.object({ id: z.string().min(1) }),
+  // Let go of yesterday's blocks in one step (WI-059).
+  'blocks-reset': z.object({
+    ids: z.array(z.string().min(1)).min(1).max(50),
+  }),
   'restore-note': z.object({ body: z.string().min(1).max(500) }),
   'restore-priority': z.object({
     weekStart: z.string(),
@@ -94,6 +98,13 @@ export async function restore(
       const { id } = kinds[k].parse(payload);
       await execute(user, id, 'reset');
       return 'Block restored.';
+    }
+    case 'blocks-reset': {
+      const { ids } = kinds[k].parse(payload);
+      for (const id of ids) await execute(user, id, 'reset');
+      return ids.length === 1
+        ? 'Block restored.'
+        : `${ids.length} blocks restored.`;
     }
     case 'restore-note': {
       await addNote(user, kinds[k].parse(payload));

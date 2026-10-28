@@ -42,6 +42,8 @@ type Props = {
   hasRoutines?: boolean;
 };
 
+/** How long after Complete a row still draws its check in (WI-059). */
+const JUST_DONE_MS = 90_000;
 const sessionLength = (n: number, ended: boolean) =>
   ended && n < 1 ? 'under a minute' : formatDuration(n);
 const origin = (b: TimeBlock) =>
@@ -210,6 +212,11 @@ function BlockRow({
       id={`block-${block.id}`}
       resolution={resolution}
       unresolved={unresolved}
+      justDone={
+        resolution === 'done' &&
+        !!block.completedAt &&
+        +now - +block.completedAt < JUST_DONE_MS
+      }
       time={
         <>
           {hhmm(block.plannedStart, zone)}

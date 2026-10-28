@@ -9,6 +9,9 @@ import {
 } from '@/features/schedule/service';
 import { interval, dateInput } from '@/features/schedule/domain';
 import { localTime } from '@/lib/validation';
+import { db } from '@/server/db';
+import { hhmm, minutes } from '@/lib/time';
+import { completedLine } from '@/features/schedule/row';
 import {
   appendNote,
   INTENTION_MAX,
@@ -193,4 +196,47 @@ export async function stopUnlinkedSession(
     if (now <= session.startedAt) throw new Error('End must be after start.');
     await tx.actualSession.update({ where: { id }, data: { endedAt: now } });
   });
+}
+
+/**
+ * The message after Complete (WI-059): this block's recorded time and the next block still
+ * planned today, with a link that starts it in Focus.
+ */
+export async function completedMessage(
+  user: ScheduleUser,
+  id: string,
+  now = new Date(),
+) {
+  const block = await db().timeBlock.findFirst({
+    where: { id, dailyPlan: { userId: user.id } },
+    select: {
+      dailyPlanId: true,
+      sessions: { select: { startedAt: true, endedAt: true } },
+    },
+  });
+  if (!block) return 'Completed.';
+  const next = await db().timeBlock.findFirst({
+    where: {
+      dailyPlanId: block.dailyPlanId,
+      status: 'PLANNED',
+      plannedStart: { gt: now },
+    },
+    orderBy: { plannedStart: 'asc' },
+    select: { id: true, title: true, plannedStart: true },
+  });
+  const recorded = block.sessions.reduce(
+    (n, s) => n + minutes(s.startedAt, s.endedAt ?? now),
+    0,
+  );
+  return {
+    message: completedLine(
+      recorded,
+      next
+        ? { title: next.title, at: hhmm(next.plannedStart, user.timezone) }
+        : null,
+    ),
+    link: next
+      ? { href: `/focus?block=${next.id}`, label: 'Start it' }
+      : undefined,
+  };
 }

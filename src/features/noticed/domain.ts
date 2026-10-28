@@ -70,7 +70,10 @@ const daysBetween = (from: string, to: string) =>
     (+new Date(`${to}T12:00:00Z`) - +new Date(`${from}T12:00:00Z`)) / 86400000,
   );
 
-/** A kind the owner planned or recorded in four weeks, now silent for five days or more. */
+/**
+ * A kind the owner planned or recorded in four weeks, now silent for five days or more; or,
+ * below that, a kind planned yesterday with nothing of it recorded yesterday (WI-059).
+ */
 function idleCards(i: NoticedInput, today: string): NoticedCard[] {
   const kinds = [...new Set(i.studyKinds.map(categoryGroup))];
   const last = new Map<string, string>();
@@ -95,7 +98,33 @@ function idleCards(i: NoticedInput, today: string): NoticedCard[] {
     const gap = seen
       ? daysBetween(seen, today)
       : Math.min(LOOK_BACK, daysBetween(first!, today));
-    if (gap < IDLE_DAYS) return [];
+    if (gap < IDLE_DAYS) {
+      // Every day (WI-059): a kind planned yesterday with nothing of it recorded yesterday.
+      const yesterday = shiftDay(today, -1);
+      const planned = i.blocks.filter(
+        (b) =>
+          b.day === yesterday &&
+          b.status !== 'CANCELLED' &&
+          categoryGroup(b.category) === k,
+      );
+      if (!planned.length || (seen && seen >= yesterday)) return [];
+      const total = planned.reduce(
+        (n, b) => n + mins(b.plannedStart, b.plannedEnd),
+        0,
+      );
+      return [
+        {
+          key: `yesterday:${k.toLowerCase()}:${yesterday}`,
+          kind: 'idle' as const,
+          title: `No ${k} recorded yesterday`,
+          context: `Planned ${hours(total)}, nothing recorded`,
+          action: {
+            label: 'Plan it with Rumi',
+            ask: `Plan a ${k} block in my free time today.`,
+          },
+        },
+      ];
+    }
     return [
       {
         key: `idle:${k.toLowerCase()}`,

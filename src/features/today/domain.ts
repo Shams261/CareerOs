@@ -410,3 +410,75 @@ export function attentionPage<T>(
     items: items.slice((current - 1) * size, current * size),
   };
 }
+
+/**
+ * The week so far as facts (WI-059): yesterday's blocks recorded against planned, and the
+ * week's recorded time against planned time, Monday through today. A block counts as recorded
+ * once it is completed or has a session. Counts only: never a streak, a score or a pace.
+ */
+export function recentFacts(input: {
+  /** Live blocks from this Monday (or yesterday, if earlier) up to yesterday, with their day. */
+  past: {
+    day: string;
+    status: string;
+    plannedStart: Date;
+    plannedEnd: Date;
+    sessions: number;
+  }[];
+  /** Today's blocks. */
+  todayBlocks: { status: string; plannedStart: Date; plannedEnd: Date }[];
+  /** Sessions that started this week, up to now. */
+  sessions: { startedAt: Date; endedAt: Date | null }[];
+  monday: string;
+  yesterday: string;
+  now: Date;
+}) {
+  const live = <T extends { status: string }>(b: T[]) =>
+    b.filter((x) => x.status !== 'CANCELLED');
+  const y = live(input.past).filter((b) => b.day === input.yesterday);
+  const week = [
+    ...live(input.past).filter((b) => b.day >= input.monday),
+    ...live(input.todayBlocks),
+  ];
+  return {
+    yesterday: y.length
+      ? {
+          planned: y.length,
+          recorded: y.filter((b) => b.status === 'COMPLETED' || b.sessions > 0)
+            .length,
+        }
+      : null,
+    week: {
+      plannedMinutes: week.reduce(
+        (n, b) => n + minutes(b.plannedStart, b.plannedEnd),
+        0,
+      ),
+      recordedMinutes: input.sessions.reduce(
+        (n, s) =>
+          n +
+          minutes(
+            s.startedAt,
+            s.endedAt && s.endedAt < input.now ? s.endedAt : input.now,
+          ),
+        0,
+      ),
+    },
+  };
+}
+export type RecentFacts = ReturnType<typeof recentFacts>;
+/** Yesterday had planned blocks and none of them recorded: Today opens on "Start from here". */
+export const quietYesterday = (f: RecentFacts) =>
+  !!f.yesterday && f.yesterday.recorded === 0;
+/** "Yesterday: 0 of 3 blocks recorded · This week: 2h 15m recorded of 11h 45m planned". */
+export function factsLine(f: RecentFacts) {
+  return [
+    f.yesterday
+      ? `Yesterday: ${f.yesterday.recorded} of ${f.yesterday.planned} block${f.yesterday.planned === 1 ? '' : 's'} recorded`
+      : null,
+    f.week.plannedMinutes || f.week.recordedMinutes
+      ? `This week: ${formatDuration(f.week.recordedMinutes)} recorded of ${formatDuration(f.week.plannedMinutes)} planned`
+      : null,
+  ]
+    .filter(Boolean)
+    .join(' · ');
+}

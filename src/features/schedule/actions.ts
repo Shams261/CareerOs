@@ -8,6 +8,7 @@ import { syncSoon } from '@/features/calendar/background';
 import { saveBlock, saveRoutine, PreviewRequired } from './editing';
 import { dateInput } from './domain';
 import { locked, recordReview } from './service';
+import { completedMessage } from '@/features/execution/service';
 import {
   execute,
   logSession,
@@ -27,7 +28,13 @@ function refresh() {
   for (const route of ['/today', '/calendar', '/review', '/jobs', '/focus'])
     revalidatePath(route);
 }
-type Done = string | { message: string; undo?: ActionState['undo'] };
+type Done =
+  | string
+  | {
+      message: string;
+      undo?: ActionState['undo'];
+      link?: ActionState['link'];
+    };
 async function perform(work: () => Promise<Done>): Promise<ActionState> {
   try {
     const done = await work();
@@ -37,7 +44,7 @@ async function perform(work: () => Promise<Done>): Promise<ActionState> {
     syncSoon(await owner());
     return typeof done === 'string'
       ? { message: done, ok: true }
-      : { message: done.message, undo: done.undo, ok: true };
+      : { message: done.message, undo: done.undo, link: done.link, ok: true };
   } catch (error) {
     if (error instanceof PreviewRequired)
       return {
@@ -124,7 +131,9 @@ export async function executionAction(_state: ActionState, form: FormData) {
         message: action === 'skip' ? 'Skipped.' : 'Block cancelled.',
         undo: { kind: 'block-reset', payload: { id } },
       };
-    return action === 'complete' ? 'Completed.' : 'Saved.';
+    return action === 'complete'
+      ? completedMessage(await owner(), id, new Date())
+      : 'Saved.';
   });
 }
 export async function manualAction(_state: ActionState, form: FormData) {

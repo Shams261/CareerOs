@@ -1,5 +1,5 @@
 'use client';
-import { useTransition } from 'react';
+import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { Check, Circle } from 'lucide-react';
 import { openPanelAfterNavigation } from '@/features/command/bar';
@@ -13,12 +13,16 @@ import type { SetupStep } from './domain';
 export function SetupCard({
   steps,
   line,
+  compact = false,
 }: {
   steps: SetupStep[];
   line: string;
+  /** One line until opened: the first-run card already asks for the first routine (WI-059). */
+  compact?: boolean;
 }) {
   const router = useRouter();
   const [pending, start] = useTransition();
+  const [open, setOpen] = useState(!compact);
   const go = (s: SetupStep) => {
     router.push(s.href);
     if (s.panel) openPanelAfterNavigation(s.href.split('#')[0], s.panel);
@@ -31,8 +35,19 @@ export function SetupCard({
       <div className="section-head">
         <h2 id="make-yours-heading">Make Silsila yours</h2>
         <span className="muted">{line}</span>
+        {compact && (
+          <button
+            type="button"
+            className="link-button"
+            aria-expanded={open}
+            aria-controls="make-yours-steps"
+            onClick={() => setOpen((o) => !o)}
+          >
+            {open ? 'Hide the steps' : 'Show the steps'}
+          </button>
+        )}
       </div>
-      <ol className="plain-list">
+      <ol className="plain-list" id="make-yours-steps" hidden={!open}>
         {steps.map((s) => (
           <li key={s.key} className={`setup-step${s.done ? ' is-done' : ''}`}>
             {s.done ? (

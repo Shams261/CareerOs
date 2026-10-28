@@ -1,4 +1,5 @@
 import { Suspense } from 'react';
+import { ROUTINE_TEMPLATES } from '@/features/schedule/templates';
 import { SetupRail } from '@/features/setup/rail';
 import { CalendarAttention } from '@/features/calendar/panel';
 import { RoutineIllustration } from '@/components/illustrations';
@@ -23,10 +24,14 @@ import { NoteList } from '@/features/notes/forms';
 import {
   agendaEntries,
   daySummary,
+  factsLine,
   launcherState,
+  quietYesterday,
+  recentFacts,
   summaryLine,
   type RoundLike,
 } from '@/features/today/domain';
+import { forTodayPicks } from '@/features/for-today/service';
 import { TodayHeader } from '@/features/today/header';
 import { Launcher } from '@/features/today/launcher';
 import { Agenda } from '@/features/today/agenda';
@@ -109,6 +114,58 @@ export default async function Today({
     isToday ? todaysNudge(user, day) : Promise.resolve(null),
     day <= today ? stopTime(user.id) : Promise.resolve(null),
   ]);
+  // The week so far as facts (WI-059): yesterday's blocks and this week's time, today only.
+  const yesterday = shiftDay(today, -1);
+  const monday = shiftDay(
+    today,
+    -((new Date(`${today}T12:00:00Z`).getUTCDay() + 6) % 7),
+  );
+  const from = monday < yesterday ? monday : yesterday;
+  const [pastBlocks, weekSessions] = isToday
+    ? await Promise.all([
+        db().timeBlock.findMany({
+          where: {
+            dailyPlan: {
+              userId: user.id,
+              date: { gte: new Date(from), lte: new Date(yesterday) },
+            },
+          },
+          select: {
+            status: true,
+            plannedStart: true,
+            plannedEnd: true,
+            dailyPlan: { select: { date: true } },
+            _count: { select: { sessions: true } },
+          },
+        }),
+        db().actualSession.findMany({
+          where: {
+            userId: user.id,
+            startedAt: {
+              gte: dayBounds(monday, user.timezone).start,
+              lte: now,
+            },
+          },
+          select: { startedAt: true, endedAt: true },
+        }),
+      ])
+    : [[], []];
+  const facts = isToday
+    ? recentFacts({
+        past: pastBlocks.map((b) => ({
+          day: b.dailyPlan.date.toISOString().slice(0, 10),
+          status: b.status,
+          plannedStart: b.plannedStart,
+          plannedEnd: b.plannedEnd,
+          sessions: b._count.sessions,
+        })),
+        todayBlocks: plan?.blocks ?? [],
+        sessions: weekSessions,
+        monday,
+        yesterday,
+        now,
+      })
+    : null;
   const blocks = plan?.blocks ?? [];
   const rounds: RoundLike[] = interviews.map((r) => ({
     id: r.id,
@@ -162,6 +219,14 @@ export default async function Today({
       reviewed,
     });
   const preview = closing ? await previewSlots(user, blocks, today, now) : null;
+  // Nothing current or next and the day still open: the launcher offers the first "For
+  // today" pick instead of looking back (WI-059). A failed read only drops the offer.
+  const free =
+    isToday &&
+    !closing &&
+    !!state &&
+    (state.kind === 'reconcile' || (state.kind === 'done' && !reviewed));
+  const picks = free ? await forTodayPicks(user, now).catch(() => []) : [];
   return (
     <>
       <ExecutionRefresh />
@@ -190,7 +255,11 @@ export default async function Today({
               Add your first block: what, which days, what time. Today fills in
               from it, and so does the rest of the week.
             </p>
-            <RoutineForm goals={goals} compact />
+            <RoutineForm
+              goals={goals}
+              compact
+              templates={[...ROUTINE_TEMPLATES]}
+            />
             <div className="mt-5">
               <Disclosure
                 variant="link"
@@ -204,7 +273,7 @@ export default async function Today({
           {/* An empty workspace is when the setup steps matter most (WI-050). */}
           <div className="mt-5 setup-first-run">
             <Suspense fallback={null}>
-              <SetupRail user={user} />
+              <SetupRail user={user} compact />
             </Suspense>
           </div>
         </>
@@ -222,6 +291,7 @@ export default async function Today({
             reviewed={day > today ? null : reviewed}
             closing={closing}
             rested={!!plan?.restAt}
+            facts={facts ? factsLine(facts) : ''}
           />
           {generationError && (
             <p role="alert" className="form-message mb-5">
@@ -289,6 +359,12 @@ export default async function Today({
                 now={now}
                 closing={closing}
                 closed={reviewed}
+                pick={picks[0] ?? null}
+                quiet={
+                  facts?.yesterday && quietYesterday(facts)
+                    ? { ...facts.yesterday, day: yesterday }
+                    : null
+                }
               />
             )}
             <Agenda
