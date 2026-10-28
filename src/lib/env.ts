@@ -33,7 +33,8 @@ const core = z.object({
     .or(z.literal('').transform(() => undefined)),
   CRON_SECRET: z.string().min(32),
   /** Connections per server process; keep small for hosted/serverless PostgreSQL. */
-  DATABASE_POOL_MAX: z.coerce.number().int().min(1).max(50).default(5),
+  // 10 since WI-061: the reads that now start together are not queued behind 5 connections.
+  DATABASE_POOL_MAX: z.coerce.number().int().min(1).max(50).default(10),
   /** TLS towards PostgreSQL; see `parseDatabaseSsl` (ADR-013). */
   DATABASE_SSL: z.enum(DATABASE_SSL_MODES).default('off'),
   DATABASE_SSL_CA: z

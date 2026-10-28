@@ -7,9 +7,14 @@ import 'server-only';
  */
 type Entry = { value: Promise<unknown>; expires: number };
 const store = new Map<string, Entry>();
-export const SNAPSHOT_TTL_MS = 20000;
+/**
+ * Every write and every scheduled job clears the snapshots (ADR-017), so their age only guards
+ * against time passing (a due date turning overdue). Three minutes since WI-061: most visits
+ * now read a warm snapshot, which measured 2–3× faster than a cold one.
+ */
+export const SNAPSHOT_TTL_MS = 180_000;
 /** SNAPSHOT_CACHE=off disables it anywhere; =on enables it under test. */
-const enabled = () =>
+export const cacheEnabled = () =>
   process.env.SNAPSHOT_CACHE === 'on' ||
   (process.env.NODE_ENV !== 'test' && process.env.SNAPSHOT_CACHE !== 'off');
 
@@ -19,7 +24,7 @@ export function memo<T>(
   load: () => Promise<T>,
   ttl = SNAPSHOT_TTL_MS,
 ): Promise<T> {
-  if (!enabled()) return load();
+  if (!cacheEnabled()) return load();
   const key = `${owner}:${name}`,
     now = Date.now(),
     hit = store.get(key);
@@ -30,7 +35,13 @@ export function memo<T>(
   value.catch(() => store.delete(key));
   return value;
 }
+const listeners = new Set<() => void>();
+/** Other in-process caches (the session cache, WI-061) clear with the snapshots. */
+export function onForget(fn: () => void) {
+  listeners.add(fn);
+}
 /** Drop every snapshot. Called after any write, so the next read is fresh. */
 export function forgetAll() {
   store.clear();
+  for (const fn of listeners) fn();
 }

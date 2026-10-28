@@ -2,6 +2,7 @@ import 'server-only';
 import { cache } from 'react';
 import { cookies } from 'next/headers';
 import { db } from './db';
+import { cacheEnabled, onForget } from './memo';
 import { env } from '@/lib/env';
 import { randomToken, sha256 } from '@/lib/token-crypto';
 import { AuthError } from '@/features/auth/oidc';
@@ -46,16 +47,45 @@ export async function createSession(
   return token;
 }
 
+/**
+ * Sessions remembered for a minute (WI-061): the middleware and the page both resolve the
+ * session, and each read was two round trips to the database before any page data. Entries
+ * are keyed by the token's hash; sign-out, Sign out other devices and every write (through
+ * `forgetAll`) drop them, and expiry, revocation and the owner allowlist are checked on every
+ * hit. Off under test, like the snapshots, so database tests stay exact.
+ */
+export const SESSION_CACHE_MS = 60_000;
+type Resolved = Awaited<ReturnType<typeof loadSession>>;
+// On globalThis: the middleware is a separate bundle in the same process, and a sign-out
+// must clear the copy it reads too.
+const sessions = ((
+  globalThis as unknown as {
+    silsilaSessions?: Map<string, { value: Resolved; until: number }>;
+  }
+).silsilaSessions ??= new Map());
+export const forgetSessions = () => sessions.clear();
+onForget(forgetSessions);
+const loadSession = (tokenHash: string) =>
+  db().session.findUnique({ where: { tokenHash }, include: { user: true } });
+
 /** Valid only if unexpired, unrevoked, and still the configured owner (allowlist re-checked). */
 export async function resolveSession(
   token: string | undefined,
   now = new Date(),
 ) {
   if (!token || !/^[A-Za-z0-9_-]{40,64}$/.test(token)) return null;
-  const session = await db().session.findUnique({
-    where: { tokenHash: sha256(token) },
-    include: { user: true },
-  });
+  const tokenHash = sha256(token);
+  const hit = cacheEnabled() ? sessions.get(tokenHash) : undefined;
+  let session: Resolved;
+  if (hit && hit.until > Date.now()) session = hit.value;
+  else {
+    session = await loadSession(tokenHash);
+    if (cacheEnabled())
+      sessions.set(tokenHash, {
+        value: session,
+        until: Date.now() + SESSION_CACHE_MS,
+      });
+  }
   if (
     !session ||
     session.revokedAt ||
@@ -63,11 +93,14 @@ export async function resolveSession(
     session.user.email.toLowerCase() !== env().OWNER_EMAIL.toLowerCase()
   )
     return null;
-  if (+now - +session.lastSeenAt > TOUCH_MS)
+  if (+now - +session.lastSeenAt > TOUCH_MS) {
     await db().session.update({
       where: { id: session.id },
       data: { lastSeenAt: now },
     });
+    // The cached row now carries the new time, so the next hit does not touch it again.
+    session.lastSeenAt = now;
+  }
   return session;
 }
 
@@ -80,6 +113,7 @@ export async function revokeSession(
     where: { tokenHash: sha256(token), revokedAt: null },
     data: { revokedAt: now },
   });
+  forgetSessions();
 }
 
 /** Resolved once per request: the layout, the page and the shell panels all share it. */
@@ -111,5 +145,6 @@ export async function revokeOtherSessions(
     where: { userId, revokedAt: null, id: { not: keepId } },
     data: { revokedAt: now },
   });
+  forgetSessions();
   return count;
 }

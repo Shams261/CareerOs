@@ -805,7 +805,10 @@ async function loadJobSnapshot(user: ScheduleUser, now = new Date()) {
     interviewPref: prefs.find((p) => p.type === 'INTERVIEW') ?? null,
   };
 }
-export async function applicationDetail(user: ScheduleUser, id: string) {
+/** One application with its rounds and history, memoized like the lists (WI-061). */
+export const applicationDetail = (user: ScheduleUser, id: string) =>
+  memo(user.id, `application:${id}`, () => loadApplicationDetail(user, id));
+async function loadApplicationDetail(user: ScheduleUser, id: string) {
   return db().jobApplication.findFirst({
     where: { id, userId: user.id },
     include: {

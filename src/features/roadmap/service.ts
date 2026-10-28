@@ -472,7 +472,10 @@ async function loadRevisionDue(user: ScheduleUser, now = new Date()) {
 export const revisionDue = (user: ScheduleUser, now = new Date()) =>
   memo(user.id, 'roadmap-revision', () => loadRevisionDue(user, now));
 
-export async function roadmapDetail(user: ScheduleUser, id: string) {
+/** One roadmap with its items, memoized like the overview (WI-061: as slow warm as cold before). */
+export const roadmapDetail = (user: ScheduleUser, id: string) =>
+  memo(user.id, `roadmap:${id}`, () => loadRoadmapDetail(user, id));
+async function loadRoadmapDetail(user: ScheduleUser, id: string) {
   const roadmap = await db().roadmap.findFirst({
     where: { id, userId: user.id },
     include: {

@@ -230,6 +230,13 @@ Attention is derived, not stored: overdue follow-up, result needed, interview be
 
 **Consequences:** A second page view within twenty seconds skips the snapshot statements entirely. A second process would hold its own cache, which is acceptable at twenty seconds and documented here; moving to more than one instance should revisit it. Scheduler runs clear the cache every minute, so the realistic benefit is within a single minute of navigation.
 
+**Amendment (2026-10-28, WI-061):** measured in a lab with a 24 ms database round trip, every page signed in twice (the proxy and the page each read the session and its user) and the snapshots were gone after twenty seconds and after every one-minute reminder run. Now:
+
+- Snapshots live **three minutes** (`SNAPSHOT_TTL_MS`). Every write still drops them, so the owner never sees their own change late; only changes made outside the app (a Google edit before its sync) can take up to three minutes to show.
+- **The reminder run no longer clears the cache.** It writes only inbox rows, which no snapshot reads (`recordRun(..., { clearsSnapshots: false })`); calendar sync, generation and the other jobs still clear it.
+- **A resolved session is kept 60 seconds** (`SESSION_CACHE_MS` in `src/server/session.ts`) on `globalThis`, so the proxy bundle and the page share it. Sign-out and Sign out other devices clear it at once, and so does every write (`onForget`), because the cached row carries the owner's `User` (theme, Day Print answer). In a second process, a device signed out elsewhere could keep working for up to a minute; that is accepted for one owner and one process.
+- The roadmap detail and the application page join the memoized snapshots (`roadmap:<id>`, `application:<id>`).
+
 ## ADR-018 — The roadmap is the tracker: items carry scope, checkpoint, references and study prompts; problems live in Practice
 
 **Status:** Accepted (2026-10-21, WI-012). Amended by ADR-025: a problem item's status and revision follow Practice.

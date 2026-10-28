@@ -65,8 +65,43 @@ export default async function Application({
   params: Promise<{ id: string }>;
 }) {
   const user = await owner(),
-    { id } = await params,
-    app = await applicationDetail(user, id);
+    { id } = await params;
+  const ai = !!aiConfig();
+  // The lists and counts beside the application need only its id: they load alongside it
+  // instead of after it (WI-061).
+  const side = Promise.all([
+    db().learningTopic.findMany({
+      where: { userId: user.id, subject: { status: { not: 'ARCHIVED' } } },
+      include: { subject: true },
+      orderBy: [{ subject: { ordering: 'asc' } }, { ordering: 'asc' }],
+    }),
+    db().dsaProblem.findMany({
+      where: { userId: user.id, hiddenAt: null },
+      orderBy: { title: 'asc' },
+      select: { id: true, title: true },
+    }),
+    db().dsaTopic.findMany({
+      orderBy: { ordering: 'asc' },
+      select: { id: true, name: true },
+    }),
+    // Prepare with Rumi (WI-042): the docs, and what a new one would send.
+    ai ? prepDocs(user, id) : [],
+    ai
+      ? db().roadmapItem.count({
+          where: {
+            userId: user.id,
+            roadmap: { studyAi: true, archivedAt: null },
+          },
+        })
+      : 0,
+    ai
+      ? db().dsaProblem.count({
+          where: { userId: user.id, hiddenAt: null },
+        })
+      : 0,
+  ]);
+  side.catch(() => undefined);
+  const app = await applicationDetail(user, id);
   if (!app) notFound();
   const now = new Date(),
     zone = user.timezone,
@@ -79,38 +114,9 @@ export default async function Application({
       (a, b) => +a.scheduledStart - +b.scheduledStart,
     )[0],
     at = (d: Date) => formatInTimeZone(d, zone, 'MMM d, HH:mm');
-  const ai = !!aiConfig();
-  const [topics, problems, dsaTopics, docs, studyItems, problemCount, loop] =
+  const [[topics, problems, dsaTopics, docs, studyItems, problemCount], loop] =
     await Promise.all([
-      db().learningTopic.findMany({
-        where: { userId: user.id, subject: { status: { not: 'ARCHIVED' } } },
-        include: { subject: true },
-        orderBy: [{ subject: { ordering: 'asc' } }, { ordering: 'asc' }],
-      }),
-      db().dsaProblem.findMany({
-        where: { userId: user.id, hiddenAt: null },
-        orderBy: { title: 'asc' },
-        select: { id: true, title: true },
-      }),
-      db().dsaTopic.findMany({
-        orderBy: { ordering: 'asc' },
-        select: { id: true, name: true },
-      }),
-      // Prepare with Rumi (WI-042): the docs, and what a new one would send.
-      ai ? prepDocs(user, app.id) : [],
-      ai
-        ? db().roadmapItem.count({
-            where: {
-              userId: user.id,
-              roadmap: { studyAi: true, archivedAt: null },
-            },
-          })
-        : 0,
-      ai
-        ? db().dsaProblem.count({
-            where: { userId: user.id, hiddenAt: null },
-          })
-        : 0,
+      side,
       // Practise for this loop (WI-047).
       open ? loopPractice(user, app, now) : [],
     ]);

@@ -12,6 +12,7 @@ import {
   createSession,
   resolveSession,
   revokeOtherSessions,
+  revokeSession,
 } from '../src/server/session';
 
 describe('device names for the Sessions list (WI-057)', () => {
@@ -80,5 +81,28 @@ describe.skipIf(!url)('Sessions in Settings (WI-057)', () => {
     });
     expect(row.revokedAt).toBeNull();
     void theirs;
+  });
+
+  it('keeps a resolved session for a minute, and a sign-out ends it at once (WI-061)', async () => {
+    process.env.SNAPSHOT_CACHE = 'on';
+    try {
+      const token = await createSession(owner, 'Cached', now);
+      const first = await resolveSession(token, now);
+      // Changed behind the app's back: the cached copy answers without a read.
+      await prisma.session.update({
+        where: { id: first!.id },
+        data: { revokedAt: now },
+      });
+      expect((await resolveSession(token, now))?.id).toBe(first!.id);
+      await prisma.session.update({
+        where: { id: first!.id },
+        data: { revokedAt: null },
+      });
+      // Signing out goes through the app, which drops every cached session.
+      await revokeSession(token, now);
+      expect(await resolveSession(token, now)).toBeNull();
+    } finally {
+      delete process.env.SNAPSHOT_CACHE;
+    }
   });
 });
