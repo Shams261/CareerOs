@@ -168,7 +168,7 @@ export function forToday(input: ForTodayInput): TodayPick[] {
         title: next.title,
         reason:
           next === red
-            ? `Red last time · ${next.topic.name}`
+            ? `Shaky last time · ${next.topic.name}`
             : next === current
               ? `Current topic ${next.topic.name} · not tried yet`
               : `${next.topic.name} · not tried yet`,

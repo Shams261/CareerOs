@@ -134,7 +134,7 @@ describe('For today (WI-059)', () => {
     expect(picks.map((p) => [p.title, p.reason])).toEqual([
       ['Revise HTTP caching', 'Revision due today · Backend engineering'],
       ['Internet foundations', 'Next in Backend engineering'],
-      ['Problem p3', 'Red last time · Two Pointers'],
+      ['Problem p3', 'Shaky last time · Two Pointers'],
     ]);
     expect(forToday(base())).toEqual([]);
   });

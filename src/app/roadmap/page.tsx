@@ -28,11 +28,9 @@ import { shortDate } from '@/lib/time';
 import { continueTarget, goalLine } from '@/features/roadmap/domain';
 import { roadmapRevisionRows } from '@/features/attention/domain';
 import { formatDuration } from '@/features/schedule/row';
-import { AttentionPages, AttentionRow } from '@/features/today/attention-rows';
+import { AttentionPages } from '@/features/today/attention-rows';
 export const metadata = { title: 'Roadmap' };
 
-const PREVIEW = 5;
-const PHONE_PREVIEW = 2;
 const statusText = {
   ACTIVE: '',
   PAUSED: 'Paused',
@@ -56,11 +54,10 @@ export default async function RoadmapPage() {
     live = roadmaps.filter((r) => !r.archivedAt),
     archived = roadmaps.filter((r) => r.archivedAt),
     next = continueTarget(roadmaps),
-    // The rail leaves out what For today already offers (WI-060).
+    // The revision panel leaves out what For today already offers (WI-060).
     dueRows = roadmapRevisionRows(due, now, user.timezone).filter(
       (r) => !picks.some((p) => p.key === `revise:item:${r.id.split(':')[1]}`),
-    ),
-    preview = dueRows.slice(0, PREVIEW);
+    );
   return (
     <>
       <PageShortcuts
@@ -108,16 +105,129 @@ export default async function RoadmapPage() {
           <GoalForm compact />
         </section>
       )}
-      <div className="today-workspace is-today roadmap-workspace">
+      {/* One "next" list (WI-063): For today leads; This week and the revision queue open in
+          panels from one line, and roadmap rows show their counts without a second "Next". */}
+      <div className="roadmap-single">
         <section className="jobs-main" aria-labelledby="roadmaps-heading">
           <ForTodayCard picks={picks} />
-          {live.length > 0 && (
-            <section
-              className="card flat week-mix"
-              aria-labelledby="week-heading"
+          {(live.length > 0 || dueRows.length > 0) && (
+            <p className="more-line">
+              {live.length > 0 && (
+                <PanelButton panel="week" className="link-button">
+                  This week
+                </PanelButton>
+              )}
+              {dueRows.length > 0 && (
+                <PanelButton panel="revision" className="link-button">
+                  {dueRows.length} due for revision{' '}
+                  <ArrowRight size={14} aria-hidden="true" />
+                </PanelButton>
+              )}
+            </p>
+          )}
+          <div className="agenda-head">
+            <h2 id="roadmaps-heading" className="agenda-heading">
+              Roadmaps
+            </h2>
+            <Disclosure
+              label="New roadmap"
+              // Until a goal exists the goal form is the page's primary (WI-059).
+              variant={
+                live.length ? 'link' : goals.length ? 'primary' : 'secondary'
+              }
+              shortcut="new-roadmap"
+              defaultOpen={!live.length && goals.length > 0}
+              draft="roadmap:new"
+              className="agenda-add"
             >
+              <RoadmapForm goals={goals} />
+            </Disclosure>
+          </div>
+          <FeedbackOutlet channel="roadmaps" className="mb-2" />
+          {!live.length && (
+            <div className="empty-state">
+              <RoadmapIllustration className="setup-illustration" />
+              <h3>Your first roadmap</h3>
+              <p className="empty">
+                A roadmap is the list of topics and questions you want to be
+                ready for, in sections, with what you have covered and what came
+                up in interviews. Import your study material, or start one with
+                New roadmap.
+              </p>
+            </div>
+          )}
+          <ul className="plain-list attention-list">
+            {live.map((r) => {
+              const left = r.progress.total - r.progress.done;
+              return (
+                <li className="attention-row" data-source="roadmap" key={r.id}>
+                  <Link
+                    className="attention-link"
+                    href={
+                      r.next
+                        ? `/roadmap/${r.id}?section=${encodeURIComponent(r.next.section)}#item-${r.next.id}`
+                        : `/roadmap/${r.id}`
+                    }
+                    prefetch={false}
+                  >
+                    <span className="attention-icon" aria-hidden="true">
+                      <Route size={22} />
+                    </span>
+                    {/* The roadmap's name and counts; the row opens at what comes next. */}
+                    <span className="attention-main">
+                      <span className="attention-title">{r.title}</span>
+                      {!r.next && (
+                        <span className="attention-context">
+                          {r.progress.total
+                            ? 'Everything done'
+                            : r.goal
+                              ? `No items yet · Toward ${r.goal.title}`
+                              : 'No items yet'}
+                        </span>
+                      )}
+                    </span>
+                    <span className="roadmap-counts">
+                      {r.progress.total > 0 && (
+                        <span>
+                          {r.progress.done} done · {left} left
+                        </span>
+                      )}
+                      {r.due > 0 && <span className="is-due">{r.due} due</span>}
+                    </span>
+                    <ChevronRight
+                      size={18}
+                      aria-hidden="true"
+                      className="attention-chevron"
+                    />
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
+          {archived.length > 0 && (
+            <Disclosure
+              variant="link"
+              label={`Archived · ${archived.length}`}
+              className="mt-4"
+            >
+              {archived.map((r) => (
+                <p key={r.id}>
+                  <Link
+                    prefetch={false}
+                    className="link"
+                    href={`/roadmap/${r.id}`}
+                  >
+                    {r.title}
+                  </Link>
+                </p>
+              ))}
+            </Disclosure>
+          )}
+        </section>
+        <SidePanel id="week" title="This week">
+          {live.length > 0 && (
+            <div className="week-mix">
               <div className="section-head">
-                <h2 id="week-heading">This week</h2>
                 {aiConfig() && (
                   <AskRumiButton
                     text={planQuestion(week.rows)}
@@ -175,147 +285,16 @@ export default async function RoadmapPage() {
                   </li>
                 ))}
               </ul>
-            </section>
-          )}
-          <div className="agenda-head">
-            <h2 id="roadmaps-heading" className="agenda-heading">
-              Roadmaps
-            </h2>
-            <Disclosure
-              label="New roadmap"
-              // Until a goal exists the goal form is the page's primary (WI-059).
-              variant={
-                live.length ? 'link' : goals.length ? 'primary' : 'secondary'
-              }
-              shortcut="new-roadmap"
-              defaultOpen={!live.length && goals.length > 0}
-              draft="roadmap:new"
-              className="agenda-add"
-            >
-              <RoadmapForm goals={goals} />
-            </Disclosure>
-          </div>
-          <FeedbackOutlet channel="roadmaps" className="mb-2" />
-          {!live.length && (
-            <div className="empty-state">
-              <RoadmapIllustration className="setup-illustration" />
-              <h3>Your first roadmap</h3>
-              <p className="empty">
-                A roadmap is the list of topics and questions you want to be
-                ready for, in sections, with what you have covered and what came
-                up in interviews. Import your study material, or start one with
-                New roadmap.
-              </p>
             </div>
           )}
-          <ul className="plain-list attention-list">
-            {live.map((r) => {
-              const left = r.progress.total - r.progress.done;
-              return (
-                <li className="attention-row" data-source="roadmap" key={r.id}>
-                  <Link
-                    className="attention-link"
-                    href={
-                      r.next
-                        ? `/roadmap/${r.id}?section=${encodeURIComponent(r.next.section)}#item-${r.next.id}`
-                        : `/roadmap/${r.id}`
-                    }
-                    prefetch={false}
-                  >
-                    <span className="attention-icon" aria-hidden="true">
-                      <Route size={22} />
-                    </span>
-                    {/* Name first (WI-049): the roadmap, then what comes next in it. */}
-                    <span className="attention-main">
-                      <span className="attention-title">{r.title}</span>
-                      <span className="attention-context">
-                        {r.next
-                          ? `Next: ${r.next.title} · ${r.next.section}`
-                          : r.progress.total
-                            ? 'Everything done'
-                            : r.goal
-                              ? `No items yet · Toward ${r.goal.title}`
-                              : 'No items yet'}
-                      </span>
-                    </span>
-                    <span className="roadmap-counts">
-                      {r.progress.total > 0 && (
-                        <span>
-                          {r.progress.done} done · {left} left
-                        </span>
-                      )}
-                      {r.due > 0 && <span className="is-due">{r.due} due</span>}
-                    </span>
-                    <ChevronRight
-                      size={18}
-                      aria-hidden="true"
-                      className="attention-chevron"
-                    />
-                  </Link>
-                </li>
-              );
-            })}
-          </ul>
-          {archived.length > 0 && (
-            <Disclosure
-              variant="link"
-              label={`Archived · ${archived.length}`}
-              className="mt-4"
-            >
-              {archived.map((r) => (
-                <p key={r.id}>
-                  <Link
-                    prefetch={false}
-                    className="link"
-                    href={`/roadmap/${r.id}`}
-                  >
-                    {r.title}
-                  </Link>
-                </p>
-              ))}
-            </Disclosure>
-          )}
-        </section>
-        <aside className="today-rail">
-          <div className="attention-head">
-            <h2 id="revision-heading">Due for revision</h2>
-            {dueRows.length > PREVIEW && (
-              <span className="muted attention-count is-wide">
-                Showing {PREVIEW} of {dueRows.length}
-              </span>
-            )}
-            {dueRows.length > PHONE_PREVIEW && (
-              <span className="muted attention-count is-phone">
-                Showing {Math.min(PHONE_PREVIEW, dueRows.length)} of{' '}
-                {dueRows.length}
-              </span>
-            )}
-          </div>
-          {!dueRows.length && (
+        </SidePanel>
+        <SidePanel id="revision" title={`Due for revision · ${dueRows.length}`}>
+          {dueRows.length ? (
+            <AttentionPages items={dueRows} />
+          ) : (
             <p className="attention-empty">Nothing due for revision.</p>
           )}
-          {preview.length > 0 && (
-            <ul className="plain-list attention-list attention-preview">
-              {preview.map((item) => (
-                <AttentionRow key={item.id} item={item} />
-              ))}
-            </ul>
-          )}
-          {dueRows.length > 0 && (
-            <p className="attention-more">
-              <PanelButton panel="revision" className="link-button">
-                View all {dueRows.length}{' '}
-                <ArrowRight size={14} aria-hidden="true" />
-              </PanelButton>
-            </p>
-          )}
-          <SidePanel
-            id="revision"
-            title={`Due for revision · ${dueRows.length}`}
-          >
-            <AttentionPages items={dueRows} />
-          </SidePanel>
-        </aside>
+        </SidePanel>
       </div>
       <SidePanel id="goals" title="Goals">
         {active.map((g) => (

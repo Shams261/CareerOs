@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { ArrowRight } from 'lucide-react';
 import { forTodayPicks } from '@/features/for-today/service';
 import { ForTodayCard } from '@/features/for-today/card';
 import { BrandMark } from '@/components/brand';
@@ -10,6 +11,7 @@ import {
   revisionQueue,
   STATUS_FILTERS,
   type StatusFilter,
+  confidenceWord,
 } from '@/features/dsa/domain';
 import { TopicForm, ProblemForm } from '@/features/dsa/forms';
 import { LibraryFilters } from '@/features/dsa/library-filters';
@@ -168,7 +170,7 @@ export default async function Dsa({
                 href="/dsa/drill"
                 prefetch={false}
               >
-                Which pattern?
+                Pattern quiz
               </Link>
             )}
             {nextProblem && !picks.length && (
@@ -238,52 +240,52 @@ export default async function Dsa({
             )}
           </p>
           <ForTodayCard picks={picks} />
+          {/* One "next" list (WI-063): the revision queue opens in a panel from one line. */}
           {queue.length > 0 && (
-            <section
-              className="card flat"
-              id="revision-queue"
-              aria-labelledby="queue-heading"
-            >
-              <div className="section-head">
-                <h2 id="queue-heading">
-                  Due for revision{' '}
-                  <span className="muted">· {queue.length}</span>
-                </h2>
-              </div>
-              <ol className="plain-list">
-                {queue.map((p) => {
-                  const state = learningState(p, day);
-                  return (
-                    <li className="problem-row" key={p.id}>
-                      <Link
-                        prefetch={false}
-                        className="problem-title"
-                        href={`/dsa/${p.id}`}
-                      >
-                        {p.title}
-                      </Link>
-                      <span className={`pill ${tone[p.confidence]}`}>
-                        {p.confidence}
-                      </span>
-                      <span className="problem-date">
-                        <span
-                          className={`pill ${state === 'overdue' ? 'danger' : 'warning'}`}
-                        >
-                          {state === 'overdue'
-                            ? `${overdueDays(p.nextRevisionAt!)} day${overdueDays(p.nextRevisionAt!) === 1 ? '' : 's'} overdue`
-                            : 'Due today'}
-                        </span>
-                      </span>
-                      <span className="problem-meta muted">
-                        {p.topic.name} · {p.platform} ·{' '}
-                        {p.difficulty.toLowerCase()}
-                      </span>
-                    </li>
-                  );
-                })}
-              </ol>
-            </section>
+            <p className="more-line">
+              <PanelButton panel="revision-queue" className="link-button">
+                {queue.length} due for revision{' '}
+                <ArrowRight size={14} aria-hidden="true" />
+              </PanelButton>
+            </p>
           )}
+          <SidePanel
+            id="revision-queue"
+            title={`Due for revision · ${queue.length}`}
+          >
+            <ol className="plain-list">
+              {queue.map((p) => {
+                const state = learningState(p, day);
+                return (
+                  <li className="problem-row" key={p.id}>
+                    <Link
+                      prefetch={false}
+                      className="problem-title"
+                      href={`/dsa/${p.id}`}
+                    >
+                      {p.title}
+                    </Link>
+                    <span className={`pill ${tone[p.confidence]}`}>
+                      {confidenceWord(p.confidence)}
+                    </span>
+                    <span className="problem-date">
+                      <span
+                        className={`pill ${state === 'overdue' ? 'danger' : 'warning'}`}
+                      >
+                        {state === 'overdue'
+                          ? `${overdueDays(p.nextRevisionAt!)} day${overdueDays(p.nextRevisionAt!) === 1 ? '' : 's'} overdue`
+                          : 'Due today'}
+                      </span>
+                    </span>
+                    <span className="problem-meta muted">
+                      {p.topic.name} · {p.platform} ·{' '}
+                      {p.difficulty.toLowerCase()}
+                    </span>
+                  </li>
+                );
+              })}
+            </ol>
+          </SidePanel>
           <PendingRegion
             as="section"
             className="card flat"

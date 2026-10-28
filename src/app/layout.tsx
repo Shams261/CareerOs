@@ -10,7 +10,6 @@ import { RunningNow } from '@/features/execution/running';
 import { PresenceBeat } from '@/features/nudges/presence';
 import { RumiDrawer } from '@/features/agent/drawer';
 import { aiConfig } from '@/lib/env';
-import { CaptureForm } from '@/features/notes/forms';
 import './globals.css';
 import type { Viewport } from 'next';
 import { currentSession } from '@/server/session';
@@ -84,11 +83,10 @@ export default async function RootLayout({
               </Link>
               <CommandButton className="command-button" />
             </div>
-            <Navigation capture={<CaptureForm />} />
+            <Navigation />
             <Suspense fallback={null}>
               <RunningNow />
             </Suspense>
-            <CaptureForm />
             <footer className="muted mt-auto">
               <form action={signOutAction} className="mt-2">
                 <button className="link">Sign out</button>

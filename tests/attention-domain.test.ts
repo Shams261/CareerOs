@@ -177,7 +177,7 @@ describe('revision rows and order', () => {
     ]);
     expect(roadmap.map((r) => [r.title, r.context, r.href])).toEqual([
       [
-        'Revisit HTTP semantics',
+        'Revise HTTP semantics',
         'Revision overdue by 2 days · Backend',
         '/roadmap/rm?section=Week%201&show=revision#item-i1',
       ],
