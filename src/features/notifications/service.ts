@@ -258,6 +258,7 @@ export async function processNotifications(now = new Date()) {
           const due = await tx.dsaProblem.count({
             where: {
               userId: user.id,
+              hiddenAt: null,
               attemptsCount: { gt: 0 },
               nextRevisionAt: { lte: new Date(revisionDay) },
             },

@@ -59,6 +59,7 @@ export async function saveGoal(user: ScheduleUser, raw: unknown) {
       category: input.category,
       description: input.description,
       targetDate: input.targetDate ? new Date(input.targetDate) : null,
+      targetRole: input.targetRole,
       status: input.status,
       priority: input.priority,
     };
@@ -413,7 +414,7 @@ const itemSummary = {
   nextRevisionAt: true,
 } satisfies Prisma.RoadmapItemSelect;
 
-export async function roadmapList(user: ScheduleUser, now = new Date()) {
+async function loadRoadmapList(user: ScheduleUser, now: Date) {
   const today = dayKey(now, user.timezone);
   const roadmaps = await db().roadmap.findMany({
     where: { userId: user.id },
@@ -436,6 +437,13 @@ export async function roadmapList(user: ScheduleUser, now = new Date()) {
     };
   });
 }
+
+/**
+ * Every roadmap with its counts and next item. Memoized (ADR-017) so the overview and For today
+ * share one read of all items in a request (WI-060).
+ */
+export const roadmapList = (user: ScheduleUser, now = new Date()) =>
+  memo(user.id, 'roadmap-list', () => loadRoadmapList(user, now));
 
 /** Items due or overdue for revision across the owner's live roadmaps, for Today. */
 async function loadRevisionDue(user: ScheduleUser, now = new Date()) {
@@ -501,7 +509,7 @@ export async function linkOptions(userId: string) {
     }),
     db().dsaTopic.findMany({ orderBy: { ordering: 'asc' } }),
     db().dsaProblem.findMany({
-      where: { userId },
+      where: { userId, hiddenAt: null },
       orderBy: { title: 'asc' },
       select: { id: true, title: true },
     }),

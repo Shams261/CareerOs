@@ -5,7 +5,7 @@ import { locked, type ScheduleUser } from '@/features/schedule/service';
 import { executeIn } from '@/features/execution/service';
 import { blockResolution } from '@/features/schedule/row';
 import { dsaSnapshot } from '@/features/dsa/service';
-import { revisionQueue } from '@/features/dsa/domain';
+import { curriculumOrder, revisionQueue } from '@/features/dsa/domain';
 import { revisionDue, roadmapList, weekPlan } from '@/features/roadmap/service';
 import { formatInTimeZone } from 'date-fns-tz';
 import { saveBlock } from '@/features/schedule/editing';
@@ -33,7 +33,8 @@ async function loadPicks(user: ScheduleUser, now: Date) {
             roadmapTitle: live.title,
           }
         : null,
-    problems: practice.problems,
+    // Curriculum order, so the pick without a current topic is the list's first (WI-060).
+    problems: curriculumOrder(practice.problems, practice.topics),
     currentTopicId: practice.currentTopic?.id ?? null,
   });
 }

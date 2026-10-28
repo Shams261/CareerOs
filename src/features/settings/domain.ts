@@ -3,6 +3,7 @@
  * reminder row shows. Covered by tests/settings-domain.test.ts.
  */
 import { formatDistance } from 'date-fns';
+import { formatInTimeZone } from 'date-fns-tz';
 
 export type ReminderPref = {
   enabled: boolean;
@@ -47,4 +48,15 @@ export function settingsSummary(input: {
     );
   else parts.push('Google Calendar not connected');
   return parts.join(' · ');
+}
+
+/**
+ * " · Last sent Oct 28, 08:00" from the latest time a reminder of these kinds came out, or ""
+ * when none has yet (WI-060): the row shows that reminders really go.
+ */
+export function lastSentText(dates: (Date | null)[], zone: string) {
+  const latest = dates.filter((d): d is Date => !!d).sort((a, b) => +b - +a)[0];
+  return latest
+    ? ` · Last sent ${formatInTimeZone(latest, zone, 'MMM d, HH:mm')}`
+    : '';
 }

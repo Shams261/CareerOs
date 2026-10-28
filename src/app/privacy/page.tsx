@@ -19,7 +19,7 @@ export default async function Privacy() {
     <article className="card policy" aria-labelledby="privacy-heading">
       {!signedIn && (
         <p className="policy-brand">
-          <Link href="/login" aria-label="Silsila sign-in">
+          <Link prefetch={false} href="/login" aria-label="Silsila sign-in">
             <BrandLogo />
           </Link>
         </p>
@@ -196,11 +196,11 @@ export default async function Privacy() {
       </p>
       <p className="policy-foot">
         {signedIn ? (
-          <Link className="link" href="/settings">
+          <Link prefetch={false} className="link" href="/settings">
             Back to Settings
           </Link>
         ) : (
-          <Link className="link" href="/login">
+          <Link prefetch={false} className="link" href="/login">
             Sign in
           </Link>
         )}

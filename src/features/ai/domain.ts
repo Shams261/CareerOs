@@ -311,6 +311,9 @@ export const dollars = (micros: number) =>
 /** "under US$0.01 of US$3 used this month". */
 export const budgetLine = (spent: number) =>
   `${dollars(spent)} of ${dollars(CAP_MICROS).replace('.00', '')} used this month`;
+/** The month's spend shows beside Rumi only from this share of the cap (WI-060). */
+export const NEAR_CAP = 0.8;
+export const nearCap = (spent: number) => spent >= CAP_MICROS * NEAR_CAP;
 export const withinCap = (spent: number, reserve: number) =>
   spent + reserve <= CAP_MICROS;
 

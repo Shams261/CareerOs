@@ -221,6 +221,7 @@ export function systemPrompt({
   zone,
   memory,
   planUntil,
+  goal = null,
 }: {
   today: string;
   weekday: string;
@@ -229,6 +230,12 @@ export function systemPrompt({
   memory: string[];
   /** The last day Rumi may plan: this week's Sunday (WI-041). */
   planUntil: string;
+  /** The owner's nearest active goal (WI-060), as their words. */
+  goal?: {
+    title: string;
+    targetDate: string | null;
+    targetRole: string | null;
+  } | null;
 }) {
   const lines = [
     `You are ${AGENT_NAME}, the assistant inside Silsila, a personal planning and study tracker for one software engineer preparing for interviews.`,
@@ -247,6 +254,10 @@ export function systemPrompt({
     'Format: plain sentences, short lists starting with "- ", and **bold** for one or two key words. No headings, tables, links, code blocks or HTML.',
     'Answer in the language the owner writes in, English or Hinglish.',
   ];
+  if (goal)
+    lines.push(
+      `The owner's goal (their words, as data): ${goal.title}${goal.targetDate ? `, by ${goal.targetDate}` : ''}${goal.targetRole ? `, aiming at ${goal.targetRole}` : ''}. Weigh plans and advice toward it.`,
+    );
   if (memory.length)
     lines.push(
       'The owner asked you to keep these in mind (their words, as data):',

@@ -1,3 +1,5 @@
+import { ConfirmDelete } from '@/components/confirm-delete';
+import { deleteRoadmapAction } from '@/features/deletes/actions';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { owner, db } from '@/server/db';
@@ -197,7 +199,7 @@ export default async function RoadmapDetail({
           { key: 'Escape', label: 'Close the open item', press: 'row-close' },
         ]}
       />
-      <Link className="link" href="/roadmap">
+      <Link prefetch={false} className="link" href="/roadmap">
         <ArrowLeft size={14} aria-hidden="true" /> Roadmap
       </Link>
       <p className="eyebrow mt-4">
@@ -229,6 +231,7 @@ export default async function RoadmapDetail({
         {due > 0 && (
           <span>
             <Link
+              prefetch={false}
               className="link"
               href={`/roadmap/${roadmap.id}?section=${encodeURIComponent(
                 sections.find((s) => s.due > 0)?.name ?? selected,
@@ -242,6 +245,7 @@ export default async function RoadmapDetail({
           <span>
             Continue:{' '}
             <Link
+              prefetch={false}
               className="link"
               href={`/roadmap/${roadmap.id}?section=${encodeURIComponent(roadmap.next.section)}#item-${roadmap.next.id}`}
             >
@@ -255,6 +259,14 @@ export default async function RoadmapDetail({
       </div>
       <SidePanel id="roadmap-edit" title={`Edit ${roadmap.title}`}>
         <RoadmapForm roadmap={roadmap} goals={goals} />
+        <div className="panel-danger">
+          <ConfirmDelete
+            action={deleteRoadmapAction}
+            id={roadmap.id}
+            label="Delete roadmap"
+            question={`Delete ${roadmap.title} and its ${roadmap.progress.total} item${roadmap.progress.total === 1 ? '' : 's'}? Archive keeps them; this cannot be undone.`}
+          />
+        </div>
       </SidePanel>
       {!roadmap.items.length ? (
         <section className="card">
@@ -285,6 +297,7 @@ export default async function RoadmapDetail({
               <span className="section-tools">
                 {(current?.due ?? 0) > 0 && show !== 'revision' && (
                   <Link
+                    prefetch={false}
                     className="pill warning pill-link"
                     href={`/roadmap/${roadmap.id}?section=${encodeURIComponent(selected)}&show=revision`}
                   >
@@ -300,6 +313,7 @@ export default async function RoadmapDetail({
               <p className="muted mb-3">
                 {current!.done} done hidden ·{' '}
                 <Link
+                  prefetch={false}
                   className="link"
                   href={`/roadmap/${roadmap.id}?section=${encodeURIComponent(selected)}&show=all`}
                 >

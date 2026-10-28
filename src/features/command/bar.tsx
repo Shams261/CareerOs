@@ -14,7 +14,7 @@ import { Search } from 'lucide-react';
 import { closePanel, openPanel } from '@/components/side-panel';
 import { addNoteAction } from '@/features/notes/actions';
 import { OPEN_ITEM_EVENT } from '@/features/roadmap/events';
-import { ASK_EVENT, ASK_KEY } from '@/features/agent/events';
+import { askRumi } from '@/features/agent/events';
 import {
   noteCommand,
   askCommand,
@@ -213,16 +213,9 @@ export function CommandBar() {
       return;
     }
     if (command.ask) {
-      // Handed over in this tab's storage, never in the URL.
-      try {
-        sessionStorage.setItem(ASK_KEY, command.ask);
-      } catch {
-        return;
-      }
+      // Handed over in this tab's storage, never in the URL; the drawer opens where it can.
       hide(false);
-      if (location.pathname === '/rumi')
-        window.dispatchEvent(new Event(ASK_EVENT));
-      else router.push('/rumi');
+      askRumi(command.ask, (href) => router.push(href));
       return;
     }
     if (!command.href) return;

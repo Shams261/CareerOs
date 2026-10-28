@@ -209,6 +209,7 @@ export default async function Dsa({
                 <>
                   {' · last: '}
                   <Link
+                    prefetch={false}
                     className="link"
                     href={`/dsa/${lastAttempt.problem.id}`}
                   >
@@ -224,7 +225,11 @@ export default async function Dsa({
                 {nextInTopic && (
                   <>
                     {' · next: '}
-                    <Link className="link" href={`/dsa/${nextInTopic.id}`}>
+                    <Link
+                      prefetch={false}
+                      className="link"
+                      href={`/dsa/${nextInTopic.id}`}
+                    >
                       {nextInTopic.title}
                     </Link>
                   </>
@@ -250,7 +255,11 @@ export default async function Dsa({
                   const state = learningState(p, day);
                   return (
                     <li className="problem-row" key={p.id}>
-                      <Link className="problem-title" href={`/dsa/${p.id}`}>
+                      <Link
+                        prefetch={false}
+                        className="problem-title"
+                        href={`/dsa/${p.id}`}
+                      >
                         {p.title}
                       </Link>
                       <span className={`pill ${tone[p.confidence]}`}>

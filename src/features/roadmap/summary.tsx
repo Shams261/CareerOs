@@ -30,7 +30,11 @@ export async function Chain({ user, now }: { user: ScheduleUser; now: Date }) {
               className={`chain-ring${d.worked ? ' is-worked' : ''}${d.reviewed ? ' is-reviewed' : ''}${d.today ? ' is-today' : ''}`}
               title={text}
             >
-              <Link href={`/today?date=${d.day}`} aria-label={text} />
+              <Link
+                prefetch={false}
+                href={`/today?date=${d.day}`}
+                aria-label={text}
+              />
             </li>
           );
         })}

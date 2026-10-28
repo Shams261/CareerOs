@@ -1,3 +1,5 @@
+import { ConfirmDelete } from '@/components/confirm-delete';
+import { deleteGoalAction } from '@/features/deletes/actions';
 import { Suspense } from 'react';
 import { ROUTINE_TEMPLATES } from '@/features/schedule/templates';
 import { SetupRail } from '@/features/setup/rail';
@@ -32,13 +34,18 @@ import {
   type RoundLike,
 } from '@/features/today/domain';
 import { forTodayPicks } from '@/features/for-today/service';
+import { isDeleted } from '@/features/deletes/domain';
 import { TodayHeader } from '@/features/today/header';
 import { Launcher } from '@/features/today/launcher';
 import { Agenda } from '@/features/today/agenda';
 import { Attention, AttentionSkeleton } from '@/features/today/attention';
 import { AttentionBoundary } from '@/features/today/attention-boundary';
-import { SidePanel } from '@/features/today/panels';
+import { PanelButton, SidePanel } from '@/features/today/panels';
+import { goalLine } from '@/features/roadmap/domain';
+import { GoalForm } from '@/features/roadmap/forms';
+import { formatDuration } from '@/features/schedule/row';
 import { NudgeCard } from '@/features/nudges/card';
+import { NudgesOffCard } from '@/features/nudges/off-card';
 import { todaysNudge } from '@/features/nudges/service';
 import { CloseDayForm } from '@/features/close-day/form';
 import { DayPrintCard } from '@/features/day-print/print';
@@ -104,16 +111,16 @@ export default async function Today({
       where: { userId: user.id, endedAt: null },
       include: { task: true },
     }),
-    db().goal.findMany({
-      where: { userId: user.id },
-      select: { id: true, title: true },
-    }),
+    // Full rows: the block form lists them, and the nearest active one is Today's goal line.
+    db().goal.findMany({ where: { userId: user.id } }),
     db().routineBlock.count({ where: { userId: user.id } }),
     todaysInterviews(user, day),
     isToday ? openNotes(user.id) : Promise.resolve([]),
     isToday ? todaysNudge(user, day) : Promise.resolve(null),
     day <= today ? stopTime(user.id) : Promise.resolve(null),
   ]);
+  // A deleted block stays only for the calendar sync and Undo (WI-060).
+  const blocks = (plan?.blocks ?? []).filter((b) => !isDeleted(b));
   // The week so far as facts (WI-059): yesterday's blocks and this week's time, today only.
   const yesterday = shiftDay(today, -1);
   const monday = shiftDay(
@@ -150,6 +157,14 @@ export default async function Today({
         }),
       ])
     : [[], []];
+  // The goal on Today (WI-060): the nearest active goal by date, edited in a panel here. It
+  // comes from the goals already loaded; Roadmap keeps the item counts.
+  const nearestGoal =
+    goals
+      .filter((g) => g.status === 'ACTIVE')
+      .sort(
+        (a, b) => +(a.targetDate ?? Infinity) - +(b.targetDate ?? Infinity),
+      )[0] ?? null;
   const facts = isToday
     ? recentFacts({
         past: pastBlocks.map((b) => ({
@@ -159,14 +174,14 @@ export default async function Today({
           plannedEnd: b.plannedEnd,
           sessions: b._count.sessions,
         })),
-        todayBlocks: plan?.blocks ?? [],
+        todayBlocks: blocks,
         sessions: weekSessions,
         monday,
         yesterday,
         now,
       })
     : null;
-  const blocks = plan?.blocks ?? [];
+
   const rounds: RoundLike[] = interviews.map((r) => ({
     id: r.id,
     title: r.title,
@@ -193,6 +208,7 @@ export default async function Today({
               category: running.category,
               taskId: running.taskId,
               title: running.task?.title ?? null,
+              notes: running.notes,
             }
           : null,
         now,
@@ -292,7 +308,47 @@ export default async function Today({
             closing={closing}
             rested={!!plan?.restAt}
             facts={facts ? factsLine(facts) : ''}
+            goal={
+              isToday ? (
+                <p className="today-goal">
+                  <span>
+                    {nearestGoal
+                      ? goalLine(
+                          {
+                            ...nearestGoal,
+                            roadmap: { total: 0, done: 0 },
+                            week: { actual: 0 },
+                          },
+                          today,
+                          formatDuration,
+                        )
+                      : 'No goal yet'}
+                  </span>
+                  <PanelButton panel="goal" className="link-button">
+                    {nearestGoal ? 'Edit goal' : 'Set a goal'}
+                  </PanelButton>
+                </p>
+              ) : null
+            }
           />
+          {isToday && (
+            <SidePanel
+              id="goal"
+              title={nearestGoal ? 'Edit goal' : 'Set a goal'}
+            >
+              <GoalForm goal={nearestGoal ?? undefined} />
+              {nearestGoal && (
+                <div className="panel-danger">
+                  <ConfirmDelete
+                    action={deleteGoalAction}
+                    id={nearestGoal.id}
+                    label="Delete goal"
+                    question={`Delete the goal ${nearestGoal.title}? Its roadmaps, routines and blocks stay, no longer linked to it.`}
+                  />
+                </div>
+              )}
+            </SidePanel>
+          )}
           {generationError && (
             <p role="alert" className="form-message mb-5">
               This week could not be planned: {generationError}. Check your
@@ -382,6 +438,9 @@ export default async function Today({
               <aside className="today-rail" aria-labelledby="attention-heading">
                 <Suspense fallback={null}>
                   <SetupRail user={user} />
+                </Suspense>
+                <Suspense fallback={null}>
+                  <NudgesOffCard user={user} />
                 </Suspense>
                 <AttentionBoundary>
                   <Suspense fallback={<AttentionSkeleton />}>

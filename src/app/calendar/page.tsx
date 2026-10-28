@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { isDeleted } from '@/features/deletes/domain';
 import { openTemplates } from '@/features/schedule/templates';
 import { Briefcase, ChevronLeft, ChevronRight } from 'lucide-react';
 import { formatInTimeZone } from 'date-fns-tz';
@@ -106,6 +107,8 @@ export default async function Calendar({
     const r = rounds.find((x) => x.id === b.interviewRoundId);
     return r ? { title: r.title, company: r.application.company } : null;
   };
+  // Deleted blocks (WI-060) stay only for the calendar sync and Undo.
+  for (const p of plans) p.blocks = p.blocks.filter((b) => !isDeleted(b));
   const planOf = (day: string) =>
     plans.find((p) => p.date.toISOString().slice(0, 10) === day);
   const unplanned = days.some(
@@ -328,7 +331,7 @@ export default async function Calendar({
           Google Calendar{' '}
           {syncing ? statusText[connection.status] : 'not connected'}
         </span>
-        <Link className="link" href="/settings#google-heading">
+        <Link prefetch={false} className="link" href="/settings#google-heading">
           {syncing ? 'Manage in Settings' : 'Connect in Settings'}
         </Link>
       </p>

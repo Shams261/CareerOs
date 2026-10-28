@@ -14,11 +14,11 @@ import {
   MessageCircle,
   X,
 } from 'lucide-react';
-// Labels say what you do there; routes are unchanged. Ask Rumi (WI-040) leads the menu. The
-// phone bar holds the daily places; the rest sit behind More on a phone. Learn (/learn) stays
-// reachable by URL and from item links but is off the menu since WI-012.
+// Labels say what you do there; routes are unchanged. Ask Rumi (WI-040) closes the menu since
+// WI-060: Rumi opens from the round button on every page. The phone bar holds the daily places;
+// the rest sit behind More on a phone. Learn (/learn) stays reachable by URL and from item links
+// but is off the menu since WI-012.
 const items = [
-  ['/rumi', 'Ask Rumi', MessageCircle],
   ['/today', 'Today', Sun],
   ['/calendar', 'Plan', CalendarDays],
   ['/roadmap', 'Roadmap', Route],
@@ -26,9 +26,10 @@ const items = [
   ['/jobs', 'Jobs', Briefcase],
   ['/review', 'Weekly review', ClipboardCheck],
   ['/settings', 'Settings', Settings],
+  ['/rumi', 'Ask Rumi', MessageCircle],
 ] as const;
-/** The phone bar: the places used daily; the rest (Practice since WI-040) sit behind More. */
-const PHONE = ['/today', '/rumi', '/roadmap', '/jobs'] as const;
+/** The phone bar: the places used daily (Plan since WI-060; Rumi is the round button). */
+const PHONE = ['/today', '/calendar', '/roadmap', '/jobs'] as const;
 /** The phone bar's shorter words. */
 const SHORT: Record<string, string> = { '/rumi': 'Rumi' };
 const bar = PHONE.map((href) => items.find((i) => i[0] === href)!);

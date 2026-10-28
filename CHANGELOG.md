@@ -2,6 +2,18 @@
 
 ## Unreleased
 
+- WI-060 (Rumi anywhere, a better running session, delete everywhere, and a faster app; plan in `output/Silsila-WI-060-Plan.pdf`):
+  - **Speed.** Every list link stops prefetching (57 links: Practice's problems, roadmap rows and items, job summaries, Learn), and the roadmap list is memoized, so For today and the overview share one read of all items. Local statements per page: Practice 59 → 31, Roadmap 43 → 36, Weekly review 37 → 31, Settings 37 → 34, Jobs 26 → 22, Plan 22 → 18, Rumi 18 → 14; Today stays about 61 with the new goal line and card.
+  - **For today in curriculum order** with no current Practice topic (topic order, Easy first, core before more practice). On a phone the Roadmap puts For today first and its revision rail last, without the item For today already shows.
+  - **Rumi from any page.** A round button at the bottom right opens a chat drawer beside the page (a sheet on a phone); the page and its address stay as they are, the conversation stays while the tab lives, and Open full page goes to /rumi. ⌘K "Ask Rumi · …", Plan with Rumi and Rumi noticed open the drawer. Ask Rumi moves to the end of the sidebar; the phone bar holds Today, Plan, Roadmap, Jobs and More.
+  - **Rumi without the cost line.** The composer shows the month's spend only above 80% of the cap; Settings keeps it.
+  - **Today while a session runs.** The launcher counts down to the block's target with a thin bar ("19:59 left of 20 min"), shows the intention, and offers Complete first, then Stop and Focus. The sidebar card and the phone strip step aside, so there is one timer.
+  - **The goal on Today.** The nearest active goal sits under the facts line with Edit goal (or Set a goal) in a panel. A goal can name a **target role** ("Backend engineer, product company"); it reads with the goal and Rumi weighs plans toward it.
+  - **Delete on every record.** A block added for one day (Undo), a logged session (Undo), a prep item or weak area (Undo), an interview (confirmation), an application with its rounds and history (confirmation), a goal (confirmation; its roadmaps and blocks stay), a roadmap (confirmation, beside Archive). A practice problem the owner added is deleted with its attempts; one from the imported curriculum is **hidden** (Show again brings it back). A deleted block is cancelled as "Deleted", so Google drops its event, and a block with recorded time keeps it until its sessions are deleted.
+  - **Reminders you can see.** While every study nudge is off, Today shows "Study nudges are off" with Turn on in Settings and Dismiss (30 days). Each reminder row in Settings adds "Last sent Oct 28, 08:00".
+
+  Migration `20261028150000_goal_role_problem_hidden` (`Goal.targetRole`, `DsaProblem.hiddenAt`).
+
 - WI-059 (Next step everywhere, from the six Manus AI suggestions checked in `output/Silsila-Suggestions-Plan.pdf`, with the owner's decisions of 2026-10-28):
   - **For today.** Roadmap and Practice open with three picks, each with its reason from the owner's own records ("Revise Two Sum · Revision overdue by 2 days · Red", "Code review drill · Northwind Labs code review on Oct 30 · P0", "Two Sum II · Current topic Two Pointers · not tried yet"): the oldest revision due, what the nearest interview tests (or the Continue item), and one problem (Red first). The first Open is the page's primary. No AI, no writes.
   - **Today never looks back first.** With nothing current or next, the launcher offers the top pick with **Start 20 min** (a 20-minute block added now, then Focus). Earlier blocks without a decision become a quiet link. After Complete, Today says "Done · 45 min recorded. Next: System design at 20:00." with Start it, including when Complete was pressed in Focus.

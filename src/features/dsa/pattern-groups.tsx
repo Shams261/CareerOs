@@ -80,7 +80,11 @@ export function PatternGroups({
               {g.rows.map((p) => (
                 <div key={p.id} className="problem-line">
                   <span className="problem-cell-title">
-                    <Link className="problem-title" href={`/dsa/${p.id}`}>
+                    <Link
+                      prefetch={false}
+                      className="problem-title"
+                      href={`/dsa/${p.id}`}
+                    >
                       {p.title}
                     </Link>
                     {p.more && (

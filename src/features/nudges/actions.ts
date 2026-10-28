@@ -1,5 +1,6 @@
 'use server';
 import { revalidatePath } from 'next/cache';
+import { cookies } from 'next/headers';
 import { z } from 'zod';
 import { forgetAll } from '@/server/memo';
 import { db, owner } from '@/server/db';
@@ -10,7 +11,7 @@ import { saveBlock } from '@/features/schedule/editing';
 import { execute } from '@/features/execution/service';
 import type { ActionState } from '@/features/schedule/actions';
 import { syncSoon } from '@/features/calendar/background';
-import { PAUSED_FOREVER } from './domain';
+import { NUDGES_CARD_COOKIE, PAUSED_FOREVER } from './domain';
 import {
   closeNudges,
   nudgeFeedback,
@@ -190,4 +191,19 @@ export async function moveToTomorrowAction(_s: ActionState, form: FormData) {
     syncSoon(user);
     return `Moved to tomorrow at ${start}.`;
   });
+}
+
+/** Dismiss on Today's "Study nudges are off" card: hidden for 30 days (WI-060). */
+export async function dismissNudgesCardAction() {
+  await owner();
+  (await cookies()).set(NUDGES_CARD_COOKIE, '1', {
+    httpOnly: true,
+    sameSite: 'lax',
+    secure:
+      process.env.NODE_ENV === 'production' &&
+      process.env.APP_BASE_URL?.startsWith('https://') === true,
+    path: '/',
+    maxAge: 60 * 60 * 24 * 30,
+  });
+  revalidatePath('/today');
 }

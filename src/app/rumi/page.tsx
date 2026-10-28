@@ -4,7 +4,7 @@ import { owner } from '@/server/db';
 import { dayKey, hhmm, shortDate } from '@/lib/time';
 import { PanelButton, SidePanel } from '@/components/side-panel';
 import { aiState } from '@/features/ai/service';
-import { budgetLine } from '@/features/ai/domain';
+import { budgetLine, nearCap } from '@/features/ai/domain';
 import { AGENT_NAME } from '@/features/agent/domain';
 import { readMetadata, readTools } from '@/features/agent/plan-domain';
 import { conversation, conversations } from '@/features/agent/service';
@@ -131,6 +131,7 @@ export default async function Rumi({
             tools: readTools(m.metadata),
           }))}
           budget={budgetLine(state.spent)}
+          nearCap={nearCap(state.spent)}
           today={dayKey(new Date(), user.timezone)}
         />
       </div>

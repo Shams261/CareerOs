@@ -102,3 +102,28 @@ export const STATUS_FILTERS = {
   overdue: 'Overdue',
 } as const;
 export type StatusFilter = keyof typeof STATUS_FILTERS;
+
+const LEVEL_RANK: Record<string, number> = { EASY: 0, MEDIUM: 1, HARD: 2 };
+/**
+ * Problems in curriculum order, as the Practice list shows them (WI-060): topic order, then
+ * Easy → Medium → Hard, core problems before "More practice", then title.
+ */
+export function curriculumOrder<
+  T extends {
+    title: string;
+    topicId: string;
+    difficulty: string;
+    notes?: string | null;
+  },
+>(problems: T[], topics: { id: string }[]) {
+  const topicRank = new Map(topics.map((t, i) => [t.id, i]));
+  const more = (p: T) => Number(/More practice/.test(p.notes ?? ''));
+  return [...problems].sort(
+    (a, b) =>
+      (topicRank.get(a.topicId) ?? Infinity) -
+        (topicRank.get(b.topicId) ?? Infinity) ||
+      (LEVEL_RANK[a.difficulty] ?? 3) - (LEVEL_RANK[b.difficulty] ?? 3) ||
+      more(a) - more(b) ||
+      a.title.localeCompare(b.title),
+  );
+}

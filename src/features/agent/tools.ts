@@ -321,7 +321,7 @@ async function getPractice(user: ScheduleUser, now: Date) {
   const today = dayKey(now, user.timezone);
   const [problems, attempts] = await Promise.all([
     db().dsaProblem.findMany({
-      where: { userId: user.id },
+      where: { userId: user.id, hiddenAt: null },
       select: { title: true, confidence: true, nextRevisionAt: true },
     }),
     db().dsaAttempt.findMany({

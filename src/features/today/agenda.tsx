@@ -2,6 +2,12 @@ import Link from 'next/link';
 import { ArrowRight, Briefcase, ChevronRight } from 'lucide-react';
 import { formatInTimeZone } from 'date-fns-tz';
 import { Disclosure } from '@/components/disclosure';
+import { ActionForm } from '@/components/action-form';
+import { Button } from '@/components/ui/button';
+import {
+  deleteBlockAction,
+  deleteSessionAction,
+} from '@/features/deletes/actions';
 import { FeedbackOutlet } from '@/components/feedback-outlet';
 import { CategoryIcon } from '@/components/category-icon';
 import { ResourceLink } from '@/components/resource-link';
@@ -308,6 +314,19 @@ function BlockRow({
                   !!s.endedAt,
                 )}
                 {s.notes ? ` · ${s.notes}` : ''}
+                {s.endedAt && (
+                  <ActionForm
+                    action={deleteSessionAction}
+                    broadcast="blocks"
+                    label="Delete this session"
+                    className="inline-delete"
+                  >
+                    <input type="hidden" name="id" value={s.id} />
+                    <Button variant="link" className="danger small">
+                      Delete
+                    </Button>
+                  </ActionForm>
+                )}
               </li>
             ))}
           </ul>
@@ -320,6 +339,21 @@ function BlockRow({
           Edit this day
         </h3>
         <BlockForm block={block} day={day} zone={zone} goals={goals} />
+        {/* A block added for one day can be deleted (WI-060); a routine's is cancelled. */}
+        {!block.routineKey && !block.sessions.length && (
+          <div className="panel-danger">
+            <ActionForm
+              action={deleteBlockAction}
+              broadcast="blocks"
+              label={`Delete ${title}`}
+            >
+              <input type="hidden" name="id" value={block.id} />
+              <Button variant="destructive" className="small">
+                Delete this block
+              </Button>
+            </ActionForm>
+          </div>
+        )}
       </SidePanel>
     </BlockRowShell>
   );

@@ -2,7 +2,8 @@ import Link from 'next/link';
 import { ArrowRight } from 'lucide-react';
 import { ActionForm } from '@/components/action-form';
 import { Button } from '@/components/ui/button';
-import { LiveTimer } from '@/features/execution/live';
+import { LiveCountdown, LiveTimer } from '@/features/execution/live';
+import { focusTarget, intentionOf } from '@/features/execution/focus-domain';
 import { stopUnlinkedAction } from '@/features/schedule/actions';
 import { ExecutionControls } from '@/features/schedule/forms';
 import { categoryGroup } from '@/features/review/domain';
@@ -78,6 +79,7 @@ export function Launcher({
     title = block
       ? blockTitle(block, round)
       : (state.session.title ?? categoryGroup(state.session.category));
+    const intention = intentionOf(state.session.notes);
     context = (
       <>
         {round
@@ -86,9 +88,23 @@ export function Launcher({
             ? categoryGroup(block.category)
             : categoryGroup(state.session.category)}
         {round && <> · {prepLink(round)}</>}
+        {intention && <span className="launcher-intention">“{intention}”</span>}
       </>
     );
-    timer = (
+    // Like Focus (WI-060): time left to the block's target, else time since the start.
+    const target = block
+      ? focusTarget({
+          startedAt: state.session.startedAt,
+          plannedStart: block.plannedStart,
+          plannedEnd: block.plannedEnd,
+        })
+      : null;
+    timer = target ? (
+      <LiveCountdown
+        startedAt={state.session.startedAt.toISOString()}
+        target={target.toISOString()}
+      />
+    ) : (
       <LiveTimer
         startedAt={state.session.startedAt.toISOString()}
         className="launcher-timer"

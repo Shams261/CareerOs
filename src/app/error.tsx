@@ -20,7 +20,7 @@ export default function ErrorPage({
       </p>
       <div className="actions">
         <Button onClick={reset}>Try again</Button>
-        <Link className="button secondary" href="/today">
+        <Link prefetch={false} className="button secondary" href="/today">
           Back to Today
         </Link>
       </div>

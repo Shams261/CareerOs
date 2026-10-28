@@ -104,14 +104,20 @@ export function RumiChat({
   title,
   initial,
   budget: initialBudget,
+  nearCap: initialNear = false,
   today,
+  drawer = false,
 }: {
   conversationId: string | null;
   title: string | null;
   initial: Message[];
   budget: string;
+  /** The month's spend shows only near the cap; Settings always has it (WI-060). */
+  nearCap?: boolean;
   /** The owner's today, so a plan for today reads "Today". */
   today: string;
+  /** In the drawer (WI-060) the page and its address stay as they are. */
+  drawer?: boolean;
 }) {
   const router = useRouter();
   const [messages, setMessages] = useState(initial);
@@ -119,12 +125,14 @@ export function RumiChat({
   const [text, setText] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [budget, setBudget] = useState(initialBudget);
+  const [near, setNear] = useState(initialNear);
   const [pending, start] = useTransition();
   const [reads, setReads] = useState<string[]>([]);
   const [confirmDelete, setConfirmDelete] = useState(false);
   // A refresh (after Add to plan, or Undo) brings the stored cards; keep any question in flight.
   const [seenInitial, setSeenInitial] = useState(initial);
-  if (initial !== seenInitial && !pending) {
+  // The drawer has no stored copy to take: a page refresh must not clear it (WI-060).
+  if (!drawer && initial !== seenInitial && !pending) {
     setSeenInitial(initial);
     setMessages(initial);
   }
@@ -147,6 +155,7 @@ export function RumiChat({
         setReads((r) => [...r, tool]),
       );
       if (result.budget) setBudget(result.budget);
+      if (result.nearCap !== undefined) setNear(result.nearCap);
       if (!result.ok) {
         setError(result.message);
         return;
@@ -154,7 +163,10 @@ export function RumiChat({
       setMessages((m) => [...m, { ...result.reply, role: 'ASSISTANT' }]);
       if (result.conversationId !== current) {
         setCurrent(result.conversationId);
-        router.replace(`/rumi?c=${result.conversationId}`, { scroll: false });
+        if (!drawer)
+          router.replace(`/rumi?c=${result.conversationId}`, {
+            scroll: false,
+          });
       }
       router.refresh();
     });
@@ -187,12 +199,23 @@ export function RumiChat({
     <section className="rumi-chat" aria-label={title ?? `Ask ${AGENT_NAME}`}>
       {current && (
         <div className="rumi-chat-head">
-          <h2 className="rumi-chat-title">{title ?? 'New conversation'}</h2>
+          {drawer ? (
+            <a className="link" href={`/rumi?c=${current}`}>
+              Open full page
+            </a>
+          ) : (
+            <h2 className="rumi-chat-title">{title ?? 'New conversation'}</h2>
+          )}
           {confirmDelete ? (
             <ActionForm
               action={deleteConversationAction}
               className="rumi-confirm"
-              onSuccess={() => router.replace('/rumi')}
+              onSuccess={() => {
+                if (!drawer) return router.replace('/rumi');
+                setCurrent(null);
+                setMessages([]);
+                setConfirmDelete(false);
+              }}
             >
               <input type="hidden" name="id" value={current} />
               <span>Delete this conversation?</span>
@@ -318,9 +341,8 @@ export function RumiChat({
           <ArrowUp size={18} aria-hidden="true" />
         </button>
       </form>
-      <p className="rumi-budget">
-        {budget} · answers from your own records, on a zero-retention endpoint
-      </p>
+      {/* The spend lives in Settings; here only when the month is near its cap (WI-060). */}
+      {near && <p className="rumi-budget">{budget}</p>}
     </section>
   );
 }

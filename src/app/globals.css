@@ -4403,6 +4403,10 @@ a.attention-link:hover .attention-title {
     grid-template-columns: minmax(0, 1fr);
     grid-template-areas: 'rail' 'main';
   }
+  /* The roadmap's primary is For today in main; its revision rail follows (WI-060). */
+  .roadmap-workspace.is-today {
+    grid-template-areas: 'main' 'rail';
+  }
 }
 @media (max-width: 700px) {
   .jobs-main .attention-link {
@@ -6813,4 +6817,210 @@ button.attention-link {
   border-color: var(--primary);
   color: var(--primary);
   font-weight: 600;
+}
+
+/* WI-060: Rumi from any page — the round button and its drawer beside the page. */
+.rumi-fab {
+  position: fixed;
+  right: 24px;
+  bottom: 24px;
+  z-index: 30;
+  display: inline-grid;
+  place-items: center;
+  width: 52px;
+  height: 52px;
+  border: 0;
+  border-radius: 50%;
+  background: var(--primary);
+  color: var(--on-primary);
+  box-shadow: var(--shadow-md);
+  cursor: pointer;
+}
+.rumi-fab:hover {
+  background: var(--primary-hover);
+}
+.rumi-fab:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 3px;
+}
+.rumi-drawer {
+  position: fixed;
+  right: 24px;
+  bottom: 88px;
+  z-index: 30;
+  display: flex;
+  flex-direction: column;
+  width: min(440px, calc(100vw - 48px));
+  max-height: min(680px, calc(100vh - 120px));
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+  overflow: hidden;
+}
+.rumi-drawer[hidden] {
+  display: none;
+}
+.rumi-drawer-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+.rumi-drawer-head h2 {
+  margin: 0;
+  font-size: 17px;
+}
+.rumi-drawer .rumi-chat {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 12px 16px 16px;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+.rumi-drawer .rumi-log {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  align-content: start;
+}
+/* Focus and the drawer never share the screen. */
+.shell:has(.focus-card) .rumi-fab {
+  display: none;
+}
+@media (max-width: 700px) {
+  .rumi-fab {
+    right: 16px;
+    bottom: calc(76px + env(safe-area-inset-bottom));
+  }
+  .rumi-drawer {
+    right: 0;
+    left: 0;
+    bottom: calc(64px + env(safe-area-inset-bottom));
+    width: 100%;
+    max-height: calc(100vh - 140px);
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  }
+  /* The sheet has its own Close; the round button would cover its composer. */
+  .rumi-fab[aria-expanded='true'] {
+    display: none;
+  }
+}
+.live-countdown {
+  display: grid;
+  justify-items: end;
+  gap: 4px;
+  min-width: 160px;
+}
+.live-countdown-of {
+  font-size: 13px;
+  color: var(--ink-2);
+}
+.live-countdown-bar {
+  display: block;
+  width: 100%;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--subtle);
+  overflow: hidden;
+}
+.live-countdown-bar > i {
+  display: block;
+  height: 100%;
+  background: var(--primary);
+}
+.launcher-intention {
+  display: block;
+  margin-top: 4px;
+  font-style: italic;
+  color: var(--ink-2);
+}
+/* Today's launcher holds the running session; the sidebar card and phone strip step aside. */
+.shell:has(.launcher.is-live) .running-now {
+  display: none;
+}
+@media (max-width: 700px) {
+  .live-countdown {
+    justify-items: start;
+  }
+}
+.today-goal {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  align-items: baseline;
+  margin: 4px 0 0;
+  font-size: 14px;
+  color: var(--ink-2);
+}
+.today-goal > span {
+  font-weight: 600;
+  color: var(--foreground);
+}
+.confirm-delete {
+  display: grid;
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid var(--danger-soft);
+  border-radius: var(--radius-md);
+  background: var(--surface-2);
+}
+.confirm-delete-question {
+  margin: 0;
+  font-weight: 600;
+  color: var(--foreground);
+}
+.panel-danger {
+  margin-top: 24px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border-subtle);
+}
+.inline-delete,
+.inline-delete fieldset {
+  display: inline-flex;
+  margin: 0 0 0 6px;
+  padding: 0;
+  border: 0;
+  vertical-align: middle;
+}
+.icon-button {
+  display: inline-grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+}
+.icon-button:hover {
+  background: var(--danger-soft);
+  color: var(--danger);
+}
+.nudges-off {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 12px;
+  margin-bottom: 24px;
+}
+.nudges-off h2 {
+  margin: 0 0 4px;
+  font-size: 17px;
+}
+.nudges-off p {
+  margin: 0 0 10px;
+  color: var(--ink-2);
+}
+.nudges-off-icon {
+  margin-top: 3px;
+  color: var(--warning);
+}
+.today-rail > .nudges-off {
+  order: 1;
 }

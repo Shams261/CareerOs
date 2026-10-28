@@ -8,6 +8,8 @@ import { Suspense } from 'react';
 import { Navigation } from '@/components/navigation';
 import { RunningNow } from '@/features/execution/running';
 import { PresenceBeat } from '@/features/nudges/presence';
+import { RumiDrawer } from '@/features/agent/drawer';
+import { aiConfig } from '@/lib/env';
 import { CaptureForm } from '@/features/notes/forms';
 import './globals.css';
 import type { Viewport } from 'next';
@@ -73,6 +75,7 @@ export default async function RootLayout({
           <aside className="sidebar" aria-label="Workspace">
             <div className="sidebar-head">
               <Link
+                prefetch={false}
                 href="/today"
                 className="brand-home"
                 aria-label="Silsila — Today"
@@ -97,6 +100,8 @@ export default async function RootLayout({
           </main>
           <PresenceBeat />
           <CommandBar />
+          {/* Rumi from any page (WI-060), only where the server has AI. */}
+          {aiConfig() && <RumiDrawer />}
         </div>
       </body>
     </html>

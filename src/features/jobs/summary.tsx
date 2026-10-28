@@ -29,6 +29,7 @@ export async function InterviewMentions({
         {items.map((i) => (
           <li className="dsa-item" key={i.id}>
             <Link
+              prefetch={false}
               className="link"
               href={`/jobs/${i.round.applicationId}#round-${i.round.id}`}
             >

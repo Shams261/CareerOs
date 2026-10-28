@@ -20,7 +20,7 @@ export async function RunningNow() {
   return (
     <section className="running-now" aria-label="Running session">
       <p className="eyebrow">Running</p>
-      <Link className="running-title" href="/today">
+      <Link prefetch={false} className="running-title" href="/today">
         {running.task?.title ?? categoryGroup(running.category)}
       </Link>
       <LiveTimer startedAt={running.startedAt.toISOString()} />

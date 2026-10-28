@@ -38,7 +38,7 @@ export default async function Subject({
     review = topics.filter((t) => t.status === 'NEEDS_REVISION').length;
   return (
     <>
-      <Link className="link" href="/learn">
+      <Link prefetch={false} className="link" href="/learn">
         <ArrowLeft size={14} aria-hidden="true" /> Learning
       </Link>
       <p className="eyebrow mt-4">
@@ -87,7 +87,11 @@ export default async function Subject({
             </label>
             <div className="actions">
               <Button className="secondary">Filter</Button>
-              <Link className="link" href={`/learn/subjects/${id}`}>
+              <Link
+                prefetch={false}
+                className="link"
+                href={`/learn/subjects/${id}`}
+              >
                 Clear
               </Link>
             </div>

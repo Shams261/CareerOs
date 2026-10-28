@@ -56,6 +56,8 @@ export type RunningLike = {
   category: string;
   taskId: string | null;
   title: string | null;
+  /** The session's notes, for the intention line on the launcher (WI-060). */
+  notes?: string | null;
 };
 
 const ELIGIBLE = ['PLANNED', 'IN_PROGRESS'];
