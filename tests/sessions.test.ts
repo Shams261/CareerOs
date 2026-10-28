@@ -101,6 +101,13 @@ describe.skipIf(!url)('Sessions in Settings (WI-057)', () => {
       // Signing out goes through the app, which drops every cached session.
       await revokeSession(token, now);
       expect(await resolveSession(token, now)).toBeNull();
+      // An unknown token is never kept, so made-up cookies cannot grow the cache (WI-062).
+      const cache = (
+        globalThis as unknown as { silsilaSessions: Map<string, unknown> }
+      ).silsilaSessions;
+      const before = cache.size;
+      expect(await resolveSession('x'.repeat(43), now)).toBeNull();
+      expect(cache.size).toBe(before);
     } finally {
       delete process.env.SNAPSHOT_CACHE;
     }

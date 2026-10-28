@@ -902,10 +902,14 @@ async function loadJobTodaySummary(user: ScheduleUser, now = new Date()) {
 }
 /** Cached for a few seconds per owner; every write drops it (see src/server/memo.ts). */
 export const jobSnapshot = (user: ScheduleUser, now = new Date()) =>
-  memo(user.id, 'jobs', () => loadJobSnapshot(user, now));
+  memo(user.id, `jobs:${dayKey(now, user.timezone)}`, () =>
+    loadJobSnapshot(user, now),
+  );
 /** Cached for a few seconds per owner; every write drops it (see src/server/memo.ts). */
 export const jobTodaySummary = (user: ScheduleUser, now = new Date()) =>
-  memo(user.id, 'jobs-today', () => loadJobTodaySummary(user, now));
+  memo(user.id, `jobs-today:${dayKey(now, user.timezone)}`, () =>
+    loadJobTodaySummary(user, now),
+  );
 /** Cached for a few seconds per owner; every write drops it (see src/server/memo.ts). */
 export const todaysInterviews = (user: ScheduleUser, day: string) =>
   memo(user.id, `interviews:${day}`, () => loadTodaysInterviews(user, day));
@@ -1040,4 +1044,6 @@ async function loadFunnel(user: ScheduleUser, now: Date) {
   );
 }
 export const funnelSnapshot = (user: ScheduleUser, now = new Date()) =>
-  memo(user.id, 'jobs-funnel', () => loadFunnel(user, now));
+  memo(user.id, `jobs-funnel:${dayKey(now, user.timezone)}`, () =>
+    loadFunnel(user, now),
+  );

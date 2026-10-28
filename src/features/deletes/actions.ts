@@ -203,6 +203,8 @@ export async function deleteSessionAction(
           startedAt: s.startedAt.toISOString(),
           endedAt: s.endedAt!.toISOString(),
           notes: s.notes,
+          attemptIds: s.attemptIds,
+          activityIds: s.activityIds,
         },
       },
     };

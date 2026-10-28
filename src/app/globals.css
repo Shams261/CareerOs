@@ -6893,6 +6893,15 @@ button.attention-link {
 .shell:has(.focus-card) .rumi-fab {
   display: none;
 }
+/* Room under the last row, so the round button never sits on the page's end (WI-062). */
+.shell:has(.rumi-fab) .content {
+  padding-bottom: 104px;
+}
+@media (max-width: 700px) {
+  .shell:has(.rumi-fab) .content {
+    padding-bottom: calc(148px + env(safe-area-inset-bottom));
+  }
+}
 @media (max-width: 700px) {
   .rumi-fab {
     right: 16px;

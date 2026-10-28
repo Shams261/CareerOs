@@ -115,7 +115,9 @@ async function loadNoticed(user: ScheduleUser, now: Date) {
 }
 /** Today's "Rumi noticed" cards, at most two. */
 export const noticedFor = (user: ScheduleUser, now = new Date()) =>
-  memo(user.id, 'noticed', () => loadNoticed(user, now));
+  memo(user.id, `noticed:${dayKey(now, user.timezone)}`, () =>
+    loadNoticed(user, now),
+  );
 
 /** The owner's answer: an action taken or Dismiss. Either hides the card for a few days. */
 export async function answerNoticed(

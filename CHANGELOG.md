@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- WI-062 (wrap-up fixes from the 2026-10-28 audit). No migration:
+  - **Fresh after every write again.** The build compiles the snapshot cache once per layer, so Undo, Dismiss on Rumi noticed, Mark revised in the deck, notes, nudges, Rumi and prep actions cleared a copy the pages never read; since WI-061 the page could show the old state for three minutes. The cache now lives once per process.
+  - **A new day reads fresh.** Snapshots that depend on the date carry the owner's day, so For today, revisions, jobs, Noticed and the week never show yesterday's after midnight.
+  - **Rumi keeps the conversation.** A question handed to the open drawer (⌘K, Rumi noticed, Plan with Rumi) continues it instead of starting a new one, and waits while an answer is coming instead of sending twice.
+  - **Smaller fixes.** The session cache keeps only real sessions (at most fifty). Turning notifications on or off updates the setup steps at once. Undo of a deleted session runs under the lock and links its attempts and activities again. Pages leave room at the end for Rumi's round button. The unused `progress-bar.tsx` is removed, and CLAUDE.md now says the Google app is In production and Calendar is connected.
+
 - WI-061 (speed; research in `output/Silsila-Speed-Research.pdf`). No migration, no change on screen apart from speed:
   - **Sign-in read once a minute.** A resolved session is kept 60 seconds in the process, shared by the proxy and the page; sign-out, Sign out other devices and every write clear it. Responses carry `Server-Timing: auth`.
   - **Snapshots last three minutes** instead of twenty seconds, and the one-minute reminder run no longer clears them (it writes only inbox rows). Every write still clears them. The roadmap detail and the application page are memoized too.

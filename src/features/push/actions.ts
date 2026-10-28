@@ -2,12 +2,15 @@
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { owner } from '@/server/db';
+import { forgetAll } from '@/server/memo';
 import { removeSubscription, saveSubscription, sendTest } from './service';
 
 type Result = { ok: boolean; message: string };
 async function run(work: () => Promise<string>): Promise<Result> {
   try {
     const message = await work();
+    // The setup steps count this device's subscription (WI-062).
+    forgetAll();
     revalidatePath('/settings');
     return { ok: true, message };
   } catch (error) {

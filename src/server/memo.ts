@@ -6,7 +6,17 @@ import 'server-only';
  * scheduler run, so a change is never read stale. Disabled under test so service tests stay exact.
  */
 type Entry = { value: Promise<unknown>; expires: number };
-const store = new Map<string, Entry>();
+/**
+ * On globalThis (WI-062): the build compiles this module once per layer (pages, and server
+ * actions imported by client components), and each copy would otherwise hold its own map, so an
+ * action's `forgetAll` would leave the pages' snapshots in place. One map and one listener set
+ * per process, whichever copy runs.
+ */
+const shared = globalThis as unknown as {
+  silsilaSnapshots?: Map<string, Entry>;
+  silsilaForgetListeners?: Set<() => void>;
+};
+const store = (shared.silsilaSnapshots ??= new Map());
 /**
  * Every write and every scheduled job clears the snapshots (ADR-017), so their age only guards
  * against time passing (a due date turning overdue). Three minutes since WI-061: most visits
@@ -35,7 +45,7 @@ export function memo<T>(
   value.catch(() => store.delete(key));
   return value;
 }
-const listeners = new Set<() => void>();
+const listeners = (shared.silsilaForgetListeners ??= new Set());
 /** Other in-process caches (the session cache, WI-061) clear with the snapshots. */
 export function onForget(fn: () => void) {
   listeners.add(fn);

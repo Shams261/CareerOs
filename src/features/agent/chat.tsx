@@ -172,24 +172,34 @@ export function RumiChat({
     });
   };
 
-  // "Ask Rumi · …" from the command bar: on arrival, or while already here.
+  // "Ask Rumi · …" from the command bar, Rumi noticed or Plan with Rumi: on arrival, or while
+  // already here. The listener reads the latest render (WI-062): the drawer stays mounted across
+  // pages, so a handover must continue the open conversation, and one that arrives while an
+  // answer is coming waits in storage until it is done.
+  const take = () => {
+    if (pending) return;
+    let q: string | null = null;
+    try {
+      q = sessionStorage.getItem(ASK_KEY);
+      sessionStorage.removeItem(ASK_KEY);
+    } catch {
+      q = null;
+    }
+    if (q) send(q);
+  };
+  const latestTake = useRef(take);
   useEffect(() => {
-    const take = () => {
-      let q: string | null = null;
-      try {
-        q = sessionStorage.getItem(ASK_KEY);
-        sessionStorage.removeItem(ASK_KEY);
-      } catch {
-        q = null;
-      }
-      if (q) send(q);
-    };
-    take();
-    window.addEventListener(ASK_EVENT, take);
-    return () => window.removeEventListener(ASK_EVENT, take);
-    // `send` reads the latest state through the transition; run once.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    latestTake.current = take;
+  });
+  useEffect(() => {
+    const listen = () => latestTake.current();
+    window.addEventListener(ASK_EVENT, listen);
+    return () => window.removeEventListener(ASK_EVENT, listen);
   }, []);
+  // On arrival, and again once an answer finishes, in case a question waited.
+  useEffect(() => {
+    if (!pending) latestTake.current();
+  }, [pending]);
 
   useEffect(() => {
     end.current?.scrollIntoView({ block: 'end', behavior: 'smooth' });
