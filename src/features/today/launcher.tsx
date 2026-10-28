@@ -114,11 +114,19 @@ export function Launcher({
     const round = roundOf(block);
     eyebrow = `${state.kind === 'current' ? 'Now' : 'Next'} · ${hhmm(block.plannedStart, zone)}–${hhmm(block.plannedEnd, zone)}`;
     title = blockTitle(block, round);
+    // The kind is left out when it only repeats the title ("DSA" under "DSA", WI-058).
+    const kind = round
+      ? `${round.company} · Interview`
+      : categoryGroup(block.category);
+    const facts = [
+      round || kind.toLowerCase() !== title.toLowerCase() ? kind : null,
+      state.kind === 'next'
+        ? `Starts in ${startsIn(block.plannedStart, now)}`
+        : `Until ${hhmm(block.plannedEnd, zone)}`,
+    ].filter(Boolean);
     context = (
       <>
-        {round ? `${round.company} · Interview` : categoryGroup(block.category)}
-        {state.kind === 'next' &&
-          ` · Starts in ${startsIn(block.plannedStart, now)}`}
+        {facts.join(' · ')}
         {round && <> · {prepLink(round)}</>}
       </>
     );

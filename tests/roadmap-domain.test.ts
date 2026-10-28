@@ -113,6 +113,23 @@ describe('WI-012 tracker helpers', () => {
       nextItem(items.map((i) => ({ ...i, status: 'DONE' as const }))),
     ).toBeNull();
   });
+  it('passes over the roadmap guide while there is study left (WI-058)', () => {
+    const guide = {
+      ...items[1],
+      id: 'g',
+      title: 'Sources and how to study this roadmap',
+      section: 'How to use this roadmap',
+      status: 'NOT_STARTED' as const,
+      createdAt: new Date('2026-10-01T00:00:00Z'),
+    };
+    const open = items.filter((i) => i.id !== 'c');
+    expect(nextItem([guide, ...open])?.id).toBe('b');
+    // Only the guide left: it is the next item after all.
+    expect(
+      nextItem([guide, ...open.map((i) => ({ ...i, status: 'DONE' as const }))])
+        ?.id,
+    ).toBe('g');
+  });
   it('parses and prints scenario and reference lines', () => {
     const scenarios = parseScenarioLines(
       'start | Start | Teach it\n\nDoubt Mode | Doubt | Explain | with a pipe',

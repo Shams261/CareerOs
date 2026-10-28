@@ -192,7 +192,7 @@ export function PriorityForm({
           <input name="category" maxLength={60} placeholder="DSA" />
         </label>
         <label>
-          Target (optional number)
+          Target (optional)
           <input name="target" type="number" min="1" max="1000" />
         </label>
         <label>
@@ -222,7 +222,7 @@ export function PrepareNextWeekForm({ monday }: { monday: string }) {
   return (
     <ActionForm action={prepareNextWeekAction} label="Prepare next week">
       <input type="hidden" name="monday" value={monday} />
-      <Button>Prepare next week from my routines</Button>
+      <Button variant="secondary">Prepare next week from my routines</Button>
     </ActionForm>
   );
 }

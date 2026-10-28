@@ -91,6 +91,24 @@ describe('Rumi noticed', () => {
     ).toEqual([]);
   });
 
+  it('counts a never-recorded kind as silent only since it was first planned (WI-058)', () => {
+    // A fresh start planned yesterday: nothing to notice on the first mornings.
+    expect(
+      noticed(base({ blocks: [block('2026-10-26', '07:00', '08:00')] })),
+    ).toEqual([]);
+    const cards = noticed(
+      base({
+        blocks: [
+          block('2026-10-21', '07:00', '08:00'),
+          block('2026-10-26', '07:00', '08:00'),
+        ],
+      }),
+    );
+    expect(cards.map((c) => [c.title, c.context])).toEqual([
+      ['No DSA recorded since Oct 21', 'Planned, not recorded'],
+    ]);
+  });
+
   it('puts an interview in the next three days with open prep first, and caps the day at two', () => {
     const cards = noticed(
       base({

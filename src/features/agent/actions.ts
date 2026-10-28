@@ -83,7 +83,17 @@ export async function applyProposalAction(
   try {
     const user = await owner();
     const { messageId, cardId } = cardIds(f);
-    const { day, ids } = await applyProposal(user, messageId, cardId);
+    const skip = z
+      .array(z.coerce.number().int().min(0).max(50))
+      .max(50)
+      .parse(f.getAll('skip'));
+    const { day, ids } = await applyProposal(
+      user,
+      messageId,
+      cardId,
+      new Date(),
+      skip,
+    );
     forgetAll();
     syncSoon(user);
     for (const path of ['/rumi', '/today', '/calendar']) revalidatePath(path);

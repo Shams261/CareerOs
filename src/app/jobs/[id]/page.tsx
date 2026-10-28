@@ -43,6 +43,7 @@ import { NextActionBox } from '@/features/jobs/next-action';
 import { PrepCheck } from '@/features/jobs/prep-check';
 import { randomUUID } from 'node:crypto';
 import { ActionForm } from '@/components/action-form';
+import { Button } from '@/components/ui/button';
 import { stageAction } from '@/features/jobs/actions';
 import { aiConfig } from '@/lib/env';
 import { isTestNamed } from '@/lib/test-data';
@@ -126,12 +127,54 @@ export default async function Application({
       label: `DSA problem · ${p.title}`,
     })),
   ];
+  // Prepare with Rumi sits inside the next upcoming round when there is one, else in the rail
+  // (WI-058): the doc belongs beside the interview it prepares for.
+  const showPrep = !!ai && open && !isTestNamed(app.company, app.role);
+  const prepRound = showPrep ? upcoming[0] : undefined;
+  const prepTools = (
+    <>
+      {docs.length > 0 && (
+        <ul className="plain-list prep-docs">
+          {docs.map((d) => (
+            <li key={d.id}>
+              <Link
+                className="link"
+                href={`/jobs/${app.id}/prep/${d.id}`}
+                prefetch={false}
+              >
+                Prep doc · {shortDate(dayKey(d.createdAt, zone))}
+              </Link>
+            </li>
+          ))}
+        </ul>
+      )}
+      <PanelButton panel="prep-rumi" className="button secondary small">
+        {docs.length ? 'Prepare again' : `Prepare with ${AGENT_NAME}`}
+      </PanelButton>
+      <SidePanel id="prep-rumi" title={`Prepare with ${AGENT_NAME}`}>
+        <PreparePanel
+          applicationId={app.id}
+          company={app.company}
+          preview={{
+            queries: prepQueries,
+            rounds: prepRounds.length,
+            roadmapItems: Math.min(studyItems, 60),
+            problems: Math.min(problemCount, 40),
+            hasJobDescription: !!app.jobDescription?.trim(),
+            estimateMicros: estimateMicros(prepQueries.length),
+          }}
+        />
+      </SidePanel>
+    </>
+  );
   const describe = (a: (typeof app.activities)[number]) => {
     switch (a.type) {
       case 'CREATED':
         return `Added as ${label(a.toStage ?? 'SAVED')}`;
       case 'STAGE_CHANGED':
-        return `${label(a.fromStage ?? '')} to ${label(a.toStage ?? '')}`;
+        return a.fromStage
+          ? `${label(a.fromStage)} to ${label(a.toStage ?? '')}`
+          : `Moved to ${label(a.toStage ?? '')}`;
       case 'INTERVIEW_SCHEDULED':
         return `Interview scheduled: ${a.note ?? ''}${a.newStart ? ` for ${at(a.newStart)}` : ''}`;
       case 'INTERVIEW_RESCHEDULED':
@@ -218,6 +261,24 @@ export default async function Application({
             ))}
           </span>
         </div>
+      </ActionForm>
+      {/* On a phone the eleven stage buttons take four rows; one select does the same (WI-058). */}
+      <ActionForm action={stageAction} className="stage-select-form mb-4">
+        <input type="hidden" name="id" value={app.id} />
+        <input type="hidden" name="requestId" value={randomUUID()} />
+        <div className="stage-select">
+          <label htmlFor="stage-select">Stage</label>
+          <select id="stage-select" name="stage" defaultValue={app.stage}>
+            {[...pipelineStages, ...closedStages].map((s) => (
+              <option key={s} value={s}>
+                {label(s)}
+              </option>
+            ))}
+          </select>
+        </div>
+        <Button variant="secondary" className="small">
+          Move
+        </Button>
       </ActionForm>
       <p className="status-line summary-line mb-6">
         <span>
@@ -509,6 +570,12 @@ export default async function Application({
                         )}
                       </div>
                     )}
+                    {prepRound?.id === r.id && (
+                      <div className="round-prep">
+                        <h4>Prepare with {AGENT_NAME}</h4>
+                        {prepTools}
+                      </div>
+                    )}
                     <FeedbackOutlet channel={`round-${r.id}`} />
                     <div className="round-actions">
                       {awaitingResult && (
@@ -518,7 +585,7 @@ export default async function Application({
                           className={
                             primary === 'log-result' && resultRound?.id === r.id
                               ? 'button'
-                              : 'link-button'
+                              : 'button secondary small'
                           }
                         >
                           Log the result
@@ -528,7 +595,7 @@ export default async function Application({
                         <PanelButton
                           panel={panelId}
                           focus="prep"
-                          className="link-button"
+                          className="button secondary small"
                         >
                           Add prep
                         </PanelButton>
@@ -537,7 +604,7 @@ export default async function Application({
                         <PanelButton
                           panel={panelId}
                           focus="result"
-                          className="link-button"
+                          className="button secondary small"
                         >
                           {r.outcomeNotes || r.toImprove
                             ? 'Edit reflection'
@@ -548,7 +615,7 @@ export default async function Application({
                         <PanelButton
                           panel={panelId}
                           focus="reschedule"
-                          className="link-button"
+                          className="button secondary small"
                         >
                           Reschedule
                         </PanelButton>
@@ -556,6 +623,7 @@ export default async function Application({
                       {r.status === 'SCHEDULED' && blockState !== 'on' && (
                         <ScheduleInterviewForm
                           roundId={r.id}
+                          name={r.title}
                           label={
                             blockState === 'cancelled'
                               ? 'Add back to schedule'
@@ -659,41 +727,10 @@ export default async function Application({
           </section>
         </section>
         <aside>
-          {ai && open && !isTestNamed(app.company, app.role) && (
+          {showPrep && !prepRound && (
             <section className="card flat" aria-labelledby="prep-heading">
               <h2 id="prep-heading">Prepare with {AGENT_NAME}</h2>
-              {docs.length > 0 && (
-                <ul className="plain-list prep-docs">
-                  {docs.map((d) => (
-                    <li key={d.id}>
-                      <Link
-                        className="link"
-                        href={`/jobs/${app.id}/prep/${d.id}`}
-                        prefetch={false}
-                      >
-                        Prep doc · {shortDate(dayKey(d.createdAt, zone))}
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
-              )}
-              <PanelButton panel="prep-rumi" className="button secondary small">
-                {docs.length ? 'Prepare again' : `Prepare with ${AGENT_NAME}`}
-              </PanelButton>
-              <SidePanel id="prep-rumi" title={`Prepare with ${AGENT_NAME}`}>
-                <PreparePanel
-                  applicationId={app.id}
-                  company={app.company}
-                  preview={{
-                    queries: prepQueries,
-                    rounds: prepRounds.length,
-                    roadmapItems: Math.min(studyItems, 60),
-                    problems: Math.min(problemCount, 40),
-                    hasJobDescription: !!app.jobDescription?.trim(),
-                    estimateMicros: estimateMicros(prepQueries.length),
-                  }}
-                />
-              </SidePanel>
+              {prepTools}
             </section>
           )}
           <section className="card flat">

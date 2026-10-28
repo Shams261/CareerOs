@@ -44,8 +44,6 @@ export const metadata = { title: 'Weekly review' };
 
 const label = (day: string, pattern: string) =>
   formatInTimeZone(new Date(`${day}T12:00:00Z`), 'UTC', pattern);
-const range = (monday: string) =>
-  `${label(monday, 'MMM d')}–${label(shiftDay(monday, 6), 'MMM d, yyyy')}`;
 /** "Week of 19 – 25 October", or "Week of 26 October – 1 November" across a month. */
 const weekLabel = (monday: string) => {
   const sunday = shiftDay(monday, 6);
@@ -427,7 +425,7 @@ export default async function Review({
         <>
           <section className="card" aria-labelledby="priorities-heading">
             <h2 id="priorities-heading">
-              Priorities for the week of {range(nextMonday)}
+              Priorities · {weekLabel(nextMonday)}
             </h2>
             <PriorityList priorities={w.review?.priorities ?? []} editable />
             <PriorityForm
@@ -531,14 +529,20 @@ export default async function Review({
                 Change in Settings
               </Link>
             </div>
-            <ul className="plain-list reminder-lines">
-              {reminders.map((r) => (
-                <li key={r.title} className={r.on ? '' : 'is-off'}>
-                  <strong>{r.title}</strong>
-                  <span className="muted">{r.on ? r.detail : 'Off.'}</span>
-                </li>
-              ))}
-            </ul>
+            {reminders.some((r) => r.on) ? (
+              <ul className="plain-list reminder-lines">
+                {reminders
+                  .filter((r) => r.on)
+                  .map((r) => (
+                    <li key={r.title}>
+                      <strong>{r.title}</strong>
+                      <span className="muted">{r.detail}</span>
+                    </li>
+                  ))}
+              </ul>
+            ) : (
+              <p className="muted">No reminders are on.</p>
+            )}
           </section>
         </>
       )}
@@ -836,7 +840,7 @@ export default async function Review({
                   return (
                     <li key={m}>
                       <Link className="link" href={`/review?week=${m}`}>
-                        Week of {range(m)}
+                        {weekLabel(m)}
                       </Link>{' '}
                       · {h.completedAt ? 'Completed' : 'Draft'} ·{' '}
                       {h._count.priorities} priorit

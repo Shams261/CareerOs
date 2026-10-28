@@ -109,19 +109,26 @@ export async function Attention({
     weeklyDue: weekly.status === 'fulfilled' && weekly.value,
     blocks,
   });
-  const preview = items.slice(0, PREVIEW);
+  // Noticed rows sit above the list and count toward the five shown and the total (WI-058).
+  const noticedCount =
+    noticed.status === 'fulfilled' ? noticed.value.length : 0;
+  const total = items.length + noticedCount;
+  const preview = items.slice(0, Math.max(0, PREVIEW - noticedCount));
+  const phoneRows = Math.max(0, PHONE_PREVIEW - noticedCount);
+  const shownWide = noticedCount + preview.length;
+  const shownPhone = noticedCount + Math.min(phoneRows, items.length);
   return (
     <>
       <div className="attention-head">
         <h2 id="attention-heading">Needs attention</h2>
-        {items.length > PREVIEW && (
+        {total > shownWide && (
           <span className="muted attention-count is-wide">
-            Showing {PREVIEW} of {items.length}
+            Showing {shownWide} of {total}
           </span>
         )}
-        {items.length > PHONE_PREVIEW && (
+        {total > shownPhone && (
           <span className="muted attention-count is-phone">
-            Showing {Math.min(PHONE_PREVIEW, items.length)} of {items.length}
+            Showing {shownPhone} of {total}
           </span>
         )}
       </div>
@@ -138,7 +145,10 @@ export async function Attention({
           <p className="attention-empty">Nothing needs your attention.</p>
         )}
       {preview.length > 0 && (
-        <ul className="plain-list attention-list attention-preview">
+        <ul
+          className="plain-list attention-list attention-preview"
+          data-phone-rows={phoneRows}
+        >
           {preview.map((item) => (
             <AttentionRow key={item.id} item={item} />
           ))}
@@ -147,12 +157,15 @@ export async function Attention({
       {items.length > 0 && (
         <p className="attention-more">
           <PanelButton panel="attention" className="link-button">
-            View all {items.length} <ArrowRight size={14} aria-hidden="true" />
+            View all {total} <ArrowRight size={14} aria-hidden="true" />
           </PanelButton>
         </p>
       )}
-      <SidePanel id="attention" title={`Needs attention · ${items.length}`}>
+      <SidePanel id="attention" title={`Needs attention · ${total}`}>
         <FeedbackOutlet channel="attention" className="mb-2" />
+        {noticed.status === 'fulfilled' && (
+          <NoticedRows cards={noticed.value} />
+        )}
         <AttentionPages items={items} />
       </SidePanel>
     </>

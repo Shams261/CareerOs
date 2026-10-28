@@ -16,6 +16,7 @@ import { PendingRegion } from '@/components/pending-region';
 import { ActionForm } from '@/components/action-form';
 import { makeCurrentAction } from '@/features/dsa/actions';
 import { Disclosure } from '@/components/disclosure';
+import { PanelButton, SidePanel } from '@/components/side-panel';
 import { dayKey, localInstant } from '@/lib/time';
 import { resourceUrl } from '@/lib/validation';
 import { shiftDay } from '@/features/schedule/domain';
@@ -61,6 +62,10 @@ export default async function Dsa({
     : null;
   const queue = revisionQueue(problems, day),
     practiced = problems.filter((p) => p.attemptsCount > 0);
+  // The page's one primary (WI-058): a revision that is due, else the current topic's next
+  // problem, else the first problem not tried yet.
+  const nextProblem =
+    queue[0] ?? nextInTopic ?? problems.find((p) => !p.attemptsCount) ?? null;
   const q = (query.q ?? '').trim();
   const status: StatusFilter =
     query.status && query.status in STATUS_FILTERS
@@ -140,18 +145,34 @@ export default async function Dsa({
   const overdueDays = (d: Date) => Math.round((+new Date(day) - +d) / 86400000);
   return (
     <>
-      <p className="eyebrow">DSA</p>
       <div className="page-head">
         <h1>Practice</h1>
         {topics.length > 0 && (
           <>
+            {/* One auto margin packs the actions to the right; the primary sits last
+                before Add a problem, whose form opens on its own line (WI-058). */}
+            <PanelButton
+              panel="topics"
+              className="button secondary page-head-link"
+            >
+              Topics
+            </PanelButton>
             {problems.length >= 4 && (
               <Link
-                className="button secondary page-head-link"
+                className="button secondary"
                 href="/dsa/drill"
                 prefetch={false}
               >
                 Which pattern?
+              </Link>
+            )}
+            {nextProblem && (
+              <Link
+                className="button"
+                href={`/dsa/${nextProblem.id}`}
+                prefetch={false}
+              >
+                {queue[0] ? 'Revise' : 'Next problem'} · {nextProblem.title}
               </Link>
             )}
             <Disclosure label="Add a problem" variant="secondary">
@@ -194,10 +215,7 @@ export default async function Dsa({
             </span>
             {currentTopic && (
               <span>
-                Current topic:{' '}
-                <a className="link" href="#topics">
-                  {currentTopic.name}
-                </a>
+                Current topic: {currentTopic.name}
                 {nextInTopic && (
                   <>
                     {' · next: '}
@@ -284,19 +302,10 @@ export default async function Dsa({
               <p className="muted">No matching problems.</p>
             )}
           </PendingRegion>
-          <section
-            className="card flat"
-            id="topics"
-            aria-labelledby="topics-heading"
-          >
-            <div className="section-head">
-              <h2 id="topics-heading">
-                Topics <span className="muted">· {topics.length}</span>
-              </h2>
-              <Disclosure variant="link" label="Add a topic">
-                <TopicForm />
-              </Disclosure>
-            </div>
+          <SidePanel id="topics" title={`Topics · ${topics.length}`}>
+            <Disclosure variant="link" label="Add a topic">
+              <TopicForm />
+            </Disclosure>
             <ol className="plain-list">
               {topics.map((t) => {
                 const mine = practiced.filter((p) => p.topicId === t.id);
@@ -325,7 +334,7 @@ export default async function Dsa({
                           <button
                             className="button secondary small"
                             disabled={isCurrent}
-                            aria-label={`Make ${t.name} current`}
+                            aria-label={`Make current: ${t.name}`}
                           >
                             Make current
                           </button>
@@ -339,7 +348,7 @@ export default async function Dsa({
                 );
               })}
             </ol>
-          </section>
+          </SidePanel>
         </>
       )}
     </>

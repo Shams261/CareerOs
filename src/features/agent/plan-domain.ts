@@ -189,7 +189,9 @@ export function readTools(raw: unknown): string[] {
 }
 
 /** Blocks a proposal would add: those without a conflict. */
-export const addable = (p: Proposal) => p.blocks.filter((b) => !b.conflict);
+/** The blocks Add to plan writes: none that conflict, and none the owner removed (WI-058). */
+export const addable = (p: Proposal, skip: readonly number[] = []) =>
+  p.blocks.filter((b, i) => !b.conflict && !skip.includes(i));
 
 export type PatternInput = {
   sessions: { category: string; startedAt: Date; endedAt: Date | null }[];

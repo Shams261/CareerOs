@@ -38,6 +38,8 @@ type Props = {
   goals: { id: string; title: string }[];
   /** The block the launcher already offers Start or Stop for. */
   launcherBlockId: string | null;
+  /** Whether the owner has routines; the empty day then points at the plan, not at setup. */
+  hasRoutines?: boolean;
 };
 
 const sessionLength = (n: number, ended: boolean) =>
@@ -86,7 +88,10 @@ export function Agenda(props: Props) {
               ? 'Nothing was planned for this day.'
               : 'Nothing planned yet.'}{' '}
           <Link className="link" href="/calendar" prefetch={false}>
-            Set up routines on Plan <ArrowRight size={14} aria-hidden="true" />
+            {props.hasRoutines
+              ? 'Open the week on Plan'
+              : 'Set up routines on Plan'}{' '}
+            <ArrowRight size={14} aria-hidden="true" />
           </Link>
         </p>
       )}

@@ -97,9 +97,13 @@ export function rowMeta(
 ) {
   const resolution = blockResolution(block, now);
   const recorded = recordedMinutes(block, now);
-  const context = round
+  const kind = round
     ? round.company
     : block.description?.trim() || categoryGroup(block.category);
+  // A kind that only repeats the title ("DSA · DSA") is left out (WI-058).
+  const repeats =
+    !round && kind.toLowerCase() === block.title.trim().toLowerCase();
+  const context = (rest: string) => (repeats ? rest : `${kind} · ${rest}`);
   switch (resolution) {
     case 'done':
       return block.sessions.length
@@ -116,9 +120,11 @@ export function rowMeta(
       return `Skipped${block.skipReason ? `: ${block.skipReason}` : ''}`;
     case 'current':
     case 'in-progress':
-      return `${context} · Until ${hhmm(block.plannedEnd, zone)}`;
+      return context(`Until ${hhmm(block.plannedEnd, zone)}`);
     default:
-      return `${context} · ${formatDuration(minutes(block.plannedStart, block.plannedEnd))}`;
+      return context(
+        formatDuration(minutes(block.plannedStart, block.plannedEnd)),
+      );
   }
 }
 

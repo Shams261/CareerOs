@@ -79,15 +79,22 @@ function idleCards(i: NoticedInput, today: string): NoticedCard[] {
     const d = dayKey(s.startedAt, i.zone);
     if (!last.has(k) || last.get(k)! < d) last.set(k, d);
   }
-  const planned = new Set(
-    i.blocks
-      .filter((b) => b.day <= today)
-      .map((b) => categoryGroup(b.category)),
-  );
+  // The first day each kind was planned: a kind never recorded is silent only since then,
+  // so a fresh start is not "silent for 28 days" on its first morning (WI-058).
+  const firstPlanned = new Map<string, string>();
+  for (const b of i.blocks) {
+    if (b.day > today) continue;
+    const k = categoryGroup(b.category);
+    if (!firstPlanned.has(k) || firstPlanned.get(k)! > b.day)
+      firstPlanned.set(k, b.day);
+  }
   return kinds.flatMap((k) => {
     const seen = last.get(k);
-    if (!seen && !planned.has(k)) return [];
-    const gap = seen ? daysBetween(seen, today) : LOOK_BACK;
+    const first = firstPlanned.get(k);
+    if (!seen && !first) return [];
+    const gap = seen
+      ? daysBetween(seen, today)
+      : Math.min(LOOK_BACK, daysBetween(first!, today));
     if (gap < IDLE_DAYS) return [];
     return [
       {
@@ -95,7 +102,9 @@ function idleCards(i: NoticedInput, today: string): NoticedCard[] {
         kind: 'idle' as const,
         title: seen
           ? `No ${k} recorded in ${gap} days`
-          : `No ${k} recorded in the last ${LOOK_BACK} days`,
+          : gap < LOOK_BACK
+            ? `No ${k} recorded since ${shortDate(first!)}`
+            : `No ${k} recorded in the last ${LOOK_BACK} days`,
         context: seen ? `Last on ${shortDate(seen)}` : 'Planned, not recorded',
         action: {
           label: 'Plan it with Rumi',
