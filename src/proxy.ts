@@ -60,10 +60,14 @@ export async function proxy(request: NextRequest) {
       headers: { 'Retry-After': '60' },
     });
   const isPublic = PUBLIC.some((p) => p.test(path));
+  // How long the session check took (WI-061), as a Server-Timing entry: a number, no data.
+  let authMs = 0;
   if (!isPublic) {
+    const started = performance.now();
     const session = await resolveSession(
       request.cookies.get(SESSION_COOKIE)?.value,
     );
+    authMs = performance.now() - started;
     if (!session) {
       if (path.startsWith('/api/'))
         return NextResponse.json(
@@ -88,7 +92,10 @@ export async function proxy(request: NextRequest) {
   headers.set('Content-Security-Policy', csp);
   const response = NextResponse.next({ request: { headers } });
   response.headers.set('Content-Security-Policy', csp);
-  if (!isPublic) response.headers.set('Cache-Control', 'private, no-store');
+  if (!isPublic) {
+    response.headers.set('Cache-Control', 'private, no-store');
+    response.headers.set('Server-Timing', `auth;dur=${authMs.toFixed(1)}`);
+  }
   return response;
 }
 export const config = {

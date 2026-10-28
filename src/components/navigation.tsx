@@ -37,6 +37,35 @@ const rest = items.filter(
   ([href]) => !(PHONE as readonly string[]).includes(href),
 );
 
+/**
+ * A menu link that loads its page when the owner points at it (WI-061): hover, focus or touch
+ * starts the prefetch, so the click shows the page at once. List links never prefetch (WI-010).
+ */
+function MenuLink({
+  href,
+  current,
+  children,
+}: {
+  href: string;
+  current: 'page' | undefined;
+  children: ReactNode;
+}) {
+  const [intent, setIntent] = useState(false);
+  const show = () => setIntent(true);
+  return (
+    <Link
+      href={href}
+      prefetch={intent}
+      aria-current={current}
+      onMouseEnter={show}
+      onFocus={show}
+      onTouchStart={show}
+    >
+      {children}
+    </Link>
+  );
+}
+
 export function Navigation({ capture }: { capture?: ReactNode }) {
   const path = usePathname();
   const [more, setMore] = useState(false);
@@ -59,28 +88,18 @@ export function Navigation({ capture }: { capture?: ReactNode }) {
     <>
       <nav className="nav" aria-label="Main navigation">
         {items.map(([href, title, Icon]) => (
-          <Link
-            key={href}
-            href={href}
-            prefetch={false}
-            aria-current={current(href)}
-          >
+          <MenuLink key={href} href={href} current={current(href)}>
             <Icon size={18} aria-hidden="true" />
             {title}
-          </Link>
+          </MenuLink>
         ))}
       </nav>
       <nav className="nav-bar" aria-label="Main navigation">
         {bar.map(([href, title, Icon]) => (
-          <Link
-            key={href}
-            href={href}
-            prefetch={false}
-            aria-current={current(href)}
-          >
+          <MenuLink key={href} href={href} current={current(href)}>
             <Icon size={20} aria-hidden="true" />
             <span>{SHORT[href] ?? title}</span>
-          </Link>
+          </MenuLink>
         ))}
         <button
           type="button"

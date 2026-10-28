@@ -55,38 +55,43 @@ export default async function Calendar({
     selected = dateInput.safeParse(query.date).success ? query.date! : today,
     days = weekDays(selected),
     thisWeek = weekDays(today);
-  let generationError = '';
-  try {
-    await generateThroughSunday(user, today);
-  } catch (error) {
-    generationError =
-      error instanceof Error ? error.message : 'Unable to plan this week.';
-  }
-  const [routines, plans, goals, connection] = await Promise.all([
-    db().routineBlock.findMany({
-      where: { userId: user.id },
-      orderBy: { createdAt: 'asc' },
-    }),
-    db().dailyPlan.findMany({
-      where: {
-        userId: user.id,
-        date: { gte: new Date(days[0]), lte: new Date(days[6]) },
-      },
-      include: {
-        blocks: {
-          orderBy: { plannedStart: 'asc' },
-          include: {
-            sessions: { select: { id: true, startedAt: true, endedAt: true } },
+  // Only the week's plans wait for generation; the rest starts at once (WI-061).
+  const generated = generateThroughSunday(user, today).then(
+    () => '',
+    (error) =>
+      error instanceof Error ? error.message : 'Unable to plan this week.',
+  );
+  const [routines, plans, goals, connection, generationError] =
+    await Promise.all([
+      db().routineBlock.findMany({
+        where: { userId: user.id },
+        orderBy: { createdAt: 'asc' },
+      }),
+      generated.then(() =>
+        db().dailyPlan.findMany({
+          where: {
+            userId: user.id,
+            date: { gte: new Date(days[0]), lte: new Date(days[6]) },
           },
-        },
-      },
-    }),
-    db().goal.findMany({
-      where: { userId: user.id },
-      select: { id: true, title: true },
-    }),
-    getConnection(user.id),
-  ]);
+          include: {
+            blocks: {
+              orderBy: { plannedStart: 'asc' },
+              include: {
+                sessions: {
+                  select: { id: true, startedAt: true, endedAt: true },
+                },
+              },
+            },
+          },
+        }),
+      ),
+      db().goal.findMany({
+        where: { userId: user.id },
+        select: { id: true, title: true },
+      }),
+      getConnection(user.id),
+      generated,
+    ]);
   const syncing = connection && connection.status !== 'DISCONNECTED';
   // Linked interviews, so a block named "Company — Round" reads as the round here too.
   // Usually no linked block exists and this costs nothing.

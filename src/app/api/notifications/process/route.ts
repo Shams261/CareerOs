@@ -7,15 +7,19 @@ export const runtime = 'nodejs';
 /** Scheduler entry point (Bearer CRON_SECRET via proxy): eligibility → NotificationLog → push. */
 export async function POST() {
   try {
-    const result = await recordRun('notifications', async () => {
-      const { candidates } = await processNotifications();
-      // Push is a delivery channel only; its failures never remove inbox records.
-      const push = await deliverPending();
-      console.info(
-        `[notifications] processed ${JSON.stringify({ candidates, ...push })}`,
-      );
-      return { candidates, ...push };
-    });
+    const result = await recordRun(
+      'notifications',
+      async () => {
+        const { candidates } = await processNotifications();
+        // Push is a delivery channel only; its failures never remove inbox records.
+        const push = await deliverPending();
+        console.info(
+          `[notifications] processed ${JSON.stringify({ candidates, ...push })}`,
+        );
+        return { candidates, ...push };
+      },
+      { clearsSnapshots: false },
+    );
     // Grill Me's provider check (ADR-022) runs at most once a day and never affects reminders.
     try {
       await dailyProviderCheck();

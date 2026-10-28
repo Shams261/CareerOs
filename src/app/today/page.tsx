@@ -34,6 +34,11 @@ import {
   type RoundLike,
 } from '@/features/today/domain';
 import { forTodayPicks } from '@/features/for-today/service';
+import { jobTodaySummary } from '@/features/jobs/service';
+import { revisionDue } from '@/features/roadmap/service';
+import { dsaSnapshot } from '@/features/dsa/service';
+import { noticedFor } from '@/features/noticed/service';
+import { setupState } from '@/features/setup/service';
 import { isDeleted } from '@/features/deletes/domain';
 import { TodayHeader } from '@/features/today/header';
 import { Launcher } from '@/features/today/launcher';
@@ -72,13 +77,26 @@ export default async function Today({
     bounds = dayBounds(day, user.timezone),
     isToday = day === today;
   let generationError = '';
+  // The week so far as facts (WI-059): yesterday's blocks and this week's time, today only.
+  const yesterday = shiftDay(today, -1);
+  const monday = shiftDay(
+    today,
+    -((new Date(`${today}T12:00:00Z`).getUTCDay() + 6) % 7),
+  );
+  const from = monday < yesterday ? monday : yesterday;
+  // Start the snapshots the streamed parts and For today read, so they load alongside the page
+  // instead of after it (WI-061). They are memoized: the parts below take the same promises.
   if (isToday)
-    try {
-      await generateThroughSunday(user, today);
-    } catch (error) {
-      generationError =
-        error instanceof Error ? error.message : 'Unable to plan this week.';
-    }
+    for (const preload of [
+      jobTodaySummary(user, now),
+      revisionDue(user, now),
+      dsaSnapshot(user),
+      noticedFor(user, now),
+      setupState(user),
+      forTodayPicks(user, now),
+    ])
+      preload.catch(() => undefined);
+  // Everything independent starts together; only today's plan waits for the week's generation.
   const [
     plan,
     sessions,
@@ -89,17 +107,29 @@ export default async function Today({
     notes,
     nudge,
     stop,
+    pastBlocks,
+    weekSessions,
   ] = await Promise.all([
-    db().dailyPlan.findUnique({
-      where: { userId_date: { userId: user.id, date: new Date(day) } },
-      include: {
-        blocks: {
-          orderBy: { plannedStart: 'asc' },
-          include: { sessions: { orderBy: { startedAt: 'asc' } } },
+    (isToday
+      ? generateThroughSunday(user, today).catch((error) => {
+          generationError =
+            error instanceof Error
+              ? error.message
+              : 'Unable to plan this week.';
+        })
+      : Promise.resolve()
+    ).then(() =>
+      db().dailyPlan.findUnique({
+        where: { userId_date: { userId: user.id, date: new Date(day) } },
+        include: {
+          blocks: {
+            orderBy: { plannedStart: 'asc' },
+            include: { sessions: { orderBy: { startedAt: 'asc' } } },
+          },
+          checkIn: true,
         },
-        checkIn: true,
-      },
-    }),
+      }),
+    ),
     db().actualSession.findMany({
       where: {
         userId: user.id,
@@ -118,19 +148,8 @@ export default async function Today({
     isToday ? openNotes(user.id) : Promise.resolve([]),
     isToday ? todaysNudge(user, day) : Promise.resolve(null),
     day <= today ? stopTime(user.id) : Promise.resolve(null),
-  ]);
-  // A deleted block stays only for the calendar sync and Undo (WI-060).
-  const blocks = (plan?.blocks ?? []).filter((b) => !isDeleted(b));
-  // The week so far as facts (WI-059): yesterday's blocks and this week's time, today only.
-  const yesterday = shiftDay(today, -1);
-  const monday = shiftDay(
-    today,
-    -((new Date(`${today}T12:00:00Z`).getUTCDay() + 6) % 7),
-  );
-  const from = monday < yesterday ? monday : yesterday;
-  const [pastBlocks, weekSessions] = isToday
-    ? await Promise.all([
-        db().timeBlock.findMany({
+    isToday
+      ? db().timeBlock.findMany({
           where: {
             dailyPlan: {
               userId: user.id,
@@ -144,8 +163,10 @@ export default async function Today({
             dailyPlan: { select: { date: true } },
             _count: { select: { sessions: true } },
           },
-        }),
-        db().actualSession.findMany({
+        })
+      : Promise.resolve([]),
+    isToday
+      ? db().actualSession.findMany({
           where: {
             userId: user.id,
             startedAt: {
@@ -154,9 +175,11 @@ export default async function Today({
             },
           },
           select: { startedAt: true, endedAt: true },
-        }),
-      ])
-    : [[], []];
+        })
+      : Promise.resolve([]),
+  ]);
+  // A deleted block stays only for the calendar sync and Undo (WI-060).
+  const blocks = (plan?.blocks ?? []).filter((b) => !isDeleted(b));
   // The goal on Today (WI-060): the nearest active goal by date, edited in a panel here. It
   // comes from the goals already loaded; Roadmap keeps the item counts.
   const nearestGoal =

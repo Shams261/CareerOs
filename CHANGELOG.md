@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- WI-061 (speed; research in `output/Silsila-Speed-Research.pdf`). No migration, no change on screen apart from speed:
+  - **Sign-in read once a minute.** A resolved session is kept 60 seconds in the process, shared by the proxy and the page; sign-out, Sign out other devices and every write clear it. Responses carry `Server-Timing: auth`.
+  - **Snapshots last three minutes** instead of twenty seconds, and the one-minute reminder run no longer clears them (it writes only inbox rows). Every write still clears them. The roadmap detail and the application page are memoized too.
+  - **Fewer waits.** Prisma `relationJoins` turns an `include` into one query. Today, Plan and the application page start their independent reads together, and Today starts the streamed parts' snapshots and For today with the page. The default pool is 10 (production keeps 5 in `render.yaml`).
+  - **Menu on intent.** The eight menu links fetch their page on hover, focus or touch, so the click shows it at once; `staleTimes` keeps a page 30 seconds for Back and Forward. List links still never prefetch.
+  - **Lab** (24 ms round trip, pages revisited after 21 s): Today 684 → 126 ms, Practice 394 → 63, Roadmap 354 → 117, a roadmap 375 → 150, Plan 249 → 75, Weekly review 299 → 160, Jobs 226 → 74, an application 368 → 138, Rumi 187 → 100, Settings 352 → 212. With every cache expired, Today 684 → 389 ms and 66 → 45 statements.
+
 - WI-060 (Rumi anywhere, a better running session, delete everywhere, and a faster app; plan in `output/Silsila-WI-060-Plan.pdf`):
   - **Speed.** Every list link stops prefetching (57 links: Practice's problems, roadmap rows and items, job summaries, Learn), and the roadmap list is memoized, so For today and the overview share one read of all items. Local statements per page: Practice 59 → 31, Roadmap 43 → 36, Weekly review 37 → 31, Settings 37 → 34, Jobs 26 → 22, Plan 22 → 18, Rumi 18 → 14; Today stays about 61 with the new goal line and card.
   - **For today in curriculum order** with no current Practice topic (topic order, Easy first, core before more practice). On a phone the Roadmap puts For today first and its revision rail last, without the item For today already shows.
