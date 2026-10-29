@@ -582,7 +582,7 @@ The owner's decisions (2026-10-26) and the R5 spike (2026-10-27, `scripts/r5-spi
 
 ## ADR-028 — A daily line on Today: a greeting and a quotation by the part of the day
 
-**Status:** Accepted (2026-10-29, WI-073). Amends ADR-027 for Today's header only.
+**Status:** Accepted (2026-10-29, WI-073; the set enlarged and the tone widened in WI-074). Amends ADR-027 for Today's header only.
 
 **Context:** The owner uses a new-tab extension that shows a daily wallpaper and a motivational quote, and asked for the same feel on Today: a line that changes with the part of the day and from day to day. The Version 2 plan rules out motivational quotes _written by a model_, and the voice rule keeps hustle and guilt out of every line.
 
@@ -590,9 +590,10 @@ The owner's decisions (2026-10-26) and the R5 spike (2026-10-27, `scripts/r5-spi
 
 - **A greeting and one quotation** sit at the top of Today's header on the current day only: "Good morning, Shams." (the owner's first name) and a short quotation with its author.
 - **The quotation is chosen, never generated.** `QUOTES` in `src/features/today/daily-line.ts` holds ten short quotations for each part of the day (morning 5–11, afternoon 12–16, evening 17–20, night otherwise), every one a real quotation from a public-domain source with its author or "Proverb". `dailyQuote(day, part)` picks one by the day and the part, so a line stays for that part of the day and a new one comes with the next. "Another" (↻) steps to the next one in the same pool; nothing is written.
-- **Words.** No quotation pushes, counts or compares; every one is checked against `BANNED_WORDS` with the rest of Today's lines, and none exceeds sixteen words.
+- **Words.** Mornings and afternoons may be energetic (Franklin, Edison, Roosevelt, Goethe), evenings and nights calm; no quotation shames, scolds, counts or compares. Every one is checked against `BANNED_WORDS` and a shaming list with the rest of Today's lines, and none exceeds sixteen words. The set is forty a part (WI-074), kept in the repository rather than fetched from a quotes API, so it works offline, costs nothing, and every line was read before it shipped.
 - **A tint for the part of the day** sits behind the header, from the existing tokens (`--warning-soft` in the morning and evening, `--tint` in the afternoon, `--info-soft` at night): one accent, no new colour.
 - **Off per browser.** Settings → Appearance → Daily line (`silsila-daily-line` in localStorage), like the shortcuts toggle.
+- **The name.** The greeting uses `User.name`, which the owner can change in Settings → Appearance → Name (WI-074); Google's name is only the first value.
 
 **Consequences:**
 

@@ -36,6 +36,7 @@ import { LearningReminderForm } from '@/features/learning/forms';
 import { JobReminderForm } from '@/features/jobs/forms';
 import { ShortcutsToggle } from '@/components/shortcuts-toggle';
 import { DailyLineToggle } from '@/features/today/daily-line-card';
+import { nameAction } from '@/features/settings/name-action';
 import { UtilityMenu } from '@/features/today/utility-menu';
 import { signOutAction, signOutOthersAction } from '@/features/auth/actions';
 import { activeSessions, currentSession } from '@/server/session';
@@ -413,6 +414,14 @@ export default async function Settings({
               />
               <SettingRow
                 source="practice"
+                icon={<UserRound size={22} />}
+                label="Name"
+                title={user.name}
+                context="What Silsila calls you on Today"
+                panel="name"
+              />
+              <SettingRow
+                source="practice"
                 icon={<Quote size={22} />}
                 label="Daily line"
                 title="A greeting and a quotation on Today"
@@ -477,6 +486,21 @@ export default async function Settings({
                 panel="sessions"
               />
             </ul>
+            <SidePanel id="name" title="Your name" variant="modal">
+              <ActionForm action={nameAction} label="Your name" closeOnSuccess>
+                <label>
+                  Name
+                  <input
+                    name="name"
+                    required
+                    maxLength={60}
+                    defaultValue={user.name}
+                    autoComplete="given-name"
+                  />
+                </label>
+                <Button className="mt-3">Save</Button>
+              </ActionForm>
+            </SidePanel>
             <SidePanel id="sessions" title="Sessions">
               <ul className="plain-list session-list">
                 {sessions.map((s) => (
