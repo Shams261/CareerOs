@@ -51,6 +51,8 @@ export const closePanel = () => {
 };
 const usePanelState = () =>
   useSyncExternalStore(subscribe, snapshot, () => serverSnapshot);
+/** The `focus` the open panel was asked for ("log", "edit"), for tabs inside it (WI-069). */
+export const usePanelFocus = () => usePanelState().focus;
 
 /** A button that opens a panel; `focus` names a `data-panel-focus` target inside it. */
 export function PanelButton({
@@ -117,10 +119,13 @@ const FOCUSABLE =
 export function SidePanel({
   id,
   title,
+  variant = 'side',
   children,
 }: {
   id: string;
   title: string;
+  /** `modal` centres the panel on the screen with its own scroll (WI-069: the block forms). */
+  variant?: 'side' | 'modal';
   children: ReactNode;
 }) {
   const current = usePanelState();
@@ -196,7 +201,10 @@ export function SidePanel({
   }, [open, id]);
   if (!open) return null;
   return createPortal(
-    <div className="side-panel-root" ref={root}>
+    <div
+      className={`side-panel-root${variant === 'modal' ? ' is-modal' : ''}`}
+      ref={root}
+    >
       <div className="side-panel-backdrop" onClick={closePanel} />
       <section
         className="side-panel"

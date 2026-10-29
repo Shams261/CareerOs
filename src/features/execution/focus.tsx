@@ -288,6 +288,10 @@ function Begin({ block }: { block: FocusBlock }) {
           <strong>{clock(left)}</strong>
           <span>Paused · left of {Math.round(total / 60_000)} min</span>
         </Ring>
+        <p className="focus-paused-line">
+          {Math.max(1, Math.round(done / 60_000))} min so far · Resume when you
+          are ready.
+        </p>
         <ActionForm
           action={executionAction}
           label={`Resume ${block.title}`}
@@ -504,7 +508,11 @@ function Running({
             form.set('sound', playedSounds(session.id).read());
           }}
           onSettled={(result) => {
-            if (result.ok && submitted.current) router.push('/today');
+            if (!result.ok || !submitted.current) return;
+            // Pause stays here with the ring held (WI-069); Complete goes to Today.
+            if (submitted.current === 'stop')
+              router.replace(`/focus?block=${block.id}`);
+            else router.push('/today');
           }}
         >
           <input type="hidden" name="id" value={block.id} />

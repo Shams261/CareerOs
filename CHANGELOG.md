@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+- WI-069 (Focus stays, modal forms, rain and brown noise, from the owner's UAT). No migration:
+  - **Pause stays on Focus.** The ring holds at the time left, with "N min so far · Resume when you are ready." and Resume. Complete still goes to Today.
+  - **The tab's title counts down** while a session runs ("17:34 · Roadmap · Silsila"), so the time shows from any other tab.
+  - **Forms in a centred modal.** Add a block and a block's details open in the middle of the screen, scroll inside themselves, and close with Esc. Phone keeps clear of the bottom bar.
+  - **Rain and brown noise rebuilt.** Rain is a faint bed with a dense stereo patter of drops and an occasional plink; brown noise is a deep, wide rumble under 180 Hz. Both are built once from pure generators and loop without a click.
+  - **Fixes.**
+    - A session begun inside its slot reads "of 20 min", not "of 19 min".
+    - The free launcher never offers a pick whose block is already done today.
+
 - WI-068 (Resume where it paused, forms in place, from the owner's UAT). No migration:
   - **Resume continues.** Five minutes done of thirty resume at 25:00 left, with the ring a sixth full. This holds on Focus, Today's card, the sidebar and the pop-out. A paused block reads "28:57 left · Until 23:49", never "Starts in".
   - **The pop-out stays.** Pause freezes it as "Paused", Resume carries on in the same window, and Complete closes it. A Pause or Complete in one tab refreshes the owner's other tabs, so no stale timer keeps running.

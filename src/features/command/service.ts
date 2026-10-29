@@ -79,8 +79,7 @@ export async function todayCommands(
         keywords: 'session timer begin',
       });
     }
-  // Blocks that ended without a record: Log time opens their details at the form (WI-059;
-  // in place under the row since WI-068).
+  // Blocks that ended without a record: Log time opens their details on the form (WI-059).
   const logs: Command[] = [];
   for (const b of plan?.blocks ?? []) {
     if (+b.plannedEnd > +now || b._count.sessions) continue;
@@ -91,7 +90,8 @@ export async function todayCommands(
       title: b.title,
       meta: `${hhmm(b.plannedStart, user.timezone)}–${hhmm(b.plannedEnd, user.timezone)}`,
       href: '/today',
-      press: `[data-row-open="${b.id}"][data-row-focus="log"]`,
+      panel: `block:${b.id}`,
+      focus: 'log',
       keywords: 'record session done mark',
     });
   }

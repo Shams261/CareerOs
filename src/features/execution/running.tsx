@@ -10,6 +10,7 @@ import { LiveLeft, LiveTimer } from './live';
 import { focusWindow, pausedLeft, recordedBefore } from './focus-domain';
 import { clock } from './ring';
 import { PipHost, type PipSession } from './pip';
+import { TitleClock } from './title-clock';
 import { categoryGroup } from '@/features/review/domain';
 import { Button } from '@/components/ui/button';
 
@@ -117,6 +118,7 @@ export async function RunningNow() {
   return (
     <>
       <PipHost shown={shown} />
+      {ring && <TitleClock target={ring.target.toISOString()} />}
       <section className="running-now" aria-label="Running session">
         <p className="eyebrow">Running</p>
         <Link prefetch={false} className="running-title" href="/today">

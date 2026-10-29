@@ -68,7 +68,10 @@ export function focusWindow({
 }): { start: Date; target: Date } | null {
   if (doneBefore <= 0) {
     const target = focusTarget({ startedAt, plannedStart, plannedEnd });
-    return target ? { start: startedAt, target } : null;
+    if (!target) return null;
+    // Begun inside the slot: the window is the slot itself, so a 20-minute block begun forty
+    // seconds in still reads "of 20 min" (WI-069). Begun early: the planned length from now.
+    return { start: target === plannedEnd ? plannedStart! : startedAt, target };
   }
   if (!plannedStart || !plannedEnd) return null;
   const length = +plannedEnd - +plannedStart;

@@ -4889,6 +4889,11 @@ button.attention-link {
   font-size: 13px;
   color: var(--muted);
 }
+/* Under a paused ring (WI-069): how far it got, and that it waits. */
+.focus-paused-line {
+  margin: 0;
+  color: var(--ink-2);
+}
 /* Esc means nothing on a touch screen (WI-058). */
 @media (pointer: coarse) {
   .focus-hint {
@@ -7611,47 +7616,47 @@ button.attention-link {
   text-align: right;
 }
 
-/* WI-068: forms in place, no side panel. Add a block opens a small card under Today's plan
-   heading; a block's details open as a card under its row. */
-.agenda-head:has(.agenda-add) {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  align-items: baseline;
+/* WI-069: the block forms open in a centred modal with its own scroll, so the page never
+   scrolls under them. The side variant keeps the right-hand panel. */
+.side-panel-root.is-modal {
+  justify-content: center;
+  align-items: center;
+  padding: 24px 16px;
 }
-.agenda-add {
-  display: contents;
+.side-panel-root.is-modal .side-panel {
+  width: min(560px, 100%);
+  height: auto;
+  max-height: calc(100vh - 48px);
+  max-height: calc(100dvh - 48px);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-md);
 }
-.agenda-add > .disclosure-link {
-  justify-self: end;
+.side-panel-root.is-modal .side-panel-body {
+  padding-bottom: 22px;
+}
+/* On a phone the modal keeps clear of the bottom bar. */
+@media (max-width: 700px) {
+  .side-panel-root.is-modal {
+    padding: 16px 12px calc(72px + env(safe-area-inset-bottom));
+  }
+  .side-panel-root.is-modal .side-panel {
+    max-height: calc(100dvh - 88px - env(safe-area-inset-bottom));
+  }
+}
+.agenda-add-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
   font-size: 17px;
 }
-.agenda-add > .disclosure-panel,
-.row-details {
-  grid-column: 1 / -1;
-  margin: 10px 0 14px;
-  padding: 16px 18px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  background: var(--surface);
-  box-shadow: var(--shadow-sm);
-}
-.agenda-add > .disclosure-panel {
-  max-width: 600px;
-}
-.row-details {
-  grid-column: 3 / -1;
-  margin: 12px 0 0;
-  display: grid;
-  gap: 10px;
-}
-.row-details-meta {
-  margin: 0;
-}
+/* A block's recorded time in its modal: one total and one Delete (WI-068). */
 .row-recorded {
   display: flex;
   flex-wrap: wrap;
   align-items: baseline;
   gap: 4px 12px;
+  margin: 12px 0 4px;
   padding: 10px 12px;
   border-radius: 10px;
   background: var(--surface-2);
@@ -7667,18 +7672,16 @@ button.attention-link {
   font-size: 14px;
   color: var(--ink-2);
 }
+.row-tabs {
+  margin-top: 16px;
+}
 .row-tab-panel {
   margin-top: 10px;
 }
 .row-danger {
-  padding-top: 10px;
+  margin-top: 20px;
+  padding-top: 12px;
   border-top: 1px solid var(--border-subtle);
-}
-.agenda-details[aria-expanded='true'] {
-  color: var(--primary);
-}
-.agenda-details[aria-expanded='true'] svg {
-  transform: rotate(180deg);
 }
 /* A paused pop-out stands still and says so. */
 .focus-pip.is-paused .focus-ring-arc {

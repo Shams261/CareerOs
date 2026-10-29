@@ -1,7 +1,6 @@
 import Link from 'next/link';
 import { cookies } from 'next/headers';
-import { ArrowRight, CalendarClock, Check, Circle } from 'lucide-react';
-import { Disclosure } from '@/components/disclosure';
+import { ArrowRight, CalendarClock, Check, Circle, Plus } from 'lucide-react';
 import { ActionForm } from '@/components/action-form';
 import { Button } from '@/components/ui/button';
 import { FeedbackOutlet } from '@/components/feedback-outlet';
@@ -99,22 +98,13 @@ export async function FirstRunToday({
                   A simple plan, only when you are ready
                 </p>
               </div>
-              {/* In place, as a small card under the heading (WI-068). */}
-              <Disclosure
-                label="Add a block"
-                variant="link"
-                shortcut="add-block"
-                draft={`block:${day}`}
-                className="agenda-add"
+              <PanelButton
+                panel="add-block"
+                className="link-button agenda-add-button"
+                data-shortcut="add-block"
               >
-                <BlockForm
-                  day={day}
-                  zone={user.timezone}
-                  goals={goals}
-                  defaultStart={slot.start}
-                  defaultEnd={slot.end}
-                />
-              </Disclosure>
+                <Plus size={16} aria-hidden="true" /> Add a block
+              </PanelButton>
             </div>
             <FeedbackOutlet channel="blocks" className="mb-3" />
             <div className="first-day-empty">
@@ -217,6 +207,16 @@ export async function FirstRunToday({
           </>
         )}
         <h3 className="mt-5">Or plan it for later today</h3>
+        <BlockForm
+          day={day}
+          zone={user.timezone}
+          goals={goals}
+          defaultStart={slot.start}
+          defaultEnd={slot.end}
+        />
+      </SidePanel>
+      {/* A centred modal with its own scroll (WI-069), the same form as Today's. */}
+      <SidePanel id="add-block" title="Add a block" variant="modal">
         <BlockForm
           day={day}
           zone={user.timezone}
