@@ -1,5 +1,7 @@
 'use client';
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
+import { ArrowRight } from 'lucide-react';
 import { MILESTONE_ORDER, type Milestone } from './home';
 
 const SEEN_KEY = 'silsila-week-milestone';
@@ -86,6 +88,15 @@ export function WeekCard({
         {week.line}
       </p>
       {facts && <p className="muted week-facts">{facts}</p>}
+      {/* The whole card opens the week on Plan (WI-080). */}
+      <Link
+        href="/calendar"
+        prefetch={false}
+        className="link rail-card-link"
+        aria-label="Open this week on Plan"
+      >
+        Plan <ArrowRight size={14} aria-hidden="true" />
+      </Link>
     </section>
   );
 }
