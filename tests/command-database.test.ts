@@ -77,12 +77,10 @@ describe.skipIf(!url)('Command bar (PostgreSQL)', () => {
       'Add routine||',
       'Add application||',
     ]);
-    // Log time opens the block's details in place, on the form (WI-068).
     expect(today[3]).toMatchObject({
       href: '/today',
-      press: expect.stringMatching(
-        /^\[data-row-open="[^"]+"\]\[data-row-focus="log"\]$/,
-      ),
+      panel: expect.stringMatching(/^block:/),
+      focus: 'log',
     });
     expect(today[0].href).toBe(`/focus?block=${later.id}`);
     expect(today[1]).toMatchObject({ href: '/today', panel: 'review' });

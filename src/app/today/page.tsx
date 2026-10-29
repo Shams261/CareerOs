@@ -20,6 +20,7 @@ import {
   agendaEntries,
   daySummary,
   factsLine,
+  freePick,
   launcherState,
   quietYesterday,
   recentFacts,
@@ -451,7 +452,7 @@ export default async function Today({
                 now={now}
                 closing={closing}
                 closed={reviewed}
-                pick={picks[0] ?? null}
+                pick={freePick(picks, blocks)}
                 quiet={
                   facts?.yesterday && quietYesterday(facts)
                     ? { ...facts.yesterday, day: yesterday }

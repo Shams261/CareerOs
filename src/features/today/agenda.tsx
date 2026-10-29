@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { ArrowRight, Briefcase, ChevronDown } from 'lucide-react';
+import { ArrowRight, Briefcase, ChevronRight, Plus } from 'lucide-react';
 import { formatInTimeZone } from 'date-fns-tz';
 import { Disclosure } from '@/components/disclosure';
 import { ActionForm } from '@/components/action-form';
@@ -32,7 +32,8 @@ import {
   type AgendaEntry,
   type RoundLike,
 } from './domain';
-import { RowButton, RowDetails, RowTabs } from './row-details';
+import { PanelButton, SidePanel } from './panels';
+import { DetailTabs } from './detail-tabs';
 
 type Block = TimeBlock & { sessions: ActualSession[] };
 type Props = {
@@ -109,14 +110,15 @@ export function Agenda(props: Props) {
             <p className="muted agenda-sub">{planCounts(props.blocks, now)}</p>
           )}
         </div>
-        {/* In place, as a small card above the list (WI-068), not a side panel. */}
-        <Disclosure
-          label="Add a block"
-          variant="link"
-          shortcut="add-block"
-          draft={`block:${day}`}
-          className="agenda-add"
+        {/* A centred modal with its own scroll (WI-069), never the page's. */}
+        <PanelButton
+          panel="add-block"
+          className="link-button agenda-add-button"
+          data-shortcut="add-block"
         >
+          <Plus size={16} aria-hidden="true" /> Add a block
+        </PanelButton>
+        <SidePanel id="add-block" title="Add a block" variant="modal">
           <BlockForm
             day={day}
             zone={zone}
@@ -124,7 +126,7 @@ export function Agenda(props: Props) {
             defaultStart={slot.start}
             defaultEnd={slot.end}
           />
-        </Disclosure>
+        </SidePanel>
       </div>
       <FeedbackOutlet channel="blocks" className="mb-3" />
       {!entries.length && (
@@ -245,7 +247,7 @@ function BlockRow({
   const resolution = blockResolution(entry.block, now);
   const unresolved =
     resolution === 'not-recorded' || resolution === 'needs-update';
-  const rowId = block.id;
+  const panelId = `block:${block.id}`;
   // The launcher's block is the one Up next on Today's timeline (WI-065).
   const upNext =
     launcherBlockId === block.id &&
@@ -326,12 +328,20 @@ function BlockRow({
             )}
             {unresolved && (
               <>
-                <RowButton row={rowId} focus="log">
+                <PanelButton
+                  panel={panelId}
+                  focus="log"
+                  className="link-button"
+                >
                   Log time
-                </RowButton>
-                <RowButton row={rowId} focus="edit">
+                </PanelButton>
+                <PanelButton
+                  panel={panelId}
+                  focus="edit"
+                  className="link-button"
+                >
                   Reschedule
-                </RowButton>
+                </PanelButton>
               </>
             )}
             <ExecutionControls
@@ -343,18 +353,18 @@ function BlockRow({
               resume={resolution === 'paused'}
             />
           </div>
-          <RowButton
-            row={rowId}
+          <PanelButton
+            panel={panelId}
             className="agenda-details"
             aria-label={`Details: ${title}`}
           >
-            <ChevronDown size={18} aria-hidden="true" />
-          </RowButton>
+            <ChevronRight size={18} aria-hidden="true" />
+          </PanelButton>
         </>
       }
     >
-      <RowDetails row={rowId} label={`Details: ${title}`}>
-        <p className="muted row-details-meta">
+      <SidePanel id={panelId} title={title} variant="modal">
+        <p className="muted">
           {hhmm(block.plannedStart, zone)}–{hhmm(block.plannedEnd, zone)} ·{' '}
           {panelMeta}
         </p>
@@ -392,7 +402,7 @@ function BlockRow({
             )}
           </section>
         )}
-        <RowTabs
+        <DetailTabs
           items={[
             {
               key: 'log',
@@ -430,7 +440,7 @@ function BlockRow({
             </ActionForm>
           </div>
         )}
-      </RowDetails>
+      </SidePanel>
     </BlockRowShell>
   );
 }

@@ -41,13 +41,21 @@ describe('Resume continues where the pause left it (WI-068)', () => {
     expect(+ring.target - +at('2026-10-28T22:12:00Z')).toBe(25 * MIN);
   });
 
-  it('keeps the first session’s rule when nothing was recorded before', () => {
+  it('runs the slot itself when the first session begins inside it', () => {
+    // Forty seconds in, the window is still the whole 30-minute slot (WI-069).
     const ring = focusWindow({
       ...slot,
-      startedAt: at('2026-10-28T22:05:00Z'),
+      startedAt: at('2026-10-28T22:00:40Z'),
     })!;
-    expect(ring.start.toISOString()).toBe('2026-10-28T22:05:00.000Z');
+    expect(ring.start.toISOString()).toBe('2026-10-28T22:00:00.000Z');
     expect(ring.target.toISOString()).toBe('2026-10-28T22:30:00.000Z');
+    // Begun early, the planned length runs from the start (WI-058).
+    const early = focusWindow({
+      ...slot,
+      startedAt: at('2026-10-28T21:50:00Z'),
+    })!;
+    expect(early.start.toISOString()).toBe('2026-10-28T21:50:00.000Z');
+    expect(early.target.toISOString()).toBe('2026-10-28T22:20:00.000Z');
   });
 
   it('reads Time is up at once when the length is already used', () => {

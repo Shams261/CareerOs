@@ -505,6 +505,22 @@ export function factsLine(f: RecentFacts) {
  * beside the day's live blocks, so the form never offers a time already gone or taken; on
  * another day 09:00–10:00. Late at night it stops at 23:59.
  */
+/**
+ * The free launcher's pick (WI-069): the first "For today" pick whose title is not a block
+ * already done today, so a finished block is never offered again as the next step.
+ */
+export function freePick<T extends { title: string }>(
+  picks: T[],
+  blocks: { title: string; status: string }[],
+): T | null {
+  const done = new Set(
+    blocks
+      .filter((b) => b.status === 'COMPLETED')
+      .map((b) => b.title.trim().toLowerCase()),
+  );
+  return picks.find((p) => !done.has(p.title.trim().toLowerCase())) ?? null;
+}
+
 export function nextSlot(
   now: Date,
   zone: string,
