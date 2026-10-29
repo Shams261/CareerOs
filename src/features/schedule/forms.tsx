@@ -3,6 +3,7 @@ import { ActionForm } from '@/components/action-form';
 import { FormMore } from '@/components/form-more';
 import { TemplateChips } from './template-chips';
 import { LengthFields, QuickBlockFields } from './quick-fields';
+import { OverlapCheck } from './overlap-check';
 import { LOG_LENGTHS, logDefaults } from './log-time';
 import type { RoutineTemplate } from './templates';
 import {
@@ -60,8 +61,9 @@ export function BlockForm({
   defaultStart?: string;
   defaultEnd?: string;
 }) {
-  // One short form for adding and editing (WI-068): title, kind, start, length and a note in
-  // view; the goal, priority and another day under More. A new block is on this day.
+  // One short form for adding and editing (WI-068): title, kind, start, length and a note.
+  // A new block is only that (WI-070); Edit keeps the goal, priority and dates under More, and
+  // the overlap box appears only when Save refuses an overlap.
   const local = (d: Date, pattern: string) =>
     formatInTimeZone(d, zone, pattern);
   return (
@@ -87,53 +89,63 @@ export function BlockForm({
         defaultEnd={block ? local(block.plannedEnd, 'HH:mm') : defaultEnd}
         defaultNote={block?.description ?? ''}
       />
-      <FormMore label="More: goal, priority, another day">
-        <div className="form-grid">
-          <label>
-            Goal
-            <select name="goalId" defaultValue={block?.goalId ?? ''}>
-              <option value="">No goal</option>
-              {goals.map((g) => (
-                <option key={g.id} value={g.id}>
-                  {g.title}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label>
-            Priority
-            <select name="priority" defaultValue={block?.priority ?? 2}>
-              <option value={1}>High</option>
-              <option value={2}>Normal</option>
-              <option value={3}>Low</option>
-            </select>
-          </label>
-          <label>
-            Day
-            <input
-              required
-              type="date"
-              name="day"
-              defaultValue={
-                block ? local(block.plannedStart, 'yyyy-MM-dd') : day
-              }
-            />
-          </label>
-          <label>
-            Ends on
-            <input
-              required
-              type="date"
-              name="endDay"
-              defaultValue={block ? local(block.plannedEnd, 'yyyy-MM-dd') : day}
-            />
-          </label>
-        </div>
-      </FormMore>
-      {/* Outside More: an overlap refusal asks for this box, so it must be in view. */}
-      <label className="check">
-        <input type="checkbox" name="allowOverlap" /> Allow this overlap
-      </label>
+      {/* A new block takes the day it is added on, normal priority and no goal (WI-070). */}
+      {!block && (
+        <>
+          <input type="hidden" name="day" value={day} />
+          <input type="hidden" name="endDay" value={day} />
+          <input type="hidden" name="priority" value={2} />
+          <input type="hidden" name="goalId" value="" />
+        </>
+      )}
+      {block && (
+        <FormMore label="More: goal, priority, another day">
+          <div className="form-grid">
+            <label>
+              Goal
+              <select name="goalId" defaultValue={block?.goalId ?? ''}>
+                <option value="">No goal</option>
+                {goals.map((g) => (
+                  <option key={g.id} value={g.id}>
+                    {g.title}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label>
+              Priority
+              <select name="priority" defaultValue={block?.priority ?? 2}>
+                <option value={1}>High</option>
+                <option value={2}>Normal</option>
+                <option value={3}>Low</option>
+              </select>
+            </label>
+            <label>
+              Day
+              <input
+                required
+                type="date"
+                name="day"
+                defaultValue={
+                  block ? local(block.plannedStart, 'yyyy-MM-dd') : day
+                }
+              />
+            </label>
+            <label>
+              Ends on
+              <input
+                required
+                type="date"
+                name="endDay"
+                defaultValue={
+                  block ? local(block.plannedEnd, 'yyyy-MM-dd') : day
+                }
+              />
+            </label>
+          </div>
+        </FormMore>
+      )}
+      <OverlapCheck />
       <Button className="mt-3">{block ? 'Save' : 'Add block'}</Button>
     </ActionForm>
   );

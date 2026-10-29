@@ -136,7 +136,7 @@ describe.skipIf(!url)('Deletes on every record (WI-060)', () => {
         plannedEnd: at('2026-10-31T12:00:00Z'),
       },
     });
-    // A block with recorded time keeps it until its sessions are deleted.
+    // A block with recorded time goes with its time, in one step (WI-070).
     const recorded = await prisma.timeBlock.create({
       data: {
         dailyPlanId: day.id,
@@ -156,12 +156,28 @@ describe.skipIf(!url)('Deletes on every record (WI-060)', () => {
         },
       },
     });
-    await expect(deleteBlock(user, recorded.id)).rejects.toThrow(
-      /recorded time/,
-    );
-    expect(await deleteBlock(user, added.id)).toBe('Graphs: BFS');
+    const gone = await deleteBlock(user, recorded.id);
+    expect(gone.title).toBe('Done already');
+    expect(gone.sessions).toHaveLength(1);
+    expect(gone.completedAt?.toISOString()).toBe('2026-10-31T16:00:00.000Z');
+    expect(
+      await prisma.actualSession.count({ where: { taskId: recorded.id } }),
+    ).toBe(0);
+    // Undo brings the block back done, with its time.
+    await restore(user, 'restore-block', {
+      id: recorded.id,
+      completedAt: gone.completedAt?.toISOString() ?? null,
+      sessions: gone.sessions,
+    });
+    expect(
+      await prisma.timeBlock.findUniqueOrThrow({ where: { id: recorded.id } }),
+    ).toMatchObject({ status: 'COMPLETED', skipReason: null });
+    expect(
+      await prisma.actualSession.count({ where: { taskId: recorded.id } }),
+    ).toBe(1);
+    expect((await deleteBlock(user, added.id)).title).toBe('Graphs: BFS');
     // WI-066: a routine's occurrence goes too, kept as "Deleted" so it is never planned again.
-    expect(await deleteBlock(user, routine.id)).toBe('DSA practice');
+    expect((await deleteBlock(user, routine.id)).title).toBe('DSA practice');
     expect(
       await prisma.timeBlock.findUniqueOrThrow({ where: { id: routine.id } }),
     ).toMatchObject({ status: 'CANCELLED', skipReason: 'Deleted' });

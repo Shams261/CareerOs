@@ -1,5 +1,6 @@
 'use server';
 import { deleteBlock } from '@/features/deletes/service';
+import { blockUndo } from '@/features/deletes/domain';
 import { forgetAll } from '@/server/memo';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
@@ -132,11 +133,8 @@ export async function executionAction(_state: ActionState, form: FormData) {
     // Delete from the row's menu (WI-066), with the same Undo as the panel's Delete.
     if (action === 'delete') {
       const id = z.string().min(1).parse(form.get('id'));
-      const title = await deleteBlock(await owner(), id);
-      return {
-        message: `Deleted ${title}.`,
-        undo: { kind: 'block-reset', payload: { id } },
-      };
+      const gone = await deleteBlock(await owner(), id);
+      return { message: `Deleted ${gone.title}.`, undo: blockUndo(id, gone) };
     }
     await execute(
       await owner(),

@@ -14,6 +14,7 @@ export function ConfirmDelete({
   label,
   question,
   broadcast,
+  closeOnSuccess = false,
 }: {
   action: (state: ActionState, form: FormData) => Promise<ActionState>;
   id: string;
@@ -22,6 +23,8 @@ export function ConfirmDelete({
   /** "Delete Northwind Labs, its 2 interviews and its history?" */
   question: string;
   broadcast?: string;
+  /** Close the surrounding panel after the delete, so the Undo outside it is in view. */
+  closeOnSuccess?: boolean;
 }) {
   const [asking, setAsking] = useState(false);
   if (!asking)
@@ -39,6 +42,7 @@ export function ConfirmDelete({
       action={action}
       label={label}
       broadcast={broadcast}
+      closeOnSuccess={closeOnSuccess}
       className="confirm-delete"
       onSuccess={() => setAsking(false)}
     >

@@ -1,7 +1,9 @@
 'use client';
 import {
-  useActionState,
+  createContext,
   startTransition,
+  useActionState,
+  useContext,
   useEffect,
   useRef,
   useState,
@@ -30,6 +32,10 @@ import {
 export const SUCCESS_VISIBLE_MS = 3000;
 /** A message that offers Undo stays longer, so the way back is never a race. */
 export const UNDO_VISIBLE_MS = 8000;
+
+/** The form's last result, for a field that shows only after a certain refusal (WI-070). */
+const FormResult = createContext<ActionState | null>(null);
+export const useFormResult = () => useContext(FormResult);
 
 export function ActionForm({
   action,
@@ -181,7 +187,7 @@ export function ActionForm({
     >
       <fieldset disabled={pending} className="min-w-0">
         <input type="hidden" name="token" value={state.token ?? ''} />
-        {children}
+        <FormResult.Provider value={state}>{children}</FormResult.Provider>
         {state.preview && (
           <div className="preview">
             <strong>Review affected blocks</strong>

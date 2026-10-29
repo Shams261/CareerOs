@@ -1244,12 +1244,22 @@ summary {
   margin-top: 6px;
 }
 .running-now {
-  padding: 14px 16px;
+  padding: 10px 12px;
   border: 1px solid var(--primary);
   border-radius: var(--radius-md);
   background: var(--tint);
   display: grid;
-  gap: 4px;
+  gap: 2px;
+  /* Under the search box (WI-070): compact, the time the biggest thing in it. */
+  margin: -14px 0 -10px;
+}
+.running-now .live-timer,
+.running-left {
+  font-size: 20px;
+  line-height: 1.2;
+}
+.running-now .running-title {
+  font-size: 14px;
 }
 .running-now .eyebrow {
   color: var(--primary);
@@ -1259,10 +1269,11 @@ summary {
   overflow-wrap: anywhere;
 }
 .running-now .button {
-  min-height: 36px;
-  padding: 6px 12px;
-  margin-top: 6px;
+  min-height: 32px;
+  padding: 4px 10px;
+  margin-top: 4px;
   justify-self: start;
+  font-size: 13px;
 }
 /* Paused (WI-068): the card keeps the block, its time left, Resume and Complete. */
 .running-now.is-paused {
@@ -1287,6 +1298,13 @@ summary {
 }
 .running-actions .button {
   margin-top: 4px;
+}
+/* The launcher's countdown held at a pause (WI-070): no dot, the bar still. */
+.live-countdown.is-paused .launcher-timer {
+  color: var(--ink-2);
+}
+.live-countdown.is-paused .live-countdown-bar i {
+  background: var(--border-strong);
 }
 .live-timer {
   font-variant-numeric: tabular-nums;
@@ -7624,7 +7642,7 @@ button.attention-link {
   padding: 24px 16px;
 }
 .side-panel-root.is-modal .side-panel {
-  width: min(560px, 100%);
+  width: min(520px, 100%);
   height: auto;
   max-height: calc(100vh - 48px);
   max-height: calc(100dvh - 48px);
@@ -7634,6 +7652,14 @@ button.attention-link {
 }
 .side-panel-root.is-modal .side-panel-body {
   padding-bottom: 22px;
+}
+/* The block form in its modal is short (WI-070): the gaps between answers are small. */
+.block-form .quick-kinds .template-chips {
+  margin-bottom: 4px;
+}
+.block-form > label,
+.block-form > .form-grid {
+  margin-bottom: 2px;
 }
 /* On a phone the modal keeps clear of the bottom bar. */
 @media (max-width: 700px) {

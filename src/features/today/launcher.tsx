@@ -173,13 +173,9 @@ export function Launcher({
       : 0;
     const facts = [
       round || kind.toLowerCase() !== title.toLowerCase() ? kind : null,
-      paused
-        ? left > 0
-          ? `${clock(left)} left`
-          : 'Time is up'
-        : state.kind === 'next'
-          ? `Starts in ${startsIn(block.plannedStart, now)}`
-          : null,
+      !paused && state.kind === 'next'
+        ? `Starts in ${startsIn(block.plannedStart, now)}`
+        : null,
       paused || state.kind !== 'next'
         ? `Until ${hhmm(block.plannedEnd, zone)}`
         : null,
@@ -199,6 +195,33 @@ export function Launcher({
         resume={paused}
       />
     );
+    // The time left, held, in the running countdown's place (WI-070).
+    if (paused) {
+      const total = +block.plannedEnd - +block.plannedStart;
+      const fraction = total > 0 ? Math.min(1, 1 - left / total) : 1;
+      timer = (
+        <div className="live-countdown is-paused">
+          <time className="live-timer launcher-timer">
+            {left > 0 ? clock(left) : 'Time is up'}
+          </time>
+          <span className="live-countdown-of">
+            {left > 0
+              ? `left of ${Math.round(total / 60_000)} min`
+              : `${Math.round(total / 60_000)} min`}
+          </span>
+          <span
+            className="live-countdown-bar"
+            role="progressbar"
+            aria-label="Session time used"
+            aria-valuemin={0}
+            aria-valuemax={100}
+            aria-valuenow={Math.round(fraction * 100)}
+          >
+            <i style={{ width: `${fraction * 100}%` }} />
+          </span>
+        </div>
+      );
+    }
     if (state.kind === 'current' && state.next)
       next = `Next: ${state.next.title} · ${hhmm(state.next.plannedStart, zone)}`;
   } else if (closing && (state.kind === 'reconcile' || state.kind === 'done')) {

@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+- WI-070 (Today polish, from the owner's UAT). No migration:
+  - **The running or paused card under the search box.** It is in view on every page at any screen height, compact, with the time the largest thing in it. Before, it sat below the navigation and needed a scroll on a laptop.
+  - **A paused block's time, large.** Today's card shows the time left as the held countdown, like a running one.
+  - **One Delete.** Delete this block takes the block's recorded time with it; a block with time asks once, in place ("Delete X and its 12 min recorded?"). The modal closes and one Undo brings the block and every part of its time back. "Delete recorded time" is gone.
+  - **Plan my first focus, Choose your goal and Set your study times** open in the centred modal.
+  - **A shorter Add a block.** Title, kind, start, end, length and a note. The goal, priority and another day are gone from it (Edit keeps them under More), and "Allow this overlap" appears only after Save refuses an overlap. The modal is 520 px and fits a 700 px screen without scrolling.
+  - **Fix.** A Delete inside the modal showed its Undo behind the modal; the modal now closes first.
+
 - WI-069 (Focus stays, modal forms, rain and brown noise, from the owner's UAT). No migration:
   - **Pause stays on Focus.** The ring holds at the time left, with "N min so far · Resume when you are ready." and Resume. Complete still goes to Today.
   - **The tab's title counts down** while a session runs ("17:34 · Roadmap · Silsila"), so the time shows from any other tab.
