@@ -335,7 +335,7 @@ export default async function Today({
                           nearestGoal.targetDate?.toISOString().slice(0, 10) ??
                             null,
                           today,
-                        )}
+                        ).replace(/ left$/, '')}
                       </strong>{' '}
                       to your goal
                     </>

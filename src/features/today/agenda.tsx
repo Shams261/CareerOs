@@ -127,7 +127,7 @@ export function Agenda(props: Props) {
     >
       <div className="agenda-head">
         {/* Today's plan as one timeline (WI-065): Done, Up next, Planned, Cancelled apart. */}
-        <div>
+        <div className="agenda-head-text">
           <h2 id="agenda-heading" className="agenda-heading">
             {isToday ? "Today's plan" : 'The plan for this day'}
           </h2>
