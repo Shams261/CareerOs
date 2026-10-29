@@ -9,6 +9,7 @@
   - **A completed session is marked.** On Focus the ring fills and shows a check before Today; on Today the row's check bursts, the Focused today chip counts up, and the message rises in.
   - **Today so far.** While the day is open, the rail leads with the Day Print's rings, one per session, a new ring drawing itself once. It is the record, never a score; This week keeps the app's one bar.
   - Every motion runs only without reduced motion; with it, the same states show at once.
+  - Fix: Today so far shows only once a session has a whole minute on it, never "0 sessions · A quiet day".
 
 - WI-070 (Today polish, from the owner's UAT). No migration:
   - **The running or paused card under the search box.** It is in view on every page at any screen height, compact, with the time the largest thing in it. Before, it sat below the navigation and needed a scroll on a laptop.
