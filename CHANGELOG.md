@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- WI-065 (Today's home, from the owner's before/after concept; ADR-027). No migration:
+  - **An empty account is welcomed, not handed a form.** "Start small. Build your rhythm." with Plan my first focus (today's picks with Start 20 min, or a block for later in four fields) and "or try a 20-minute session". Then Your first 3 steps (goal, study times, a learning focus), each a panel away and skippable, and a calm empty day.
+  - **A day with a plan reads at a glance.** A short cheer line under the title, then chips for Focused today, Today's plan (done of planned) and Your goal (days left, horizon, title; opens the goal). Then the Up next card, Today's plan as one timeline with Up next and Planned, and on the rail This week (blocks done of planned, a thin bar and its line) above Needs attention.
+  - **A quiet celebration.** When the week reaches its first block, half or all, the bar glows once and the line rises in; never with reduced motion, never a streak or a score. Every line is fixed and checked against the banned words.
+  - **Accessibility.** The Up next card's small text takes the darker ink on its tint (axe found 4.42:1), and the steps' buttons say what they do ("Set: Choose your goal").
+
 - WI-064 (the curriculum is the app's default; goals are the owner's own; ADR-026). Migration `20261029090000_default_curriculum`:
   - **Always there.** The roadmaps and practice problems are published once (`pnpm curriculum:publish <bundle.json>`, stored in the database, never in the repository) and copied into a workspace on its first sign-in. Settings → Default curriculum → Restore brings back anything missing, archived or hidden, without touching marks, attempts or notes.
   - **Never deleted.** A default roadmap can be archived but not deleted, keeps its name and reads "Default roadmap"; its edit form has no goal field.

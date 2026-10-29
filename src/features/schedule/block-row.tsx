@@ -27,6 +27,7 @@ export function BlockRowShell({
   title,
   meta,
   status,
+  statusTone,
   side,
   children,
 }: {
@@ -40,6 +41,8 @@ export function BlockRowShell({
   title: ReactNode;
   meta: ReactNode;
   status: string;
+  /** Today's timeline names an upcoming row "Up next" or "Planned" (WI-065); Plan keeps it quiet. */
+  statusTone?: 'up-next' | 'planned';
   side?: ReactNode;
   children?: ReactNode;
 }) {
@@ -58,7 +61,7 @@ export function BlockRowShell({
         <p className="agenda-meta">{meta}</p>
       </div>
       <div className="agenda-side">
-        <span className={`agenda-status is-${resolution}`}>
+        <span className={`agenda-status is-${statusTone ?? resolution}`}>
           <StatusIcon resolution={resolution} />
           {status}
         </span>

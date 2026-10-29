@@ -59,6 +59,19 @@ const origin = (b: TimeBlock) =>
       : 'Routine'
     : 'Added for this day';
 
+/** "3 blocks · 2 still ahead": the plan's size and what is left of it, as facts. */
+function planCounts(blocks: Block[], now: Date) {
+  const live = blocks.filter((b) => b.status !== 'CANCELLED');
+  const ahead = live.filter(
+    (b) =>
+      b.status !== 'COMPLETED' && b.status !== 'SKIPPED' && b.plannedEnd > now,
+  ).length;
+  return [
+    `${live.length} block${live.length === 1 ? '' : 's'}`,
+    ahead ? `${ahead} still ahead` : 'none left ahead',
+  ].join(' · ');
+}
+
 /** The day as an open list with a timeline rail: Earlier / Now / Later, cancelled apart. */
 export function Agenda(props: Props) {
   const { entries, day, today, now, zone, goals } = props;
@@ -74,9 +87,15 @@ export function Agenda(props: Props) {
   return (
     <section className="agenda" aria-labelledby="agenda-heading">
       <div className="agenda-head">
-        <h2 id="agenda-heading" className="agenda-heading">
-          Your day
-        </h2>
+        {/* Today's plan as one timeline (WI-065): Done, Up next, Planned, Cancelled apart. */}
+        <div>
+          <h2 id="agenda-heading" className="agenda-heading">
+            {isToday ? "Today's plan" : 'The plan for this day'}
+          </h2>
+          {props.blocks.length > 0 && (
+            <p className="muted agenda-sub">{planCounts(props.blocks, now)}</p>
+          )}
+        </div>
         <Disclosure
           label="Add a block"
           variant="link"
@@ -207,6 +226,10 @@ function BlockRow({
   const unresolved =
     resolution === 'not-recorded' || resolution === 'needs-update';
   const panelId = `block:${block.id}`;
+  // The launcher's block is the one Up next on Today's timeline (WI-065).
+  const upNext =
+    launcherBlockId === block.id &&
+    (resolution === 'upcoming' || resolution === 'current');
   const meta = rowMeta(block, round, now, zone);
   const title = blockTitle(block, round);
   const panelMeta = [
@@ -243,7 +266,16 @@ function BlockRow({
       }
       title={title}
       meta={meta}
-      status={resolutionText[resolution]}
+      status={
+        upNext
+          ? 'Up next'
+          : resolution === 'upcoming'
+            ? 'Planned'
+            : resolutionText[resolution]
+      }
+      statusTone={
+        upNext ? 'up-next' : resolution === 'upcoming' ? 'planned' : undefined
+      }
       side={
         <>
           <div className="agenda-actions">

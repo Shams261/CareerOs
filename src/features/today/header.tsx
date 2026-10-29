@@ -6,14 +6,14 @@ import { DateJump } from '@/components/date-jump';
 import { FeedbackOutlet } from '@/components/feedback-outlet';
 import { shiftDay } from '@/features/schedule/domain';
 import { PanelButton, PressButton } from './panels';
-import { LiveSummary } from './live-summary';
+import { LiveMinutes } from './live-summary';
 import { UtilityMenu } from './utility-menu';
 
 /**
- * The Today header (WI-063): the heading with the date and the day arrows, one More menu for
- * the utilities (date, Activity, Notes, Add, Review day, Edit goal), then at most two fact
- * lines. Close the Day stays outside More in the evening, since it is the day's decision.
- * "Add a block" also lives in the agenda heading.
+ * The Today header (WI-063, WI-065): the heading with the date and the day arrows, one More menu
+ * for the utilities (date, Activity, Notes, Add, Review day, Edit goal), a short cheer line and
+ * the day's facts as chips. Close the Day stays outside More in the evening, since it is the
+ * day's decision. "Add a block" also lives in the agenda heading.
  */
 export function TodayHeader({
   day,
@@ -27,8 +27,8 @@ export function TodayHeader({
   reviewed,
   closing = false,
   rested = false,
-  facts = '',
-  goal = null,
+  cheer = '',
+  goalChip = null,
   goalAction = null,
 }: {
   day: string;
@@ -50,19 +50,13 @@ export function TodayHeader({
   closing?: boolean;
   /** The owner marked this day as rest (WI-028). */
   rested?: boolean;
-  /** Yesterday and the week so far as counts (WI-059); empty when there are none. */
-  facts?: string;
-  /** The goal line (WI-060). */
-  goal?: ReactNode;
+  /** One short line under the title that cheers the facts on (WI-065); today only. */
+  cheer?: string;
+  /** The goal as a chip that opens its panel (WI-065); today only. */
+  goalChip?: ReactNode;
   /** Edit goal or Set a goal, kept in More (WI-063). */
   goalAction?: ReactNode;
 }) {
-  const quiet =
-    !running &&
-    summary.planned === 0 &&
-    summary.recordedMinutes === 0 &&
-    !reviewed &&
-    !rested;
   const isToday = day === today;
   return (
     <header className={`today-head${isToday ? '' : ' is-other-day'}`}>
@@ -138,16 +132,43 @@ export function TodayHeader({
           {goalAction}
         </UtilityMenu>
       </div>
-      {/* A day with nothing planned or recorded skips the line of zeros (WI-063). */}
-      {!quiet && (
-        <p className="today-summary">
-          <LiveSummary {...summary} running={running} renderedAt={renderedAt} />
-          {reviewed && <span className="pill success">Reviewed</span>}
-          {rested && <span className="pill">Rest day</span>}
-        </p>
-      )}
-      {facts && <p className="today-facts">{facts}</p>}
-      {goal}
+      {/* The facts as three chips, with one short line that cheers them on (WI-065). */}
+      {cheer && <p className="today-cheer">{cheer}</p>}
+      <ul className="plain-list today-chips" aria-label="The day in numbers">
+        <li className="today-chip">
+          <span className="today-chip-label">
+            {isToday ? 'Focused today' : 'Focused'}
+          </span>
+          <strong>
+            <LiveMinutes
+              minutes={summary.recordedMinutes}
+              running={running}
+              renderedAt={renderedAt}
+            />
+          </strong>
+        </li>
+        <li className="today-chip">
+          <span className="today-chip-label">
+            {isToday ? "Today's plan" : 'Plan'}
+          </span>
+          <strong>
+            {summary.planned
+              ? `${summary.completed} of ${summary.planned} block${summary.planned === 1 ? '' : 's'}`
+              : 'Nothing planned'}
+          </strong>
+        </li>
+        {goalChip && <li className="today-chip is-goal">{goalChip}</li>}
+        {reviewed && (
+          <li>
+            <span className="pill success">Reviewed</span>
+          </li>
+        )}
+        {rested && (
+          <li>
+            <span className="pill">Rest day</span>
+          </li>
+        )}
+      </ul>
       <FeedbackOutlet channel="review" className="mt-2" />
     </header>
   );

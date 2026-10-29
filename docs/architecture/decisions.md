@@ -556,3 +556,26 @@ The owner's decisions (2026-10-26) and the R5 spike (2026-10-27, `scripts/r5-spi
 - **Wipes and resets keep the curriculum, or the next sign-in copies it back.** `scripts/fresh-start.sql` keeps it; a workspace that lost it gets it back on Restore, or on its next first sign-in.
 - **Bundle changes reach existing workspaces only through Restore,** which adds what is missing. Existing items keep their text; `pnpm roadmap:import` still updates text for the single owner.
 - **More users would share the material.** That requires its licence to be checked first.
+
+## ADR-027 — Today's home: facts with a short cheer, and a thin bar for the week
+
+**Status:** Accepted (2026-10-28, WI-065). Amends ADR-019 and WI-059's voice rule for Today only.
+
+**Context:** In UAT the owner found that a new account opened straight into a routine form. They brought a before/after concept for Today: a welcome for an empty account, then facts as chips, an Up next card, the day as one timeline and This week. They chose short motivational lines beside the facts, rather than WI-059's plain facts. They also chose a thin bar for the week, with a quiet animation when something is achieved, rather than the "no bars" rule.
+
+**Decision:**
+
+- **Empty account** (no routine, no block, no running session): `FirstRunToday` shows the welcome "Start small. Build your rhythm.", **Plan my first focus** and "or try a 20-minute session". The panel offers today's picks with Start 20 min, or a block for later in four fields (`BlockForm quick`).
+  - "Your first 3 steps" lists goal, study times and a learning focus. Each opens a panel or the Roadmap, and "Skip for now" hides the steps for 30 days (`silsila-first-steps-hidden`).
+  - A calm empty day finishes the page. No form is required.
+- **A day with a plan:**
+  - **Header.** A cheer line under the title (`headerLine`), then chips for Focused today (live), Today's plan (done of planned) and Your goal (days left, horizon and title; it opens the goal panel).
+  - **Main.** The launcher reads as the Up next card. The agenda is "Today's plan", with a count line and Up next or Planned on Today's rows; Plan keeps upcoming rows quiet.
+  - **Rail.** `WeekCard` comes first: blocks done of planned this week, a 6 px bar (`role="progressbar"`) and one line by milestone (`weekProgress`). Then Needs attention, the setup steps and the nudges card.
+- **Words.** Every line is fixed text in `src/features/today/home.ts` (`HOME_COPY`) and is checked against `BANNED_WORDS`, so no streak, no guilt and no hustle. The lines cheer facts that are true; they never forecast a pace or compare.
+- **Motion.** When the week crosses a milestone (first block, half, all) that this device has not seen (`silsila-week-milestone` in localStorage), the bar glows once and the line rises in, under `prefers-reduced-motion: no-preference` only. Nothing loops and nothing is a score.
+
+**Consequences:**
+
+- **The bar is an exception.** It is the one progress bar in Silsila, by the owner's choice, and does not make bars acceptable elsewhere.
+- **Plain facts stay elsewhere.** Today's cheer lines are the exception to the plain-facts voice. Reminders, Rumi and the other pages keep the plain facts.
