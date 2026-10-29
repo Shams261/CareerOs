@@ -301,6 +301,7 @@ export default async function Today({
           bounds={bounds}
           goals={goals}
           picks={await forTodayPicks(user, now).catch(() => [])}
+          name={user.name}
         />
       ) : (
         <>

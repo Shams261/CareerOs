@@ -7964,6 +7964,9 @@ button.attention-link {
 .daily-line {
   margin: 0 0 10px;
 }
+.home-head .daily-line {
+  margin: 10px 0 0;
+}
 .daily-greeting {
   margin: 0;
   font-size: 15px;
