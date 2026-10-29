@@ -1,6 +1,7 @@
 'use client';
 import { useEffect } from 'react';
 import { clock } from './ring';
+import { onEverySecond } from '@/lib/clock-tick';
 
 /** A countdown prefix the clock writes ("17:34 · Silsila"), stripped before each write. */
 const PREFIX = /^\d+:\d\d(?::\d\d)? · /;
@@ -19,10 +20,9 @@ export function TitleClock({ target }: { target: string }) {
       const left = end - Date.now();
       document.title = left > 0 ? `${clock(left)} · ${base}` : base;
     };
-    write();
-    const timer = setInterval(write, 1000);
+    const stop = onEverySecond(write);
     return () => {
-      clearInterval(timer);
+      stop();
       document.title = document.title.replace(PREFIX, '');
     };
   }, [target]);

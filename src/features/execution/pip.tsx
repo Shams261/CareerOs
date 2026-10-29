@@ -3,6 +3,7 @@ import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { createPortal } from 'react-dom';
 import { useRouter } from 'next/navigation';
 import { clock, Ring } from './ring';
+import { onEverySecond } from '@/lib/clock-tick';
 
 /**
  * The pop-out timer (WI-066): one Document Picture-in-Picture window for the whole app. Focus
@@ -149,9 +150,8 @@ export function PipHost({ shown }: { shown: PipSession | null }) {
   }, [s.session, s.win, shown]);
   useEffect(() => {
     if (!s.win) return;
-    const w = s.win;
-    const timer = w.setInterval(() => setNow(Date.now()), 1000);
-    return () => w.clearInterval(timer);
+    // The pop-out's own timers, on the same whole seconds as the page (WI-073).
+    return onEverySecond(setNow, s.win);
   }, [s.win]);
   if (!s.win || !s.session) return null;
   const session = s.session;

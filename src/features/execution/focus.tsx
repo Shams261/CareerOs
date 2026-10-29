@@ -10,6 +10,7 @@ import {
   stopUnlinkedAction,
 } from '@/features/schedule/actions';
 import { audioRunning, playChime, unlockAudio } from '@/lib/sound';
+import { useSecondTick } from '@/lib/clock-tick';
 import { playAmbient, stopAmbient } from '@/lib/ambient';
 import { useWakeLock, useWakeLockSupported } from '@/lib/wake-lock';
 import {
@@ -57,20 +58,8 @@ export type FocusSession = {
  * render time so the first client render matches the server HTML, then follows the clock.
  */
 function useNow(renderedAt: string) {
-  const [now, setNow] = useState(() => Date.parse(renderedAt));
-  useEffect(() => {
-    const tick = () => setNow(Date.now());
-    tick();
-    const timer = setInterval(() => {
-      if (document.visibilityState === 'visible') tick();
-    }, 1000);
-    document.addEventListener('visibilitychange', tick);
-    return () => {
-      clearInterval(timer);
-      document.removeEventListener('visibilitychange', tick);
-    };
-  }, []);
-  return now;
+  // On the shared whole second (WI-073), so the ring and the pop-out never read apart.
+  return useSecondTick(renderedAt);
 }
 
 /**

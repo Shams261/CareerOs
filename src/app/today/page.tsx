@@ -51,6 +51,8 @@ import { todaysNudge } from '@/features/nudges/service';
 import { CloseDayForm } from '@/features/close-day/form';
 import { DayPrintCard } from '@/features/day-print/print';
 import { LivePrint } from '@/features/day-print/live';
+import { dayPart } from '@/features/today/daily-line';
+import { formatInTimeZone } from 'date-fns-tz';
 import { dayPrint } from '@/features/day-print/domain';
 import { closeDayOpen } from '@/features/close-day/domain';
 import { previewSlots, stopTime } from '@/features/close-day/service';
@@ -356,6 +358,16 @@ export default async function Today({
                   )}
                 </PanelButton>
               ) : null
+            }
+            daily={
+              isToday
+                ? {
+                    part: dayPart(
+                      Number(formatInTimeZone(now, user.timezone, 'H')),
+                    ),
+                    name: user.name,
+                  }
+                : null
             }
             goalAction={
               isToday ? (

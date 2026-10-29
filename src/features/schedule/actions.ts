@@ -157,6 +157,7 @@ export async function executionAction(_state: ActionState, form: FormData) {
         undo: { kind: 'block-reset', payload: { id } },
       };
     if (action === 'stop') return pausedMessage(id);
+    if (action === 'start') return 'Session running.';
     return action === 'complete'
       ? completedMessage(await owner(), id, new Date())
       : 'Saved.';
