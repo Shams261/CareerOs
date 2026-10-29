@@ -1,6 +1,7 @@
 'use server';
 import { deleteBlock } from '@/features/deletes/service';
 import { blockUndo } from '@/features/deletes/domain';
+import { planLine } from '@/features/today/home';
 import { forgetAll } from '@/server/memo';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
@@ -82,9 +83,10 @@ export async function blockAction(_state: ActionState, form: FormData) {
       String(form.get('version') ?? ''),
     );
     // Undo on a new block cancels it (history stays; nothing is deleted).
+    // A new block is answered with one quiet line and its time (WI-071).
     return saved.created
       ? {
-          message: 'Added for this day.',
+          message: planLine(String(form.get('startLocal') ?? ''), saved.id),
           undo: { kind: 'cancel-block', payload: { id: saved.id } },
         }
       : 'Saved for this day.';

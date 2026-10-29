@@ -50,6 +50,7 @@ import { NudgesOffCard } from '@/features/nudges/off-card';
 import { todaysNudge } from '@/features/nudges/service';
 import { CloseDayForm } from '@/features/close-day/form';
 import { DayPrintCard } from '@/features/day-print/print';
+import { LivePrint } from '@/features/day-print/live';
 import { dayPrint } from '@/features/day-print/domain';
 import { closeDayOpen } from '@/features/close-day/domain';
 import { previewSlots, stopTime } from '@/features/close-day/service';
@@ -473,7 +474,21 @@ export default async function Today({
             />
             {isToday && (
               <aside className="today-rail" aria-labelledby="attention-heading">
-                {/* This week first, then what needs attention (WI-065). */}
+                {/* Today's rings while the day is open (WI-071), then This week, then what
+                    needs attention (WI-065). */}
+                {!reviewed && sessions.length > 0 && (
+                  <LivePrint
+                    day={day}
+                    model={dayPrint({
+                      day,
+                      bounds,
+                      sessions,
+                      letGo: 0,
+                      rested: false,
+                      now,
+                    })}
+                  />
+                )}
                 <WeekCard
                   week={weekProgress({
                     done: weekBlocks.filter((b) => b.status === 'COMPLETED')
