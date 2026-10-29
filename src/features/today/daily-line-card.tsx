@@ -1,5 +1,5 @@
 'use client';
-import { useState, useSyncExternalStore } from 'react';
+import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { useSecondTick } from '@/lib/clock-tick';
 import { RefreshCw } from 'lucide-react';
 import { clockLabel, dailyQuote, greeting, type DayPart } from './daily-line';
@@ -64,24 +64,37 @@ export function DailyLine({
   part,
   name,
   zone,
+  dateLabel,
 }: {
   day: string;
   part: DayPart;
   name: string | null;
   zone: string;
+  /** "Thursday · 29 October", the band's eyebrow (WI-076). */
+  dateLabel: string;
 }) {
   const enabled = useDailyLineEnabled();
   const [offset, setOffset] = useState(0);
   const now = useSecondTick();
+  const root = useRef<HTMLElement>(null);
+  // While the band shows the date, the header's own date line steps aside (WI-076).
+  useEffect(() => {
+    const head = root.current?.closest<HTMLElement>('.today-head, .home-head');
+    if (!head) return;
+    if (enabled) head.setAttribute('data-band', 'on');
+    else head.removeAttribute('data-band');
+  }, [enabled]);
   const quote = dailyQuote(day, part, offset);
   return (
     <section
+      ref={root}
       className="daily-band"
       data-part={part}
       hidden={!enabled}
       aria-label="Today's greeting"
     >
       <div className="daily-band-text">
+        <p className="daily-eyebrow">{dateLabel}</p>
         <p className="daily-greeting">{greeting(part, name)}</p>
         <p className="daily-quote" key={quote.text}>
           <q>{quote.text}</q>

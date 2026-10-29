@@ -72,7 +72,17 @@ export async function FirstRunToday({
           {formatInTimeZone(bounds.start, user.timezone, 'EEEE · d MMMM yyyy')}
         </p>
         <h1>Today</h1>
-        <DailyLine day={day} part={part} name={name} zone={user.timezone} />
+        <DailyLine
+          day={day}
+          part={part}
+          name={name}
+          zone={user.timezone}
+          dateLabel={formatInTimeZone(
+            bounds.start,
+            user.timezone,
+            'EEEE · d MMMM',
+          )}
+        />
       </header>
       <div className="home-grid">
         <div className="home-main">
