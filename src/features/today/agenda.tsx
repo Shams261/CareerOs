@@ -331,6 +331,7 @@ function BlockRow({
               hideStart={launcherBlockId === block.id}
               more
               canDelete={!block.sessions.length}
+              resume={resolution === 'paused'}
             />
           </div>
           <PanelButton
@@ -352,36 +353,52 @@ function BlockRow({
         {block.skipReason && (
           <p className="muted">Skipped: {block.skipReason}</p>
         )}
+        {/* The block's recorded time as one total, its parts listed small (WI-067): a pause
+            and a resume are one piece of work, not separate records to read. */}
         {block.sessions.length > 0 && (
-          <ul className="plain-list panel-sessions">
-            {block.sessions.map((s) => (
-              <li className="recorded" key={s.id}>
-                Recorded {formatInTimeZone(s.startedAt, zone, 'MMM d, HH:mm')}–
-                {s.endedAt
-                  ? formatInTimeZone(s.endedAt, zone, 'MMM d, HH:mm')
-                  : 'running'}{' '}
-                ·{' '}
+          <section className="panel-recorded" aria-label="Recorded time">
+            <p className="panel-recorded-total">
+              <strong>
+                Recorded{' '}
                 {sessionLength(
-                  minutes(s.startedAt, s.endedAt ?? now),
-                  !!s.endedAt,
+                  block.sessions.reduce(
+                    (n, s) => n + minutes(s.startedAt, s.endedAt ?? now),
+                    0,
+                  ),
+                  block.sessions.every((s) => s.endedAt),
                 )}
-                {s.notes ? ` · ${s.notes}` : ''}
-                {s.endedAt && (
-                  <ActionForm
-                    action={deleteSessionAction}
-                    broadcast="blocks"
-                    label="Delete this session"
-                    className="inline-delete"
-                  >
-                    <input type="hidden" name="id" value={s.id} />
-                    <Button variant="link" className="danger small">
-                      Delete
-                    </Button>
-                  </ActionForm>
-                )}
-              </li>
-            ))}
-          </ul>
+              </strong>
+              {block.sessions.length > 1 && ` · ${block.sessions.length} parts`}
+            </p>
+            <ul className="plain-list panel-sessions">
+              {block.sessions.map((s) => (
+                <li className="recorded" key={s.id}>
+                  {dayKey(s.startedAt, zone) === day
+                    ? hhmm(s.startedAt, zone)
+                    : formatInTimeZone(s.startedAt, zone, 'MMM d, HH:mm')}
+                  –{s.endedAt ? hhmm(s.endedAt, zone) : 'running'} ·{' '}
+                  {sessionLength(
+                    minutes(s.startedAt, s.endedAt ?? now),
+                    !!s.endedAt,
+                  )}
+                  {s.notes ? ` · ${s.notes}` : ''}
+                  {s.endedAt && (
+                    <ActionForm
+                      action={deleteSessionAction}
+                      broadcast="blocks"
+                      label="Delete this part"
+                      className="inline-delete"
+                    >
+                      <input type="hidden" name="id" value={s.id} />
+                      <Button variant="link" className="danger small">
+                        Delete
+                      </Button>
+                    </ActionForm>
+                  )}
+                </li>
+              ))}
+            </ul>
+          </section>
         )}
         <h3 className="mt-4" data-panel-focus="log" tabIndex={-1}>
           Log time

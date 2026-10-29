@@ -223,8 +223,13 @@ export function groupAgenda(
   // (WI-066: a block done before its slot no longer reads as Later).
   const settled = (e: AgendaEntry) =>
     e.kind === 'block' && ['COMPLETED', 'SKIPPED'].includes(e.block.status);
+  // Running, or paused with its slot still open (WI-067): both are Now.
   const running = (e: AgendaEntry) =>
-    e.kind === 'block' && e.block.status === 'IN_PROGRESS';
+    e.kind === 'block' &&
+    (e.block.status === 'IN_PROGRESS' ||
+      (e.block.status === 'PLANNED' &&
+        e.block.sessions.length > 0 &&
+        e.block.plannedEnd > now));
   return {
     earlier: live.filter(
       (e) => settled(e) || (!running(e) && entryEnd(e) <= now),

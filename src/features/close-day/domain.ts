@@ -46,7 +46,8 @@ export function leftKind(block: BlockLike, now: Date): LeftKind | null {
   const r = blockResolution(block, now);
   if (r === 'not-recorded' || r === 'upcoming' || r === 'current')
     return 'unrecorded';
-  if (r === 'needs-update' || r === 'in-progress') return 'recorded';
+  if (r === 'needs-update' || r === 'in-progress' || r === 'paused')
+    return 'recorded';
   return null;
 }
 export type Choice = 'tomorrow' | 'letgo' | 'done';

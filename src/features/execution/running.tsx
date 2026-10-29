@@ -49,10 +49,13 @@ export async function RunningNow() {
           Focus
         </Link>
         {running.task ? (
-          <ActionForm action={executionAction} label="Stop the running session">
+          <ActionForm
+            action={executionAction}
+            label="Pause the running session"
+          >
             <input type="hidden" name="id" value={running.task.id} />
             <Button className="secondary" name="action" value="stop">
-              Stop
+              Pause
             </Button>
           </ActionForm>
         ) : (

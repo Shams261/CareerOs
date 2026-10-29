@@ -104,7 +104,7 @@ export async function closeDay(
       select: { id: true },
     });
     if (running)
-      throw new Error('Stop the running session before closing the day.');
+      throw new Error('Pause the running session before closing the day.');
     const plan = await tx.dailyPlan.findUnique({
       where: { userId_date: { userId: user.id, date: new Date(input.day) } },
       include: {

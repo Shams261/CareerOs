@@ -5,7 +5,9 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { z } from 'zod';
 import { issueMessages } from '@/lib/validation';
-import { owner } from '@/server/db';
+import { db, owner } from '@/server/db';
+import { minutes } from '@/lib/time';
+import { recordedText } from './row';
 import { syncSoon } from '@/features/calendar/background';
 import { saveBlock, saveRoutine, PreviewRequired } from './editing';
 import { dateInput } from './domain';
@@ -154,10 +156,24 @@ export async function executionAction(_state: ActionState, form: FormData) {
         message: action === 'skip' ? 'Skipped.' : 'Block cancelled.',
         undo: { kind: 'block-reset', payload: { id } },
       };
+    if (action === 'stop') return pausedMessage(id);
     return action === 'complete'
       ? completedMessage(await owner(), id, new Date())
       : 'Saved.';
   });
+}
+/** Pause says where the block stands (WI-067): "Paused · 12 min so far. Resume when you are ready." */
+async function pausedMessage(id: string) {
+  const user = await owner();
+  const sessions = await db().actualSession.findMany({
+    where: { userId: user.id, taskId: id, endedAt: { not: null } },
+    select: { startedAt: true, endedAt: true },
+  });
+  const total = sessions.reduce(
+    (n, s) => n + minutes(s.startedAt, s.endedAt!),
+    0,
+  );
+  return `Paused · ${recordedText(total)} so far. Resume when you are ready.`;
 }
 export async function manualAction(_state: ActionState, form: FormData) {
   return perform(async () => {

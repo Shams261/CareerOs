@@ -266,7 +266,7 @@ describe.skipIf(!url)('Close the Day (PostgreSQL)', () => {
     });
     await expect(
       closeDay(user, form({}, [{ ...i, choice: 'letgo' }]), now),
-    ).rejects.toThrow(/Stop the running session/);
+    ).rejects.toThrow(/Pause the running session/);
     expect(
       (
         await prisma.interviewRound.findUniqueOrThrow({

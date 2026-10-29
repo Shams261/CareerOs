@@ -3,6 +3,7 @@ import { ActionForm } from '@/components/action-form';
 import { FormMore } from '@/components/form-more';
 import { TemplateChips } from './template-chips';
 import { QuickBlockFields } from './quick-fields';
+import { TimeLengthFields } from './time-length';
 import type { RoutineTemplate } from './templates';
 import {
   blockAction,
@@ -24,87 +25,6 @@ import {
 } from '@/features/execution/secondary-actions';
 export type GoalOption = { id: string; title: string };
 const WEEKDAY = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-function CommonFields({
-  goals,
-  value,
-  compact = false,
-}: {
-  goals: GoalOption[];
-  value?: {
-    title: string;
-    category: string;
-    description: string | null;
-    goalId: string | null;
-    priority: number;
-  };
-  compact?: boolean;
-}) {
-  return (
-    <>
-      <div className="form-grid">
-        <label>
-          Title
-          <input
-            name="title"
-            required
-            maxLength={160}
-            defaultValue={value?.title}
-            placeholder="DSA practice"
-          />
-        </label>
-        <label>
-          Category
-          <input
-            name="category"
-            required
-            maxLength={80}
-            list="activity-categories"
-            defaultValue={value?.category ?? 'DSA'}
-          />
-        </label>
-        {compact ? (
-          <>
-            <input type="hidden" name="priority" value={value?.priority ?? 2} />
-            <input type="hidden" name="goalId" value={value?.goalId ?? ''} />
-            <input type="hidden" name="description" value="" />
-          </>
-        ) : (
-          <>
-            <label>
-              Goal
-              <select name="goalId" defaultValue={value?.goalId ?? ''}>
-                <option value="">No goal</option>
-                {goals.map((g) => (
-                  <option key={g.id} value={g.id}>
-                    {g.title}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label>
-              Priority
-              <select name="priority" defaultValue={value?.priority ?? 2}>
-                <option value={1}>High</option>
-                <option value={2}>Normal</option>
-                <option value={3}>Low</option>
-              </select>
-            </label>
-          </>
-        )}
-      </div>
-      {!compact && (
-        <label>
-          Notes
-          <textarea
-            name="description"
-            maxLength={1000}
-            defaultValue={value?.description ?? ''}
-          />
-        </label>
-      )}
-    </>
-  );
-}
 export function CategoryOptions() {
   return (
     <datalist id="activity-categories">
@@ -197,6 +117,8 @@ export function BlockForm({
         <Button className="mt-3">Add block</Button>
       </ActionForm>
     );
+  // Edit this day in three answers (WI-067): title, start and length; the kind, goal,
+  // priority, notes and dates sit under More.
   return (
     <ActionForm
       action={blockAction}
@@ -210,53 +132,90 @@ export function BlockForm({
         name="version"
         value={block.updatedAt.toISOString()}
       />
-      <CommonFields goals={goals} value={block} />
-      <div className="form-grid">
+      <label>
+        Title
+        <input
+          name="title"
+          required
+          maxLength={160}
+          defaultValue={block.title}
+        />
+      </label>
+      <TimeLengthFields
+        startName="startLocal"
+        endName="endLocal"
+        startLabel="Start time"
+        endLabel="End time"
+        defaultStart={formatInTimeZone(block.plannedStart, zone, 'HH:mm')}
+        defaultEnd={formatInTimeZone(block.plannedEnd, zone, 'HH:mm')}
+      />
+      <FormMore label="More: kind, goal, priority, notes, another day">
+        <div className="form-grid">
+          <label>
+            Category
+            <input
+              name="category"
+              required
+              maxLength={80}
+              list="activity-categories"
+              defaultValue={block.category}
+            />
+          </label>
+          <label>
+            Goal
+            <select name="goalId" defaultValue={block.goalId ?? ''}>
+              <option value="">No goal</option>
+              {goals.map((g) => (
+                <option key={g.id} value={g.id}>
+                  {g.title}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label>
+            Priority
+            <select name="priority" defaultValue={block.priority}>
+              <option value={1}>High</option>
+              <option value={2}>Normal</option>
+              <option value={3}>Low</option>
+            </select>
+          </label>
+          <label>
+            Start date
+            <input
+              required
+              type="date"
+              name="day"
+              defaultValue={formatInTimeZone(
+                block.plannedStart,
+                zone,
+                'yyyy-MM-dd',
+              )}
+            />
+          </label>
+          <label>
+            End date
+            <input
+              required
+              type="date"
+              name="endDay"
+              defaultValue={formatInTimeZone(
+                block.plannedEnd,
+                zone,
+                'yyyy-MM-dd',
+              )}
+            />
+          </label>
+        </div>
         <label>
-          Start date
-          <input
-            required
-            type="date"
-            name="day"
-            defaultValue={formatInTimeZone(
-              block.plannedStart,
-              zone,
-              'yyyy-MM-dd',
-            )}
+          Notes
+          <textarea
+            name="description"
+            maxLength={1000}
+            defaultValue={block.description ?? ''}
           />
         </label>
-        <label>
-          Start time
-          <input
-            required
-            type="time"
-            name="startLocal"
-            defaultValue={formatInTimeZone(block.plannedStart, zone, 'HH:mm')}
-          />
-        </label>
-        <label>
-          End date
-          <input
-            required
-            type="date"
-            name="endDay"
-            defaultValue={formatInTimeZone(
-              block.plannedEnd,
-              zone,
-              'yyyy-MM-dd',
-            )}
-          />
-        </label>
-        <label>
-          End time
-          <input
-            required
-            type="time"
-            name="endLocal"
-            defaultValue={formatInTimeZone(block.plannedEnd, zone, 'HH:mm')}
-          />
-        </label>
-      </div>
+      </FormMore>
       <label className="check">
         <input type="checkbox" name="allowOverlap" /> Allow overlap with another
         block
@@ -447,6 +406,7 @@ export function ExecutionControls({
   more = false,
   primaryOnly = false,
   canDelete = false,
+  resume = false,
 }: {
   block: TimeBlock;
   canStart?: boolean;
@@ -459,6 +419,8 @@ export function ExecutionControls({
   primaryOnly?: boolean;
   /** Delete in the row's menu (WI-066): a block with no recorded time. */
   canDelete?: boolean;
+  /** Paused (WI-067): recorded time and no running session; Start reads Resume. */
+  resume?: boolean;
 }) {
   const deleteButton = canDelete ? (
     <Button
@@ -475,7 +437,7 @@ export function ExecutionControls({
     // row itself may go (WI-066).
     <ActionForm
       action={executionAction}
-      broadcast={more ? 'blocks' : undefined}
+      broadcast={more || launcher ? 'blocks' : undefined}
     >
       <input type="hidden" name="id" value={block.id} />
       <div className="actions">
@@ -500,7 +462,7 @@ export function ExecutionControls({
                       name="action"
                       value="stop"
                     >
-                      Stop<span className="sr-only">: {block.title}</span>
+                      Pause<span className="sr-only">: {block.title}</span>
                     </button>
                     <button className="button" name="action" value="complete">
                       Complete<span className="sr-only">: {block.title}</span>
@@ -508,24 +470,36 @@ export function ExecutionControls({
                   </>
                 ) : (
                   <button className="button" name="action" value="stop">
-                    Stop<span className="sr-only">: {block.title}</span>
+                    Pause<span className="sr-only">: {block.title}</span>
                   </button>
                 )
               ) : (
-                // Start begins the session and opens Focus already running (WI-066).
-                <button
-                  className={
-                    current
-                      ? 'button'
-                      : `button secondary${more ? ' small' : ''}`
-                  }
-                  name="action"
-                  value="focus"
-                  data-shortcut={current ? 'start' : undefined}
-                >
-                  {launcher ? 'Start session' : 'Start'}
-                  <span className="sr-only">: {block.title}</span>
-                </button>
+                // Start begins the session and opens Focus already running (WI-066); a paused
+                // block Resumes, and the launcher offers Complete beside it (WI-067).
+                <>
+                  {launcher && resume && (
+                    <button
+                      className="button secondary"
+                      name="action"
+                      value="complete"
+                    >
+                      Complete<span className="sr-only">: {block.title}</span>
+                    </button>
+                  )}
+                  <button
+                    className={
+                      current
+                        ? 'button'
+                        : `button secondary${more ? ' small' : ''}`
+                    }
+                    name="action"
+                    value="focus"
+                    data-shortcut={current ? 'start' : undefined}
+                  >
+                    {resume ? 'Resume' : launcher ? 'Start session' : 'Start'}
+                    <span className="sr-only">: {block.title}</span>
+                  </button>
+                </>
               ))}
             {!primaryOnly && (
               <SecondaryActions title={block.title} always={more}>
@@ -535,7 +509,8 @@ export function ExecutionControls({
                     name="action"
                     value="focus"
                   >
-                    Start<span className="sr-only">: {block.title}</span>
+                    {resume ? 'Resume' : 'Start'}
+                    <span className="sr-only">: {block.title}</span>
                   </button>
                 )}
                 <Button
@@ -587,41 +562,35 @@ export function ManualSessionForm({
   zone: string;
   day: string;
 }) {
+  // Log time in one row (WI-067): when it started and how long; the dates and a note sit
+  // under More, since almost every log is for this day.
   return (
     <ActionForm action={manualAction} label={`Log time for ${block.title}`}>
       <input type="hidden" name="id" value={block.id} />
-      <div className="form-grid">
+      <TimeLengthFields
+        startName="startLocal"
+        endName="endLocal"
+        startLabel="Started at"
+        endLabel="Ended at"
+        defaultStart={formatInTimeZone(block.plannedStart, zone, 'HH:mm')}
+        defaultEnd={formatInTimeZone(block.plannedEnd, zone, 'HH:mm')}
+      />
+      <FormMore label="More: another day, a note">
+        <div className="form-grid">
+          <label>
+            Started on
+            <input name="day" type="date" required defaultValue={day} />
+          </label>
+          <label>
+            Ended on
+            <input name="endDay" type="date" required defaultValue={day} />
+          </label>
+        </div>
         <label>
-          Started on
-          <input name="day" type="date" required defaultValue={day} />
+          Notes
+          <textarea name="notes" maxLength={1000} />
         </label>
-        <label>
-          Started at
-          <input
-            name="startLocal"
-            type="time"
-            required
-            defaultValue={formatInTimeZone(block.plannedStart, zone, 'HH:mm')}
-          />
-        </label>
-        <label>
-          Ended on
-          <input name="endDay" type="date" required defaultValue={day} />
-        </label>
-        <label>
-          Ended at
-          <input
-            name="endLocal"
-            type="time"
-            required
-            defaultValue={formatInTimeZone(block.plannedEnd, zone, 'HH:mm')}
-          />
-        </label>
-      </div>
-      <label>
-        Notes
-        <textarea name="notes" maxLength={1000} />
-      </label>
+      </FormMore>
       <Button className="mt-3">Save time</Button>
     </ActionForm>
   );

@@ -59,7 +59,9 @@ export async function executeIn(
   if (action === 'start') {
     if (running) {
       if (running.taskId === id) return;
-      throw new Error('Another session is running. Stop or complete it first.');
+      throw new Error(
+        'Another session is running. Pause or complete it first.',
+      );
     }
     if (!['PLANNED', 'IN_PROGRESS'].includes(b.status))
       throw new Error('Reset this block before starting it.');
@@ -89,7 +91,7 @@ export async function executeIn(
     if (action === 'complete' && b.status === 'COMPLETED' && !ownSession)
       return;
     if (['skip', 'cancel', 'reset'].includes(action) && ownSession)
-      throw new Error('Stop the running session before changing its status.');
+      throw new Error('Pause the running session before changing its status.');
     if (action === 'stop' && !ownSession)
       throw new Error('No running session is linked to this block.');
     if (ownSession && ['stop', 'complete'].includes(action)) {
