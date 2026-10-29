@@ -501,16 +501,19 @@ export default async function Today({
                   weekKey={monday}
                   facts={facts ? factsLine(facts) : ''}
                 />
-                <AttentionBoundary>
-                  <Suspense fallback={<AttentionSkeleton />}>
-                    <Attention
-                      user={user}
-                      now={now}
-                      interviews={rounds}
-                      blocks={blocks}
-                    />
-                  </Suspense>
-                </AttentionBoundary>
+                {/* A card like This week (WI-079), as the mockup had it. */}
+                <section className="card rail-card">
+                  <AttentionBoundary>
+                    <Suspense fallback={<AttentionSkeleton />}>
+                      <Attention
+                        user={user}
+                        now={now}
+                        interviews={rounds}
+                        blocks={blocks}
+                      />
+                    </Suspense>
+                  </AttentionBoundary>
+                </section>
                 <Suspense fallback={null}>
                   <SetupRail user={user} />
                 </Suspense>
