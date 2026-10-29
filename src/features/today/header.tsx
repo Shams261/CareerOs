@@ -147,13 +147,9 @@ export function TodayHeader({
           dateLabel={formatInTimeZone(bounds.start, zone, 'EEEE · d MMMM')}
         />
       )}
-      {/* The facts as three chips, with one short line that cheers them on (WI-065). */}
-      {cheer && <p className="today-cheer">{cheer}</p>}
-      <ul className="plain-list today-chips" aria-label="The day in numbers">
-        <li className="today-chip">
-          <span className="today-chip-label">
-            {isToday ? 'Focused today' : 'Focused'}
-          </span>
+      {/* The facts as one line (WI-077), the cheer at its end. */}
+      <p className="today-facts" aria-label="The day in numbers">
+        <span className="today-fact">
           <strong>
             <LiveMinutes
               minutes={summary.recordedMinutes}
@@ -161,30 +157,26 @@ export function TodayHeader({
               renderedAt={renderedAt}
               day={day}
             />
-          </strong>
-        </li>
-        <li className="today-chip">
-          <span className="today-chip-label">
-            {isToday ? "Today's plan" : 'Plan'}
-          </span>
-          <strong>
-            {summary.planned
-              ? `${summary.completed} of ${summary.planned} block${summary.planned === 1 ? '' : 's'}`
-              : 'Nothing planned'}
-          </strong>
-        </li>
-        {goalChip && <li className="today-chip is-goal">{goalChip}</li>}
-        {reviewed && (
-          <li>
-            <span className="pill success">Reviewed</span>
-          </li>
-        )}
-        {rested && (
-          <li>
-            <span className="pill">Rest day</span>
-          </li>
-        )}
-      </ul>
+          </strong>{' '}
+          {isToday ? 'focused today' : 'focused'}
+        </span>
+        <span className="today-fact">
+          {summary.planned ? (
+            <>
+              <strong>
+                {summary.completed} of {summary.planned}
+              </strong>{' '}
+              block{summary.planned === 1 ? '' : 's'}
+            </>
+          ) : (
+            'Nothing planned'
+          )}
+        </span>
+        {goalChip && <span className="today-fact">{goalChip}</span>}
+        {reviewed && <span className="pill success">Reviewed</span>}
+        {rested && <span className="pill">Rest day</span>}
+        {cheer && <span className="today-facts-cheer">{cheer}</span>}
+      </p>
       <FeedbackOutlet channel="review" className="mt-2" />
     </header>
   );

@@ -22,6 +22,7 @@ import type { ActualSession, TimeBlock } from '@/generated/prisma/client';
 import {
   blockResolution,
   blockTitle,
+  earlierFold,
   formatDuration,
   groupAgenda,
   hhmm,
@@ -30,6 +31,8 @@ import {
   type AgendaEntry,
   type RoundLike,
 } from './domain';
+import { StatusIcon } from '@/features/schedule/block-row';
+import { EarlierFold } from './earlier-fold';
 import { PanelButton, SidePanel } from './panels';
 import { DetailTabs } from './detail-tabs';
 
@@ -89,15 +92,39 @@ export function Agenda(props: Props) {
       .filter((b) => b.status !== 'CANCELLED')
       .map((b) => ({ start: b.plannedStart, end: b.plannedEnd })),
   );
+  // Earlier folds its settled rows into one line (WI-077); open rows stay above it.
+  const earlier = isToday
+    ? earlierFold(groups.earlier, now)
+    : { open: groups.earlier, folded: [], label: '' };
   const sections: [string, AgendaEntry[]][] = isToday
     ? [
-        ['Earlier', groups.earlier],
+        ['Earlier', earlier.open],
         ['Now', groups.now],
         ['Later', groups.later],
       ]
     : [['', groups.later]];
+  // The day's blocks as chips (WI-077): every live block in time order, each opening its
+  // details, so the whole day reads in one row before the list.
+  const chips = isToday
+    ? [...groups.earlier, ...groups.now, ...groups.later].flatMap((e) =>
+        e.kind === 'block'
+          ? [{ entry: e, resolution: blockResolution(e.block, now) }]
+          : [],
+      )
+    : [];
+  const rows = (list: AgendaEntry[]) =>
+    list.map((entry) =>
+      entry.kind === 'block' ? (
+        <BlockRow key={entry.key} entry={entry} {...props} />
+      ) : (
+        <RoundRow key={entry.key} round={entry.round} zone={props.zone} />
+      ),
+    );
   return (
-    <section className="agenda" aria-labelledby="agenda-heading">
+    <section
+      className={`agenda${isToday ? ' is-compact' : ''}`}
+      aria-labelledby="agenda-heading"
+    >
       <div className="agenda-head">
         {/* Today's plan as one timeline (WI-065): Done, Up next, Planned, Cancelled apart. */}
         <div>
@@ -127,6 +154,31 @@ export function Agenda(props: Props) {
         </SidePanel>
       </div>
       <FeedbackOutlet channel="blocks" className="mb-3" />
+      {chips.length > 1 && (
+        <ol className="plain-list plan-chips" aria-label="The day's blocks">
+          {chips.map(({ entry, resolution }) => (
+            <li key={entry.key}>
+              <PanelButton
+                panel={`block:${entry.block.id}`}
+                className={`plan-chip is-${resolution}`}
+              >
+                <StatusIcon resolution={resolution} />
+                <span className="plan-chip-time">
+                  {hhmm(entry.block.plannedStart, zone)}
+                </span>
+                <span className="plan-chip-title">
+                  {blockTitle(entry.block, entry.round)}
+                </span>
+              </PanelButton>
+            </li>
+          ))}
+        </ol>
+      )}
+      {earlier.folded.length > 0 && (
+        <EarlierFold label={earlier.label}>
+          <ol className="plain-list agenda-rows">{rows(earlier.folded)}</ol>
+        </EarlierFold>
+      )}
       {!entries.length && (
         <p className="empty">
           {isToday
@@ -153,19 +205,7 @@ export function Agenda(props: Props) {
                   {label}
                 </p>
               )}
-              <ol className="plain-list agenda-rows">
-                {list.map((entry) =>
-                  entry.kind === 'block' ? (
-                    <BlockRow key={entry.key} entry={entry} {...props} />
-                  ) : (
-                    <RoundRow
-                      key={entry.key}
-                      round={entry.round}
-                      zone={props.zone}
-                    />
-                  ),
-                )}
-              </ol>
+              <ol className="plain-list agenda-rows">{rows(list)}</ol>
             </li>
           ) : null,
         )}
