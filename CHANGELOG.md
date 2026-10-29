@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- WI-074 (a fuller daily line and your name). No migration:
+  - **160 quotations, forty for each part of the day**, from public-domain sources and proverbs: energetic in the morning and afternoon (Franklin, Edison, Roosevelt, Goethe, Confucius), calm in the evening and at night. None shames or scolds; a test keeps the set free of banned and shaming words.
+  - **Settings → Appearance → Name**: what Silsila calls you on Today ("Good morning, Shams."), instead of the name Google sent.
+
 - WI-073 (the daily line and one clock, ADR-028). No migration:
   - **A daily line on Today.** "Good morning, Shams." and one short quotation, chosen by the day and the part of the day from a fixed set of public-domain quotations (never written by a model). ↻ shows another. A soft tint behind the header follows the part of the day. Settings → Appearance → Daily line switches it off for the browser.
   - **One clock.** Focus, the pop-out, the sidebar card, Today's card and the tab title tick on the same whole second and resync when a window comes back, so they no longer read a second or two apart.

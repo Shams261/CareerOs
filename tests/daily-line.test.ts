@@ -40,13 +40,16 @@ describe('The daily line (WI-073, ADR-028)', () => {
     const others = DAY_PARTS.map((p) => dailyQuote('2026-10-30', p).text);
     expect(new Set(others).size).toBeGreaterThan(1);
   });
-  it('every quotation is short, attributed and free of banned words', () => {
-    for (const part of DAY_PARTS)
+  it('every quotation is short, attributed and free of banned or shaming words', () => {
+    const shaming = ['lazy', 'excuse', 'sluggard', 'wasted', 'loser', 'weak'];
+    for (const part of DAY_PARTS) {
+      expect(QUOTES[part].length).toBeGreaterThanOrEqual(40);
       for (const q of QUOTES[part]) {
         expect(q.text.split(/\s+/).length).toBeLessThanOrEqual(16);
         expect(q.by.length).toBeGreaterThan(0);
-        for (const w of BANNED_WORDS)
+        for (const w of [...BANNED_WORDS, ...shaming])
           expect(q.text.toLowerCase()).not.toContain(w.toLowerCase());
       }
+    }
   });
 });
