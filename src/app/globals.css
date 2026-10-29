@@ -7241,3 +7241,310 @@ button.attention-link {
 .template-chips.target-picks {
   margin-bottom: 0;
 }
+
+/* Today's home (WI-065, ADR-027): the empty account's welcome and steps, the facts as chips,
+   the Up next card and This week with its thin bar. Tokens only; motion only on request. */
+.home-head {
+  margin-bottom: 20px;
+}
+.home-head h1 {
+  margin: 4px 0 0;
+}
+.home-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(260px, 340px);
+  gap: 24px;
+  align-items: start;
+}
+.home-main {
+  display: grid;
+  gap: 20px;
+  min-width: 0;
+}
+.welcome-hero {
+  padding: 28px 30px;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: var(--primary-soft);
+}
+.welcome-eyebrow {
+  color: var(--primary);
+}
+.welcome-hero h2 {
+  margin: 8px 0 8px;
+  font-size: clamp(24px, 2.6vw, 30px);
+  letter-spacing: -0.02em;
+}
+.welcome-hero > p:not(.eyebrow) {
+  max-width: 52ch;
+  margin: 0 0 20px;
+  color: var(--ink-2);
+}
+.welcome-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 16px;
+}
+.welcome-actions .button svg {
+  vertical-align: -0.15em;
+}
+.first-day-sub {
+  margin: 2px 0 0;
+  font-size: 14px;
+}
+.first-day-empty {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+  padding: 18px;
+  border: 1px dashed var(--border);
+  border-radius: 12px;
+}
+.first-day-empty p {
+  margin: 0;
+}
+.first-day-title {
+  font-weight: 600;
+  margin-bottom: 2px !important;
+}
+.first-day-icon {
+  display: inline-grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--primary-soft);
+  color: var(--primary);
+  flex: none;
+}
+.home-pace {
+  margin: 0;
+  font-size: 14px;
+  color: var(--muted);
+}
+.first-steps-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.first-steps-head h2 {
+  margin: 0;
+  font-size: 18px;
+}
+.first-steps-list li {
+  display: grid;
+  grid-template-columns: 20px minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+  padding: 12px 0;
+  border-top: 1px solid var(--border-subtle);
+}
+.first-step-mark {
+  color: var(--muted);
+}
+.first-steps-list li.is-done .first-step-mark {
+  color: var(--primary);
+}
+.first-step-text {
+  display: grid;
+  gap: 2px;
+  font-size: 14px;
+}
+.first-step-title {
+  font-weight: 600;
+  font-size: 15px;
+}
+.first-steps-list li.is-done .first-step-title {
+  color: var(--muted);
+}
+.first-steps-skip {
+  margin-top: 10px;
+}
+.first-picks li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border-subtle);
+}
+.first-picks li > span {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+.today-cheer {
+  margin: 6px 0 0;
+  color: var(--ink-2);
+  font-size: 15px;
+}
+.today-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 14px 0 0;
+  align-items: stretch;
+}
+.today-chip {
+  display: grid;
+  gap: 2px;
+  min-width: 132px;
+  padding: 10px 14px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface);
+}
+.today-chip.is-goal {
+  padding: 0;
+}
+.today-chip-label {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.today-chip strong {
+  font-size: 16px;
+}
+.today-chip-button {
+  display: grid;
+  gap: 2px;
+  width: 100%;
+  height: 100%;
+  padding: 10px 14px;
+  border: 0;
+  border-radius: 12px;
+  background: transparent;
+  color: var(--foreground);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.today-chip-button:hover {
+  background: var(--subtle);
+}
+.today-chip-button:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+.today-chip-sub {
+  font-size: 13px;
+  color: var(--muted);
+  max-width: 28ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+/* The Up next card: the day's one primary, a little warmer than the rows below it. */
+.today-workspace > .launcher {
+  background: var(--primary-soft);
+  border-color: var(--border);
+  padding: 24px 28px;
+}
+.today-workspace > .launcher h2 {
+  font-size: clamp(22px, 2.2vw, 28px);
+}
+.agenda-sub {
+  margin: 2px 0 0;
+  font-size: 14px;
+}
+.week-card {
+  margin-bottom: 24px;
+}
+.week-card-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+}
+.week-card-head h2 {
+  margin: 0;
+  font-size: 18px;
+}
+.week-bar {
+  height: 6px;
+  margin: 12px 0 10px;
+  border-radius: var(--radius-pill);
+  background: var(--subtle);
+  overflow: hidden;
+}
+.week-bar-fill {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--primary);
+}
+.week-line {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 500;
+}
+.week-facts {
+  margin: 6px 0 0;
+  font-size: 13px;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .week-bar-fill {
+    transition: width var(--motion-slow) var(--motion-easing);
+  }
+  /* A milestone crossed: the bar glows once and the line rises in; nothing loops. */
+  .week-card.is-celebrating .week-bar-fill {
+    animation: week-glow 1.6s var(--motion-easing) 1;
+  }
+  .week-card.is-celebrating .week-line {
+    animation: week-rise 0.6s var(--motion-easing) 1;
+  }
+}
+@keyframes week-glow {
+  0% {
+    box-shadow: 0 0 0 0 var(--primary-soft);
+  }
+  40% {
+    box-shadow: 0 0 0 6px var(--primary-soft);
+  }
+  100% {
+    box-shadow: 0 0 0 0 transparent;
+  }
+}
+@keyframes week-rise {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@media (max-width: 900px) {
+  .home-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+@media (max-width: 700px) {
+  .welcome-hero {
+    padding: 22px 20px;
+  }
+  .today-chip {
+    min-width: 0;
+    flex: 1 1 140px;
+  }
+}
+
+/* Today's timeline words (WI-065): the launcher's block is Up next, the rest Planned. */
+.agenda-status.is-up-next {
+  color: var(--primary);
+  font-weight: 600;
+}
+.agenda-status.is-planned {
+  color: var(--muted);
+}
+/* On the Up next tint the meta grey falls under 4.5:1; the eyebrow and meta take ink-2. */
+.today-workspace > .launcher .launcher-eyebrow,
+.today-workspace > .launcher .launcher-meta {
+  color: var(--ink-2);
+}

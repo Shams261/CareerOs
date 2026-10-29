@@ -1,23 +1,16 @@
 import { ConfirmDelete } from '@/components/confirm-delete';
 import { deleteGoalAction } from '@/features/deletes/actions';
 import { Suspense } from 'react';
-import { ROUTINE_TEMPLATES } from '@/features/schedule/templates';
 import { SetupRail } from '@/features/setup/rail';
+import { FirstRunToday } from '@/features/today/first-run';
 import { CalendarAttention } from '@/features/calendar/panel';
-import { RoutineIllustration } from '@/components/illustrations';
-import { Disclosure } from '@/components/disclosure';
 import { FeedbackOutlet } from '@/components/feedback-outlet';
 import { PageShortcuts } from '@/components/shortcuts';
 import { db, owner } from '@/server/db';
 import { dayKey, dayBounds, hhmm, weekdayDate } from '@/lib/time';
 import { generateThroughSunday } from '@/features/schedule/service';
 import { dateInput, shiftDay } from '@/features/schedule/domain';
-import {
-  BlockForm,
-  CategoryOptions,
-  ReviewForm,
-  RoutineForm,
-} from '@/features/schedule/forms';
+import { CategoryOptions, ReviewForm } from '@/features/schedule/forms';
 import { ExecutionRefresh } from '@/features/execution/refresh';
 import { Chain } from '@/features/roadmap/summary';
 import { todaysInterviews } from '@/features/jobs/service';
@@ -46,10 +39,11 @@ import { Agenda } from '@/features/today/agenda';
 import { Attention, AttentionSkeleton } from '@/features/today/attention';
 import { AttentionBoundary } from '@/features/today/attention-boundary';
 import { PanelButton, SidePanel } from '@/features/today/panels';
-import { goalLine } from '@/features/roadmap/domain';
+import { targetLabel } from '@/features/roadmap/domain';
+import { headerLine, weekProgress } from '@/features/today/home';
+import { WeekCard } from '@/features/today/week-card';
 import { horizonLabel } from '@/features/goals/horizon';
 import { GoalForm } from '@/features/roadmap/forms';
-import { formatDuration } from '@/features/schedule/row';
 import { NudgeCard } from '@/features/nudges/card';
 import { NudgesOffCard } from '@/features/nudges/off-card';
 import { todaysNudge } from '@/features/nudges/service';
@@ -110,6 +104,7 @@ export default async function Today({
     stop,
     pastBlocks,
     weekSessions,
+    weekBlocks,
   ] = await Promise.all([
     (isToday
       ? generateThroughSunday(user, today).catch((error) => {
@@ -176,6 +171,21 @@ export default async function Today({
             },
           },
           select: { startedAt: true, endedAt: true },
+        })
+      : Promise.resolve([]),
+    // This week's blocks, Monday to Sunday, for the rail's This week (WI-065).
+    isToday
+      ? db().timeBlock.findMany({
+          where: {
+            dailyPlan: {
+              userId: user.id,
+              date: {
+                gte: new Date(monday),
+                lte: new Date(shiftDay(monday, 6)),
+              },
+            },
+          },
+          select: { status: true, skipReason: true },
         })
       : Promise.resolve([]),
   ]);
@@ -281,42 +291,13 @@ export default async function Today({
       />
       <CategoryOptions />
       {firstRun ? (
-        <>
-          <p className="eyebrow">Today</p>
-          <h1>Start here</h1>
-          <section
-            className="card setup-card mt-5"
-            aria-labelledby="setup-heading"
-          >
-            <RoutineIllustration className="setup-illustration" />
-            <p className="eyebrow">Start here</p>
-            <h2 id="setup-heading">Silsila works from a weekly routine.</h2>
-            <p>
-              Add your first block: what, which days, what time. Today fills in
-              from it, and so does the rest of the week.
-            </p>
-            <RoutineForm
-              goals={goals}
-              compact
-              templates={[...ROUTINE_TEMPLATES]}
-            />
-            <div className="mt-5">
-              <Disclosure
-                variant="link"
-                label="Just today? Add a one-time block"
-                draft={`block:${day}`}
-              >
-                <BlockForm day={day} zone={user.timezone} goals={goals} />
-              </Disclosure>
-            </div>
-          </section>
-          {/* An empty workspace is when the setup steps matter most (WI-050). */}
-          <div className="mt-5 setup-first-run">
-            <Suspense fallback={null}>
-              <SetupRail user={user} compact />
-            </Suspense>
-          </div>
-        </>
+        <FirstRunToday
+          user={user}
+          day={day}
+          bounds={bounds}
+          goals={goals}
+          picks={await forTodayPicks(user, now).catch(() => [])}
+        />
       ) : (
         <>
           <TodayHeader
@@ -331,35 +312,47 @@ export default async function Today({
             reviewed={day > today ? null : reviewed}
             closing={closing}
             rested={!!plan?.restAt}
-            facts={facts ? factsLine(facts) : ''}
-            goal={
+            cheer={
+              isToday
+                ? headerLine({
+                    completed: summary.completed,
+                    planned: summary.planned,
+                    day,
+                  })
+                : ''
+            }
+            goalChip={
               isToday ? (
-                <p className="today-goal">
-                  <span>
-                    {nearestGoal
-                      ? [
-                          // "This week · Finish Arrays · 4 days left" (WI-064).
+                <PanelButton panel="goal" className="today-chip-button">
+                  <span className="today-chip-label">Your goal</span>
+                  {nearestGoal ? (
+                    <>
+                      <strong>
+                        {targetLabel(
+                          nearestGoal.targetDate?.toISOString().slice(0, 10) ??
+                            null,
+                          today,
+                        )}
+                      </strong>
+                      {/* "This week · Finish Arrays & Hashing" (WI-064). */}
+                      <span className="today-chip-sub">
+                        {[
                           horizonLabel(
                             nearestGoal.targetDate
                               ?.toISOString()
                               .slice(0, 10) ?? null,
                             today,
                           ),
-                          goalLine(
-                            {
-                              ...nearestGoal,
-                              roadmap: { total: 0, done: 0 },
-                              week: { actual: 0 },
-                            },
-                            today,
-                            formatDuration,
-                          ),
+                          nearestGoal.title,
                         ]
                           .filter(Boolean)
-                          .join(' · ')
-                      : 'No goal yet'}
-                  </span>
-                </p>
+                          .join(' · ')}
+                      </span>
+                    </>
+                  ) : (
+                    <strong>Set a goal</strong>
+                  )}
+                </PanelButton>
               ) : null
             }
             goalAction={
@@ -479,12 +472,18 @@ export default async function Today({
             />
             {isToday && (
               <aside className="today-rail" aria-labelledby="attention-heading">
-                <Suspense fallback={null}>
-                  <SetupRail user={user} />
-                </Suspense>
-                <Suspense fallback={null}>
-                  <NudgesOffCard user={user} />
-                </Suspense>
+                {/* This week first, then what needs attention (WI-065). */}
+                <WeekCard
+                  week={weekProgress({
+                    done: weekBlocks.filter((b) => b.status === 'COMPLETED')
+                      .length,
+                    planned: weekBlocks.filter(
+                      (b) => b.status !== 'CANCELLED' && !isDeleted(b),
+                    ).length,
+                  })}
+                  weekKey={monday}
+                  facts={facts ? factsLine(facts) : ''}
+                />
                 <AttentionBoundary>
                   <Suspense fallback={<AttentionSkeleton />}>
                     <Attention
@@ -495,6 +494,12 @@ export default async function Today({
                     />
                   </Suspense>
                 </AttentionBoundary>
+                <Suspense fallback={null}>
+                  <SetupRail user={user} />
+                </Suspense>
+                <Suspense fallback={null}>
+                  <NudgesOffCard user={user} />
+                </Suspense>
               </aside>
             )}
           </div>

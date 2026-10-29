@@ -128,11 +128,14 @@ export function BlockForm({
   zone,
   goals,
   block,
+  quick = false,
 }: {
   day: string;
   zone: string;
   goals: GoalOption[];
   block?: TimeBlock;
+  /** A block for later today in four fields (WI-065): title, kind and the two times. */
+  quick?: boolean;
 }) {
   return (
     <ActionForm
@@ -149,21 +152,29 @@ export function BlockForm({
         name="version"
         value={block?.updatedAt.toISOString() ?? ''}
       />
-      <CommonFields goals={goals} value={block} />
+      <CommonFields goals={goals} value={block} compact={quick} />
+      {quick && (
+        <>
+          <input type="hidden" name="day" value={day} />
+          <input type="hidden" name="endDay" value={day} />
+        </>
+      )}
       <div className="form-grid">
-        <label>
-          Start date
-          <input
-            required
-            type="date"
-            name="day"
-            defaultValue={
-              block
-                ? formatInTimeZone(block.plannedStart, zone, 'yyyy-MM-dd')
-                : day
-            }
-          />
-        </label>
+        {!quick && (
+          <label>
+            Start date
+            <input
+              required
+              type="date"
+              name="day"
+              defaultValue={
+                block
+                  ? formatInTimeZone(block.plannedStart, zone, 'yyyy-MM-dd')
+                  : day
+              }
+            />
+          </label>
+        )}
         <label>
           Start time
           <input
@@ -177,19 +188,21 @@ export function BlockForm({
             }
           />
         </label>
-        <label>
-          End date
-          <input
-            required
-            type="date"
-            name="endDay"
-            defaultValue={
-              block
-                ? formatInTimeZone(block.plannedEnd, zone, 'yyyy-MM-dd')
-                : day
-            }
-          />
-        </label>
+        {!quick && (
+          <label>
+            End date
+            <input
+              required
+              type="date"
+              name="endDay"
+              defaultValue={
+                block
+                  ? formatInTimeZone(block.plannedEnd, zone, 'yyyy-MM-dd')
+                  : day
+              }
+            />
+          </label>
+        )}
         <label>
           End time
           <input
@@ -204,10 +217,12 @@ export function BlockForm({
           />
         </label>
       </div>
-      <label className="check">
-        <input type="checkbox" name="allowOverlap" /> Allow overlap with another
-        block
-      </label>
+      {!quick && (
+        <label className="check">
+          <input type="checkbox" name="allowOverlap" /> Allow overlap with
+          another block
+        </label>
+      )}
       <Button className="mt-3">
         {block ? 'Save for this day' : 'Add block'}
       </Button>

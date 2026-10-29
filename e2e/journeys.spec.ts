@@ -34,29 +34,40 @@ async function fitsPhone(page: Page, path: string) {
   await page.setViewportSize(size);
 }
 
-test('a new workspace starts with the first routine and the setup steps', async ({
+test('a new workspace starts with the welcome, its three steps and the first routine', async ({
   page,
 }) => {
+  // An empty account (WI-065): one welcoming action and three optional steps, no form forced.
   await page.goto('/today');
   await expect(
-    page.getByRole('heading', { name: 'Silsila works from a weekly routine.' }),
+    page.getByRole('heading', { name: 'Start small. Build your rhythm.' }),
   ).toBeVisible();
-  const setup = page.getByRole('region', { name: 'Make Silsila yours' });
-  await expect(setup).toContainText('0 of 6 done');
+  await expect(
+    page.getByRole('button', { name: /Plan my first focus/ }),
+  ).toBeVisible();
+  const steps = page.getByRole('region', { name: 'Your first 3 steps' });
+  await expect(steps).toContainText('0 of 3');
   await accessible(page);
   await fitsPhone(page, '/today');
 
-  // The first routine, every day, early enough to never sit on today's clock.
+  // The first routine from the steps, every day, early enough to never sit on today's clock.
+  await steps
+    .getByRole('button', { name: 'Add: Set your study times' })
+    .click();
   const routine = page.getByRole('form', { name: 'Add routine' });
   await routine.getByLabel('Title').fill('Morning DSA');
   for (const day of ['Sat', 'Sun']) await routine.getByLabel(day).check();
   await routine.getByLabel('Start time').fill('05:00');
   await routine.getByLabel('End time').fill('05:30');
   await routine.getByRole('button', { name: 'Add routine' }).click();
+  // The day now has a plan: Today's timeline, and the setup steps in the rail.
   await expect(
-    page.getByRole('heading', { name: 'Today', level: 1 }),
+    page.getByRole('heading', { name: "Today's plan" }),
   ).toBeVisible();
-  await expect(setup).toContainText('1 of 6 done');
+  await expect(
+    page.getByRole('region', { name: 'Make Silsila yours' }),
+  ).toContainText('1 of 6 done');
+  await accessible(page);
 });
 
 test('a block for today runs through Focus to Done', async ({ page }) => {

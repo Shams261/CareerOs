@@ -136,7 +136,7 @@ export function Launcher({
   } else if (state.kind === 'current' || state.kind === 'next') {
     const block = full(state.block.id)!;
     const round = roundOf(block);
-    eyebrow = `${state.kind === 'current' ? 'Now' : 'Next'} · ${hhmm(block.plannedStart, zone)}–${hhmm(block.plannedEnd, zone)}`;
+    eyebrow = `${state.kind === 'current' ? 'Now' : 'Up next'} · ${hhmm(block.plannedStart, zone)}–${hhmm(block.plannedEnd, zone)}`;
     title = blockTitle(block, round);
     // The kind is left out when it only repeats the title ("DSA" under "DSA", WI-058).
     const kind = round
