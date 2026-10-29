@@ -22,6 +22,7 @@ import {
   blockResolution,
   blockTitle,
   formatDuration,
+  recordedMinutes,
   resolutionText,
   type BlockLike,
   type Resolution,
@@ -519,6 +520,35 @@ export function freePick<T extends { title: string }>(
       .map((b) => b.title.trim().toLowerCase()),
   );
   return picks.find((p) => !done.has(p.title.trim().toLowerCase())) ?? null;
+}
+
+/**
+ * Earlier, folded (WI-077): the rows already settled (done or skipped) fold into one line,
+ * "Earlier · 2 done · 1h 10m recorded", so the day's open rows stay in view; a row that
+ * still needs a decision stays open above the fold.
+ */
+export function earlierFold(entries: AgendaEntry[], now: Date) {
+  const folded = entries.filter(
+    (e) =>
+      e.kind === 'block' &&
+      ['done', 'skipped'].includes(blockResolution(e.block, now)),
+  );
+  const open = entries.filter((e) => !folded.includes(e));
+  const blocks = folded.flatMap((e) => (e.kind === 'block' ? [e.block] : []));
+  const done = blocks.filter((b) => b.status === 'COMPLETED').length;
+  const skipped = blocks.length - done;
+  const recorded = blocks.reduce((n, b) => n + recordedMinutes(b, now), 0);
+  const label = folded.length
+    ? [
+        'Earlier',
+        done ? `${done} done` : '',
+        skipped ? `${skipped} skipped` : '',
+        recorded ? `${formatDuration(recorded)} recorded` : '',
+      ]
+        .filter(Boolean)
+        .join(' · ')
+    : '';
+  return { open, folded, label };
 }
 
 export function nextSlot(

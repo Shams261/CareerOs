@@ -43,7 +43,6 @@ import { PanelButton, SidePanel } from '@/features/today/panels';
 import { targetLabel } from '@/features/roadmap/domain';
 import { headerLine, weekProgress } from '@/features/today/home';
 import { WeekCard } from '@/features/today/week-card';
-import { horizonLabel } from '@/features/goals/horizon';
 import { GoalForm } from '@/features/roadmap/forms';
 import { NudgeCard } from '@/features/nudges/card';
 import { NudgesOffCard } from '@/features/nudges/off-card';
@@ -328,8 +327,7 @@ export default async function Today({
             }
             goalChip={
               isToday ? (
-                <PanelButton panel="goal" className="today-chip-button">
-                  <span className="today-chip-label">Your goal</span>
+                <PanelButton panel="goal" className="today-fact-button">
                   {nearestGoal ? (
                     <>
                       <strong>
@@ -338,21 +336,8 @@ export default async function Today({
                             null,
                           today,
                         )}
-                      </strong>
-                      {/* "This week · Finish Arrays & Hashing" (WI-064). */}
-                      <span className="today-chip-sub">
-                        {[
-                          horizonLabel(
-                            nearestGoal.targetDate
-                              ?.toISOString()
-                              .slice(0, 10) ?? null,
-                            today,
-                          ),
-                          nearestGoal.title,
-                        ]
-                          .filter(Boolean)
-                          .join(' · ')}
-                      </span>
+                      </strong>{' '}
+                      to your goal
                     </>
                   ) : (
                     <strong>Set a goal</strong>

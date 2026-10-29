@@ -7478,63 +7478,158 @@ button.attention-link {
   color: var(--ink-2);
   font-size: 15px;
 }
-.today-chips {
+.today-facts {
   display: flex;
   flex-wrap: wrap;
-  gap: 10px;
-  margin: 14px 0 0;
-  align-items: stretch;
+  align-items: baseline;
+  gap: 4px 0;
+  margin: 12px 0 0;
+  font-size: 14px;
+  color: var(--ink-2);
 }
-.today-chip {
-  display: grid;
-  gap: 2px;
-  min-width: 132px;
-  padding: 10px 14px;
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  background: var(--surface);
+.today-fact + .today-fact::before {
+  content: '·';
+  margin: 0 10px;
+  color: var(--border-strong);
 }
-.today-chip.is-goal {
-  padding: 0;
-}
-.today-chip-label {
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--muted);
-}
-.today-chip strong {
-  font-size: 16px;
-}
-.today-chip-button {
-  display: grid;
-  gap: 2px;
-  width: 100%;
-  height: 100%;
-  padding: 10px 14px;
-  border: 0;
-  border-radius: 12px;
-  background: transparent;
+.today-facts strong {
+  font-size: 15px;
   color: var(--foreground);
+}
+.today-fact-button {
+  padding: 0;
+  border: 0;
+  background: none;
   font: inherit;
-  text-align: left;
+  color: inherit;
   cursor: pointer;
+  text-decoration: underline;
+  text-decoration-color: var(--border-strong);
+  text-underline-offset: 3px;
 }
-.today-chip-button:hover {
-  background: var(--subtle);
+.today-fact-button:hover {
+  color: var(--primary);
 }
-.today-chip-button:focus-visible {
+.today-fact-button:focus-visible {
   outline: 2px solid var(--focus-ring);
   outline-offset: 2px;
+  border-radius: 4px;
 }
-.today-chip-sub {
+.today-facts .pill {
+  margin-left: 10px;
+}
+.today-facts-cheer {
+  margin-left: auto;
+  padding-left: 16px;
+  color: var(--ink-2);
+}
+/* WI-077: the day's blocks as chips, settled rows folded, compact rows on Today. */
+.plan-chips {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  padding: 2px 0 8px;
+  margin: 0 0 6px;
+  scrollbar-width: thin;
+}
+.plan-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+  min-height: 32px;
+  padding: 5px 12px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface-2);
+  font: inherit;
   font-size: 13px;
+  color: var(--ink-2);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.plan-chip:hover {
+  border-color: var(--border-strong);
+  color: var(--foreground);
+}
+.plan-chip.is-done,
+.plan-chip.is-skipped {
   color: var(--muted);
-  max-width: 28ch;
+}
+.plan-chip.is-done svg {
+  color: var(--primary);
+}
+.plan-chip.is-upcoming,
+.plan-chip.is-not-recorded,
+.plan-chip.is-needs-update {
+  background: var(--surface);
+  border-color: var(--border-strong);
+  color: var(--foreground);
+}
+.plan-chip.is-current,
+.plan-chip.is-in-progress,
+.plan-chip.is-paused {
+  background: var(--tint);
+  border-color: var(--primary);
+  color: var(--primary);
+  font-weight: 600;
+}
+.plan-chip-time {
+  font-variant-numeric: tabular-nums;
+}
+.plan-chip-title {
+  max-width: 22ch;
   overflow: hidden;
   text-overflow: ellipsis;
-  white-space: nowrap;
+}
+.agenda-earlier-fold {
+  margin: 4px 0 8px;
+}
+.agenda-earlier-fold > .disclosure-link {
+  font-size: 14px;
+  color: var(--ink-2);
+}
+.agenda-earlier-rows {
+  margin-top: 4px;
+}
+.agenda-earlier-fold .disclosure-chevron {
+  margin-left: 4px;
+}
+.agenda.is-compact .agenda-row {
+  padding: 10px 12px;
+}
+.agenda.is-compact .agenda-body {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 2px 8px;
+  min-width: 0;
+}
+.agenda.is-compact .agenda-title {
+  font-size: 16px;
+}
+.agenda.is-compact .agenda-meta {
+  margin: 0;
+  font-size: 13px;
+}
+.agenda.is-compact .agenda-meta::before {
+  content: '· ';
+}
+@media (max-width: 700px) {
+  .today-facts {
+    font-size: 13px;
+  }
+  .today-facts-cheer {
+    flex-basis: 100%;
+    margin-left: 0;
+    padding-left: 0;
+  }
+  .agenda.is-compact .agenda-body {
+    display: block;
+  }
+  .agenda.is-compact .agenda-meta::before {
+    content: none;
+  }
 }
 /* The Up next card: the day's one primary, a little warmer than the rows below it. */
 .today-workspace > .launcher {

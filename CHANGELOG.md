@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- WI-077 (a shorter Today). No migration:
+  - **The facts as one line**: "1h 10m focused today · 2 of 5 blocks · 9 weeks to your goal", the cheer at its end; the goal piece still opens the goal.
+  - **The day as chips**: every block of the day in one row above the list, with its state (✓ done, ‖ paused, ● now, ○ planned); a chip opens the block's details.
+  - **Earlier folds**: done and skipped rows fold into "Earlier · 2 done · 1h 10m recorded"; a row still needing a decision stays open.
+  - **Compact rows** on Today: time, title and meta on one line, ~77 px instead of 93.
+
 - WI-076 (the band as mocked). No migration:
   - The band now carries the date as its eyebrow ("THURSDAY · 29 OCTOBER"), keeps the same cream (morning, evening), teal (afternoon) and blue (night) in both themes, and writes its greeting, quotation and clock in the tint's own dark shades. The title row keeps only "Today", the arrows and More while the band shows.
 
