@@ -517,7 +517,7 @@ export default async function Today({
               {/* Closing the day while a session runs would leave it open (WI-066). */}
               {running && (
                 <p className="form-message" role="status">
-                  A session is still running. Stop or complete it before you
+                  A session is still running. Pause or complete it before you
                   close the day.
                 </p>
               )}

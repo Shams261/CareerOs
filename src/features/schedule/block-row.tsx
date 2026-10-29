@@ -1,10 +1,11 @@
 import type { ReactNode } from 'react';
-import { Check, Circle, CircleDot } from 'lucide-react';
+import { Check, Circle, CircleDot, Pause } from 'lucide-react';
 import type { Resolution } from './row';
 
 /** The glyph beside a row's status word. */
 export function StatusIcon({ resolution }: { resolution: string }) {
   if (resolution === 'done') return <Check size={15} aria-hidden="true" />;
+  if (resolution === 'paused') return <Pause size={12} aria-hidden="true" />;
   if (resolution === 'current' || resolution === 'in-progress')
     return <CircleDot size={12} aria-hidden="true" />;
   if (resolution === 'not-recorded' || resolution === 'needs-update')

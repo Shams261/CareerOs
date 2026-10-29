@@ -322,7 +322,8 @@ describe.skipIf(!url)('Ask Rumi (PostgreSQL)', () => {
         time: '18:00–19:30',
         kind: 'DSA',
         title: 'Two pointers',
-        state: 'Now',
+        // 20 minutes recorded, no session running, the slot still open: Paused (WI-067).
+        state: 'Paused',
         recordedMinutes: 20,
       },
       { time: '20:00–20:30', busy: true },

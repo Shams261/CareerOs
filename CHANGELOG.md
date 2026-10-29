@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- WI-067 (Pause and Resume, from the owner's UAT). No migration:
+  - **Stop is Pause.** Today's card, a running row, the running card on other pages and Focus say Pause. Pausing answers above the list: "Paused · 9 min so far. Resume when you are ready."
+  - **Paused shows.** A block with recorded time, no running session and its slot still open reads "Paused · 9 min so far" on its row and on the Up next card, which offers Resume and Complete. It groups as Now; Rumi reads it as Paused; Close the Day treats it as recorded (Done or Let go).
+  - **One total, not a stack of records.** A block's panel shows "Recorded 9 min · 2 parts" with the parts as short lines (times only on the same day), instead of one "Recorded Oct 28, 22:01–Oct 28, 22:01" line per pause.
+  - **A short panel.** Log time is start, end and length chips, with the dates and a note under More; Edit this day is title, start, end and length, with kind, goal, priority, notes and dates under More.
+  - **Words.** Messages about a running session say Pause instead of Stop.
+
 - WI-066 (Today fixes from the owner's own UAT in Chrome). No migration:
   - **The pop-out keeps running.** The Picture-in-Picture timer now belongs to the app, not the Focus page: it keeps counting while you move between pages and closes by itself when the session is stopped or completed.
   - **Start means start.** Start session (and a row's Start) begins the session and opens Focus already running; a direct Focus link still asks to Begin with an intention.

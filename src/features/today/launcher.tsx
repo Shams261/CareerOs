@@ -12,6 +12,12 @@ import type { TodayPick } from '@/features/for-today/domain';
 
 import type { TimeBlock } from '@/generated/prisma/client';
 import { blockTitle, hhmm, type LauncherState, type RoundLike } from './domain';
+import {
+  blockResolution,
+  recordedMinutes,
+  recordedText,
+  type BlockLike,
+} from '@/features/schedule/row';
 import { PanelButton, PressButton } from './panels';
 
 const startsIn = (d: Date, now: Date) => {
@@ -136,7 +142,12 @@ export function Launcher({
   } else if (state.kind === 'current' || state.kind === 'next') {
     const block = full(state.block.id)!;
     const round = roundOf(block);
-    eyebrow = `${state.kind === 'current' ? 'Now' : 'Up next'} · ${hhmm(block.plannedStart, zone)}–${hhmm(block.plannedEnd, zone)}`;
+    // Paused (WI-067): time recorded, no session running; the card says how far it got.
+    const withSessions = block as unknown as BlockLike;
+    const paused = blockResolution(withSessions, now) === 'paused';
+    eyebrow = paused
+      ? `Paused · ${recordedText(recordedMinutes(withSessions, now))} so far`
+      : `${state.kind === 'current' ? 'Now' : 'Up next'} · ${hhmm(block.plannedStart, zone)}–${hhmm(block.plannedEnd, zone)}`;
     title = blockTitle(block, round);
     // The kind is left out when it only repeats the title ("DSA" under "DSA", WI-058).
     const kind = round
@@ -154,7 +165,15 @@ export function Launcher({
         {round && <> · {prepLink(round)}</>}
       </>
     );
-    action = <ExecutionControls block={block} current launcher primaryOnly />;
+    action = (
+      <ExecutionControls
+        block={block}
+        current
+        launcher
+        primaryOnly
+        resume={paused}
+      />
+    );
     if (state.kind === 'current' && state.next)
       next = `Next: ${state.next.title} · ${hhmm(state.next.plannedStart, zone)}`;
   } else if (closing && (state.kind === 'reconcile' || state.kind === 'done')) {

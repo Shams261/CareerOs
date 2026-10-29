@@ -7595,3 +7595,23 @@ button.attention-link {
   white-space: normal;
   text-align: right;
 }
+
+/* A block's recorded time in its panel (WI-067): one total, the parts small beneath it. */
+.panel-recorded {
+  margin: 12px 0 4px;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface-2);
+}
+.panel-recorded-total {
+  margin: 0 0 6px;
+}
+.panel-recorded .panel-sessions li {
+  font-size: 14px;
+  color: var(--ink-2);
+}
+/* Sections of a block's panel stand apart: Log time, then Edit this day (WI-067). */
+.side-panel h3[data-panel-focus] {
+  margin-top: 28px;
+}

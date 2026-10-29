@@ -84,7 +84,7 @@ export async function saveBlockIn(
         'This block changed in another tab. Reload before editing.',
       );
     if (existing.sessions.some((s) => !s.endedAt))
-      throw new Error('Stop the running session before editing its plan.');
+      throw new Error('Pause the running session before editing its plan.');
   }
   const collisions = await conflicts(
     tx,

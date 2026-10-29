@@ -174,7 +174,7 @@ describe.skipIf(!url)('daily execution persistence', () => {
     await execute(user, b.id, 'start', '', now);
     await expect(
       execute(user, b.id, 'skip', 'Work ran late', now),
-    ).rejects.toThrow('Stop');
+    ).rejects.toThrow('Pause the running session');
     await execute(user, b.id, 'stop', '', new Date(+now + 60000));
     await execute(user, b.id, 'skip', 'Work ran late', new Date(+now + 120000));
     expect(

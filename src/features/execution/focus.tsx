@@ -492,7 +492,7 @@ function Running({
               Complete<span className="sr-only">: {block.title}</span>
             </Button>
             <Button className="secondary" name="action" value="stop">
-              Stop<span className="sr-only">: {block.title}</span>
+              Pause<span className="sr-only">: {block.title}</span>
             </Button>
           </div>
         </ActionForm>

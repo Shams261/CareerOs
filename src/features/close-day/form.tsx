@@ -189,7 +189,7 @@ export function CloseDayForm({
       </section>
       {running && (
         <p className="form-message" role="status">
-          Stop the running session before closing the day.
+          Pause the running session before closing the day.
         </p>
       )}
       <Button disabled={running}>Close the day</Button>

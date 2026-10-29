@@ -35,6 +35,7 @@ export type Resolution =
   | 'upcoming'
   | 'current'
   | 'in-progress'
+  | 'paused'
   | 'done'
   | 'skipped'
   | 'cancelled'
@@ -46,6 +47,8 @@ export function blockResolution(block: BlockLike, now: Date): Resolution {
   if (block.status === 'SKIPPED') return 'skipped';
   if (block.status === 'CANCELLED') return 'cancelled';
   if (block.status === 'IN_PROGRESS') return 'in-progress';
+  // Recorded time and the slot not over yet: the owner paused it (WI-067); Resume continues.
+  if (block.sessions.length && block.plannedEnd > now) return 'paused';
   if (block.plannedEnd <= now)
     return block.sessions.length ? 'needs-update' : 'not-recorded';
   if (block.plannedStart <= now) return 'current';
@@ -55,6 +58,7 @@ export const resolutionText: Record<Resolution, string> = {
   upcoming: 'Upcoming',
   current: 'Now',
   'in-progress': 'In session',
+  paused: 'Paused',
   done: 'Done',
   skipped: 'Skipped',
   cancelled: 'Cancelled',
@@ -78,6 +82,9 @@ export function blockTitle(
 
 const sessionLength = (n: number, ended: boolean) =>
   ended && n < 1 ? 'under a minute' : formatDuration(n);
+/** "4 min", or "under a minute" once ended: a recorded length as the owner reads it. */
+export const recordedText = (n: number, ended = true) =>
+  sessionLength(n, ended);
 /** Minutes recorded against a block; a running session counts up to `now`. */
 export const recordedMinutes = (block: BlockLike, now: Date) =>
   block.sessions.reduce(
@@ -121,6 +128,8 @@ export function rowMeta(
     case 'current':
     case 'in-progress':
       return context(`Until ${hhmm(block.plannedEnd, zone)}`);
+    case 'paused':
+      return `${sessionLength(recorded, true)} so far · Until ${hhmm(block.plannedEnd, zone)}`;
     default:
       return context(
         formatDuration(minutes(block.plannedStart, block.plannedEnd)),
