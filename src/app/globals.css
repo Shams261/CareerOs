@@ -7691,27 +7691,33 @@ button.attention-link {
 .side-panel-root.is-modal {
   justify-content: center;
   align-items: center;
-  padding: 24px 16px;
+  padding: 12px 16px;
 }
 .side-panel-root.is-modal .side-panel {
   width: min(520px, 100%);
   height: auto;
-  max-height: calc(100vh - 48px);
-  max-height: calc(100dvh - 48px);
+  max-height: calc(100vh - 24px);
+  max-height: calc(100dvh - 24px);
   border: 1px solid var(--border);
   border-radius: var(--radius-xl);
   box-shadow: var(--shadow-md);
 }
-.side-panel-root.is-modal .side-panel-body {
-  padding-bottom: 22px;
+.side-panel-root.is-modal .side-panel-head {
+  padding: 14px 20px 10px;
 }
-/* The block form in its modal is short (WI-070): the gaps between answers are small. */
+.side-panel-root.is-modal .side-panel-body {
+  padding: 12px 20px 18px;
+}
+/* The block form in its modal is short (WI-070, WI-072): the gaps between answers are small. */
 .block-form .quick-kinds .template-chips {
   margin-bottom: 4px;
 }
 .block-form > label,
 .block-form > .form-grid {
   margin-bottom: 2px;
+}
+.row-recorded {
+  margin-top: 8px;
 }
 /* On a phone the modal keeps clear of the bottom bar. */
 @media (max-width: 700px) {
@@ -7751,14 +7757,14 @@ button.attention-link {
   color: var(--ink-2);
 }
 .row-tabs {
-  margin-top: 16px;
+  margin-top: 12px;
 }
 .row-tab-panel {
   margin-top: 10px;
 }
 .row-danger {
-  margin-top: 20px;
-  padding-top: 12px;
+  margin-top: 12px;
+  padding-top: 10px;
   border-top: 1px solid var(--border-subtle);
 }
 /* A paused pop-out stands still and says so. */
@@ -7802,9 +7808,19 @@ button.attention-link {
   display: grid;
   grid-template-columns: 150px minmax(0, 1fr);
   gap: 12px;
-  align-items: end;
+  align-items: start;
+}
+/* The two labels sit on one line, and the chips centre on the field (WI-072). */
+.quick-when > label,
+.quick-when > fieldset {
+  margin: 0;
+}
+.quick-when legend {
+  margin-bottom: 6px;
 }
 .quick-when .quick-length .template-chips {
+  min-height: 44px;
+  align-items: center;
   margin-bottom: 0;
 }
 .quick-ends {
@@ -7821,6 +7837,13 @@ button.attention-link {
 @media (max-width: 700px) {
   .quick-when {
     grid-template-columns: minmax(0, 1fr);
+    gap: 4px;
+  }
+  /* The row's menu opens from the left on a phone, inside the screen (WI-072). */
+  .exec-secondary.is-always.is-open {
+    right: auto;
+    left: 0;
+    max-width: calc(100vw - 32px);
   }
 }
 /* Today's rings while the day is open, in the rail. */

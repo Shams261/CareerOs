@@ -82,7 +82,11 @@ export async function RunningNow() {
               · Until {hhmm(paused.plannedEnd, user.timezone)}
             </span>
           </p>
-          <ActionForm action={executionAction} label={`Resume ${paused.title}`}>
+          <ActionForm
+            action={executionAction}
+            label={`Resume ${paused.title}`}
+            broadcast="blocks"
+          >
             <input type="hidden" name="id" value={paused.id} />
             <div className="running-actions">
               <Button name="action" value="focus">
@@ -136,6 +140,7 @@ export async function RunningNow() {
           <ActionForm
             action={executionAction}
             label="Pause the running session"
+            broadcast="blocks"
           >
             <input type="hidden" name="id" value={task.id} />
             <Button className="secondary" name="action" value="stop">

@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- WI-072 (Today final, from the owner's audit). No migration:
+  - **Plan my first focus** opens the same short form as Add a block; the two picks are gone from it. "or try a 20-minute session" under it still starts today's first pick.
+  - **Start time and Length on one line**, their labels level and the chips centred on the field.
+  - **Fixes.** The row's ⋯ menu stayed inside a phone screen (it ran 61 px off the left edge). Pause and Complete from the sidebar now answer above Today's list ("Done · 20 min recorded …").
+  - **Review day / Close the day and the goal** open as centred modals; Notes, Activity and Needs attention keep the side panel. The modal is tighter, so a block's details with Edit open fit a 700 px screen.
+
 - WI-071 (moments that move, from the owner's UAT). No migration:
   - **The row's ⋯ is a menu.** Complete, Skip, Cancel block and Delete stack under the button; Skip asks for its reason in place. The row never widens or wraps its title. Escape and a click outside close it.
   - **Add a block in three lines.** Title; kind; start beside the length chips, with "Ends 11:15 · change" and "+ Add a note" as links. Plan my first focus shows its picks first and the form behind one link.
