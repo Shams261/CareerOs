@@ -64,13 +64,7 @@ export function TodayHeader({
 }) {
   const isToday = day === today;
   return (
-    <header
-      className={`today-head${isToday ? '' : ' is-other-day'}`}
-      data-part={isToday && daily ? daily.part : undefined}
-    >
-      {isToday && daily && (
-        <DailyLine day={day} part={daily.part} name={daily.name} />
-      )}
+    <header className={`today-head${isToday ? '' : ' is-other-day'}`}>
       <div className="today-head-row">
         <div className="today-title">
           <h1>
@@ -143,6 +137,10 @@ export function TodayHeader({
           {goalAction}
         </UtilityMenu>
       </div>
+      {/* The band (WI-075): the greeting large, the quotation and a clock, today only. */}
+      {isToday && daily && (
+        <DailyLine day={day} part={daily.part} name={daily.name} zone={zone} />
+      )}
       {/* The facts as three chips, with one short line that cheers them on (WI-065). */}
       {cheer && <p className="today-cheer">{cheer}</p>}
       <ul className="plain-list today-chips" aria-label="The day in numbers">

@@ -67,12 +67,12 @@ export async function FirstRunToday({
   return (
     <>
       {/* The daily line greets here too (WI-073): the first-run header is Today's header. */}
-      <header className="home-head today-head" data-part={part}>
+      <header className="home-head">
         <p className="eyebrow">
           {formatInTimeZone(bounds.start, user.timezone, 'EEEE · d MMMM yyyy')}
         </p>
         <h1>Today</h1>
-        <DailyLine day={day} part={part} name={name} />
+        <DailyLine day={day} part={part} name={name} zone={user.timezone} />
       </header>
       <div className="home-grid">
         <div className="home-main">

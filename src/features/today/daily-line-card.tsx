@@ -1,7 +1,8 @@
 'use client';
-import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
+import { useState, useSyncExternalStore } from 'react';
+import { useSecondTick } from '@/lib/clock-tick';
 import { RefreshCw } from 'lucide-react';
-import { dailyQuote, greeting, type DayPart } from './daily-line';
+import { clockLabel, dailyQuote, greeting, type DayPart } from './daily-line';
 
 /** The daily line can be switched off per browser (Settings → Appearance), like the shortcuts. */
 export const DAILY_LINE_KEY = 'silsila-daily-line';
@@ -53,44 +54,54 @@ export function DailyLineToggle({
 }
 
 /**
- * The greeting and the day's quotation on Today's header (WI-073, ADR-028). "Another" shows the
- * next quotation of the same part of the day; nothing is written.
+ * The band at the top of Today (WI-073, WI-075, ADR-028): the greeting large, the day's
+ * quotation under it, and a live clock on the right, on the part of the day's tint. "Another"
+ * shows the next quotation of the same part; nothing is written. Switched off in Settings, the
+ * whole band goes.
  */
 export function DailyLine({
   day,
   part,
   name,
+  zone,
 }: {
   day: string;
   part: DayPart;
   name: string | null;
+  zone: string;
 }) {
   const enabled = useDailyLineEnabled();
   const [offset, setOffset] = useState(0);
-  const root = useRef<HTMLDivElement>(null);
-  // The header's tint belongs to the line: switched off, it goes too.
-  useEffect(() => {
-    const head = root.current?.closest<HTMLElement>('.today-head');
-    if (!head) return;
-    if (enabled) head.setAttribute('data-part', part);
-    else head.removeAttribute('data-part');
-  }, [enabled, part]);
+  const now = useSecondTick();
   const quote = dailyQuote(day, part, offset);
   return (
-    <div className="daily-line" data-part={part} ref={root} hidden={!enabled}>
-      <p className="daily-greeting">{greeting(part, name)}</p>
-      <p className="daily-quote" key={quote.text}>
-        <q>{quote.text}</q>
-        <span className="daily-by"> — {quote.by}</span>
-        <button
-          type="button"
-          className="link-button daily-another"
-          onClick={() => setOffset((o) => o + 1)}
-          aria-label="Another quotation"
-        >
-          <RefreshCw size={13} aria-hidden="true" />
-        </button>
-      </p>
-    </div>
+    <section
+      className="daily-band"
+      data-part={part}
+      hidden={!enabled}
+      aria-label="Today's greeting"
+    >
+      <div className="daily-band-text">
+        <p className="daily-greeting">{greeting(part, name)}</p>
+        <p className="daily-quote" key={quote.text}>
+          <q>{quote.text}</q>
+          <span className="daily-by"> — {quote.by}</span>
+          <button
+            type="button"
+            className="link-button daily-another"
+            onClick={() => setOffset((o) => o + 1)}
+            aria-label="Another quotation"
+          >
+            <RefreshCw size={14} aria-hidden="true" />
+          </button>
+        </p>
+      </div>
+      <div className="daily-band-clock">
+        <time className="daily-clock" suppressHydrationWarning>
+          {clockLabel(now, zone)}
+        </time>
+        <span className="daily-part">{part}</span>
+      </div>
+    </section>
   );
 }

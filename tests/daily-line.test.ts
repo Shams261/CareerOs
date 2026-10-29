@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   DAY_PARTS,
   QUOTES,
+  clockLabel,
   dailyQuote,
   dayPart,
   greeting,
@@ -51,5 +52,11 @@ describe('The daily line (WI-073, ADR-028)', () => {
           expect(q.text.toLowerCase()).not.toContain(w.toLowerCase());
       }
     }
+  });
+  it('shows the clock in the owner\u2019s zone, 24-hour', () => {
+    expect(
+      clockLabel(new Date('2026-10-29T23:42:10Z'), 'America/Toronto'),
+    ).toBe('19:42');
+    expect(clockLabel(new Date('2026-10-29T04:05:00Z'), 'UTC')).toBe('04:05');
   });
 });

@@ -452,6 +452,16 @@ export const QUOTES: Record<DayPart, Quote[]> = {
   ],
 };
 
+/** The clock in the band, "19:42" in the owner's zone (24-hour, like every clock in Silsila). */
+export function clockLabel(now: number | Date, zone: string) {
+  return new Intl.DateTimeFormat('en-GB', {
+    timeZone: zone,
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  }).format(now);
+}
+
 /** The quotation for a day and a part; `offset` steps to the next one ("Another"). */
 export function dailyQuote(day: string, part: DayPart, offset = 0): Quote {
   const pool = QUOTES[part];

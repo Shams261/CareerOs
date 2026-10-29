@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- WI-075 (the Today band). No migration:
+  - **The daily line is a band.** Under Today's title (and on the first-run Today): "Good evening, Shams." in the display face at 30 px, the quotation at 17 px with its author and ↻, and a live clock at 42 px on the right, on the part of the day's tint. On a phone 24, 15 and 30 px. Settings → Daily line hides the whole band.
+
 - WI-074 (a fuller daily line and your name). No migration:
   - **160 quotations, forty for each part of the day**, from public-domain sources and proverbs: energetic in the morning and afternoon (Franklin, Edison, Roosevelt, Goethe, Confucius), calm in the evening and at night. None shames or scolds; a test keeps the set free of banned and shaming words.
   - **Settings → Appearance → Name**: what Silsila calls you on Today ("Good morning, Shams."), instead of the name Google sent.
