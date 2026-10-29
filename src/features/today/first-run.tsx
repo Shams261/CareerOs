@@ -16,6 +16,8 @@ import { hideFirstStepsAction } from './actions';
 import { FIRST_STEPS_COOKIE } from './first-steps-cookie';
 import { firstSteps } from './home';
 import { nextSlot } from './domain';
+import { dayPart } from './daily-line';
+import { DailyLine } from './daily-line-card';
 import { PanelButton, SidePanel } from './panels';
 
 /**
@@ -30,12 +32,15 @@ export async function FirstRunToday({
   bounds,
   goals,
   picks,
+  name = null,
 }: {
   user: ScheduleUser;
   day: string;
   bounds: { start: Date };
   goals: { id: string; title: string; status: string }[];
   picks: TodayPick[];
+  /** The owner's name, for the greeting (WI-073). */
+  name?: string | null;
 }) {
   const [hidden, focus] = await Promise.all([
     cookies().then((c) => !!c.get(FIRST_STEPS_COOKIE)),
@@ -56,13 +61,18 @@ export async function FirstRunToday({
   const pick = picks[0] ?? null;
   // A new block starts at the next quarter hour, never at a time already gone (WI-066).
   const slot = nextSlot(new Date(), user.timezone, day);
+  const part = dayPart(
+    Number(formatInTimeZone(new Date(), user.timezone, 'H')),
+  );
   return (
     <>
-      <header className="home-head">
+      {/* The daily line greets here too (WI-073): the first-run header is Today's header. */}
+      <header className="home-head today-head" data-part={part}>
         <p className="eyebrow">
           {formatInTimeZone(bounds.start, user.timezone, 'EEEE · d MMMM yyyy')}
         </p>
         <h1>Today</h1>
+        <DailyLine day={day} part={part} name={name} />
       </header>
       <div className="home-grid">
         <div className="home-main">
