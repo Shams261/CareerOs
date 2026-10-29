@@ -15,6 +15,7 @@ import {
   Library,
   MessageCircle,
   MessagesSquare,
+  Quote,
   Server,
   Sun,
   UserRound,
@@ -34,6 +35,7 @@ import { GoogleCalendarPanel } from '@/features/calendar/panel';
 import { LearningReminderForm } from '@/features/learning/forms';
 import { JobReminderForm } from '@/features/jobs/forms';
 import { ShortcutsToggle } from '@/components/shortcuts-toggle';
+import { DailyLineToggle } from '@/features/today/daily-line-card';
 import { UtilityMenu } from '@/features/today/utility-menu';
 import { signOutAction, signOutOthersAction } from '@/features/auth/actions';
 import { activeSessions, currentSession } from '@/server/session';
@@ -408,6 +410,14 @@ export default async function Settings({
                 title="Single-key shortcuts on this device"
                 context="N, S, J, K, D, C; ? always lists them"
                 control={<ShortcutsToggle label="On" className="check" />}
+              />
+              <SettingRow
+                source="practice"
+                icon={<Quote size={22} />}
+                label="Daily line"
+                title="A greeting and a quotation on Today"
+                context="Changes with the part of the day; kept for this browser"
+                control={<DailyLineToggle label="On" className="check" />}
               />
               <SettingRow
                 source="weekly"

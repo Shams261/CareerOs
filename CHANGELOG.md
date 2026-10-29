@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- WI-073 (the daily line and one clock, ADR-028). No migration:
+  - **A daily line on Today.** "Good morning, Shams." and one short quotation, chosen by the day and the part of the day from a fixed set of public-domain quotations (never written by a model). ↻ shows another. A soft tint behind the header follows the part of the day. Settings → Appearance → Daily line switches it off for the browser.
+  - **One clock.** Focus, the pop-out, the sidebar card, Today's card and the tab title tick on the same whole second and resync when a window comes back, so they no longer read a second or two apart.
+  - **Resume from the sidebar stays on the page.** The card turns Running with Focus a link away; Today's card still opens Focus, like Start session.
+
 - WI-072 (Today final, from the owner's audit). No migration:
   - **Plan my first focus** opens the same short form as Add a block; the two picks are gone from it. "or try a 20-minute session" under it still starts today's first pick.
   - **Start time and Length on one line**, their labels level and the chips centred on the field.

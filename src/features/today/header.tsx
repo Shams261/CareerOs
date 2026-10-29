@@ -8,6 +8,8 @@ import { shiftDay } from '@/features/schedule/domain';
 import { PanelButton, PressButton } from './panels';
 import { LiveMinutes } from './live-summary';
 import { UtilityMenu } from './utility-menu';
+import { DailyLine } from './daily-line-card';
+import type { DayPart } from './daily-line';
 
 /**
  * The Today header (WI-063, WI-065): the heading with the date and the day arrows, one More menu
@@ -30,6 +32,7 @@ export function TodayHeader({
   cheer = '',
   goalChip = null,
   goalAction = null,
+  daily = null,
 }: {
   day: string;
   today: string;
@@ -56,10 +59,18 @@ export function TodayHeader({
   goalChip?: ReactNode;
   /** Edit goal or Set a goal, kept in More (WI-063). */
   goalAction?: ReactNode;
+  /** The greeting and the day's quotation, with the part of the day for the tint (WI-073). */
+  daily?: { part: DayPart; name: string | null } | null;
 }) {
   const isToday = day === today;
   return (
-    <header className={`today-head${isToday ? '' : ' is-other-day'}`}>
+    <header
+      className={`today-head${isToday ? '' : ' is-other-day'}`}
+      data-part={isToday && daily ? daily.part : undefined}
+    >
+      {isToday && daily && (
+        <DailyLine day={day} part={daily.part} name={daily.name} />
+      )}
       <div className="today-head-row">
         <div className="today-title">
           <h1>

@@ -7937,3 +7937,71 @@ button.attention-link {
     stroke-dashoffset: 0;
   }
 }
+
+/* WI-073: the daily line and a tint for the part of the day on Today's header. */
+.today-head[data-part] {
+  padding: 14px 18px 4px;
+  margin: -8px -18px 18px;
+  border-radius: var(--radius-lg);
+}
+.today-head[data-part='morning'] {
+  background: linear-gradient(180deg, var(--warning-soft) 0%, transparent 100%);
+}
+.today-head[data-part='afternoon'] {
+  background: linear-gradient(180deg, var(--tint) 0%, transparent 100%);
+}
+.today-head[data-part='evening'] {
+  background: linear-gradient(
+    180deg,
+    var(--warning-soft) 0%,
+    var(--tint) 60%,
+    transparent 100%
+  );
+}
+.today-head[data-part='night'] {
+  background: linear-gradient(180deg, var(--info-soft) 0%, transparent 100%);
+}
+.daily-line {
+  margin: 0 0 10px;
+}
+.daily-greeting {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--ink-2);
+}
+.daily-quote {
+  margin: 2px 0 0;
+  font-size: 15px;
+  color: var(--ink-2);
+  max-width: 62ch;
+}
+.daily-quote q {
+  font-style: italic;
+  quotes: '\201C' '\201D';
+}
+.daily-by {
+  color: var(--muted);
+}
+.daily-another {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 8px;
+  padding: 4px;
+  color: var(--muted);
+  vertical-align: middle;
+}
+.daily-another:hover {
+  color: var(--primary);
+}
+@media (prefers-reduced-motion: no-preference) {
+  .daily-quote {
+    animation: rise-in 320ms var(--motion-easing) both;
+  }
+}
+@media (max-width: 700px) {
+  .today-head[data-part] {
+    padding: 10px 12px 2px;
+    margin: -4px -12px 14px;
+  }
+}

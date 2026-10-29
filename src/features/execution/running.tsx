@@ -89,7 +89,8 @@ export async function RunningNow() {
           >
             <input type="hidden" name="id" value={paused.id} />
             <div className="running-actions">
-              <Button name="action" value="focus">
+              {/* In place (WI-073): the card turns Running; Focus stays a link away. */}
+              <Button name="action" value="start">
                 Resume<span className="sr-only">: {paused.title}</span>
               </Button>
               <Button className="secondary" name="action" value="complete">

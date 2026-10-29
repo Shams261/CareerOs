@@ -579,3 +579,22 @@ The owner's decisions (2026-10-26) and the R5 spike (2026-10-27, `scripts/r5-spi
 
 - **The bar is an exception.** It is the one progress bar in Silsila, by the owner's choice, and does not make bars acceptable elsewhere.
 - **Plain facts stay elsewhere.** Today's cheer lines are the exception to the plain-facts voice. Reminders, Rumi and the other pages keep the plain facts.
+
+## ADR-028 — A daily line on Today: a greeting and a quotation by the part of the day
+
+**Status:** Accepted (2026-10-29, WI-073). Amends ADR-027 for Today's header only.
+
+**Context:** The owner uses a new-tab extension that shows a daily wallpaper and a motivational quote, and asked for the same feel on Today: a line that changes with the part of the day and from day to day. The Version 2 plan rules out motivational quotes _written by a model_, and the voice rule keeps hustle and guilt out of every line.
+
+**Decision:**
+
+- **A greeting and one quotation** sit at the top of Today's header on the current day only: "Good morning, Shams." (the owner's first name) and a short quotation with its author.
+- **The quotation is chosen, never generated.** `QUOTES` in `src/features/today/daily-line.ts` holds ten short quotations for each part of the day (morning 5–11, afternoon 12–16, evening 17–20, night otherwise), every one a real quotation from a public-domain source with its author or "Proverb". `dailyQuote(day, part)` picks one by the day and the part, so a line stays for that part of the day and a new one comes with the next. "Another" (↻) steps to the next one in the same pool; nothing is written.
+- **Words.** No quotation pushes, counts or compares; every one is checked against `BANNED_WORDS` with the rest of Today's lines, and none exceeds sixteen words.
+- **A tint for the part of the day** sits behind the header, from the existing tokens (`--warning-soft` in the morning and evening, `--tint` in the afternoon, `--info-soft` at night): one accent, no new colour.
+- **Off per browser.** Settings → Appearance → Daily line (`silsila-daily-line` in localStorage), like the shortcuts toggle.
+
+**Consequences:**
+
+- The daily line is the second exception to the plain-facts voice on Today, beside ADR-027's cheer line, and only on the current day's header.
+- Adding a quotation means adding it to `QUOTES` with its source checked; a model never writes one (the Version 2 rule stands).
