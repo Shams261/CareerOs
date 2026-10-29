@@ -1,5 +1,7 @@
 'use client';
 import { useEffect, useState } from 'react';
+import { ArrowRight } from 'lucide-react';
+import { PanelButton } from '@/components/side-panel';
 import { HEIGHT, WIDTH, type DayPrintModel } from './domain';
 
 /**
@@ -73,6 +75,10 @@ export function LivePrint({
         })}
       </svg>
       <p className="week-line">{model.headline}</p>
+      {/* The whole card opens Activity, the last fourteen days (WI-080). */}
+      <PanelButton panel="activity" className="link-button rail-card-link">
+        Activity <ArrowRight size={14} aria-hidden="true" />
+      </PanelButton>
     </section>
   );
 }

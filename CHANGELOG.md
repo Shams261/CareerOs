@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- WI-080 (the rail cards open somewhere). No migration: on Today, clicking This week opens the week on Plan and clicking Today so far opens Activity (the last fourteen days); each card says so in its corner ("Plan →", "Activity →") and works from the keyboard.
+
 - WI-079 (Needs attention as a card). No migration: on Today, Needs attention sits in a card like This week and Today so far, as in the mockup.
 
 - WI-078 (the plan as mocked). No migration: on Today the plan's heading is smaller with its count beside it, rows lose the rail and dot for a plain time column with the status, ⋯ and › on one line, chips show longer titles, and the facts read "1h 10m focused · 2 of 5 blocks · 9 weeks to your goal" with the cheer right after.

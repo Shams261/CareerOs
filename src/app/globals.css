@@ -7685,6 +7685,37 @@ button.attention-link {
 .week-card {
   margin-bottom: 24px;
 }
+/* A rail card that opens somewhere (WI-080): the link in its corner reaches over the whole
+   card, so the card is the target and the corner says where it goes. */
+.week-card,
+.live-print {
+  position: relative;
+}
+.rail-card-link {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 4px;
+  margin-top: 10px;
+  font-size: 13px;
+}
+.rail-card-link::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+}
+.week-card:has(.rail-card-link:hover),
+.live-print:has(.rail-card-link:hover) {
+  border-color: var(--border-strong);
+}
+.week-card:has(.rail-card-link:focus-visible),
+.live-print:has(.rail-card-link:focus-visible) {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+.rail-card-link:focus-visible {
+  outline: none;
+}
 /* Needs attention as a rail card (WI-079), the heading at This week's size. */
 .rail-card {
   margin-bottom: 24px;
