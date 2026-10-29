@@ -1,7 +1,6 @@
 import Link from 'next/link';
 import { cookies } from 'next/headers';
 import { ArrowRight, CalendarClock, Check, Circle, Plus } from 'lucide-react';
-import { Disclosure } from '@/components/disclosure';
 import { ActionForm } from '@/components/action-form';
 import { Button } from '@/components/ui/button';
 import { FeedbackOutlet } from '@/components/feedback-outlet';
@@ -21,8 +20,9 @@ import { PanelButton, SidePanel } from './panels';
 
 /**
  * Today for an empty account (WI-065, ADR-027): one welcoming action, three optional steps
- * and a calm empty day. Nothing is required: Plan my first focus offers today's picks to start
- * now or a block for later, and the steps (goal, study times, a learning focus) open in panels.
+ * and a calm empty day. Nothing is required: Plan my first focus opens the block form (WI-072),
+ * the link under it starts a 20-minute session on today's first pick, and the steps (goal,
+ * study times, a learning focus) open in panels.
  */
 export async function FirstRunToday({
   user,
@@ -74,7 +74,7 @@ export async function FirstRunToday({
               next step, without filling your day for you.
             </p>
             <div className="welcome-actions">
-              <PanelButton panel="first-focus" className="button">
+              <PanelButton panel="add-block" className="button">
                 Plan my first focus <ArrowRight size={16} aria-hidden="true" />
               </PanelButton>
               {pick && (
@@ -177,51 +177,6 @@ export async function FirstRunToday({
           </section>
         )}
       </div>
-      <SidePanel id="first-focus" title="Plan my first focus" variant="modal">
-        {picks.length > 0 && (
-          <>
-            <h3>Start one now</h3>
-            <ul className="plain-list first-picks">
-              {picks.map((p, i) => (
-                <li key={p.key}>
-                  <span>
-                    <strong>{p.title}</strong>
-                    <span className="muted">{p.reason}</span>
-                  </span>
-                  <ActionForm
-                    action={startPickAction}
-                    label={`Start 20 min: ${p.title}`}
-                  >
-                    <input type="hidden" name="title" value={p.title} />
-                    <input type="hidden" name="category" value={p.category} />
-                    {/* One filled button in the panel: the first pick. */}
-                    <Button
-                      variant={i === 0 ? 'primary' : 'secondary'}
-                      className="small"
-                    >
-                      Start 20 min
-                    </Button>
-                  </ActionForm>
-                </li>
-              ))}
-            </ul>
-          </>
-        )}
-        {/* One thing at a time (WI-071): the form opens under one link. */}
-        <Disclosure
-          variant="link"
-          label="Or plan it for later today"
-          className="mt-4"
-        >
-          <BlockForm
-            day={day}
-            zone={user.timezone}
-            goals={goals}
-            defaultStart={slot.start}
-            defaultEnd={slot.end}
-          />
-        </Disclosure>
-      </SidePanel>
       {/* A centred modal with its own scroll (WI-069), the same form as Today's. */}
       <SidePanel id="add-block" title="Add a block" variant="modal">
         <BlockForm

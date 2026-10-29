@@ -369,6 +369,7 @@ export default async function Today({
             <SidePanel
               id="goal"
               title={nearestGoal ? 'Edit goal' : 'Set a goal'}
+              variant="modal"
             >
               {/* A new goal is the short form; editing shows status, so it can be marked done. */}
               <GoalForm
@@ -531,6 +532,8 @@ export default async function Today({
                     ? 'Edit review'
                     : 'Review day'
               }
+
+              variant="modal"
             >
               {/* Closing the day while a session runs would leave it open (WI-066). */}
               {running && (
