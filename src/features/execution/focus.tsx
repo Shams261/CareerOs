@@ -14,11 +14,12 @@ import { playAmbient, stopAmbient } from '@/lib/ambient';
 import { useWakeLock, useWakeLockSupported } from '@/lib/wake-lock';
 import {
   focusLabel,
-  focusTarget,
+  focusWindow,
   INTENTION_MAX,
   intentionOf,
   LEARNED_MAX,
   minutesLeft,
+  pausedLeft,
   ringFraction,
   SOUND_NAMES,
   SOUNDS,
@@ -40,6 +41,8 @@ export type FocusBlock = {
   canStart: boolean;
   /** A short target in minutes ("Start 20 min" from a study nudge), else the planned end. */
   minutes?: number | null;
+  /** Time recorded on the block before this session, in ms (WI-068). */
+  doneBefore?: number;
 };
 export type FocusSession = {
   id: string;
@@ -270,6 +273,36 @@ function Begin({ block }: { block: FocusBlock }) {
         </Link>
       </section>
     );
+  // A paused block (WI-068) resumes where it stopped: the time left, then Resume.
+  const done = block.doneBefore ?? 0;
+  if (done > 0) {
+    const left = pausedLeft(
+      new Date(block.plannedStart),
+      new Date(block.plannedEnd),
+      done,
+    );
+    const total = +new Date(block.plannedEnd) - +new Date(block.plannedStart);
+    return (
+      <section className="focus-card" aria-label="Paused focus session">
+        <Ring fraction={total > 0 ? 1 - left / total : null}>
+          <strong>{clock(left)}</strong>
+          <span>Paused · left of {Math.round(total / 60_000)} min</span>
+        </Ring>
+        <ActionForm
+          action={executionAction}
+          label={`Resume ${block.title}`}
+          className="focus-begin"
+        >
+          <input type="hidden" name="id" value={block.id} />
+          <div className="focus-actions">
+            <Button name="action" value="start">
+              Resume<span className="sr-only">: {block.title}</span>
+            </Button>
+          </div>
+        </ActionForm>
+      </section>
+    );
+  }
   return (
     <section className="focus-card" aria-label="Begin a focus session">
       <ActionForm
@@ -311,16 +344,23 @@ function Running({
 }) {
   const router = useRouter();
   const now = useNow(renderedAt);
-  const started = new Date(session.startedAt);
-  const target = block?.minutes
-    ? new Date(+started + block.minutes * 60_000)
+  // A resumed session continues where the pause left it (WI-068): the ring's window starts
+  // before this session by the time already recorded on the block.
+  const ring = block?.minutes
+    ? {
+        start: new Date(session.startedAt),
+        target: new Date(+new Date(session.startedAt) + block.minutes * 60_000),
+      }
     : block
-      ? focusTarget({
-          startedAt: started,
+      ? focusWindow({
+          startedAt: new Date(session.startedAt),
           plannedStart: new Date(block.plannedStart),
           plannedEnd: new Date(block.plannedEnd),
+          doneBefore: block.doneBefore,
         })
       : null;
+  const started = ring?.start ?? new Date(session.startedAt);
+  const target = ring?.target ?? null;
   const at = new Date(now);
   const fraction = target ? ringFraction(started, target, at) : null;
   const left = target ? minutesLeft(target, at) : null;
@@ -337,7 +377,8 @@ function Running({
   useWakeLock(awake && wakeSupported);
   const canPip = useSyncExternalStore(noop, pipSupported, () => false);
   // The pop-out belongs to the shell (WI-066), so it outlives this page.
-  const pip = usePipOpen(session.id);
+  const pipKey = block?.id ?? session.id;
+  const pip = usePipOpen(pipKey);
   const [pipFailed, setPipFailed] = useState(false);
   const [showLearned, setShowLearned] = useState(false);
   const learnedOpen = showLearned || done;
@@ -365,9 +406,9 @@ function Running({
       : `${Math.floor((now - +started) / 300_000) * 5} minutes so far`;
   const popOut = async () => {
     const ok = await openFocusPip({
-      id: session.id,
+      key: pipKey,
       title,
-      startedAt: session.startedAt,
+      startedAt: started.toISOString(),
       target: target ? target.toISOString() : null,
       since: `since ${session.since}`,
     });

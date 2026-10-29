@@ -2,8 +2,8 @@ import Link from 'next/link';
 import { ActionForm } from '@/components/action-form';
 import { FormMore } from '@/components/form-more';
 import { TemplateChips } from './template-chips';
-import { QuickBlockFields } from './quick-fields';
-import { TimeLengthFields } from './time-length';
+import { LengthFields, QuickBlockFields } from './quick-fields';
+import { LOG_LENGTHS, logDefaults } from './log-time';
 import type { RoutineTemplate } from './templates';
 import {
   blockAction,
@@ -60,110 +60,38 @@ export function BlockForm({
   defaultStart?: string;
   defaultEnd?: string;
 }) {
-  // A new block is four answers (WI-066): title, kind, start and length; the rest is under More.
-  if (!block)
-    return (
-      <ActionForm
-        action={blockAction}
-        label="Add a block"
-        resetOnSuccess
-        broadcast="blocks"
-        closeOnSuccess
-        draft={`block:${day}`}
-      >
-        <input type="hidden" name="id" value="" />
-        <input type="hidden" name="version" value="" />
-        <QuickBlockFields defaultStart={defaultStart} defaultEnd={defaultEnd} />
-        <FormMore label="More: goal, priority, notes, another day">
-          <div className="form-grid">
-            <label>
-              Goal
-              <select name="goalId" defaultValue="">
-                <option value="">No goal</option>
-                {goals.map((g) => (
-                  <option key={g.id} value={g.id}>
-                    {g.title}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label>
-              Priority
-              <select name="priority" defaultValue={2}>
-                <option value={1}>High</option>
-                <option value={2}>Normal</option>
-                <option value={3}>Low</option>
-              </select>
-            </label>
-            <label>
-              Start date
-              <input required type="date" name="day" defaultValue={day} />
-            </label>
-            <label>
-              End date
-              <input required type="date" name="endDay" defaultValue={day} />
-            </label>
-          </div>
-          <label>
-            Notes
-            <textarea name="description" maxLength={1000} />
-          </label>
-        </FormMore>
-        {/* Outside More: an overlap refusal asks for this box, so it must be in view. */}
-        <label className="check">
-          <input type="checkbox" name="allowOverlap" /> Allow overlap with
-          another block
-        </label>
-        <Button className="mt-3">Add block</Button>
-      </ActionForm>
-    );
-  // Edit this day in three answers (WI-067): title, start and length; the kind, goal,
-  // priority, notes and dates sit under More.
+  // One short form for adding and editing (WI-068): title, kind, start, length and a note in
+  // view; the goal, priority and another day under More. A new block is on this day.
+  const local = (d: Date, pattern: string) =>
+    formatInTimeZone(d, zone, pattern);
   return (
     <ActionForm
       action={blockAction}
-      label="Edit this day only"
+      label={block ? 'Edit this day only' : 'Add a block'}
+      resetOnSuccess={!block}
       broadcast="blocks"
       closeOnSuccess
+      draft={block ? undefined : `block:${day}`}
+      className="block-form"
     >
-      <input type="hidden" name="id" value={block.id} />
+      <input type="hidden" name="id" value={block?.id ?? ''} />
       <input
         type="hidden"
         name="version"
-        value={block.updatedAt.toISOString()}
+        value={block?.updatedAt.toISOString() ?? ''}
       />
-      <label>
-        Title
-        <input
-          name="title"
-          required
-          maxLength={160}
-          defaultValue={block.title}
-        />
-      </label>
-      <TimeLengthFields
-        startName="startLocal"
-        endName="endLocal"
-        startLabel="Start time"
-        endLabel="End time"
-        defaultStart={formatInTimeZone(block.plannedStart, zone, 'HH:mm')}
-        defaultEnd={formatInTimeZone(block.plannedEnd, zone, 'HH:mm')}
+      <QuickBlockFields
+        defaultTitle={block?.title}
+        defaultKind={block?.category}
+        defaultStart={block ? local(block.plannedStart, 'HH:mm') : defaultStart}
+        defaultEnd={block ? local(block.plannedEnd, 'HH:mm') : defaultEnd}
+        defaultNote={block?.description ?? ''}
       />
-      <FormMore label="More: kind, goal, priority, notes, another day">
+      <FormMore label="More: goal, priority, another day">
         <div className="form-grid">
           <label>
-            Category
-            <input
-              name="category"
-              required
-              maxLength={80}
-              list="activity-categories"
-              defaultValue={block.category}
-            />
-          </label>
-          <label>
             Goal
-            <select name="goalId" defaultValue={block.goalId ?? ''}>
+            <select name="goalId" defaultValue={block?.goalId ?? ''}>
               <option value="">No goal</option>
               {goals.map((g) => (
                 <option key={g.id} value={g.id}>
@@ -174,53 +102,39 @@ export function BlockForm({
           </label>
           <label>
             Priority
-            <select name="priority" defaultValue={block.priority}>
+            <select name="priority" defaultValue={block?.priority ?? 2}>
               <option value={1}>High</option>
               <option value={2}>Normal</option>
               <option value={3}>Low</option>
             </select>
           </label>
           <label>
-            Start date
+            Day
             <input
               required
               type="date"
               name="day"
-              defaultValue={formatInTimeZone(
-                block.plannedStart,
-                zone,
-                'yyyy-MM-dd',
-              )}
+              defaultValue={
+                block ? local(block.plannedStart, 'yyyy-MM-dd') : day
+              }
             />
           </label>
           <label>
-            End date
+            Ends on
             <input
               required
               type="date"
               name="endDay"
-              defaultValue={formatInTimeZone(
-                block.plannedEnd,
-                zone,
-                'yyyy-MM-dd',
-              )}
+              defaultValue={block ? local(block.plannedEnd, 'yyyy-MM-dd') : day}
             />
           </label>
         </div>
-        <label>
-          Notes
-          <textarea
-            name="description"
-            maxLength={1000}
-            defaultValue={block.description ?? ''}
-          />
-        </label>
       </FormMore>
+      {/* Outside More: an overlap refusal asks for this box, so it must be in view. */}
       <label className="check">
-        <input type="checkbox" name="allowOverlap" /> Allow overlap with another
-        block
+        <input type="checkbox" name="allowOverlap" /> Allow this overlap
       </label>
-      <Button className="mt-3">Save for this day</Button>
+      <Button className="mt-3">{block ? 'Save' : 'Add block'}</Button>
     </ActionForm>
   );
 }
@@ -557,33 +471,49 @@ export function ManualSessionForm({
   block,
   zone,
   day,
+  now = new Date(),
 }: {
   block: TimeBlock;
   zone: string;
   day: string;
+  now?: Date;
 }) {
   // Log time in one row (WI-067): when it started and how long; the dates and a note sit
-  // under More, since almost every log is for this day.
+  // under More. Its first answer never ends in the future (WI-068): the block's slot once it
+  // is over, else the time up to now, as long as the block, which Save accepts.
+  const range = logDefaults(block, now);
+  const at = (d: Date, pattern: string) => formatInTimeZone(d, zone, pattern);
   return (
     <ActionForm action={manualAction} label={`Log time for ${block.title}`}>
       <input type="hidden" name="id" value={block.id} />
-      <TimeLengthFields
+      <LengthFields
         startName="startLocal"
         endName="endLocal"
         startLabel="Started at"
         endLabel="Ended at"
-        defaultStart={formatInTimeZone(block.plannedStart, zone, 'HH:mm')}
-        defaultEnd={formatInTimeZone(block.plannedEnd, zone, 'HH:mm')}
+        defaultStart={at(range.start, 'HH:mm')}
+        defaultEnd={at(range.end, 'HH:mm')}
+        lengths={LOG_LENGTHS}
       />
       <FormMore label="More: another day, a note">
         <div className="form-grid">
           <label>
             Started on
-            <input name="day" type="date" required defaultValue={day} />
+            <input
+              name="day"
+              type="date"
+              required
+              defaultValue={at(range.start, 'yyyy-MM-dd') || day}
+            />
           </label>
           <label>
             Ended on
-            <input name="endDay" type="date" required defaultValue={day} />
+            <input
+              name="endDay"
+              type="date"
+              required
+              defaultValue={at(range.end, 'yyyy-MM-dd') || day}
+            />
           </label>
         </div>
         <label>

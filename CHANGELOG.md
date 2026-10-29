@@ -2,6 +2,18 @@
 
 ## Unreleased
 
+- WI-068 (Resume where it paused, forms in place, from the owner's UAT). No migration:
+  - **Resume continues.** Five minutes done of thirty resume at 25:00 left, with the ring a sixth full. This holds on Focus, Today's card, the sidebar and the pop-out. A paused block reads "28:57 left · Until 23:49", never "Starts in".
+  - **The pop-out stays.** Pause freezes it as "Paused", Resume carries on in the same window, and Complete closes it. A Pause or Complete in one tab refreshes the owner's other tabs, so no stale timer keeps running.
+  - **The sidebar card on every page.** It shows on Today and Focus too. A paused block keeps it, with its time left, Resume and Complete; before, pausing from the sidebar made the card vanish.
+  - **One record, one Delete.** A block's recorded time is one line, "Recorded 12 min", with one Delete for all of it and Undo. A done block is planned again.
+  - **Forms in place.** Add a block opens as a small card above the list, and a block's details open under its row, not in a side panel. Adding and editing share one short form: title, kind, start, length (30 min to 1.5 hours) and a note, with the goal, priority and another day under More.
+  - **Fixes.**
+    - Focus is centred.
+    - The suggested time skips done blocks too, so Save never refuses it as an overlap. Late at night it takes the minutes after the last block.
+    - Log time starts with a time that has already happened.
+    - A Focus page left open on a paused block shows Resume.
+
 - WI-067 (Pause and Resume, from the owner's UAT). No migration:
   - **Stop is Pause.** Today's card, a running row, the running card on other pages and Focus say Pause. Pausing answers above the list: "Paused · 9 min so far. Resume when you are ready."
   - **Paused shows.** A block with recorded time, no running session and its slot still open reads "Paused · 9 min so far" on its row and on the Up next card, which offers Resume and Complete. It groups as Now; Rumi reads it as Paused; Close the Day treats it as recorded (Done or Let go).

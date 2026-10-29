@@ -7,6 +7,7 @@ import { forgetAll } from '@/server/memo';
 import { syncSoon } from '@/features/calendar/background';
 import type { ActionState } from '@/features/schedule/actions';
 import {
+  clearBlockTime,
   deleteApplication,
   deleteBlock,
   deleteGoal,
@@ -205,6 +206,34 @@ export async function deleteSessionAction(
           notes: s.notes,
           attemptIds: s.attemptIds,
           activityIds: s.activityIds,
+        },
+      },
+    };
+  } catch (error) {
+    return failed(error);
+  }
+}
+
+/** The block's recorded time, all of it at once (WI-068), with Undo. */
+export async function clearBlockTimeAction(
+  _s: ActionState,
+  f: FormData,
+): Promise<ActionState> {
+  try {
+    const user = await owner();
+    const blockId = id(f);
+    const cleared = await clearBlockTime(user, blockId);
+    refresh(['/today', '/calendar', '/review']);
+    syncSoon(user);
+    return {
+      ok: true,
+      message: `Recorded time on ${cleared.title} deleted.`,
+      undo: {
+        kind: 'restore-block-time',
+        payload: {
+          taskId: blockId,
+          completedAt: cleared.completedAt?.toISOString() ?? null,
+          sessions: cleared.sessions,
         },
       },
     };

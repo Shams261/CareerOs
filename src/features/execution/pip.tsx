@@ -1,23 +1,28 @@
 'use client';
-import { useEffect, useState, useSyncExternalStore } from 'react';
+import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { createPortal } from 'react-dom';
+import { useRouter } from 'next/navigation';
 import { clock, Ring } from './ring';
 
 /**
  * The pop-out timer (WI-066): one Document Picture-in-Picture window for the whole app. Focus
  * opens it; the shell's `PipHost` owns it, so it keeps running while the owner moves between
- * pages, and it closes when the session it shows is no longer the running one (Stop, Complete,
- * or a session started elsewhere). The window ticks on its own clock, so a hidden tab does not
- * slow it down.
+ * pages. Since WI-068 it belongs to the block, not to one session: a Pause freezes it at the
+ * time left, a Resume carries on from there, and it closes on Complete or when another block
+ * runs. The window ticks on its own clock, so a hidden tab does not slow it down.
  */
 export type PipSession = {
-  id: string;
+  /** The block's id, or the session's for a session without a block. */
+  key: string;
   title: string;
+  /** When the ring's window starts: earlier than the session when time was recorded before. */
   startedAt: string;
   /** The target the ring drains toward; null counts up from the start. */
   target: string | null;
   /** "since 21:11", shown when there is no target. */
   since: string;
+  /** A paused block: time left and the planned length, in ms; the ring stands still. */
+  paused?: { left: number; total: number } | null;
 };
 type PipApi = {
   requestWindow: (o: { width: number; height: number }) => Promise<Window>;
@@ -41,13 +46,13 @@ export const pipSupported = () =>
   typeof window !== 'undefined' && 'documentPictureInPicture' in window;
 
 /** Whether the pop-out window is open, for Focus's "Pop out" / "Close pop-out" button. */
-export function usePipOpen(sessionId: string) {
+export function usePipOpen(key: string) {
   const s = useSyncExternalStore(
     subscribe,
     () => state,
     () => empty,
   );
-  return !!s.win && s.session?.id === sessionId;
+  return !!s.win && s.session?.key === key;
 }
 
 export function closeFocusPip() {
@@ -96,18 +101,52 @@ export async function openFocusPip(session: PipSession) {
   }
 }
 
-/** Mounted once in the shell; `runningId` is the server's running session, or null. */
-export function PipHost({ runningId }: { runningId: string | null }) {
+const CHANNEL = 'silsila-session';
+
+/**
+ * Mounted once in the shell with the server's view of the session: running, paused or none.
+ * It keeps the pop-out in step (WI-068), and tells the owner's other tabs when that view
+ * changes, so a Pause or Complete in one tab refreshes a Focus page or pop-out left open in
+ * another instead of leaving its clock running.
+ */
+export function PipHost({ shown }: { shown: PipSession | null }) {
   const s = useSyncExternalStore(
     subscribe,
     () => state,
     () => empty,
   );
+  const router = useRouter();
   const [now, setNow] = useState(() => Date.now());
-  // The shown session ended or another one runs now: the window closes with it.
+  const view = shown
+    ? `${shown.key}|${shown.startedAt}|${shown.paused ? 'paused' : 'running'}`
+    : 'none';
+  const seen = useRef(view);
+  const channel = useRef<BroadcastChannel | null>(null);
   useEffect(() => {
-    if (s.session && s.session.id !== runningId) closeFocusPip();
-  }, [s.session, runningId]);
+    if (typeof BroadcastChannel === 'undefined') return;
+    const c = new BroadcastChannel(CHANNEL);
+    c.onmessage = (event) => {
+      if (event.data !== seen.current) router.refresh();
+    };
+    channel.current = c;
+    return () => {
+      c.close();
+      channel.current = null;
+    };
+  }, [router]);
+  useEffect(() => {
+    if (seen.current === view) return;
+    seen.current = view;
+    channel.current?.postMessage(view);
+  }, [view]);
+  // The shown block is no longer running or paused, or another one runs: the window closes.
+  // Otherwise it takes the server's latest times, so a Resume continues in the same window.
+  useEffect(() => {
+    if (!s.session) return;
+    if (!shown || shown.key !== s.session.key) closeFocusPip();
+    else if (JSON.stringify(shown) !== JSON.stringify(s.session))
+      set({ win: s.win, session: shown });
+  }, [s.session, s.win, shown]);
   useEffect(() => {
     if (!s.win) return;
     const w = s.win;
@@ -115,22 +154,32 @@ export function PipHost({ runningId }: { runningId: string | null }) {
     return () => w.clearInterval(timer);
   }, [s.win]);
   if (!s.win || !s.session) return null;
-  const started = +new Date(s.session.startedAt);
-  const target = s.session.target ? +new Date(s.session.target) : null;
-  const done = target !== null && now >= target;
-  const fraction =
-    target === null
+  const session = s.session;
+  const started = +new Date(session.startedAt);
+  const target = session.target ? +new Date(session.target) : null;
+  const paused = session.paused ?? null;
+  const done = !paused && target !== null && now >= target;
+  const fraction = paused
+    ? 1 - paused.left / (paused.total || 1)
+    : target === null
       ? null
       : done
         ? 1
         : Math.min(1, Math.max(0, (now - started) / (target - started || 1)));
-  const total = target
-    ? Math.max(1, Math.round((target - started) / 60000))
-    : 0;
+  const total = paused
+    ? Math.max(1, Math.round(paused.total / 60000))
+    : target
+      ? Math.max(1, Math.round((target - started) / 60000))
+      : 0;
   return createPortal(
-    <div className="focus-pip">
+    <div className={`focus-pip${paused ? ' is-paused' : ''}`}>
       <Ring fraction={fraction} size={190}>
-        {done ? (
+        {paused ? (
+          <>
+            <strong>{clock(paused.left)}</strong>
+            <span>Paused · of {total} min</span>
+          </>
+        ) : done ? (
           <>
             <strong>{total} min</strong>
             <span>Time is up</span>
@@ -143,11 +192,11 @@ export function PipHost({ runningId }: { runningId: string | null }) {
         ) : (
           <>
             <strong>{clock(now - started)}</strong>
-            <span>{s.session.since}</span>
+            <span>{session.since}</span>
           </>
         )}
       </Ring>
-      <p>{s.session.title}</p>
+      <p>{session.title}</p>
     </div>,
     s.win.document.body,
   );
