@@ -219,10 +219,20 @@ export function groupAgenda(
   );
   const live = entries.filter((e) => !cancelled.includes(e));
   if (!isToday) return { earlier: [], now: [], later: live, cancelled };
+  // A finished block is Earlier and a running one is Now, whatever their planned time
+  // (WI-066: a block done before its slot no longer reads as Later).
+  const settled = (e: AgendaEntry) =>
+    e.kind === 'block' && ['COMPLETED', 'SKIPPED'].includes(e.block.status);
+  const running = (e: AgendaEntry) =>
+    e.kind === 'block' && e.block.status === 'IN_PROGRESS';
   return {
-    earlier: live.filter((e) => entryEnd(e) <= now),
-    now: live.filter((e) => e.at <= now && entryEnd(e) > now),
-    later: live.filter((e) => e.at > now),
+    earlier: live.filter(
+      (e) => settled(e) || (!running(e) && entryEnd(e) <= now),
+    ),
+    now: live.filter(
+      (e) => running(e) || (!settled(e) && e.at <= now && entryEnd(e) > now),
+    ),
+    later: live.filter((e) => !settled(e) && !running(e) && e.at > now),
     cancelled,
   };
 }
@@ -483,4 +493,35 @@ export function factsLine(f: RecentFacts) {
   ]
     .filter(Boolean)
     .join(' · ');
+}
+
+/**
+ * A new block's times (WI-066): on today the first quarter hour from now where 30 minutes fit
+ * beside the day's live blocks, so the form never offers a time already gone or taken; on
+ * another day 09:00–10:00. Late at night it stops at 23:59.
+ */
+export function nextSlot(
+  now: Date,
+  zone: string,
+  day: string,
+  busy: { start: Date; end: Date }[] = [],
+) {
+  if (day !== dayKey(now, zone)) return { start: '09:00', end: '10:00' };
+  const local = (d: Date) => {
+    const [h, m] = hhmm(d, zone).split(':').map(Number);
+    return h * 60 + m;
+  };
+  // Busy ranges in the day's local minutes; one ending after midnight runs to the day's end.
+  const taken = busy.map((b) => ({
+    from: dayKey(b.start, zone) < day ? 0 : local(b.start),
+    to: dayKey(b.end, zone) > day ? 24 * 60 : local(b.end),
+  }));
+  const late = 23 * 60 + 30;
+  let start = Math.min(Math.ceil((local(now) + 1) / 15) * 15, late);
+  while (start < late && taken.some((t) => start < t.to && start + 30 > t.from))
+    start += 15;
+  const end = Math.min(start + 30, 23 * 60 + 59);
+  const clock = (n: number) =>
+    `${String(Math.floor(n / 60)).padStart(2, '0')}:${String(n % 60).padStart(2, '0')}`;
+  return { start: clock(start), end: clock(end) };
 }

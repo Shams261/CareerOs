@@ -39,7 +39,8 @@ export function GoalForm({
     >
       <input type="hidden" name="id" value={goal?.id ?? ''} />
       <div className="form-grid">
-        <label>
+        {/* The goal's own words take the full width (WI-066). */}
+        <label className="form-wide">
           Goal
           <input
             name="title"

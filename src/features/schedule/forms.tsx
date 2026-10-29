@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { ActionForm } from '@/components/action-form';
 import { FormMore } from '@/components/form-more';
 import { TemplateChips } from './template-chips';
+import { QuickBlockFields } from './quick-fields';
 import type { RoutineTemplate } from './templates';
 import {
   blockAction,
@@ -128,104 +129,139 @@ export function BlockForm({
   zone,
   goals,
   block,
-  quick = false,
+  defaultStart = '09:00',
+  defaultEnd = '10:00',
 }: {
   day: string;
   zone: string;
   goals: GoalOption[];
   block?: TimeBlock;
-  /** A block for later today in four fields (WI-065): title, kind and the two times. */
-  quick?: boolean;
+  /** A new block's times; Today passes the next free quarter hour (WI-066). */
+  defaultStart?: string;
+  defaultEnd?: string;
 }) {
+  // A new block is four answers (WI-066): title, kind, start and length; the rest is under More.
+  if (!block)
+    return (
+      <ActionForm
+        action={blockAction}
+        label="Add a block"
+        resetOnSuccess
+        broadcast="blocks"
+        closeOnSuccess
+        draft={`block:${day}`}
+      >
+        <input type="hidden" name="id" value="" />
+        <input type="hidden" name="version" value="" />
+        <QuickBlockFields defaultStart={defaultStart} defaultEnd={defaultEnd} />
+        <FormMore label="More: goal, priority, notes, another day">
+          <div className="form-grid">
+            <label>
+              Goal
+              <select name="goalId" defaultValue="">
+                <option value="">No goal</option>
+                {goals.map((g) => (
+                  <option key={g.id} value={g.id}>
+                    {g.title}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label>
+              Priority
+              <select name="priority" defaultValue={2}>
+                <option value={1}>High</option>
+                <option value={2}>Normal</option>
+                <option value={3}>Low</option>
+              </select>
+            </label>
+            <label>
+              Start date
+              <input required type="date" name="day" defaultValue={day} />
+            </label>
+            <label>
+              End date
+              <input required type="date" name="endDay" defaultValue={day} />
+            </label>
+          </div>
+          <label>
+            Notes
+            <textarea name="description" maxLength={1000} />
+          </label>
+        </FormMore>
+        {/* Outside More: an overlap refusal asks for this box, so it must be in view. */}
+        <label className="check">
+          <input type="checkbox" name="allowOverlap" /> Allow overlap with
+          another block
+        </label>
+        <Button className="mt-3">Add block</Button>
+      </ActionForm>
+    );
   return (
     <ActionForm
       action={blockAction}
-      label={block ? 'Edit this day only' : 'Add a block'}
-      resetOnSuccess={!block}
+      label="Edit this day only"
       broadcast="blocks"
       closeOnSuccess
-      draft={block ? undefined : `block:${day}`}
     >
-      <input type="hidden" name="id" value={block?.id ?? ''} />
+      <input type="hidden" name="id" value={block.id} />
       <input
         type="hidden"
         name="version"
-        value={block?.updatedAt.toISOString() ?? ''}
+        value={block.updatedAt.toISOString()}
       />
-      <CommonFields goals={goals} value={block} compact={quick} />
-      {quick && (
-        <>
-          <input type="hidden" name="day" value={day} />
-          <input type="hidden" name="endDay" value={day} />
-        </>
-      )}
+      <CommonFields goals={goals} value={block} />
       <div className="form-grid">
-        {!quick && (
-          <label>
-            Start date
-            <input
-              required
-              type="date"
-              name="day"
-              defaultValue={
-                block
-                  ? formatInTimeZone(block.plannedStart, zone, 'yyyy-MM-dd')
-                  : day
-              }
-            />
-          </label>
-        )}
+        <label>
+          Start date
+          <input
+            required
+            type="date"
+            name="day"
+            defaultValue={formatInTimeZone(
+              block.plannedStart,
+              zone,
+              'yyyy-MM-dd',
+            )}
+          />
+        </label>
         <label>
           Start time
           <input
             required
             type="time"
             name="startLocal"
-            defaultValue={
-              block
-                ? formatInTimeZone(block.plannedStart, zone, 'HH:mm')
-                : '09:00'
-            }
+            defaultValue={formatInTimeZone(block.plannedStart, zone, 'HH:mm')}
           />
         </label>
-        {!quick && (
-          <label>
-            End date
-            <input
-              required
-              type="date"
-              name="endDay"
-              defaultValue={
-                block
-                  ? formatInTimeZone(block.plannedEnd, zone, 'yyyy-MM-dd')
-                  : day
-              }
-            />
-          </label>
-        )}
+        <label>
+          End date
+          <input
+            required
+            type="date"
+            name="endDay"
+            defaultValue={formatInTimeZone(
+              block.plannedEnd,
+              zone,
+              'yyyy-MM-dd',
+            )}
+          />
+        </label>
         <label>
           End time
           <input
             required
             type="time"
             name="endLocal"
-            defaultValue={
-              block
-                ? formatInTimeZone(block.plannedEnd, zone, 'HH:mm')
-                : '10:00'
-            }
+            defaultValue={formatInTimeZone(block.plannedEnd, zone, 'HH:mm')}
           />
         </label>
       </div>
-      {!quick && (
-        <label className="check">
-          <input type="checkbox" name="allowOverlap" /> Allow overlap with
-          another block
-        </label>
-      )}
-      <Button className="mt-3">
-        {block ? 'Save for this day' : 'Add block'}
-      </Button>
+      <label className="check">
+        <input type="checkbox" name="allowOverlap" /> Allow overlap with another
+        block
+      </label>
+      <Button className="mt-3">Save for this day</Button>
     </ActionForm>
   );
 }
@@ -410,6 +446,7 @@ export function ExecutionControls({
   hideStart = false,
   more = false,
   primaryOnly = false,
+  canDelete = false,
 }: {
   block: TimeBlock;
   canStart?: boolean;
@@ -420,10 +457,26 @@ export function ExecutionControls({
   more?: boolean;
   /** Only the primary Start or Stop; the row keeps the secondary actions. */
   primaryOnly?: boolean;
+  /** Delete in the row's menu (WI-066): a block with no recorded time. */
+  canDelete?: boolean;
 }) {
+  const deleteButton = canDelete ? (
+    <Button
+      className={`secondary danger${more ? ' small' : ''}`}
+      name="action"
+      value="delete"
+    >
+      Delete<span className="sr-only">: {block.title}</span>
+    </Button>
+  ) : null;
   const running = block.status === 'IN_PROGRESS';
   return (
-    <ActionForm action={executionAction}>
+    // A row's result (Deleted, Skipped, Cancelled, with Undo) shows above the list, since the
+    // row itself may go (WI-066).
+    <ActionForm
+      action={executionAction}
+      broadcast={more ? 'blocks' : undefined}
+    >
       <input type="hidden" name="id" value={block.id} />
       <div className="actions">
         {['PLANNED', 'IN_PROGRESS'].includes(block.status) ? (
@@ -459,31 +512,31 @@ export function ExecutionControls({
                   </button>
                 )
               ) : (
-                // Start opens Focus (WI-027): an intention, then Begin starts the session.
-                <Link
+                // Start begins the session and opens Focus already running (WI-066).
+                <button
                   className={
                     current
                       ? 'button'
                       : `button secondary${more ? ' small' : ''}`
                   }
-                  href={`/focus?block=${block.id}`}
-                  prefetch={false}
+                  name="action"
+                  value="focus"
                   data-shortcut={current ? 'start' : undefined}
                 >
                   {launcher ? 'Start session' : 'Start'}
                   <span className="sr-only">: {block.title}</span>
-                </Link>
+                </button>
               ))}
             {!primaryOnly && (
               <SecondaryActions title={block.title} always={more}>
                 {more && !current && canStart && !hideStart && !running && (
-                  <Link
+                  <button
                     className="button secondary small"
-                    href={`/focus?block=${block.id}`}
-                    prefetch={false}
+                    name="action"
+                    value="focus"
                   >
                     Start<span className="sr-only">: {block.title}</span>
-                  </Link>
+                  </button>
                 )}
                 <Button
                   className={`secondary${more ? ' small' : ''}`}
@@ -503,6 +556,7 @@ export function ExecutionControls({
                       Cancel block
                       <span className="sr-only">: {block.title}</span>
                     </Button>
+                    {deleteButton}
                   </>
                 )}
               </SecondaryActions>
@@ -513,6 +567,7 @@ export function ExecutionControls({
             <Button className="secondary small" name="action" value="reset">
               Reset to planned<span className="sr-only">: {block.title}</span>
             </Button>
+            {deleteButton}
           </SecondaryActions>
         ) : (
           <Button className="secondary" name="action" value="reset">

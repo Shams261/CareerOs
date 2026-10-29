@@ -114,7 +114,7 @@ describe.skipIf(!url)('Deletes on every record (WI-060)', () => {
     ).toMatchObject({ status: 'CANCELLED', skipReason: 'Deleted' });
   });
 
-  it('deletes a block added for one day with Undo, and refuses a routine block', async () => {
+  it('deletes a block added for one day or from a routine, with Undo', async () => {
     const day = await plan(user.id, '2026-10-31');
     const added = await prisma.timeBlock.create({
       data: {
@@ -160,7 +160,11 @@ describe.skipIf(!url)('Deletes on every record (WI-060)', () => {
       /recorded time/,
     );
     expect(await deleteBlock(user, added.id)).toBe('Graphs: BFS');
-    await expect(deleteBlock(user, routine.id)).rejects.toThrow(/cancelled/);
+    // WI-066: a routine's occurrence goes too, kept as "Deleted" so it is never planned again.
+    expect(await deleteBlock(user, routine.id)).toBe('DSA practice');
+    expect(
+      await prisma.timeBlock.findUniqueOrThrow({ where: { id: routine.id } }),
+    ).toMatchObject({ status: 'CANCELLED', skipReason: 'Deleted' });
     await restore(user, 'block-reset', { id: added.id });
     expect(
       await prisma.timeBlock.findUniqueOrThrow({ where: { id: added.id } }),

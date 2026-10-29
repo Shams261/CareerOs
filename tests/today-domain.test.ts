@@ -237,7 +237,7 @@ describe('agenda entries and groups', () => {
     expect(groupAgenda([e], noon, true).now).toHaveLength(1);
     expect(groupAgenda([e], at('12:31'), true).earlier).toHaveLength(1);
   });
-  it('groups by time only and parks cancelled blocks; other days get one list', () => {
+  it('groups by time, finished blocks as Earlier, and parks cancelled; other days get one list', () => {
     const earlier = block({
       plannedStart: at('08:00'),
       plannedEnd: at('09:00'),
@@ -256,9 +256,22 @@ describe('agenda entries and groups', () => {
     });
     const entries = agendaEntries([gone, later, nowB, earlier], []);
     const g = groupAgenda(entries, noon, true);
-    expect(g.earlier.map((e) => e.key)).toEqual([`block-${earlier.id}`]);
+    // WI-066: a block completed before its slot is Earlier, not Later.
+    expect(g.earlier.map((e) => e.key)).toEqual([
+      `block-${earlier.id}`,
+      `block-${later.id}`,
+    ]);
     expect(g.now.map((e) => e.key)).toEqual([`block-${nowB.id}`]);
-    expect(g.later.map((e) => e.key)).toEqual([`block-${later.id}`]);
+    expect(g.later).toEqual([]);
+    // A session running on a later block puts it in Now.
+    const started = block({
+      plannedStart: at('15:00'),
+      plannedEnd: at('16:00'),
+      status: 'IN_PROGRESS',
+    });
+    expect(
+      groupAgenda(agendaEntries([started], []), noon, true).now,
+    ).toHaveLength(1);
     expect(g.cancelled.map((e) => e.key)).toEqual([`block-${gone.id}`]);
     const past = groupAgenda(entries, noon, false);
     expect(past.earlier).toEqual([]);

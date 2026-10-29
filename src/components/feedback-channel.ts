@@ -19,20 +19,31 @@ let sequence = 0;
  */
 const HANDOFF_MS = 10_000;
 const pending = new Map<string, { f: Feedback; at: number }>();
+/**
+ * The last result on each channel (WI-066). When the outlet that showed it unmounts with its
+ * page layout (a delete that empties Today swaps it for the welcome), the first outlet that
+ * mounts next on the channel, with no other listener, shows it again, Undo included.
+ */
+const recent = new Map<string, { f: Feedback; at: number }>();
 
 export function publishFeedback(channel: string, state: ActionState) {
   const f = { id: ++sequence, state };
   const fns = listeners.get(channel);
+  recent.set(channel, { f, at: Date.now() });
   if (!fns?.size) pending.set(channel, { f, at: Date.now() });
   for (const fn of fns ?? []) fn(f);
 }
 export function subscribeFeedback(channel: string, fn: Listener) {
   if (!listeners.has(channel)) listeners.set(channel, new Set());
+  const alone = listeners.get(channel)!.size === 0;
   listeners.get(channel)!.add(fn);
   const waiting = pending.get(channel);
   if (waiting) {
     pending.delete(channel);
     if (Date.now() - waiting.at < HANDOFF_MS) fn(waiting.f);
+  } else if (alone) {
+    const last = recent.get(channel);
+    if (last && Date.now() - last.at < HANDOFF_MS) fn(last.f);
   }
   return () => {
     listeners.get(channel)?.delete(fn);

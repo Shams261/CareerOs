@@ -1,6 +1,5 @@
 'use client';
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
-import { createPortal } from 'react-dom';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft } from 'lucide-react';
@@ -26,6 +25,8 @@ import {
   targetMinutes,
   type Sound,
 } from './focus-domain';
+import { clock, Ring } from './ring';
+import { closeFocusPip, openFocusPip, pipSupported, usePipOpen } from './pip';
 
 export type FocusBlock = {
   id: string;
@@ -46,15 +47,6 @@ export type FocusSession = {
   notes: string | null;
   /** "since 09:02" in the owner's zone. */
   since: string;
-};
-
-const pad = (n: number) => String(n).padStart(2, '0');
-const clock = (ms: number) => {
-  const total = Math.max(0, Math.round(ms / 1000)),
-    h = Math.floor(total / 3600),
-    m = Math.floor((total % 3600) / 60),
-    s = total % 60;
-  return h ? `${h}:${pad(m)}:${pad(s)}` : `${m}:${pad(s)}`;
 };
 
 /**
@@ -202,45 +194,7 @@ function SoundSwitch({
   );
 }
 
-const pipSupported = () =>
-  typeof window !== 'undefined' && 'documentPictureInPicture' in window;
 const noop = () => () => undefined;
-type PipApi = {
-  requestWindow: (o: { width: number; height: number }) => Promise<Window>;
-};
-
-/** The ring: a track and an arc that fills as the session moves toward its target. */
-function Ring({
-  fraction,
-  size = 280,
-  children,
-}: {
-  fraction: number | null;
-  size?: number;
-  children: React.ReactNode;
-}) {
-  const r = 46,
-    c = 2 * Math.PI * r;
-  return (
-    <div className="focus-ring" style={{ width: size, height: size }}>
-      <svg viewBox="0 0 100 100" aria-hidden="true">
-        <circle className="focus-ring-track" cx="50" cy="50" r={r} />
-        {fraction !== null && (
-          <circle
-            className="focus-ring-arc"
-            cx="50"
-            cy="50"
-            r={r}
-            strokeDasharray={c}
-            // The arc is the time left: it drains toward the target, then closes full.
-            strokeDashoffset={fraction >= 1 ? 0 : c * fraction}
-          />
-        )}
-      </svg>
-      <div className="focus-ring-text">{children}</div>
-    </div>
-  );
-}
 
 /**
  * The Focus session (WI-027): an intention before Begin, then a ring that drains toward the
@@ -382,7 +336,8 @@ function Running({
   const [awake, setAwake] = useState(true);
   useWakeLock(awake && wakeSupported);
   const canPip = useSyncExternalStore(noop, pipSupported, () => false);
-  const [pip, setPip] = useState<Window | null>(null);
+  // The pop-out belongs to the shell (WI-066), so it outlives this page.
+  const pip = usePipOpen(session.id);
   const [pipFailed, setPipFailed] = useState(false);
   const [showLearned, setShowLearned] = useState(false);
   const learnedOpen = showLearned || done;
@@ -408,40 +363,15 @@ function Running({
     left !== null && total !== null
       ? focusLabel(left === 0 ? 0 : Math.ceil(left / 5) * 5, total)
       : `${Math.floor((now - +started) / 300_000) * 5} minutes so far`;
-  useEffect(() => () => pip?.close(), [pip]);
   const popOut = async () => {
-    const api = (window as unknown as { documentPictureInPicture?: PipApi })
-      .documentPictureInPicture;
-    if (!api) return;
-    try {
-      const w = await api.requestWindow({ width: 260, height: 300 });
-      for (const sheet of Array.from(document.styleSheets)) {
-        try {
-          const style = w.document.createElement('style');
-          style.textContent = Array.from(sheet.cssRules)
-            .map((r) => r.cssText)
-            .join('\n');
-          w.document.head.append(style);
-        } catch {
-          if (sheet.href) {
-            const link = w.document.createElement('link');
-            link.rel = 'stylesheet';
-            link.href = sheet.href;
-            w.document.head.append(link);
-          }
-        }
-      }
-      w.document.documentElement.className = document.documentElement.className;
-      w.document.body.className = 'focus-pip-body';
-      w.document.title = title;
-      w.addEventListener('pagehide', () => setPip(null));
-      setPipFailed(false);
-      setPip(w);
-    } catch {
-      // Some embedded or locked-down browsers expose the API but cannot open the window.
-      setPip(null);
-      setPipFailed(true);
-    }
+    const ok = await openFocusPip({
+      id: session.id,
+      title,
+      startedAt: session.startedAt,
+      target: target ? target.toISOString() : null,
+      since: `since ${session.since}`,
+    });
+    setPipFailed(!ok);
   };
   const submitted = useRef<string | null>(null);
   const ringBody = (
@@ -495,7 +425,7 @@ function Running({
           <Button
             type="button"
             className="secondary small"
-            onClick={() => (pip ? pip.close() : void popOut())}
+            onClick={() => (pip ? closeFocusPip() : void popOut())}
           >
             {pip ? 'Close pop-out' : 'Pop out'}
           </Button>
@@ -584,16 +514,6 @@ function Running({
       <p className="focus-hint">
         Esc returns to Today · the timer keeps running
       </p>
-      {pip &&
-        createPortal(
-          <div className="focus-pip">
-            <Ring fraction={done ? 1 : fraction} size={190}>
-              {ringBody}
-            </Ring>
-            <p>{title}</p>
-          </div>,
-          pip.document.body,
-        )}
     </section>
   );
 }
