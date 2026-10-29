@@ -476,19 +476,21 @@ export default async function Today({
               <aside className="today-rail" aria-labelledby="attention-heading">
                 {/* Today's rings while the day is open (WI-071), then This week, then what
                     needs attention (WI-065). */}
-                {!reviewed && sessions.length > 0 && (
-                  <LivePrint
-                    day={day}
-                    model={dayPrint({
+                {!reviewed &&
+                  (() => {
+                    // Only once a session has a whole minute on it: a ring to show.
+                    const live = dayPrint({
                       day,
                       bounds,
                       sessions,
                       letGo: 0,
                       rested: false,
                       now,
-                    })}
-                  />
-                )}
+                    });
+                    return live.rings.length > 0 ? (
+                      <LivePrint day={day} model={live} />
+                    ) : null;
+                  })()}
                 <WeekCard
                   week={weekProgress({
                     done: weekBlocks.filter((b) => b.status === 'COMPLETED')
