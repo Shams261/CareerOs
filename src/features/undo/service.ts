@@ -47,8 +47,9 @@ const kinds = {
     attemptIds: z.array(z.string().min(1)).max(200).optional(),
     activityIds: z.array(z.string().min(1)).max(200).optional(),
   }),
-  'restore-block-time': z.object({
-    taskId: z.string().min(1),
+  // A deleted block comes back with its recorded time (WI-070).
+  'restore-block': z.object({
+    id: z.string().min(1),
     completedAt: z.iso.datetime().nullable().optional(),
     sessions: z
       .array(
@@ -62,7 +63,6 @@ const kinds = {
           activityIds: z.array(z.string().min(1)).max(200).optional(),
         }),
       )
-      .min(1)
       .max(100),
   }),
   'problem-unhide': z.object({ id: z.string().min(1) }),
@@ -241,23 +241,28 @@ export async function restore(
       });
       return 'Session restored.';
     }
-    case 'restore-block-time': {
+    case 'restore-block': {
       const p = kinds[k].parse(payload);
-      // Every part comes back under one lock, and a block that was done is done again (WI-068).
+      // The block is planned again, then every part of its time comes back under one lock,
+      // and a block that was done is done again (WI-070).
+      await execute(user, p.id, 'reset');
       await locked(user.id, async (tx) => {
         const task = await tx.timeBlock.findFirst({
-          where: { id: p.taskId, dailyPlan: { userId: user.id } },
+          where: { id: p.id, dailyPlan: { userId: user.id } },
         });
         if (!task) throw new Error('The block no longer exists.');
         for (const session of p.sessions)
           await restoreSessionIn(tx, user.id, task.id, session);
-        if (p.completedAt && task.status === 'PLANNED')
+        if (p.completedAt)
           await tx.timeBlock.update({
             where: { id: task.id },
-            data: { status: 'COMPLETED', completedAt: new Date(p.completedAt) },
+            data: {
+              status: 'COMPLETED',
+              completedAt: new Date(p.completedAt),
+            },
           });
       });
-      return 'Recorded time restored.';
+      return 'Block restored.';
     }
     case 'problem-unhide': {
       await unhideProblem(user, kinds[k].parse(payload).id);

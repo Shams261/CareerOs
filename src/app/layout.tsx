@@ -83,10 +83,11 @@ export default async function RootLayout({
               </Link>
               <CommandButton className="command-button" />
             </div>
-            <Navigation />
+            {/* Under the search box, so it is in view on every page at any height (WI-070). */}
             <Suspense fallback={null}>
               <RunningNow />
             </Suspense>
+            <Navigation />
             <footer className="muted mt-auto">
               <form action={signOutAction} className="mt-2">
                 <button className="link">Sign out</button>

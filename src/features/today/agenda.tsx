@@ -4,10 +4,8 @@ import { formatInTimeZone } from 'date-fns-tz';
 import { Disclosure } from '@/components/disclosure';
 import { ActionForm } from '@/components/action-form';
 import { Button } from '@/components/ui/button';
-import {
-  clearBlockTimeAction,
-  deleteBlockAction,
-} from '@/features/deletes/actions';
+import { deleteBlockAction } from '@/features/deletes/actions';
+import { ConfirmDelete } from '@/components/confirm-delete';
 import { FeedbackOutlet } from '@/components/feedback-outlet';
 import { CategoryIcon } from '@/components/category-icon';
 import { ResourceLink } from '@/components/resource-link';
@@ -372,8 +370,8 @@ function BlockRow({
         {block.skipReason && (
           <p className="muted">Skipped: {block.skipReason}</p>
         )}
-        {/* One record, one Delete (WI-068): however many times the block was paused and
-            resumed, its time reads as one total and goes in one go, with Undo. */}
+        {/* One record (WI-068): however many times the block was paused and resumed, its
+            time reads as one total. It goes with the block, in one Delete (WI-070). */}
         {block.sessions.length > 0 && (
           <section className="row-recorded" aria-label="Recorded time">
             <p>
@@ -386,19 +384,6 @@ function BlockRow({
                   <li key={line}>{line}</li>
                 ))}
               </ul>
-            )}
-            {allEnded && (
-              <ActionForm
-                action={clearBlockTimeAction}
-                broadcast="blocks"
-                label={`Delete recorded time on ${title}`}
-                className="inline-delete"
-              >
-                <input type="hidden" name="id" value={block.id} />
-                <Button variant="link" className="danger small">
-                  Delete<span className="sr-only"> recorded time</span>
-                </Button>
-              </ActionForm>
             )}
           </section>
         )}
@@ -425,19 +410,32 @@ function BlockRow({
             },
           ]}
         />
-        {/* Any block without recorded time can be deleted (WI-060, WI-066). */}
-        {!block.sessions.length && (
+        {/* One Delete for the block and its time (WI-070). Recorded time asks once, in
+            place; either way the modal closes and the Undo above the list brings both back. */}
+        {allEnded && (
           <div className="row-danger">
-            <ActionForm
-              action={deleteBlockAction}
-              broadcast="blocks"
-              label={`Delete ${title}`}
-            >
-              <input type="hidden" name="id" value={block.id} />
-              <Button variant="destructive" className="small">
-                Delete this block
-              </Button>
-            </ActionForm>
+            {block.sessions.length ? (
+              <ConfirmDelete
+                action={deleteBlockAction}
+                id={block.id}
+                label="Delete this block"
+                question={`Delete ${title} and its ${sessionLength(recorded, true)} recorded?`}
+                broadcast="blocks"
+                closeOnSuccess
+              />
+            ) : (
+              <ActionForm
+                action={deleteBlockAction}
+                broadcast="blocks"
+                closeOnSuccess
+                label={`Delete ${title}`}
+              >
+                <input type="hidden" name="id" value={block.id} />
+                <Button variant="destructive" className="small">
+                  Delete this block
+                </Button>
+              </ActionForm>
+            )}
           </div>
         )}
       </SidePanel>

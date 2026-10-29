@@ -176,7 +176,7 @@ export async function FirstRunToday({
           </section>
         )}
       </div>
-      <SidePanel id="first-focus" title="Plan my first focus">
+      <SidePanel id="first-focus" title="Plan my first focus" variant="modal">
         {picks.length > 0 && (
           <>
             <h3>Start one now</h3>
@@ -225,10 +225,10 @@ export async function FirstRunToday({
           defaultEnd={slot.end}
         />
       </SidePanel>
-      <SidePanel id="first-goal" title="Choose your goal">
+      <SidePanel id="first-goal" title="Choose your goal" variant="modal">
         <GoalForm compact />
       </SidePanel>
-      <SidePanel id="first-times" title="Set your study times">
+      <SidePanel id="first-times" title="Set your study times" variant="modal">
         <RoutineForm goals={goals} compact templates={[...ROUTINE_TEMPLATES]} />
       </SidePanel>
     </>

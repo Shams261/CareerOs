@@ -7,3 +7,16 @@ export const DELETED = 'Deleted';
 /** A block the owner deleted: kept only so the sync can remove its event, and for Undo. */
 export const isDeleted = (b: { status: string; skipReason?: string | null }) =>
   b.status === 'CANCELLED' && b.skipReason === DELETED;
+
+/** The Undo that brings a deleted block back with its recorded time (WI-070). */
+export const blockUndo = (
+  id: string,
+  gone: { completedAt: Date | null; sessions: unknown[] },
+) => ({
+  kind: 'restore-block',
+  payload: {
+    id,
+    completedAt: gone.completedAt?.toISOString() ?? null,
+    sessions: gone.sessions,
+  },
+});
