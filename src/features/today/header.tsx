@@ -144,6 +144,7 @@ export function TodayHeader({
               minutes={summary.recordedMinutes}
               running={running}
               renderedAt={renderedAt}
+              day={day}
             />
           </strong>
         </li>

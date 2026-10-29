@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { cookies } from 'next/headers';
 import { ArrowRight, CalendarClock, Check, Circle, Plus } from 'lucide-react';
+import { Disclosure } from '@/components/disclosure';
 import { ActionForm } from '@/components/action-form';
 import { Button } from '@/components/ui/button';
 import { FeedbackOutlet } from '@/components/feedback-outlet';
@@ -206,14 +207,20 @@ export async function FirstRunToday({
             </ul>
           </>
         )}
-        <h3 className="mt-5">Or plan it for later today</h3>
-        <BlockForm
-          day={day}
-          zone={user.timezone}
-          goals={goals}
-          defaultStart={slot.start}
-          defaultEnd={slot.end}
-        />
+        {/* One thing at a time (WI-071): the form opens under one link. */}
+        <Disclosure
+          variant="link"
+          label="Or plan it for later today"
+          className="mt-4"
+        >
+          <BlockForm
+            day={day}
+            zone={user.timezone}
+            goals={goals}
+            defaultStart={slot.start}
+            defaultEnd={slot.end}
+          />
+        </Disclosure>
       </SidePanel>
       {/* A centred modal with its own scroll (WI-069), the same form as Today's. */}
       <SidePanel id="add-block" title="Add a block" variant="modal">

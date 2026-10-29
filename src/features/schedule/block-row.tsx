@@ -23,6 +23,7 @@ export function BlockRowShell({
   resolution,
   unresolved = false,
   justDone = false,
+  justAdded = false,
   time,
   icon,
   title,
@@ -37,6 +38,8 @@ export function BlockRowShell({
   unresolved?: boolean;
   /** Completed in the last minute or two: the check draws in once (WI-059). */
   justDone?: boolean;
+  /** Added in the last minute or two: the row lands with a wash once (WI-071). */
+  justAdded?: boolean;
   time: ReactNode;
   icon: ReactNode;
   title: ReactNode;
@@ -50,7 +53,7 @@ export function BlockRowShell({
   return (
     <li
       id={id}
-      className={`agenda-row is-${resolution}${unresolved ? ' is-unresolved' : ''}${justDone ? ' is-just-done' : ''}`}
+      className={`agenda-row is-${resolution}${unresolved ? ' is-unresolved' : ''}${justDone ? ' is-just-done' : ''}${justAdded ? ' is-just-added' : ''}`}
     >
       <span className="agenda-time">{time}</span>
       <span className="agenda-dot" aria-hidden="true" />
@@ -63,6 +66,13 @@ export function BlockRowShell({
       </div>
       <div className="agenda-side">
         <span className={`agenda-status is-${statusTone ?? resolution}`}>
+          {justDone && (
+            <span className="done-burst" aria-hidden="true">
+              {Array.from({ length: 8 }, (_, i) => (
+                <i key={i} style={{ '--n': i } as React.CSSProperties} />
+              ))}
+            </span>
+          )}
           <StatusIcon resolution={resolution} />
           {status}
         </span>

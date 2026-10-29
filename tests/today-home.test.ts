@@ -1,9 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import {
   HOME_COPY,
+  PLAN_LINES,
   QUIET_LINES,
   firstSteps,
   headerLine,
+  planLine,
   weekProgress,
 } from '../src/features/today/home';
 import { BANNED_WORDS } from '../src/features/nudges/domain';
@@ -55,5 +57,13 @@ describe("Today's home (WI-065)", () => {
     for (const line of HOME_COPY)
       for (const word of BANNED_WORDS)
         expect(line.toLowerCase()).not.toContain(word.toLowerCase());
+  });
+
+  it('answers a planned block with one quiet line and its time (WI-071)', () => {
+    const line = planLine('10:45', 'cmvt1');
+    expect(line).toContain('10:45');
+    expect(PLAN_LINES.map((l) => l.replace('{time}', '10:45'))).toContain(line);
+    // The same block always gets the same line.
+    expect(planLine('10:45', 'cmvt1')).toBe(line);
   });
 });

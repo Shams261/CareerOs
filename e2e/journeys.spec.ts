@@ -76,6 +76,8 @@ test('a block for today runs through Focus to Done', async ({ page }) => {
   const form = page.getByRole('form', { name: 'Add a block' });
   await form.getByLabel('Title').fill('Graphs: BFS practice');
   await form.getByLabel('Start time').fill('00:05');
+  // The end reads as a line until "change" opens its field (WI-071).
+  await form.getByRole('button', { name: 'change' }).click();
   await form.getByLabel('End time').fill('00:35');
   await form.getByRole('button', { name: 'Add block' }).click();
   const row = page.locator('li.agenda-row', {

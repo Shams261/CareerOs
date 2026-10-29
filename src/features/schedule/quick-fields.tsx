@@ -31,9 +31,9 @@ const kindLabel = (value: string) =>
   value.charAt(0) + value.slice(1).toLowerCase().replace(/_/g, ' ');
 
 /**
- * A block in a few answers (WI-066, WI-068): what, which kind, when and how long, and a note.
- * The kind chips fill the category, a length chip sets the end from the start, and the end
- * stays editable for any other length. Adding and editing a block use the same fields.
+ * A block in three lines (WI-071): what, which kind, and when for how long. A length chip
+ * sets the end from the start; the end reads as "Ends 11:15" and opens as a field only on
+ * "change". A note sits behind one link. Adding and editing a block use the same fields.
  */
 export function QuickBlockFields({
   defaultTitle = '',
@@ -52,6 +52,19 @@ export function QuickBlockFields({
   const kinds = KINDS.some((k) => k.value === defaultKind)
     ? KINDS.map((k) => k.value as string)
     : [...KINDS.map((k) => k.value as string), defaultKind];
+  const [start, setStart] = useState(defaultStart);
+  const [end, setEnd] = useState(defaultEnd);
+  const initial = toMinutes(defaultEnd) - toMinutes(defaultStart);
+  const [length, setLength] = useState<number | null>(
+    (BLOCK_LENGTHS as readonly number[]).includes(initial) ? initial : null,
+  );
+  const [editingEnd, setEditingEnd] = useState(false);
+  const [noting, setNoting] = useState(!!defaultNote);
+  const endRef = useRef<HTMLInputElement>(null);
+  const fit = (from: string, minutes: number) => {
+    setEnd(toClock(toMinutes(from) + minutes));
+    setLength(minutes);
+  };
   return (
     <>
       <label>
@@ -61,7 +74,8 @@ export function QuickBlockFields({
           required
           maxLength={160}
           defaultValue={defaultTitle}
-          placeholder="Arrays: two pointers"
+          placeholder="What will you work on?"
+          autoFocus
         />
       </label>
       <fieldset className="quick-kinds">
@@ -81,31 +95,97 @@ export function QuickBlockFields({
           ))}
         </div>
       </fieldset>
-      <LengthFields
-        startName="startLocal"
-        endName="endLocal"
-        startLabel="Start time"
-        endLabel="End time"
-        defaultStart={defaultStart}
-        defaultEnd={defaultEnd}
-        lengths={BLOCK_LENGTHS}
-      />
-      <label>
-        Note (optional)
+      <div className="quick-when">
+        <label className="quick-start">
+          Start time
+          <input
+            required
+            type="time"
+            name="startLocal"
+            value={start}
+            onChange={(e) => {
+              setStart(e.target.value);
+              if (length && e.target.value) fit(e.target.value, length);
+            }}
+          />
+        </label>
+        <fieldset className="quick-kinds quick-length">
+          <legend>Length</legend>
+          <div className="template-chips">
+            {BLOCK_LENGTHS.map((d) => (
+              <button
+                key={d}
+                type="button"
+                className={`template-chip${length === d ? ' is-on' : ''}`}
+                aria-pressed={length === d}
+                onClick={() => fit(start, d)}
+              >
+                {lengthLabel(d)}
+              </button>
+            ))}
+          </div>
+        </fieldset>
+      </div>
+      <label className="quick-end" hidden={!editingEnd}>
+        End time
         <input
-          name="description"
-          maxLength={1000}
-          defaultValue={defaultNote}
-          placeholder="What this block is for"
+          ref={endRef}
+          required
+          type="time"
+          name="endLocal"
+          value={end}
+          onChange={(e) => {
+            setEnd(e.target.value);
+            setLength(null);
+          }}
         />
       </label>
+      {!editingEnd && (
+        <p className="quick-ends">
+          Ends {end}
+          {' · '}
+          <button
+            type="button"
+            className="link-button"
+            onClick={() => {
+              setEditingEnd(true);
+              setTimeout(() => endRef.current?.focus(), 0);
+            }}
+          >
+            change
+          </button>
+        </p>
+      )}
+      {noting ? (
+        <label>
+          Note
+          <input
+            name="description"
+            maxLength={1000}
+            defaultValue={defaultNote}
+            placeholder="What this block is for"
+            autoFocus={!defaultNote}
+          />
+        </label>
+      ) : (
+        <p className="quick-note-line">
+          <input type="hidden" name="description" value="" />
+          <button
+            type="button"
+            className="link-button quick-note-toggle"
+            onClick={() => setNoting(true)}
+          >
+            + Add a note
+          </button>
+        </p>
+      )}
     </>
   );
 }
 
 /**
  * Two times and a row of length chips: a chip sets the end from the start, a new start keeps
- * the chosen length, and the end stays editable (WI-067). Log time and blocks use it.
+ * the chosen length, and the end stays editable (WI-067). Log time uses it.
  */
 export function LengthFields({
   startName,

@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+- WI-071 (moments that move, from the owner's UAT). No migration:
+  - **The row's ⋯ is a menu.** Complete, Skip, Cancel block and Delete stack under the button; Skip asks for its reason in place. The row never widens or wraps its title. Escape and a click outside close it.
+  - **Add a block in three lines.** Title; kind; start beside the length chips, with "Ends 11:15 · change" and "+ Add a note" as links. Plan my first focus shows its picks first and the form behind one link.
+  - **A planned block is answered.** "Planned for 10:45. See you there." (one of three quiet lines), and the new row lands with a soft wash.
+  - **A completed session is marked.** On Focus the ring fills and shows a check before Today; on Today the row's check bursts, the Focused today chip counts up, and the message rises in.
+  - **Today so far.** While the day is open, the rail leads with the Day Print's rings, one per session, a new ring drawing itself once. It is the record, never a score; This week keeps the app's one bar.
+  - Every motion runs only without reduced motion; with it, the same states show at once.
+
 - WI-070 (Today polish, from the owner's UAT). No migration:
   - **The running or paused card under the search box.** It is in view on every page at any screen height, compact, with the time the largest thing in it. Before, it sat below the navigation and needed a scroll on a laptop.
   - **A paused block's time, large.** Today's card shows the time left as the held countdown, like a running one.

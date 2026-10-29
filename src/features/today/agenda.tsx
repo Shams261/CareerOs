@@ -282,6 +282,11 @@ function BlockRow({
         !!block.completedAt &&
         +now - +block.completedAt < JUST_DONE_MS
       }
+      justAdded={
+        !block.routineKey &&
+        +now - +block.createdAt < JUST_DONE_MS &&
+        (resolution === 'upcoming' || resolution === 'current')
+      }
       time={
         <>
           {hhmm(block.plannedStart, zone)}

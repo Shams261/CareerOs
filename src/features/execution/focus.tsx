@@ -419,6 +419,8 @@ function Running({
     setPipFailed(!ok);
   };
   const submitted = useRef<string | null>(null);
+  // Complete fills the ring and shows a check for a moment before Today (WI-071).
+  const [finishing, setFinishing] = useState(false);
   const ringBody = (
     <>
       {done && total !== null ? (
@@ -447,7 +449,18 @@ function Running({
           {intention}
         </p>
       )}
-      <Ring fraction={done ? 1 : fraction}>{ringBody}</Ring>
+      <Ring fraction={done || finishing ? 1 : fraction}>
+        {finishing ? (
+          <>
+            <strong className="focus-done-mark" aria-hidden="true">
+              ✓
+            </strong>
+            <span>Done</span>
+          </>
+        ) : (
+          ringBody
+        )}
+      </Ring>
       <p className="sr-only" aria-live="polite" suppressHydrationWarning>
         {announced}
       </p>
@@ -506,13 +519,24 @@ function Running({
           onPending={(form) => {
             submitted.current = String(form.get('action') ?? '');
             form.set('sound', playedSounds(session.id).read());
+            if (submitted.current === 'complete') setFinishing(true);
           }}
           onSettled={(result) => {
-            if (!result.ok || !submitted.current) return;
-            // Pause stays here with the ring held (WI-069); Complete goes to Today.
+            if (!result.ok || !submitted.current) {
+              setFinishing(false);
+              return;
+            }
+            // Pause stays here with the ring held (WI-069); Complete goes to Today after
+            // the ring has filled (WI-071).
             if (submitted.current === 'stop')
               router.replace(`/focus?block=${block.id}`);
-            else router.push('/today');
+            else
+              setTimeout(
+                () => router.push('/today'),
+                matchMedia('(prefers-reduced-motion: reduce)').matches
+                  ? 0
+                  : 700,
+              );
           }}
         >
           <input type="hidden" name="id" value={block.id} />

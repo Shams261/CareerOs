@@ -3711,11 +3711,63 @@ span > svg {
   color: var(--primary);
   background: var(--subtle);
 }
+.exec-inline {
+  display: contents;
+}
+/* The row's ⋯ opens a menu under it (WI-071): stacked, never widening the row. */
+.exec-menu {
+  position: relative;
+  display: inline-flex;
+}
 .exec-secondary.is-always {
   display: none;
 }
 .exec-secondary.is-always.is-open {
-  display: contents;
+  display: grid;
+  gap: 2px;
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 6;
+  min-width: 200px;
+  padding: 6px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: var(--shadow-md);
+}
+.exec-secondary.is-always.is-open .button,
+.exec-secondary.is-always.is-open .skip-pop > .button {
+  width: 100%;
+  justify-content: flex-start;
+  border-color: transparent;
+  background: transparent;
+  box-shadow: none;
+}
+.exec-secondary.is-always.is-open .button:hover {
+  background: var(--subtle);
+}
+.exec-secondary.is-always.is-open .skip-pop {
+  display: grid;
+}
+/* Inside the menu Skip asks in place, stacked. */
+.exec-secondary.is-always.is-open .skip-popover {
+  position: static;
+  width: auto;
+  padding: 4px 8px 6px;
+  border: 0;
+  box-shadow: none;
+}
+.exec-secondary.is-always.is-open .skip-popover .actions .button {
+  width: auto;
+  border-color: var(--border);
+}
+.exec-secondary.is-always.is-open
+  .skip-popover
+  .actions
+  .button:not(.secondary) {
+  background: var(--primary);
+  color: var(--on-primary);
 }
 .skip-step {
   display: inline-flex;
@@ -7712,4 +7764,153 @@ button.attention-link {
 /* A paused pop-out stands still and says so. */
 .focus-pip.is-paused .focus-ring-arc {
   stroke: var(--muted);
+}
+
+/* WI-071: motion that marks a moment, once, and only without reduced motion. */
+/* Skip asks in a popover under its button; the row keeps its height. */
+.skip-pop {
+  position: relative;
+  display: inline-flex;
+}
+.skip-popover {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 6;
+  display: grid;
+  gap: 8px;
+  width: 260px;
+  padding: 10px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: var(--shadow-md);
+}
+.skip-popover .reason {
+  width: 100%;
+  min-height: 34px;
+  margin: 0;
+  padding: 4px 10px;
+  font-size: 13px;
+}
+.skip-popover .actions {
+  display: flex;
+  gap: 6px;
+}
+/* A block in three lines: start beside its length chips, the end as a line. */
+.quick-when {
+  display: grid;
+  grid-template-columns: 150px minmax(0, 1fr);
+  gap: 12px;
+  align-items: end;
+}
+.quick-when .quick-length .template-chips {
+  margin-bottom: 0;
+}
+.quick-ends {
+  margin: -4px 0 0;
+  font-size: 13px;
+  color: var(--ink-2);
+}
+.quick-note-line {
+  margin: 0;
+}
+.quick-note-toggle {
+  font-size: 14px;
+}
+@media (max-width: 700px) {
+  .quick-when {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+/* Today's rings while the day is open, in the rail. */
+.live-print-svg {
+  display: block;
+  width: 100%;
+  margin: 4px 0 2px;
+}
+/* The burst of dots behind a check that just drew in. */
+.agenda-status {
+  position: relative;
+}
+.done-burst {
+  position: absolute;
+  left: 7px;
+  top: 50%;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+}
+.done-burst i {
+  position: absolute;
+  left: -2px;
+  top: -2px;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--primary);
+  opacity: 0;
+  transform: rotate(calc(var(--n) * 45deg)) translateX(0);
+}
+.focus-done-mark {
+  font-size: 44px;
+  color: var(--primary);
+}
+@media (prefers-reduced-motion: no-preference) {
+  .done-burst i {
+    animation: done-burst 700ms var(--motion-easing) both;
+  }
+  .agenda-row.is-just-added {
+    animation: row-land 1.2s var(--motion-easing) both;
+  }
+  .form-success {
+    animation: rise-in 320ms var(--motion-easing) both;
+  }
+  .live-print-svg circle.is-new {
+    stroke-dashoffset: var(--c);
+    animation: ring-draw 900ms var(--motion-easing) var(--delay) both;
+  }
+  .focus-done-mark {
+    animation: silsila-pop 600ms var(--motion-easing) both;
+  }
+}
+@keyframes done-burst {
+  0% {
+    opacity: 0;
+    transform: rotate(calc(var(--n) * 45deg)) translateX(0);
+  }
+  25% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: rotate(calc(var(--n) * 45deg)) translateX(22px);
+  }
+}
+@keyframes row-land {
+  0% {
+    background: var(--tint);
+    transform: translateY(6px);
+  }
+  30% {
+    transform: translateY(0);
+  }
+  100% {
+    background: transparent;
+  }
+}
+@keyframes rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes ring-draw {
+  to {
+    stroke-dashoffset: 0;
+  }
 }
