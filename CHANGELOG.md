@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- WI-078 (the plan as mocked). No migration: on Today the plan's heading is smaller with its count beside it, rows lose the rail and dot for a plain time column with the status, ⋯ and › on one line, chips show longer titles, and the facts read "1h 10m focused · 2 of 5 blocks · 9 weeks to your goal" with the cheer right after.
+
 - WI-077 (a shorter Today). No migration:
   - **The facts as one line**: "1h 10m focused today · 2 of 5 blocks · 9 weeks to your goal", the cheer at its end; the goal piece still opens the goal.
   - **The day as chips**: every block of the day in one row above the list, with its state (✓ done, ‖ paused, ● now, ○ planned); a chip opens the block's details.

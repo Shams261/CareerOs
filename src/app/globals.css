@@ -7519,8 +7519,7 @@ button.attention-link {
   margin-left: 10px;
 }
 .today-facts-cheer {
-  margin-left: auto;
-  padding-left: 16px;
+  margin-left: 24px;
   color: var(--ink-2);
 }
 /* WI-077: the day's blocks as chips, settled rows folded, compact rows on Today. */
@@ -7578,7 +7577,7 @@ button.attention-link {
   font-variant-numeric: tabular-nums;
 }
 .plan-chip-title {
-  max-width: 22ch;
+  max-width: 32ch;
   overflow: hidden;
   text-overflow: ellipsis;
 }
@@ -7595,8 +7594,47 @@ button.attention-link {
 .agenda-earlier-fold .disclosure-chevron {
   margin-left: 4px;
 }
+/* Compact (WI-078): the heading with its count beside it, a plain time column without the
+   rail, and the status, ⋯ and › on one line. */
+.agenda.is-compact .agenda-head-text {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.agenda.is-compact .agenda-heading {
+  font-size: 20px;
+}
+.agenda.is-compact .agenda-sub {
+  margin: 0;
+  font-size: 13px;
+}
+.agenda.is-compact .agenda-sub::before {
+  content: '· ';
+}
+.agenda.is-compact .agenda-rows::before {
+  display: none;
+}
 .agenda.is-compact .agenda-row {
+  grid-template-columns: 56px minmax(0, 1fr) auto;
+  gap: 0 14px;
   padding: 10px 12px;
+}
+.agenda.is-compact .agenda-dot {
+  display: none;
+}
+.agenda.is-compact .agenda-time {
+  text-align: left;
+  font-size: 14px;
+}
+.agenda.is-compact .agenda-side {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.agenda.is-compact .agenda-label {
+  font-size: 11px;
+  margin: 12px 0 0;
 }
 .agenda.is-compact .agenda-body {
   display: flex;
@@ -7828,6 +7866,7 @@ button.attention-link {
   align-items: center;
   gap: 4px;
   font-size: 17px;
+  white-space: nowrap;
 }
 /* A block's recorded time in its modal: one total and one Delete (WI-068). */
 .row-recorded {

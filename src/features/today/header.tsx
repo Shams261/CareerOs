@@ -158,7 +158,7 @@ export function TodayHeader({
               day={day}
             />
           </strong>{' '}
-          {isToday ? 'focused today' : 'focused'}
+          focused
         </span>
         <span className="today-fact">
           {summary.planned ? (
