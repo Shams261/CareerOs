@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- WI-076 (the band as mocked). No migration:
+  - The band now carries the date as its eyebrow ("THURSDAY · 29 OCTOBER"), keeps the same cream (morning, evening), teal (afternoon) and blue (night) in both themes, and writes its greeting, quotation and clock in the tint's own dark shades. The title row keeps only "Today", the arrows and More while the band shows.
+
 - WI-075 (the Today band). No migration:
   - **The daily line is a band.** Under Today's title (and on the first-run Today): "Good evening, Shams." in the display face at 30 px, the quotation at 17 px with its author and ↻, and a live clock at 42 px on the right, on the part of the day's tint. On a phone 24, 15 and 30 px. Settings → Daily line hides the whole band.
 

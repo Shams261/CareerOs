@@ -7938,27 +7938,53 @@ button.attention-link {
   }
 }
 
-/* WI-073, WI-075: the band at the top of Today, on the part of the day's tint: the greeting
-   large, the quotation under it, a live clock on the right. */
+/* WI-073, WI-075, WI-076: the band at the top of Today, on the part of the day's tint, the
+   same cream, teal and blue in both themes (like the Day Print's fixed colours), with its
+   text in the tint's own dark shades: the date as an eyebrow, the greeting large, the
+   quotation under it, a live clock on the right. */
 .daily-band {
+  --band-bg: #e1f5ee;
+  --band-ink: #04342c;
+  --band-ink-2: #085041;
+  --band-meta: #0f6e56;
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   gap: 16px 24px;
   align-items: start;
-  margin: 6px 0 18px;
-  padding: 22px 26px 18px;
+  margin: 10px 0 18px;
+  padding: 22px 26px 20px;
   border-radius: var(--radius-lg);
-  background: var(--tint);
+  background: var(--band-bg);
+  color: var(--band-ink);
 }
 .daily-band[data-part='morning'],
 .daily-band[data-part='evening'] {
-  background: var(--warning-soft);
+  --band-bg: #faeeda;
+  --band-ink: #412402;
+  --band-ink-2: #633806;
+  --band-meta: #854f0b;
 }
 .daily-band[data-part='night'] {
-  background: var(--info-soft);
+  --band-bg: #e6f1fb;
+  --band-ink: #042c53;
+  --band-ink-2: #0c447c;
+  --band-meta: #185fa5;
 }
 .daily-band[hidden] {
   display: none;
+}
+/* The band carries the date, so the title row's date line steps aside while it shows. */
+.today-head[data-band='on'] .today-date,
+.home-head[data-band='on'] > .eyebrow {
+  display: none;
+}
+.daily-eyebrow {
+  margin: 0 0 8px;
+  font-size: 12px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  font-weight: 600;
+  color: var(--band-meta);
 }
 .daily-band-text {
   min-width: 0;
@@ -7970,13 +7996,13 @@ button.attention-link {
   line-height: 1.15;
   font-weight: 600;
   letter-spacing: -0.01em;
-  color: var(--foreground);
+  color: var(--band-ink);
 }
 .daily-quote {
   margin: 10px 0 0;
   font-size: 17px;
   line-height: 1.5;
-  color: var(--ink-2);
+  color: var(--band-ink-2);
   max-width: 62ch;
 }
 .daily-quote q {
@@ -7984,18 +8010,18 @@ button.attention-link {
   quotes: '\201C' '\201D';
 }
 .daily-by {
-  color: var(--ink-2);
+  color: var(--band-meta);
 }
 .daily-another {
   display: inline-flex;
   align-items: center;
   margin-left: 8px;
   padding: 4px;
-  color: var(--ink-2);
+  color: var(--band-meta);
   vertical-align: middle;
 }
 .daily-another:hover {
-  color: var(--primary);
+  color: var(--band-ink);
 }
 .daily-band-clock {
   display: grid;
@@ -8008,11 +8034,11 @@ button.attention-link {
   font-weight: 600;
   letter-spacing: -0.02em;
   font-variant-numeric: tabular-nums;
-  color: var(--foreground);
+  color: var(--band-ink);
 }
 .daily-part {
   font-size: 13px;
-  color: var(--ink-2);
+  color: var(--band-meta);
 }
 .home-head .daily-band {
   margin-top: 14px;

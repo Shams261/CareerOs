@@ -139,7 +139,13 @@ export function TodayHeader({
       </div>
       {/* The band (WI-075): the greeting large, the quotation and a clock, today only. */}
       {isToday && daily && (
-        <DailyLine day={day} part={daily.part} name={daily.name} zone={zone} />
+        <DailyLine
+          day={day}
+          part={daily.part}
+          name={daily.name}
+          zone={zone}
+          dateLabel={formatInTimeZone(bounds.start, zone, 'EEEE · d MMMM')}
+        />
       )}
       {/* The facts as three chips, with one short line that cheers them on (WI-065). */}
       {cheer && <p className="today-cheer">{cheer}</p>}
