@@ -523,8 +523,13 @@ export function nextSlot(
   }));
   const late = 23 * 60 + 30;
   let start = Math.min(Math.ceil((local(now) + 1) / 15) * 15, late);
-  while (start < late && taken.some((t) => start < t.to && start + 30 > t.from))
-    start += 15;
+  const clash = (at: number) =>
+    taken.find((t) => at < t.to && at + 30 > t.from);
+  // A busy late evening may still leave the last quarter hour, or the minutes after the last
+  // block (WI-068), so the form never suggests a time Save turns down when one is free.
+  while (start < late + 15 && clash(start)) start += 15;
+  const last = clash(start);
+  if (last && last.to < 23 * 60 + 59 && !clash(last.to)) start = last.to;
   const end = Math.min(start + 30, 23 * 60 + 59);
   const clock = (n: number) =>
     `${String(Math.floor(n / 60)).padStart(2, '0')}:${String(n % 60).padStart(2, '0')}`;

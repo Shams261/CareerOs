@@ -48,6 +48,54 @@ export function focusTarget({
   return length > 0 ? new Date(+startedAt + length) : null;
 }
 
+/**
+ * The ring's window, counting time already recorded on the block (WI-068). A first session
+ * follows `focusTarget`. A resumed one continues where the last pause left it: the window
+ * starts `doneBefore` ms before this session began and lasts the block's planned length, so
+ * five minutes done of thirty resume at 25:00 left with the ring a sixth full. A block done
+ * past its length reads "Time is up" at once.
+ */
+export function focusWindow({
+  startedAt,
+  plannedStart,
+  plannedEnd,
+  doneBefore = 0,
+}: {
+  startedAt: Date;
+  plannedStart?: Date | null;
+  plannedEnd?: Date | null;
+  doneBefore?: number;
+}): { start: Date; target: Date } | null {
+  if (doneBefore <= 0) {
+    const target = focusTarget({ startedAt, plannedStart, plannedEnd });
+    return target ? { start: startedAt, target } : null;
+  }
+  if (!plannedStart || !plannedEnd) return null;
+  const length = +plannedEnd - +plannedStart;
+  if (length <= 0) return null;
+  const start = new Date(+startedAt - doneBefore);
+  return { start, target: new Date(+start + Math.max(length, doneBefore)) };
+}
+
+/** Time recorded on a block's finished sessions, in ms: what a resume continues from. */
+export function recordedBefore(
+  sessions: { startedAt: Date; endedAt: Date | null }[],
+) {
+  return sessions.reduce(
+    (n, s) => n + (s.endedAt ? Math.max(0, +s.endedAt - +s.startedAt) : 0),
+    0,
+  );
+}
+
+/** A paused block's time left of its planned length, in ms (0 once the length is used). */
+export function pausedLeft(
+  plannedStart: Date,
+  plannedEnd: Date,
+  doneBefore: number,
+) {
+  return Math.max(0, +plannedEnd - +plannedStart - doneBefore);
+}
+
 /** How much of the ring is filled, 0 at the start and 1 at the target (clamped). */
 export function ringFraction(startedAt: Date, target: Date, now: Date) {
   const total = +target - +startedAt;

@@ -3,7 +3,13 @@ import { ArrowRight } from 'lucide-react';
 import { ActionForm } from '@/components/action-form';
 import { Button } from '@/components/ui/button';
 import { LiveCountdown, LiveTimer } from '@/features/execution/live';
-import { focusTarget, intentionOf } from '@/features/execution/focus-domain';
+import {
+  focusWindow,
+  intentionOf,
+  pausedLeft,
+  recordedBefore,
+} from '@/features/execution/focus-domain';
+import { clock } from '@/features/execution/ring';
 import { stopUnlinkedAction } from '@/features/schedule/actions';
 import { ExecutionControls } from '@/features/schedule/forms';
 import { categoryGroup } from '@/features/review/domain';
@@ -97,18 +103,22 @@ export function Launcher({
         {intention && <span className="launcher-intention">“{intention}”</span>}
       </>
     );
-    // Like Focus (WI-060): time left to the block's target, else time since the start.
-    const target = block
-      ? focusTarget({
+    // Like Focus (WI-060): time left to the block's target, continuing from the time
+    // recorded before a pause (WI-068), else time since the start.
+    const ring = block
+      ? focusWindow({
           startedAt: state.session.startedAt,
           plannedStart: block.plannedStart,
           plannedEnd: block.plannedEnd,
+          doneBefore: recordedBefore(
+            (block as unknown as BlockLike).sessions.filter((s) => s.endedAt),
+          ),
         })
       : null;
-    timer = target ? (
+    timer = ring ? (
       <LiveCountdown
-        startedAt={state.session.startedAt.toISOString()}
-        target={target.toISOString()}
+        startedAt={ring.start.toISOString()}
+        target={ring.target.toISOString()}
       />
     ) : (
       <LiveTimer
@@ -153,11 +163,26 @@ export function Launcher({
     const kind = round
       ? `${round.company} · Interview`
       : categoryGroup(block.category);
+    // A paused block says what is left of it, never "Starts in" (WI-068).
+    const left = paused
+      ? pausedLeft(
+          block.plannedStart,
+          block.plannedEnd,
+          recordedBefore(withSessions.sessions),
+        )
+      : 0;
     const facts = [
       round || kind.toLowerCase() !== title.toLowerCase() ? kind : null,
-      state.kind === 'next'
-        ? `Starts in ${startsIn(block.plannedStart, now)}`
-        : `Until ${hhmm(block.plannedEnd, zone)}`,
+      paused
+        ? left > 0
+          ? `${clock(left)} left`
+          : 'Time is up'
+        : state.kind === 'next'
+          ? `Starts in ${startsIn(block.plannedStart, now)}`
+          : null,
+      paused || state.kind !== 'next'
+        ? `Until ${hhmm(block.plannedEnd, zone)}`
+        : null,
     ].filter(Boolean);
     context = (
       <>

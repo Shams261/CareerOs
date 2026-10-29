@@ -3,6 +3,7 @@ import { db, owner } from '@/server/db';
 import { dayKey, hhmm } from '@/lib/time';
 import { FocusView } from '@/features/execution/focus';
 import { categoryGroup } from '@/features/review/domain';
+import { recordedBefore } from '@/features/execution/focus-domain';
 export const metadata = { title: 'Focus' };
 
 /**
@@ -34,7 +35,14 @@ export default async function FocusPage({
   const block = blockId
     ? await db().timeBlock.findFirst({
         where: { id: blockId, dailyPlan: { userId: user.id } },
-        include: { dailyPlan: { select: { date: true } } },
+        include: {
+          dailyPlan: { select: { date: true } },
+          // Time recorded before a pause: a resume continues from it (WI-068).
+          sessions: {
+            where: { endedAt: { not: null } },
+            select: { startedAt: true, endedAt: true },
+          },
+        },
       })
     : null;
   if (!running && !block) redirect('/today');
@@ -64,6 +72,7 @@ export default async function FocusPage({
           plannedEnd: block.plannedEnd.toISOString(),
           window: `${hhmm(block.plannedStart, user.timezone)}–${hhmm(block.plannedEnd, user.timezone)}`,
           minutes: target,
+          doneBefore: recordedBefore(block.sessions),
           canStart:
             ['PLANNED', 'IN_PROGRESS'].includes(block.status) &&
             block.dailyPlan.date.toISOString().slice(0, 10) ===

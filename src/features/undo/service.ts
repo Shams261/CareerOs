@@ -47,6 +47,24 @@ const kinds = {
     attemptIds: z.array(z.string().min(1)).max(200).optional(),
     activityIds: z.array(z.string().min(1)).max(200).optional(),
   }),
+  'restore-block-time': z.object({
+    taskId: z.string().min(1),
+    completedAt: z.iso.datetime().nullable().optional(),
+    sessions: z
+      .array(
+        z.object({
+          goalId: z.string().nullable().optional(),
+          category: z.string().min(1).max(80),
+          startedAt: z.iso.datetime(),
+          endedAt: z.iso.datetime(),
+          notes: z.string().max(1000).nullable().optional(),
+          attemptIds: z.array(z.string().min(1)).max(200).optional(),
+          activityIds: z.array(z.string().min(1)).max(200).optional(),
+        }),
+      )
+      .min(1)
+      .max(100),
+  }),
   'problem-unhide': z.object({ id: z.string().min(1) }),
   'restore-note': z.object({ body: z.string().min(1).max(500) }),
   'restore-priority': z.object({
@@ -108,6 +126,50 @@ const kinds = {
 } as const;
 export type UndoKind = keyof typeof kinds;
 export type Undo = { kind: UndoKind; payload: unknown; label?: string };
+
+/**
+ * One finished session re-created for the owner, with the attempts and activities recorded
+ * from it linked again, if still the owner's and unlinked.
+ */
+async function restoreSessionIn(
+  tx: Prisma.TransactionClient,
+  userId: string,
+  taskId: string | null,
+  p: {
+    goalId?: string | null;
+    category: string;
+    startedAt: string;
+    endedAt: string;
+    notes?: string | null;
+    attemptIds?: string[];
+    activityIds?: string[];
+  },
+) {
+  const goal = p.goalId
+    ? await tx.goal.findFirst({ where: { id: p.goalId, userId } })
+    : null;
+  const session = await tx.actualSession.create({
+    data: {
+      userId,
+      taskId,
+      goalId: goal?.id ?? null,
+      category: p.category,
+      startedAt: new Date(p.startedAt),
+      endedAt: new Date(p.endedAt),
+      notes: p.notes ?? null,
+    },
+  });
+  if (p.attemptIds?.length)
+    await tx.dsaAttempt.updateMany({
+      where: { id: { in: p.attemptIds }, userId, actualSessionId: null },
+      data: { actualSessionId: session.id },
+    });
+  if (p.activityIds?.length)
+    await tx.learningActivity.updateMany({
+      where: { id: { in: p.activityIds }, userId, actualSessionId: null },
+      data: { actualSessionId: session.id },
+    });
+}
 
 export async function restore(
   user: ScheduleUser,
@@ -175,42 +237,27 @@ export async function restore(
               where: { id: p.taskId, dailyPlan: { userId: user.id } },
             })
           : null;
-        const goal = p.goalId
-          ? await tx.goal.findFirst({
-              where: { id: p.goalId, userId: user.id },
-            })
-          : null;
-        const session = await tx.actualSession.create({
-          data: {
-            userId: user.id,
-            taskId: task?.id ?? null,
-            goalId: goal?.id ?? null,
-            category: p.category,
-            startedAt: new Date(p.startedAt),
-            endedAt: new Date(p.endedAt),
-            notes: p.notes ?? null,
-          },
-        });
-        if (p.attemptIds?.length)
-          await tx.dsaAttempt.updateMany({
-            where: {
-              id: { in: p.attemptIds },
-              userId: user.id,
-              actualSessionId: null,
-            },
-            data: { actualSessionId: session.id },
-          });
-        if (p.activityIds?.length)
-          await tx.learningActivity.updateMany({
-            where: {
-              id: { in: p.activityIds },
-              userId: user.id,
-              actualSessionId: null,
-            },
-            data: { actualSessionId: session.id },
-          });
+        await restoreSessionIn(tx, user.id, task?.id ?? null, p);
       });
       return 'Session restored.';
+    }
+    case 'restore-block-time': {
+      const p = kinds[k].parse(payload);
+      // Every part comes back under one lock, and a block that was done is done again (WI-068).
+      await locked(user.id, async (tx) => {
+        const task = await tx.timeBlock.findFirst({
+          where: { id: p.taskId, dailyPlan: { userId: user.id } },
+        });
+        if (!task) throw new Error('The block no longer exists.');
+        for (const session of p.sessions)
+          await restoreSessionIn(tx, user.id, task.id, session);
+        if (p.completedAt && task.status === 'PLANNED')
+          await tx.timeBlock.update({
+            where: { id: task.id },
+            data: { status: 'COMPLETED', completedAt: new Date(p.completedAt) },
+          });
+      });
+      return 'Recorded time restored.';
     }
     case 'problem-unhide': {
       await unhideProblem(user, kinds[k].parse(payload).id);

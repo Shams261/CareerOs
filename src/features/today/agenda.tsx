@@ -1,12 +1,12 @@
 import Link from 'next/link';
-import { ArrowRight, Briefcase, ChevronRight, Plus } from 'lucide-react';
+import { ArrowRight, Briefcase, ChevronDown } from 'lucide-react';
 import { formatInTimeZone } from 'date-fns-tz';
 import { Disclosure } from '@/components/disclosure';
 import { ActionForm } from '@/components/action-form';
 import { Button } from '@/components/ui/button';
 import {
+  clearBlockTimeAction,
   deleteBlockAction,
-  deleteSessionAction,
 } from '@/features/deletes/actions';
 import { FeedbackOutlet } from '@/components/feedback-outlet';
 import { CategoryIcon } from '@/components/category-icon';
@@ -32,7 +32,7 @@ import {
   type AgendaEntry,
   type RoundLike,
 } from './domain';
-import { PanelButton, SidePanel } from './panels';
+import { RowButton, RowDetails, RowTabs } from './row-details';
 
 type Block = TimeBlock & { sessions: ActualSession[] };
 type Props = {
@@ -80,12 +80,14 @@ export function Agenda(props: Props) {
   const { entries, day, today, now, zone, goals } = props;
   const isToday = day === today;
   const groups = groupAgenda(entries, now, isToday);
+  // Busy means what Save refuses as an overlap: every block not cancelled (WI-068), so the
+  // suggested slot is never one the form then turns down.
   const slot = nextSlot(
     now,
     zone,
     day,
     props.blocks
-      .filter((b) => ['PLANNED', 'IN_PROGRESS'].includes(b.status))
+      .filter((b) => b.status !== 'CANCELLED')
       .map((b) => ({ start: b.plannedStart, end: b.plannedEnd })),
   );
   const sections: [string, AgendaEntry[]][] = isToday
@@ -107,15 +109,14 @@ export function Agenda(props: Props) {
             <p className="muted agenda-sub">{planCounts(props.blocks, now)}</p>
           )}
         </div>
-        {/* A side panel, not an inline form beside the heading (WI-066). */}
-        <PanelButton
-          panel="add-block"
-          className="link-button agenda-add-button"
-          data-shortcut="add-block"
+        {/* In place, as a small card above the list (WI-068), not a side panel. */}
+        <Disclosure
+          label="Add a block"
+          variant="link"
+          shortcut="add-block"
+          draft={`block:${day}`}
+          className="agenda-add"
         >
-          <Plus size={16} aria-hidden="true" /> Add a block
-        </PanelButton>
-        <SidePanel id="add-block" title="Add a block">
           <BlockForm
             day={day}
             zone={zone}
@@ -123,7 +124,7 @@ export function Agenda(props: Props) {
             defaultStart={slot.start}
             defaultEnd={slot.end}
           />
-        </SidePanel>
+        </Disclosure>
       </div>
       <FeedbackOutlet channel="blocks" className="mb-3" />
       {!entries.length && (
@@ -244,13 +245,29 @@ function BlockRow({
   const resolution = blockResolution(entry.block, now);
   const unresolved =
     resolution === 'not-recorded' || resolution === 'needs-update';
-  const panelId = `block:${block.id}`;
+  const rowId = block.id;
   // The launcher's block is the one Up next on Today's timeline (WI-065).
   const upNext =
     launcherBlockId === block.id &&
     (resolution === 'upcoming' || resolution === 'current');
   const meta = rowMeta(block, round, now, zone);
   const title = blockTitle(block, round);
+  const recorded = block.sessions.reduce(
+    (n, s) => n + minutes(s.startedAt, s.endedAt ?? now),
+    0,
+  );
+  const allEnded = block.sessions.every((s) => s.endedAt);
+  // What the sessions kept (intention, learned), once each; the sounds stay in the record.
+  const notes = [
+    ...new Set(
+      block.sessions.flatMap((s) =>
+        (s.notes ?? '')
+          .split('\n')
+          .map((l) => l.trim())
+          .filter((l) => l && !l.startsWith('Sound: ')),
+      ),
+    ),
+  ];
   const panelMeta = [
     round ? `${round.company} · Interview` : categoryGroup(block.category),
     origin(block),
@@ -309,20 +326,12 @@ function BlockRow({
             )}
             {unresolved && (
               <>
-                <PanelButton
-                  panel={panelId}
-                  focus="log"
-                  className="link-button"
-                >
+                <RowButton row={rowId} focus="log">
                   Log time
-                </PanelButton>
-                <PanelButton
-                  panel={panelId}
-                  focus="edit"
-                  className="link-button"
-                >
+                </RowButton>
+                <RowButton row={rowId} focus="edit">
                   Reschedule
-                </PanelButton>
+                </RowButton>
               </>
             )}
             <ExecutionControls
@@ -334,18 +343,18 @@ function BlockRow({
               resume={resolution === 'paused'}
             />
           </div>
-          <PanelButton
-            panel={panelId}
+          <RowButton
+            row={rowId}
             className="agenda-details"
             aria-label={`Details: ${title}`}
           >
-            <ChevronRight size={18} aria-hidden="true" />
-          </PanelButton>
+            <ChevronDown size={18} aria-hidden="true" />
+          </RowButton>
         </>
       }
     >
-      <SidePanel id={panelId} title={title}>
-        <p className="muted">
+      <RowDetails row={rowId} label={`Details: ${title}`}>
+        <p className="muted row-details-meta">
           {hhmm(block.plannedStart, zone)}–{hhmm(block.plannedEnd, zone)} ·{' '}
           {panelMeta}
         </p>
@@ -353,64 +362,62 @@ function BlockRow({
         {block.skipReason && (
           <p className="muted">Skipped: {block.skipReason}</p>
         )}
-        {/* The block's recorded time as one total, its parts listed small (WI-067): a pause
-            and a resume are one piece of work, not separate records to read. */}
+        {/* One record, one Delete (WI-068): however many times the block was paused and
+            resumed, its time reads as one total and goes in one go, with Undo. */}
         {block.sessions.length > 0 && (
-          <section className="panel-recorded" aria-label="Recorded time">
-            <p className="panel-recorded-total">
-              <strong>
-                Recorded{' '}
-                {sessionLength(
-                  block.sessions.reduce(
-                    (n, s) => n + minutes(s.startedAt, s.endedAt ?? now),
-                    0,
-                  ),
-                  block.sessions.every((s) => s.endedAt),
-                )}
-              </strong>
-              {block.sessions.length > 1 && ` · ${block.sessions.length} parts`}
+          <section className="row-recorded" aria-label="Recorded time">
+            <p>
+              <strong>Recorded {sessionLength(recorded, allEnded)}</strong>
+              {!allEnded && <span className="muted"> · running</span>}
             </p>
-            <ul className="plain-list panel-sessions">
-              {block.sessions.map((s) => (
-                <li className="recorded" key={s.id}>
-                  {dayKey(s.startedAt, zone) === day
-                    ? hhmm(s.startedAt, zone)
-                    : formatInTimeZone(s.startedAt, zone, 'MMM d, HH:mm')}
-                  –{s.endedAt ? hhmm(s.endedAt, zone) : 'running'} ·{' '}
-                  {sessionLength(
-                    minutes(s.startedAt, s.endedAt ?? now),
-                    !!s.endedAt,
-                  )}
-                  {s.notes ? ` · ${s.notes}` : ''}
-                  {s.endedAt && (
-                    <ActionForm
-                      action={deleteSessionAction}
-                      broadcast="blocks"
-                      label="Delete this part"
-                      className="inline-delete"
-                    >
-                      <input type="hidden" name="id" value={s.id} />
-                      <Button variant="link" className="danger small">
-                        Delete
-                      </Button>
-                    </ActionForm>
-                  )}
-                </li>
-              ))}
-            </ul>
+            {notes.length > 0 && (
+              <ul className="plain-list row-recorded-notes">
+                {notes.map((line) => (
+                  <li key={line}>{line}</li>
+                ))}
+              </ul>
+            )}
+            {allEnded && (
+              <ActionForm
+                action={clearBlockTimeAction}
+                broadcast="blocks"
+                label={`Delete recorded time on ${title}`}
+                className="inline-delete"
+              >
+                <input type="hidden" name="id" value={block.id} />
+                <Button variant="link" className="danger small">
+                  Delete<span className="sr-only"> recorded time</span>
+                </Button>
+              </ActionForm>
+            )}
           </section>
         )}
-        <h3 className="mt-4" data-panel-focus="log" tabIndex={-1}>
-          Log time
-        </h3>
-        <ManualSessionForm block={block} day={day} zone={zone} />
-        <h3 className="mt-5" data-panel-focus="edit" tabIndex={-1}>
-          Edit this day
-        </h3>
-        <BlockForm block={block} day={day} zone={zone} goals={goals} />
+        <RowTabs
+          items={[
+            {
+              key: 'log',
+              label: 'Log time',
+              content: (
+                <ManualSessionForm
+                  block={block}
+                  day={day}
+                  zone={zone}
+                  now={now}
+                />
+              ),
+            },
+            {
+              key: 'edit',
+              label: 'Edit',
+              content: (
+                <BlockForm block={block} day={day} zone={zone} goals={goals} />
+              ),
+            },
+          ]}
+        />
         {/* Any block without recorded time can be deleted (WI-060, WI-066). */}
         {!block.sessions.length && (
-          <div className="panel-danger">
+          <div className="row-danger">
             <ActionForm
               action={deleteBlockAction}
               broadcast="blocks"
@@ -423,7 +430,7 @@ function BlockRow({
             </ActionForm>
           </div>
         )}
-      </SidePanel>
+      </RowDetails>
     </BlockRowShell>
   );
 }

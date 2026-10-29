@@ -215,3 +215,59 @@ export async function deleteSession(user: ScheduleUser, id: string) {
     };
   });
 }
+
+/**
+ * All the time recorded on one block, as one record (WI-068): a pause and a resume are one
+ * piece of work, so its finished sessions go together and a done block is planned again.
+ * The returned fields let Undo put every part back, with its attempts and activities.
+ */
+export async function clearBlockTime(user: ScheduleUser, id: string) {
+  return locked(user.id, async (tx) => {
+    const block = await tx.timeBlock.findFirst({
+      where: { id, dailyPlan: { userId: user.id } },
+      include: { sessions: { orderBy: { startedAt: 'asc' } } },
+    });
+    if (!block) throw new Error('This block no longer exists.');
+    if (block.sessions.some((s) => !s.endedAt))
+      throw new Error('Pause the running session before deleting its time.');
+    if (!block.sessions.length)
+      throw new Error('This block has no recorded time.');
+    const ids = block.sessions.map((s) => s.id);
+    // Attempts and activities recorded from them lose the link (SetNull); Undo puts it back.
+    const [attempts, activities] = await Promise.all([
+      tx.dsaAttempt.findMany({
+        where: { actualSessionId: { in: ids }, userId: user.id },
+        select: { id: true, actualSessionId: true },
+      }),
+      tx.learningActivity.findMany({
+        where: { actualSessionId: { in: ids }, userId: user.id },
+        select: { id: true, actualSessionId: true },
+      }),
+    ]);
+    await tx.actualSession.deleteMany({
+      where: { id: { in: ids }, userId: user.id },
+    });
+    if (block.status === 'COMPLETED')
+      await tx.timeBlock.update({
+        where: { id: block.id },
+        data: { status: 'PLANNED', completedAt: null, isOverride: true },
+      });
+    return {
+      title: block.title,
+      completedAt: block.status === 'COMPLETED' ? block.completedAt : null,
+      sessions: block.sessions.map((s) => ({
+        goalId: s.goalId,
+        category: s.category,
+        startedAt: s.startedAt.toISOString(),
+        endedAt: s.endedAt!.toISOString(),
+        notes: s.notes,
+        attemptIds: attempts
+          .filter((a) => a.actualSessionId === s.id)
+          .map((a) => a.id),
+        activityIds: activities
+          .filter((a) => a.actualSessionId === s.id)
+          .map((a) => a.id),
+      })),
+    };
+  });
+}

@@ -1264,6 +1264,30 @@ summary {
   margin-top: 6px;
   justify-self: start;
 }
+/* Paused (WI-068): the card keeps the block, its time left, Resume and Complete. */
+.running-now.is-paused {
+  border-color: var(--border-strong);
+  background: var(--surface);
+}
+.running-now.is-paused .eyebrow {
+  color: var(--ink-2);
+}
+.running-left {
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+.running-left .muted {
+  font-weight: 400;
+}
+.running-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.running-actions .button {
+  margin-top: 4px;
+}
 .live-timer {
   font-variant-numeric: tabular-nums;
   font-weight: 600;
@@ -3879,12 +3903,6 @@ a.attention-link:hover .attention-title {
   font-size: 16px;
   margin: 0 0 8px;
 }
-.panel-sessions {
-  margin: 8px 0 16px;
-}
-.panel-sessions .recorded {
-  margin-top: 4px;
-}
 .review-form > fieldset {
   display: grid;
   gap: 12px;
@@ -4711,6 +4729,8 @@ button.attention-link {
 /* Focus session (WI-027): one card, a ring that drains toward the block's planned end. */
 .focus-page {
   max-width: var(--reading-max);
+  /* In the middle of the screen, not against the sidebar (WI-068). */
+  margin-inline: auto;
 }
 .focus-title {
   margin: 2px 0 18px;
@@ -4875,11 +4895,17 @@ button.attention-link {
     display: none;
   }
 }
-/* Focus is one place: the phone bar and the running strip, with their second Stop, step
-   aside while it is open (WI-058). */
-.shell:has(.focus-card) .nav-bar,
-.shell:has(.focus-card) .running-now {
+/* Focus is one place: the phone bar steps aside while it is open (WI-058). The sidebar's
+   running card stays on every page on a wider screen (WI-068); the phone strip, with its
+   second Pause, still steps aside on Focus and Today, where the page holds the session. */
+.shell:has(.focus-card) .nav-bar {
   display: none;
+}
+@media (max-width: 700px) {
+  .shell:has(.focus-card) .running-now,
+  .shell:has(.launcher) .running-now {
+    display: none;
+  }
 }
 .running-focus {
   justify-self: start;
@@ -6950,10 +6976,6 @@ button.attention-link {
   font-style: italic;
   color: var(--ink-2);
 }
-/* Today's launcher holds the running session; the sidebar card and phone strip step aside. */
-.shell:has(.launcher.is-live) .running-now {
-  display: none;
-}
 @media (max-width: 700px) {
   .live-countdown {
     justify-items: start;
@@ -7558,13 +7580,6 @@ button.attention-link {
 .button.secondary.danger {
   color: var(--danger);
 }
-/* Add a block opens a panel; its link sits on the heading's right with its plus sign. */
-.agenda-add-button {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 17px;
-}
 .quick-kinds {
   border: 0;
   padding: 0;
@@ -7596,22 +7611,76 @@ button.attention-link {
   text-align: right;
 }
 
-/* A block's recorded time in its panel (WI-067): one total, the parts small beneath it. */
-.panel-recorded {
-  margin: 12px 0 4px;
-  padding: 12px 14px;
+/* WI-068: forms in place, no side panel. Add a block opens a small card under Today's plan
+   heading; a block's details open as a card under its row. */
+.agenda-head:has(.agenda-add) {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: baseline;
+}
+.agenda-add {
+  display: contents;
+}
+.agenda-add > .disclosure-link {
+  justify-self: end;
+  font-size: 17px;
+}
+.agenda-add > .disclosure-panel,
+.row-details {
+  grid-column: 1 / -1;
+  margin: 10px 0 14px;
+  padding: 16px 18px;
   border: 1px solid var(--border);
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
+}
+.agenda-add > .disclosure-panel {
+  max-width: 600px;
+}
+.row-details {
+  grid-column: 3 / -1;
+  margin: 12px 0 0;
+  display: grid;
+  gap: 10px;
+}
+.row-details-meta {
+  margin: 0;
+}
+.row-recorded {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 12px;
+  padding: 10px 12px;
+  border-radius: 10px;
   background: var(--surface-2);
 }
-.panel-recorded-total {
-  margin: 0 0 6px;
+.row-recorded p {
+  margin: 0;
 }
-.panel-recorded .panel-sessions li {
+.row-recorded .inline-delete {
+  margin-left: auto;
+}
+.row-recorded-notes {
+  flex-basis: 100%;
   font-size: 14px;
   color: var(--ink-2);
 }
-/* Sections of a block's panel stand apart: Log time, then Edit this day (WI-067). */
-.side-panel h3[data-panel-focus] {
-  margin-top: 28px;
+.row-tab-panel {
+  margin-top: 10px;
+}
+.row-danger {
+  padding-top: 10px;
+  border-top: 1px solid var(--border-subtle);
+}
+.agenda-details[aria-expanded='true'] {
+  color: var(--primary);
+}
+.agenda-details[aria-expanded='true'] svg {
+  transform: rotate(180deg);
+}
+/* A paused pop-out stands still and says so. */
+.focus-pip.is-paused .focus-ring-arc {
+  stroke: var(--muted);
 }
