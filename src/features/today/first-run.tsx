@@ -1,9 +1,8 @@
 import Link from 'next/link';
 import { cookies } from 'next/headers';
-import { ArrowRight, CalendarClock, Check, Circle } from 'lucide-react';
+import { ArrowRight, CalendarClock, Check, Circle, Plus } from 'lucide-react';
 import { ActionForm } from '@/components/action-form';
 import { Button } from '@/components/ui/button';
-import { Disclosure } from '@/components/disclosure';
 import { FeedbackOutlet } from '@/components/feedback-outlet';
 import { db } from '@/server/db';
 import { formatInTimeZone } from 'date-fns-tz';
@@ -16,6 +15,7 @@ import type { TodayPick } from '@/features/for-today/domain';
 import { hideFirstStepsAction } from './actions';
 import { FIRST_STEPS_COOKIE } from './first-steps-cookie';
 import { firstSteps } from './home';
+import { nextSlot } from './domain';
 import { PanelButton, SidePanel } from './panels';
 
 /**
@@ -53,6 +53,8 @@ export async function FirstRunToday({
     hasFocus: focus,
   });
   const pick = picks[0] ?? null;
+  // A new block starts at the next quarter hour, never at a time already gone (WI-066).
+  const slot = nextSlot(new Date(), user.timezone, day);
   return (
     <>
       <header className="home-head">
@@ -96,15 +98,13 @@ export async function FirstRunToday({
                   A simple plan, only when you are ready
                 </p>
               </div>
-              <Disclosure
-                label="Add a block"
-                variant="link"
-                shortcut="add-block"
-                draft={`block:${day}`}
-                className="agenda-add"
+              <PanelButton
+                panel="add-block"
+                className="link-button agenda-add-button"
+                data-shortcut="add-block"
               >
-                <BlockForm day={day} zone={user.timezone} goals={goals} />
-              </Disclosure>
+                <Plus size={16} aria-hidden="true" /> Add a block
+              </PanelButton>
             </div>
             <FeedbackOutlet channel="blocks" className="mb-3" />
             <div className="first-day-empty">
@@ -207,7 +207,22 @@ export async function FirstRunToday({
           </>
         )}
         <h3 className="mt-5">Or plan it for later today</h3>
-        <BlockForm day={day} zone={user.timezone} goals={goals} quick />
+        <BlockForm
+          day={day}
+          zone={user.timezone}
+          goals={goals}
+          defaultStart={slot.start}
+          defaultEnd={slot.end}
+        />
+      </SidePanel>
+      <SidePanel id="add-block" title="Add a block">
+        <BlockForm
+          day={day}
+          zone={user.timezone}
+          goals={goals}
+          defaultStart={slot.start}
+          defaultEnd={slot.end}
+        />
       </SidePanel>
       <SidePanel id="first-goal" title="Choose your goal">
         <GoalForm compact />

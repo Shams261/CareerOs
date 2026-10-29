@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { ArrowRight, Briefcase, ChevronRight } from 'lucide-react';
+import { ArrowRight, Briefcase, ChevronRight, Plus } from 'lucide-react';
 import { formatInTimeZone } from 'date-fns-tz';
 import { Disclosure } from '@/components/disclosure';
 import { ActionForm } from '@/components/action-form';
@@ -27,6 +27,7 @@ import {
   formatDuration,
   groupAgenda,
   hhmm,
+  nextSlot,
   resolutionText,
   type AgendaEntry,
   type RoundLike,
@@ -62,6 +63,8 @@ const origin = (b: TimeBlock) =>
 /** "3 blocks · 2 still ahead": the plan's size and what is left of it, as facts. */
 function planCounts(blocks: Block[], now: Date) {
   const live = blocks.filter((b) => b.status !== 'CANCELLED');
+  // Only cancelled blocks: say so instead of "0 blocks · none left ahead" (WI-066).
+  if (!live.length) return `Nothing planned · ${blocks.length} cancelled`;
   const ahead = live.filter(
     (b) =>
       b.status !== 'COMPLETED' && b.status !== 'SKIPPED' && b.plannedEnd > now,
@@ -77,6 +80,14 @@ export function Agenda(props: Props) {
   const { entries, day, today, now, zone, goals } = props;
   const isToday = day === today;
   const groups = groupAgenda(entries, now, isToday);
+  const slot = nextSlot(
+    now,
+    zone,
+    day,
+    props.blocks
+      .filter((b) => ['PLANNED', 'IN_PROGRESS'].includes(b.status))
+      .map((b) => ({ start: b.plannedStart, end: b.plannedEnd })),
+  );
   const sections: [string, AgendaEntry[]][] = isToday
     ? [
         ['Earlier', groups.earlier],
@@ -96,15 +107,23 @@ export function Agenda(props: Props) {
             <p className="muted agenda-sub">{planCounts(props.blocks, now)}</p>
           )}
         </div>
-        <Disclosure
-          label="Add a block"
-          variant="link"
-          shortcut="add-block"
-          draft={`block:${day}`}
-          className="agenda-add"
+        {/* A side panel, not an inline form beside the heading (WI-066). */}
+        <PanelButton
+          panel="add-block"
+          className="link-button agenda-add-button"
+          data-shortcut="add-block"
         >
-          <BlockForm day={day} zone={zone} goals={goals} />
-        </Disclosure>
+          <Plus size={16} aria-hidden="true" /> Add a block
+        </PanelButton>
+        <SidePanel id="add-block" title="Add a block">
+          <BlockForm
+            day={day}
+            zone={zone}
+            goals={goals}
+            defaultStart={slot.start}
+            defaultEnd={slot.end}
+          />
+        </SidePanel>
       </div>
       <FeedbackOutlet channel="blocks" className="mb-3" />
       {!entries.length && (
@@ -311,6 +330,7 @@ function BlockRow({
               canStart={day === today}
               hideStart={launcherBlockId === block.id}
               more
+              canDelete={!block.sessions.length}
             />
           </div>
           <PanelButton
@@ -371,8 +391,8 @@ function BlockRow({
           Edit this day
         </h3>
         <BlockForm block={block} day={day} zone={zone} goals={goals} />
-        {/* A block added for one day can be deleted (WI-060); a routine's is cancelled. */}
-        {!block.routineKey && !block.sessions.length && (
+        {/* Any block without recorded time can be deleted (WI-060, WI-066). */}
+        {!block.sessions.length && (
           <div className="panel-danger">
             <ActionForm
               action={deleteBlockAction}

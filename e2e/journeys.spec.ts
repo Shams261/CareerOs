@@ -83,13 +83,9 @@ test('a block for today runs through Focus to Done', async ({ page }) => {
   });
   await expect(row).toBeVisible();
 
-  // Start opens Focus for that block, wherever the row keeps the link.
-  const href = await page
-    .locator('a[href^="/focus?block="]')
-    .filter({ hasText: 'Graphs: BFS practice' })
-    .first()
-    .getAttribute('href');
-  await page.goto(href!);
+  // Focus for that block: Start begins at once (WI-066); a direct link still asks to Begin.
+  const blockId = (await row.getAttribute('id'))!.replace('block-', '');
+  await page.goto(`/focus?block=${blockId}`);
   await page
     .getByLabel('Intention (optional)')
     .fill('Level-order with a queue');

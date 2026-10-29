@@ -1,6 +1,8 @@
 'use server';
+import { deleteBlock } from '@/features/deletes/service';
 import { forgetAll } from '@/server/memo';
 import { revalidatePath } from 'next/cache';
+import { redirect } from 'next/navigation';
 import { z } from 'zod';
 import { issueMessages } from '@/lib/validation';
 import { owner } from '@/server/db';
@@ -109,10 +111,31 @@ export async function routineAction(_state: ActionState, form: FormData) {
   });
 }
 export async function executionAction(_state: ActionState, form: FormData) {
+  // Start in one click (WI-066): the session begins and Focus opens already running. The
+  // redirect stays outside `perform`, which would catch it; a refusal (another session runs)
+  // shows beside the button instead.
+  if (form.get('action') === 'focus') {
+    const id = z.string().min(1).parse(form.get('id'));
+    const started = await perform(async () => {
+      await execute(await owner(), id, 'start', '', new Date());
+      return 'Started.';
+    });
+    if (!started.ok) return started;
+    redirect(`/focus?block=${encodeURIComponent(id)}`);
+  }
   return perform(async () => {
     const action = z
-      .enum(['start', 'stop', 'complete', 'skip', 'cancel', 'reset'])
+      .enum(['start', 'stop', 'complete', 'skip', 'cancel', 'reset', 'delete'])
       .parse(form.get('action'));
+    // Delete from the row's menu (WI-066), with the same Undo as the panel's Delete.
+    if (action === 'delete') {
+      const id = z.string().min(1).parse(form.get('id'));
+      const title = await deleteBlock(await owner(), id);
+      return {
+        message: `Deleted ${title}.`,
+        undo: { kind: 'block-reset', payload: { id } },
+      };
+    }
     await execute(
       await owner(),
       z.string().min(1).parse(form.get('id')),

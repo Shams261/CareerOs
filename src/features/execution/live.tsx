@@ -40,6 +40,47 @@ export function LiveTimer({
 }
 
 /**
+ * Time left to a target as one short line, for the shell's running card (WI-066): the same
+ * clock Today and Focus show, so one session never reads two ways.
+ */
+export function LiveLeft({
+  target,
+  className = '',
+}: {
+  target: string;
+  className?: string;
+}) {
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const tick = () => {
+      if (document.visibilityState === 'visible') setNow(Date.now());
+    };
+    const timer = setInterval(tick, 1000);
+    document.addEventListener('visibilitychange', tick);
+    return () => {
+      clearInterval(timer);
+      document.removeEventListener('visibilitychange', tick);
+    };
+  }, []);
+  const left = Math.max(0, Math.floor((+new Date(target) - now) / 1000)),
+    h = Math.floor(left / 3600),
+    m = Math.floor((left % 3600) / 60),
+    s = left % 60;
+  return (
+    <time
+      className={`live-timer ${className}`}
+      aria-live="off"
+      suppressHydrationWarning
+    >
+      <span className="live-dot" aria-hidden="true" />
+      {left === 0
+        ? 'Time is up'
+        : `${h > 0 ? `${h}:${pad(m)}:${pad(s)}` : `${m}:${pad(s)}`} left`}
+    </time>
+  );
+}
+
+/**
  * Time left to a target, with a thin bar that fills as it passes (WI-060: the running session
  * on Today reads like a small Focus). "Time is up" once the target passes; nothing completes.
  */

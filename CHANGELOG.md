@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+- WI-066 (Today fixes from the owner's own UAT in Chrome). No migration:
+  - **The pop-out keeps running.** The Picture-in-Picture timer now belongs to the app, not the Focus page: it keeps counting while you move between pages and closes by itself when the session is stopped or completed.
+  - **Start means start.** Start session (and a row's Start) begins the session and opens Focus already running; a direct Focus link still asks to Begin with an intention.
+  - **Delete from the row.** Every block without recorded time, a routine's occurrence included, has Delete in its ⋯ (red), and Deleted, Skipped or Cancelled show above the list with Undo, even when the day's layout changes.
+  - **A short Add a block.** A side panel with title, kind chips, start and length chips (20/30/45/60); goal, priority, notes and another day sit under More. It starts at the first free quarter hour after now, beside the day's blocks, and the overlap box stays in view because an overlap refusal asks for it.
+  - **One clock.** The running card on other pages counts down ("44:57 left") like Today and Focus.
+  - **Grouping by state.** A finished block is Earlier and a running one is Now, whatever its planned time; a day with only cancelled blocks reads "Nothing planned · 1 cancelled".
+  - **Smaller fixes.** Review day warns while a session is running; the Activity sentence no longer runs into its rings; the goal's title takes the panel's width; a result in the Up next card wraps under its button.
+
 - WI-065 (Today's home, from the owner's before/after concept; ADR-027). No migration:
   - **An empty account is welcomed, not handed a form.** "Start small. Build your rhythm." with Plan my first focus (today's picks with Start 20 min, or a block for later in four fields) and "or try a 20-minute session". Then Your first 3 steps (goal, study times, a learning focus), each a panel away and skippable, and a calm empty day.
   - **A day with a plan reads at a glance.** A short cheer line under the title, then chips for Focused today, Today's plan (done of planned) and Your goal (days left, horizon, title; opens the goal). Then the Up next card, Today's plan as one timeline with Up next and Planned, and on the rail This week (blocks done of planned, a thin bar and its line) above Needs attention.

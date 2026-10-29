@@ -7548,3 +7548,50 @@ button.attention-link {
 .today-workspace > .launcher .launcher-meta {
   color: var(--ink-2);
 }
+
+/* WI-066: in the Activity panel the chain sits under its sentence, not over it. */
+.side-panel .chain,
+[role='dialog'] .chain {
+  margin-top: 12px;
+}
+/* Delete in a row's menu reads as the destructive one. */
+.button.secondary.danger {
+  color: var(--danger);
+}
+/* Add a block opens a panel; its link sits on the heading's right with its plus sign. */
+.agenda-add-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 17px;
+}
+.quick-kinds {
+  border: 0;
+  padding: 0;
+  margin: 0;
+  min-width: 0;
+}
+.quick-kinds legend {
+  font-size: 13px;
+  font-weight: 600;
+  padding: 0;
+  margin-bottom: 6px;
+}
+.quick-kinds .template-chips {
+  margin-bottom: 10px;
+}
+
+.form-grid > .form-wide {
+  grid-column: 1 / -1;
+}
+/* A result in the Up next card wraps under its button instead of widening the side and
+   squeezing the title (WI-066). */
+.launcher-side {
+  max-width: 320px;
+}
+.launcher-action .form-success,
+.launcher-action .form-message {
+  max-width: 320px;
+  white-space: normal;
+  text-align: right;
+}

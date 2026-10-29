@@ -96,7 +96,7 @@ The functions live in `src/features/deletes/`: `service.ts` (every delete under 
 Rules kept:
 
 - **Blocks.**
-  - A routine's block is cancelled, not deleted.
+  - A routine's block is cancelled, not deleted. (Since WI-066 a routine's occurrence can be deleted too, kept as "Deleted" so it is not planned again.)
   - A block with recorded time keeps it until its sessions are deleted. The `completion_consistency` constraint also requires `completedAt` to be cleared when a block is cancelled.
 - **History.** Single attempts, stage changes and activities stay append-only. They go only with the record they belong to.
 - **Logging.** Failures log `[deletes] failed <ErrorClass> <code>`, added to the security doc's log vocabulary.

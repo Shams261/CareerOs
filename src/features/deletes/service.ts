@@ -46,7 +46,10 @@ async function dropBlocks(
   }
 }
 
-/** A block added for one day; a routine's block is cancelled instead (the routine plans it). */
+/**
+ * A block on one day, added or from a routine (WI-066: a routine's occurrence can go too; its
+ * row stays as "Deleted", so generation never brings it back and the routine is untouched).
+ */
 export async function deleteBlock(user: ScheduleUser, id: string) {
   return locked(user.id, async (tx) => {
     const block = await tx.timeBlock.findFirst({
@@ -54,8 +57,6 @@ export async function deleteBlock(user: ScheduleUser, id: string) {
       include: { _count: { select: { sessions: true } } },
     });
     if (!block) throw new Error('This block is no longer on your plan.');
-    if (block.routineKey)
-      throw new Error('A routine block is cancelled for the day, not deleted.');
     // Recorded time is the owner's record: its sessions go first, one by one.
     if (block._count.sessions)
       throw new Error(
