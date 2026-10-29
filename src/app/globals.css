@@ -7685,6 +7685,21 @@ button.attention-link {
 .week-card {
   margin-bottom: 24px;
 }
+/* Needs attention as a rail card (WI-079), the heading at This week's size. */
+.rail-card {
+  margin-bottom: 24px;
+}
+.rail-card .attention-head {
+  margin-bottom: 4px;
+}
+.rail-card .attention-head h2 {
+  font-size: 18px;
+}
+.rail-card .attention-empty {
+  margin: 4px 0 0;
+  font-size: 14px;
+  color: var(--ink-2);
+}
 .week-card-head {
   display: flex;
   justify-content: space-between;
