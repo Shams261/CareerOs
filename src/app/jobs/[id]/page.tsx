@@ -58,7 +58,17 @@ import { AGENT_NAME } from '@/features/agent/domain';
 import { prepDocs } from '@/features/prep/service';
 import { estimateMicros, searchQueries } from '@/features/prep/domain';
 import { PreparePanel } from '@/features/prep/panel';
-export const metadata = { title: 'Jobs' };
+/** The tab names the company; an id that is not the owner's answers 404 (WI-090). */
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
+  const [user, { id }] = await Promise.all([owner(), params]);
+  const app = await applicationDetail(user, id);
+  if (!app) notFound();
+  return { title: `${app.company} · Jobs` };
+}
 
 export default async function Application({
   params,

@@ -46,7 +46,8 @@ export async function generateMetadata({
     searchParams,
   ]);
   const roadmap = await roadmapDetail(user, id);
-  if (!roadmap) return { title: 'Roadmap' };
+  // Not the owner's, or gone: a 404 status, not a 200 with the not-found page (WI-090).
+  if (!roadmap) notFound();
   const section =
     query.section && roadmap.sections.has(query.section) ? query.section : null;
   return { title: section ? `${section} · ${roadmap.title}` : roadmap.title };
