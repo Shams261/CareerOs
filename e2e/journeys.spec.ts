@@ -114,20 +114,35 @@ test('a roadmap item is added and marked done', async ({ page }) => {
     .getByRole('link', { name: /System design/ })
     .first()
     .click();
-  await page.getByRole('button', { name: 'Add items' }).first().click();
+  // Add items lives in the header's More menu (WI-084) and opens as a panel.
+  await page.getByRole('button', { name: 'More' }).click();
+  await page.getByRole('button', { name: 'Add items' }).click();
   const add = page.getByRole('form', { name: 'Add items' });
   await add.getByLabel('Section').fill('Building blocks');
   await add
     .getByRole('textbox', { name: /^Items, one per line/ })
     .fill('Consistent hashing\n? Design a rate limiter');
   await add.getByRole('button', { name: 'Add items' }).click();
-  const item = page.locator('li.item-row', { hasText: 'Consistent hashing' });
-  // The first item opens by itself; its Done is in the panel, or the row's quick button.
-  await item
-    .getByRole('button', { name: /^Done(: Consistent hashing)?$/ })
-    .first()
+  await page.keyboard.press('Escape');
+  // The outline lists the item on the left and the pane shows it on the right (WI-084).
+  const row = page.locator('li.outline-row', { hasText: 'Consistent hashing' });
+  await expect(row).toHaveClass(/is-current/);
+  const pane = page.getByRole('article', { name: 'Consistent hashing' });
+  await expect(pane.getByText('Building blocks · 1 of 2')).toBeVisible();
+  // One status control: Not started · Studying · Done.
+  await pane
+    .getByRole('group', { name: 'Status: Consistent hashing' })
+    .getByRole('button', { name: 'Done' })
     .click();
   await expect(page.getByText(/1 done/).first()).toBeVisible();
+  await expect(row).toHaveClass(/is-done/);
+  // Next walks the outline to the question.
+  await pane
+    .getByRole('button', { name: /^Next: Design a rate limiter/ })
+    .click();
+  await expect(
+    page.getByRole('article', { name: 'Design a rate limiter' }),
+  ).toBeVisible();
   await accessible(page);
   await fitsPhone(page, page.url().replace(/^https?:\/\/[^/]+/, ''));
 });

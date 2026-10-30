@@ -44,6 +44,8 @@ describe('nextStatus', () => {
     expect(nextStatus('start', 'DONE')).toBe('DONE');
     expect(nextStatus('done', 'NOT_STARTED')).toBe('DONE');
     expect(nextStatus('reopen', 'DONE')).toBe('IN_PROGRESS');
+    expect(nextStatus('unstart', 'IN_PROGRESS')).toBe('NOT_STARTED');
+    expect(nextStatus('unstart', 'DONE')).toBe('NOT_STARTED');
     expect(nextStatus('asked', 'IN_PROGRESS')).toBe('IN_PROGRESS');
   });
 });

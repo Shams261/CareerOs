@@ -231,6 +231,7 @@ export const itemInput = z.object({
 
 export const itemOps = [
   'start',
+  'unstart',
   'done',
   'reopen',
   'revised',
@@ -260,6 +261,8 @@ export function parseBulkLines(text: string) {
 
 export function nextStatus(op: ItemOp, current: ItemStatus): ItemStatus {
   if (op === 'start') return current === 'DONE' ? 'DONE' : 'IN_PROGRESS';
+  // Back to not started (WI-084): the status control's first choice; a done item loses its mark.
+  if (op === 'unstart') return 'NOT_STARTED';
   if (op === 'done') return 'DONE';
   if (op === 'reopen') return 'IN_PROGRESS';
   return current;
