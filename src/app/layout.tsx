@@ -1,4 +1,4 @@
-import { savedTheme } from '@/server/theme';
+import { savedTextSize, savedTheme } from '@/server/theme';
 import { themeColor } from '@/lib/theme';
 import Link from 'next/link';
 import { BrandLogo } from '@/components/brand';
@@ -44,13 +44,14 @@ export default async function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const theme = await savedTheme();
+  const [theme, size] = await Promise.all([savedTheme(), savedTextSize()]);
   // Signed-out pages (sign-in) render without navigation.
   if (!(await currentSession()))
     return (
       <html
         lang="en"
         className={`${theme} ${inter.variable} ${display.variable}`}
+        data-size={size}
       >
         <body>
           <main id="main" className="login-shell">
@@ -63,6 +64,7 @@ export default async function RootLayout({
     <html
       lang="en"
       className={`${theme} ${inter.variable} ${display.variable}`}
+      data-size={size}
     >
       <body>
         <a href="#main" className="skip">

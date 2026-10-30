@@ -230,6 +230,12 @@ test('Settings saves the dark theme and stays accessible', async ({ page }) => {
   await accessible(page);
   await page.goto('/settings');
   await page.getByRole('radio', { name: 'Light' }).check();
+  // Text size (WI-087): Large scales the app; Default puts it back.
+  await page.getByRole('radio', { name: 'Large', exact: true }).check();
+  await expect(page.locator('html')).toHaveAttribute('data-size', 'large');
+  await accessible(page);
+  await page.getByRole('radio', { name: 'Default' }).check();
+  await expect(page.locator('html')).toHaveAttribute('data-size', 'default');
   await fitsPhone(page, '/settings');
 
   // Sessions (WI-057): this device is listed and marked.
