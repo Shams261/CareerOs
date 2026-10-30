@@ -134,7 +134,7 @@ export function Launcher({
         primaryOnly
       />
     ) : (
-      <ActionForm action={stopUnlinkedAction}>
+      <ActionForm action={stopUnlinkedAction} toast>
         <input type="hidden" name="id" value={state.session.id} />
         <Button>Stop session</Button>
       </ActionForm>
@@ -251,6 +251,7 @@ export function Launcher({
       <ActionForm
         action={startPickAction}
         label={`Start 20 min: ${pick.title}`}
+        toast
       >
         <input type="hidden" name="title" value={pick.title} />
         <input type="hidden" name="category" value={pick.category} />

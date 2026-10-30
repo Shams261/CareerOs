@@ -7668,6 +7668,16 @@ button.attention-link {
   .agenda.is-compact .agenda-meta::before {
     content: none;
   }
+  /* A past row's side (status, Log time, Reschedule, ›) goes under the title on a phone. */
+  .agenda.is-compact .agenda-row {
+    grid-template-columns: 56px minmax(0, 1fr);
+  }
+  .agenda.is-compact .agenda-side {
+    grid-column: 2;
+    flex-wrap: wrap;
+    gap: 4px 10px;
+    margin-top: 4px;
+  }
 }
 /* The Up next card: the day's one primary, a little warmer than the rows below it. */
 .today-workspace > .launcher {
@@ -7858,8 +7868,7 @@ button.attention-link {
 .launcher-side {
   max-width: 320px;
 }
-.launcher-action .form-success,
-.launcher-action .form-message {
+.launcher-action .form-success {
   max-width: 320px;
   white-space: normal;
   text-align: right;
@@ -8246,5 +8255,59 @@ button.attention-link {
 @media (prefers-reduced-motion: no-preference) {
   .daily-quote {
     animation: rise-in 320ms var(--motion-easing) both;
+  }
+}
+
+/* Toasts (WI-080 fix): a refusal floats at the foot of the screen, above the phone bar. */
+.toast-host {
+  position: fixed;
+  left: 50%;
+  bottom: 24px;
+  transform: translateX(-50%);
+  z-index: 70;
+  display: grid;
+  gap: 8px;
+  width: min(480px, calc(100vw - 32px));
+  pointer-events: none;
+}
+.toast {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: start;
+  padding: 12px 12px 12px 14px;
+  border: 1px solid var(--warning);
+  border-radius: 12px;
+  background: var(--surface);
+  color: var(--foreground);
+  box-shadow: var(--shadow-md);
+  font-size: 14px;
+  line-height: 1.5;
+  pointer-events: auto;
+}
+.toast > svg:first-child {
+  margin-top: 3px;
+  color: var(--warning-text);
+}
+.toast-close {
+  padding: 2px;
+  border: 0;
+  background: none;
+  color: var(--muted);
+  cursor: pointer;
+  border-radius: 6px;
+}
+.toast-close:hover {
+  color: var(--foreground);
+  background: var(--subtle);
+}
+@media (max-width: 700px) {
+  .toast-host {
+    bottom: calc(80px + env(safe-area-inset-bottom));
+  }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .toast {
+    animation: rise-in 240ms var(--motion-easing) both;
   }
 }
