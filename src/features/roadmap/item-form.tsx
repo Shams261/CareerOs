@@ -26,9 +26,14 @@ export function LinkOptionsProvider({
 export function ItemForm({
   item,
   sections,
+  onPending,
+  onSettled,
 }: {
   item: RoadmapItem;
   sections: string[];
+  /** Passed through to the form, so the page can follow an item moved to another week (WI-089). */
+  onPending?: (form: FormData) => void;
+  onSettled?: (result: { ok?: boolean }) => void;
 }) {
   const links = useContext(LinkOptions);
   const current = item.learningTopicId
@@ -43,6 +48,8 @@ export function ItemForm({
       action={itemAction}
       label={`Edit ${item.title}`}
       className="dsa-form"
+      onPending={onPending}
+      onSettled={onSettled}
     >
       <input type="hidden" name="id" value={item.id} />
       <div className="form-grid">

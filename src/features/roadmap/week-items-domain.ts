@@ -37,6 +37,27 @@ export function weekSection(
   return sections[0] ?? null;
 }
 
+/**
+ * Under a filter, the next section after `name` (wrapping round) that holds a shown row, so
+ * "N more in other weeks" can take the owner there (WI-089); null when no other section has one.
+ */
+export function nextSectionWithMatch(
+  sections: string[],
+  rows: PaneRow[],
+  name: string | null,
+) {
+  const i = name ? sections.indexOf(name) : -1;
+  const order = [
+    ...sections.slice(i + 1),
+    ...sections.slice(0, Math.max(i, 0)),
+  ];
+  return (
+    order.find(
+      (s) => s !== name && rows.some((r) => r.section === s && r.shown),
+    ) ?? null
+  );
+}
+
 /** The sections before and after `name`, for ← Week 1 / Week 3 → on a week page. */
 export function neighbourSections(sections: string[], name: string | null) {
   const i = name ? sections.indexOf(name) : -1;

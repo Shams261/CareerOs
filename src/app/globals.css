@@ -8268,7 +8268,7 @@ button.attention-link {
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
   background: var(--surface);
-  overflow: hidden;
+  /* No overflow clip: the row's ⋯ menu opens below its foot (WI-089). */
 }
 .week-item.is-open {
   border-color: var(--primary);
@@ -8342,6 +8342,29 @@ button.attention-link {
   display: grid;
   gap: 16px;
   min-width: 0;
+}
+/* The foot: one primary, Asked in an interview and ⋯ on one line with room between them
+   (WI-089: the rule left with the WI-084 block and the buttons touched). */
+.item-foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  padding-top: 14px;
+  border-top: 1px solid var(--divider);
+}
+/* The row's answer floats at the foot of the screen, above the phone bar (WI-089). */
+.form-success.feedback-float {
+  position: fixed;
+  left: 50%;
+  bottom: calc(20px + env(safe-area-inset-bottom, 0px));
+  transform: translateX(-50%);
+  z-index: 60;
+  margin: 0;
+  max-width: calc(100vw - 32px);
+  box-shadow: var(--shadow-md);
+  border: 1px solid var(--primary);
+  font-size: 14px;
 }
 /* Seven scope points take four lines, not seven. */
 .item-card .pane-scope:has(> li:nth-child(5)) {
@@ -8419,19 +8442,25 @@ button.attention-link {
   .roadmap-head .today-head-row {
     flex-wrap: wrap;
   }
+  /* The back link and More on one row; the filters, when shown, on the next (WI-089). */
   .roadmap-head .today-title {
-    flex-basis: 100%;
+    flex: 1 1 auto;
     margin-right: 0;
   }
   .roadmap-head .today-head-actions {
-    width: 100%;
-    justify-content: flex-start;
-    flex-wrap: nowrap;
+    display: contents;
+  }
+  .roadmap-head .today-utils {
+    order: 2;
   }
   .roadmap-head .item-filters {
-    flex: 1;
+    order: 3;
+    flex-basis: 100%;
     min-width: 0;
     flex-wrap: nowrap;
+  }
+  .form-success.feedback-float {
+    bottom: calc(84px + env(safe-area-inset-bottom, 0px));
   }
   .roadmap-head .item-filters label:first-child {
     flex: 1;
@@ -8801,7 +8830,7 @@ button.attention-link {
   padding: 6px 14px;
 }
 .item-foot .more-menu {
-  margin-left: -4px;
+  margin-left: 0;
 }
 /* A wide window: the page sits centred as one reading block. */
 @media (min-width: 1600px) {
