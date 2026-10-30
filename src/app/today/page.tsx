@@ -420,9 +420,10 @@ export default async function Today({
                 </>
               );
             })()}
-          {/* The Day Print (WI-033): a closed day's records as a picture, unless removed. */}
+          {/* The Day Print (WI-033): a closed day's records as a picture, unless removed.
+              Today's sits in the rail (WI-082); a past day's leads the column. */}
           <FeedbackOutlet channel="day-print" className="mb-4" />
-          {reviewed && user.dayPrint !== false && (
+          {reviewed && !isToday && user.dayPrint !== false && (
             <DayPrintCard
               model={dayPrint({
                 day,
@@ -452,6 +453,7 @@ export default async function Today({
                 now={now}
                 closing={closing}
                 closed={reviewed}
+                closedLine={summaryLine(summary)}
                 pick={freePick(picks, blocks)}
                 quiet={
                   facts?.yesterday && quietYesterday(facts)
@@ -473,8 +475,27 @@ export default async function Today({
             />
             {isToday && (
               <aside className="today-rail" aria-labelledby="attention-heading">
-                {/* Today's rings while the day is open (WI-071), then This week, then what
-                    needs attention (WI-065). */}
+                {/* Today's rings while the day is open (WI-071), the Day Print once it is
+                    closed (WI-082), then This week, then what needs attention (WI-065). */}
+                {reviewed && user.dayPrint !== false && (
+                  <DayPrintCard
+                    rail
+                    model={dayPrint({
+                      day,
+                      bounds,
+                      sessions,
+                      letGo: blocks.filter(
+                        (b) =>
+                          b.status === 'SKIPPED' && b.skipReason === 'Let go',
+                      ).length,
+                      rested: !!plan?.restAt,
+                      now,
+                    })}
+                    day={day}
+                    isToday
+                    ask={user.dayPrint == null}
+                  />
+                )}
                 {!reviewed &&
                   (() => {
                     // Only once a session has a whole minute on it: a ring to show.

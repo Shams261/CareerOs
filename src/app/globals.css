@@ -5606,7 +5606,7 @@ button.attention-link {
 .day-print {
   display: grid;
   gap: 10px;
-  max-width: 640px;
+  max-width: 480px;
   margin: 0 0 16px;
   padding: 18px 20px;
   background: var(--surface);
@@ -5653,6 +5653,25 @@ button.attention-link {
 .day-print-actions {
   margin: 0;
   align-items: center;
+}
+/* Today's print in the rail (WI-082): the size of the other rail cards. */
+.day-print.is-rail {
+  max-width: none;
+  margin: 0 0 24px;
+  gap: 8px;
+}
+.day-print.is-rail .day-print-headline {
+  font-size: 14px;
+  font-weight: 500;
+}
+.day-print.is-rail .day-print-legend {
+  font-size: 13px;
+}
+.day-print.is-rail .day-print-actions {
+  margin-top: 2px;
+}
+.day-print.is-rail .day-print-ask > fieldset {
+  font-size: 14px;
 }
 .day-print-ask > fieldset {
   display: flex;

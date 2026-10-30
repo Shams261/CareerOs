@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- WI-082 (a closed day on Today). No migration: once today is reviewed, the Day Print sits in the rail where Today so far was, at the rail's size ("Day print · 1 session", Save the print, the keep-or-remove question), instead of a 640 px card above the plan with the rail empty beside it; the launcher reads "Day closed · The day is closed · 1 block completed · 1 min recorded · 1h 40m planned" with Edit review beside it and Add a block, instead of "Nothing more planned today · Edit the review from the header". A past day's print card is 480 px wide.
+
 - WI-081 (Start 20 min and refusals as toasts). No migration:
   - **Start 20 min** goes over a done or skipped block's slot instead of refusing it as an overlap; a block still planned or running over that time refuses by name ("X is planned for 17:30–18:00. Start that block, or move it first.").
   - **Refusals as toasts**: when the launcher (Start session, Resume, Complete, Start 20 min, Stop session) or the sidebar card (Pause, Resume, Complete) is refused, the message shows as a toast at the bottom of the screen with a × and goes by itself after seven seconds, instead of a line squeezed into the card (`ActionForm toast`, `ToastHost` in the layout, `src/components/toast.tsx`).

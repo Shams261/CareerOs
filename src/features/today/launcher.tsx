@@ -46,6 +46,7 @@ export function Launcher({
   now,
   closing = false,
   closed = false,
+  closedLine = '',
   pick = null,
   quiet = null,
 }: {
@@ -58,6 +59,8 @@ export function Launcher({
   closing?: boolean;
   /** The day was closed or reviewed. */
   closed?: boolean;
+  /** The closed day's facts ("3 blocks completed · 1 min recorded · 1h 40m planned"). */
+  closedLine?: string;
   /** The first "For today" pick, offered when nothing is current or next (WI-059). */
   pick?: TodayPick | null;
   /** Yesterday's blocks when none of them was recorded: the launcher says so (WI-059). */
@@ -295,9 +298,15 @@ export function Launcher({
       </a>
     );
   } else if (closed && state.kind === 'done') {
+    // The day is reviewed: its facts, the review one link away, and room for a late block.
     eyebrow = 'Day closed';
-    title = 'Nothing more planned today';
-    context = 'Edit the review from the header if something changes.';
+    title = 'The day is closed';
+    context = closedLine || 'Every block has a decision.';
+    next = (
+      <PanelButton panel="review" className="link-button">
+        Edit review
+      </PanelButton>
+    );
     action = <PressButton press="add-block">Add a block</PressButton>;
   } else {
     eyebrow = 'Nothing more planned';

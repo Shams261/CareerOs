@@ -9,9 +9,11 @@ import { Button } from '@/components/ui/button';
 export function SavePrint({
   svgId,
   fileName,
+  small = false,
 }: {
   svgId: string;
   fileName: string;
+  small?: boolean;
 }) {
   const [error, setError] = useState('');
   const save = async () => {
@@ -57,7 +59,11 @@ export function SavePrint({
   };
   return (
     <>
-      <Button type="button" className="secondary" onClick={save}>
+      <Button
+        type="button"
+        className={small ? 'secondary small' : 'secondary'}
+        onClick={save}
+      >
         Save the print
       </Button>
       {error && (

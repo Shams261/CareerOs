@@ -56,28 +56,45 @@ export function PrintSvg({ model, id }: { model: DayPrintModel; id: string }) {
 
 /**
  * The Day Print card on a closed day (WI-033). Until the owner answers, it asks whether to
- * keep showing prints; Remove hides them (Settings brings them back).
+ * keep showing prints; Remove hides them (Settings brings them back). On today it sits in
+ * the rail where the live rings were, at the rail's size (WI-082); a past day keeps it in
+ * the column.
  */
 export function DayPrintCard({
   model,
   day,
   isToday,
   ask,
+  rail = false,
 }: {
   model: DayPrintModel;
   day: string;
   isToday: boolean;
   ask: boolean;
+  rail?: boolean;
 }) {
   const id = `day-print-${day}`;
+  const sessions = model.rings.length;
   return (
-    <section className="day-print" aria-labelledby={`${id}-heading`}>
-      <h2 id={`${id}-heading`}>
-        {isToday ? 'Today is closed' : `${model.weekday} is closed`}
-      </h2>
+    <section
+      className={rail ? 'card day-print is-rail' : 'day-print'}
+      aria-labelledby={`${id}-heading`}
+    >
+      {rail ? (
+        <div className="week-card-head">
+          <h2 id={`${id}-heading`}>Day print</h2>
+          <span className="muted">
+            {sessions} session{sessions === 1 ? '' : 's'}
+          </span>
+        </div>
+      ) : (
+        <h2 id={`${id}-heading`}>
+          {isToday ? 'Today is closed' : `${model.weekday} is closed`}
+        </h2>
+      )}
       <PrintSvg model={model} id={id} />
       <p className="day-print-headline">{model.headline}</p>
-      <p className="muted">{model.detail}</p>
+      {!rail && <p className="muted">{model.detail}</p>}
       {model.legend.length > 0 && (
         <ul className="day-print-legend" aria-label="Colours">
           {model.legend.map((l) => (
@@ -93,7 +110,7 @@ export function DayPrintCard({
         </ul>
       )}
       <div className="actions day-print-actions">
-        <SavePrint svgId={id} fileName={`silsila-${day}.png`} />
+        <SavePrint svgId={id} fileName={`silsila-${day}.png`} small={rail} />
       </div>
       {ask && (
         <ActionForm
