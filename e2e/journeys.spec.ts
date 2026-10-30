@@ -149,6 +149,46 @@ test('a roadmap item is added and marked done', async ({ page }) => {
   await fitsPhone(page, page.url().replace(/^https?:\/\/[^/]+/, ''));
 });
 
+test('a problem is added without a link and an attempt is recorded', async ({
+  page,
+}) => {
+  await page.goto('/dsa');
+  // An empty workspace starts with its first topic.
+  await page
+    .getByRole('form', { name: 'Add topic' })
+    .getByLabel('Topic')
+    .fill('Arrays');
+  await page.getByRole('button', { name: 'Add topic' }).click();
+  await expect(
+    page.getByRole('heading', { name: 'Practice', level: 1 }),
+  ).toBeVisible();
+  // Add a problem needs a title and a topic only (WI-091); the topic is the current one.
+  await page.getByRole('button', { name: 'Add a problem' }).click();
+  const add = page.getByRole('form', { name: 'Add problem' });
+  await add.getByLabel('Title').fill('Two Sum');
+  await add.getByRole('button', { name: 'Add problem' }).click();
+  const row = page.locator('.problem-line', { hasText: 'Two Sum' });
+  await expect(row).toBeVisible();
+  await expect(row).toContainText('Unattempted');
+  await accessible(page);
+  await row.getByRole('link', { name: 'Two Sum' }).click();
+  await expect(
+    page.getByRole('heading', { name: 'Two Sum', level: 1 }),
+  ).toBeVisible();
+  // The attempt form as three lines: a chip sets the confidence, Save records it.
+  await page.getByLabel('With hints').check();
+  await expect(page.locator('select[name=confidenceAfter]')).toHaveValue(
+    'YELLOW',
+  );
+  await page.getByRole('button', { name: 'Save attempt' }).click();
+  await expect(page.locator('.facts-strip')).toContainText('Okay');
+  await expect(page.locator('.facts-strip')).toContainText(/Attempts\s*1/);
+  // The form is fresh again: nothing chosen, no stale confidence.
+  await expect(page.locator('select[name=confidenceAfter]')).toHaveValue('');
+  await accessible(page);
+  await fitsPhone(page, page.url().replace(/^https?:\/\/[^/]+/, ''));
+});
+
 test('an application gets its interview formats and practice links', async ({
   page,
 }) => {

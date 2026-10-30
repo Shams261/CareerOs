@@ -11,6 +11,7 @@ import {
   recordAttempt,
   scheduleRevision,
   dsaSnapshot,
+  setCurrentTopic,
 } from '../src/features/dsa/service';
 import { processNotifications } from '../src/features/notifications/service';
 import { revisionQueue, todayDsaSummary } from '../src/features/dsa/domain';
@@ -101,6 +102,43 @@ describe.skipIf(!url)('DSA PostgreSQL integrity', () => {
     await expect(
       saveTopic(user, { ...topic, current: true, status: 'PAUSED' }),
     ).rejects.toThrow('current topic');
+  });
+  it('starts a Not started topic when it is made current, and keeps refusing a paused one (WI-091)', async () => {
+    const t = await saveTopic(user, {
+      name: `${user.id}-fresh`,
+      status: 'NOT_STARTED',
+      ordering: 5,
+      current: false,
+    });
+    topicIds.push(t.id);
+    const made = await setCurrentTopic(user, t.id);
+    expect(made.status).toBe('LEARNING');
+    expect(
+      (await prisma.user.findUniqueOrThrow({ where: { id: user.id } }))
+        .currentDsaTopicId,
+    ).toBe(t.id);
+    await saveTopic(user, { ...made, current: false, status: 'PAUSED' });
+    await expect(setCurrentTopic(user, t.id)).rejects.toThrow('current topic');
+    await setCurrentTopic(user, topicId);
+  });
+  it('saves a problem without a platform or a link (WI-091)', async () => {
+    const p = await saveProblem(user, {
+      title: 'From a book',
+      platform: '',
+      problemUrl: '',
+      difficulty: 'EASY',
+      topicId,
+    });
+    expect([p.platform, p.problemUrl]).toEqual(['Other', '']);
+    await expect(
+      saveProblem(user, {
+        title: 'Bad',
+        platform: '',
+        problemUrl: 'javascript:alert(1)',
+        difficulty: 'EASY',
+        topicId,
+      }),
+    ).rejects.toThrow();
   });
   it('keeps arbitrary URLs, edits problems, and rejects unsafe links', async () => {
     const p = await fresh();

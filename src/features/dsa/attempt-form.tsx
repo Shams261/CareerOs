@@ -8,8 +8,10 @@ const inferred = { YES: 'GREEN', PARTIAL: 'YELLOW', NO: 'RED' } as const;
 type How = keyof typeof inferred;
 
 /**
- * One question ("How did it go?") sets the confidence default; the owner can still change it.
- * Minutes are prefilled from a running DSA session when there is one.
+ * Three lines (WI-091, the shape of Add a block on Today): "How did it go?" as three chips,
+ * the confidence and the minutes on one line, and the two notes behind links. The answer sets
+ * the confidence; the owner can still change it. Minutes are prefilled from a running DSA
+ * session when there is one. A saved attempt remounts the form, so nothing stale stays shown.
  */
 export function AttemptForm({
   problemId,
@@ -20,10 +22,37 @@ export function AttemptForm({
   requestId: string;
   defaultMinutes: number | null;
 }) {
+  // The first round uses the server's id; each later round draws its own, so a retry of one
+  // submission is still deduplicated while a new attempt never is.
+  const [round, setRound] = useState({ n: 0, id: requestId });
+  return (
+    <AttemptFields
+      key={round.n}
+      problemId={problemId}
+      requestId={round.id}
+      defaultMinutes={defaultMinutes}
+      onSaved={() => setRound((r) => ({ n: r.n + 1, id: crypto.randomUUID() }))}
+    />
+  );
+}
+
+function AttemptFields({
+  problemId,
+  requestId,
+  defaultMinutes,
+  onSaved,
+}: {
+  problemId: string;
+  requestId: string;
+  defaultMinutes: number | null;
+  onSaved: () => void;
+}) {
   // Nothing is chosen until the owner answers; Save stays blocked until then.
   const [how, setHow] = useState<How | null>(null);
   const [confidence, setConfidence] = useState<string>('');
   const [touched, setTouched] = useState(false);
+  const [mistakeOpen, setMistakeOpen] = useState(false);
+  const [noteOpen, setNoteOpen] = useState(false);
   const choose = (value: How) => {
     setHow(value);
     if (!touched) setConfidence(inferred[value]);
@@ -32,17 +61,12 @@ export function AttemptForm({
     <ActionForm
       action={attemptAction}
       label="Record attempt"
-      className="dsa-form"
-      resetOnSuccess
-      onSuccess={() => {
-        setHow(null);
-        setConfidence('');
-        setTouched(false);
-      }}
+      className="dsa-form attempt-form"
+      onSuccess={onSaved}
     >
       <input type="hidden" name="problemId" value={problemId} />
       <input type="hidden" name="requestId" value={requestId} />
-      <fieldset className="choice-group">
+      <fieldset className="choice-group is-chips">
         <legend>How did it go?</legend>
         {(
           [
@@ -67,12 +91,10 @@ export function AttemptForm({
           </label>
         ))}
       </fieldset>
-      <div className="form-grid">
+      <div className="form-grid attempt-line">
         <label>
           Confidence now{' '}
-          <span className="muted">
-            (set from your answer; change if needed)
-          </span>
+          <span className="muted">(from your answer; change if needed)</span>
           <select
             name="confidenceAfter"
             required
@@ -93,7 +115,7 @@ export function AttemptForm({
           </select>
         </label>
         <label>
-          Time spent, minutes{' '}
+          Minutes{' '}
           <span className="muted">
             {defaultMinutes ? '(from the running session)' : '(optional)'}
           </span>
@@ -106,19 +128,47 @@ export function AttemptForm({
           />
         </label>
       </div>
-      <label>
-        What did you miss? <span className="muted">(optional)</span>
-        <textarea
-          name="mistake"
-          rows={2}
-          maxLength={1000}
-          placeholder="Pattern, edge case, or implementation mistake"
-        />
-      </label>
-      <label>
-        Note <span className="muted">(optional)</span>
-        <textarea name="notes" rows={2} maxLength={2000} />
-      </label>
+      {/* The two notes stay behind links until there is something to write (WI-091). */}
+      <div className="attempt-notes">
+        {!mistakeOpen && (
+          <Button
+            type="button"
+            variant="link"
+            aria-expanded={false}
+            onClick={() => setMistakeOpen(true)}
+          >
+            + What did you miss
+          </Button>
+        )}
+        {!noteOpen && (
+          <Button
+            type="button"
+            variant="link"
+            aria-expanded={false}
+            onClick={() => setNoteOpen(true)}
+          >
+            + Note
+          </Button>
+        )}
+      </div>
+      {mistakeOpen && (
+        <label>
+          What did you miss?
+          <textarea
+            name="mistake"
+            rows={2}
+            maxLength={1000}
+            autoFocus
+            placeholder="Pattern, edge case, or implementation mistake"
+          />
+        </label>
+      )}
+      {noteOpen && (
+        <label>
+          Note
+          <textarea name="notes" rows={2} maxLength={2000} autoFocus />
+        </label>
+      )}
       <Button>Save attempt</Button>
     </ActionForm>
   );

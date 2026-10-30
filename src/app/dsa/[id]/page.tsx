@@ -17,9 +17,14 @@ import { Disclosure } from '@/components/disclosure';
 import { InterviewMentions } from '@/features/jobs/summary';
 import { ProblemForm, RevisionForm } from '@/features/dsa/forms';
 import { AttemptForm } from '@/features/dsa/attempt-form';
-import { isDsa, revisionDay, solvedText } from '@/features/dsa/domain';
+import {
+  isDsa,
+  learningState,
+  revisionDay,
+  solvedText,
+} from '@/features/dsa/domain';
 import { resourceUrl } from '@/lib/validation';
-import { shortDate } from '@/lib/time';
+import { dayKey, shortDate } from '@/lib/time';
 import { traceForTopic } from '@/features/drills/trace';
 import { WatchItRun } from '@/features/drills/watch-it-run';
 import { StudyPrompt } from '@/features/roadmap/study-prompt';
@@ -111,9 +116,35 @@ export default async function Problem({
       ? Math.max(1, Math.round((+now - +running.startedAt) / 60000))
       : null;
   const validUrl = resourceUrl.safeParse(p.problemUrl).success;
+  // The revision fact says the state, as the list does (WI-091): overdue, due, or the day.
+  const state = learningState(p, dayKey(now, user.timezone));
+  const revisionFact = !p.nextRevisionAt
+    ? 'Not scheduled'
+    : state === 'overdue'
+      ? `Overdue since ${shortDate(revisionDay(p.nextRevisionAt))}`
+      : state === 'due'
+        ? 'Due today'
+        : shortDate(revisionDay(p.nextRevisionAt));
   const back = origin
     ? `/roadmap/${origin.roadmapId}?section=${encodeURIComponent(origin.section)}&show=all#item-${origin.id}`
     : null;
+  const attempt = (
+    <section className="card" aria-labelledby="attempt-heading">
+      <h2 id="attempt-heading">Record an attempt</h2>
+      <AttemptForm
+        problemId={p.id}
+        requestId={randomUUID()}
+        defaultMinutes={defaultMinutes}
+      />
+      {origin && from && (
+        <p className="status-line mt-4">
+          <Link prefetch={false} className="link" href={back!}>
+            <ArrowLeft size={14} aria-hidden="true" /> Back to {origin.title}
+          </Link>
+        </p>
+      )}
+    </section>
+  );
   return (
     <>
       {origin && from ? (
@@ -168,20 +199,17 @@ export default async function Problem({
           </dd>
         </div>
         <div>
-          <dt className="muted">Next revision</dt>
-          <dd>
-            {p.nextRevisionAt
-              ? shortDate(revisionDay(p.nextRevisionAt))
-              : 'Not scheduled'}
+          <dt className="muted">Revision</dt>
+          <dd
+            className={state === 'overdue' || state === 'due' ? 'is-due' : ''}
+          >
+            {revisionFact}
             {p.revisionManual ? ' (set by hand)' : ''}
           </dd>
         </div>
         <div>
           <dt className="muted">Attempts</dt>
-          <dd>
-            {p.attemptsCount}
-            {p.revisionStage ? ` · revision stage ${p.revisionStage}` : ''}
-          </dd>
+          <dd>{p.attemptsCount}</dd>
         </div>
         <div>
           <dt className="muted">Last attempt</dt>
@@ -205,21 +233,9 @@ export default async function Problem({
           ))}
         </p>
       )}
-      <section className="card" aria-labelledby="attempt-heading">
-        <h2 id="attempt-heading">Record an attempt</h2>
-        <AttemptForm
-          problemId={p.id}
-          requestId={randomUUID()}
-          defaultMinutes={defaultMinutes}
-        />
-        {origin && from && (
-          <p className="status-line mt-4">
-            <Link prefetch={false} className="link" href={back!}>
-              <ArrowLeft size={14} aria-hidden="true" /> Back to {origin.title}
-            </Link>
-          </p>
-        )}
-      </section>
+      {/* From the roadmap the owner comes to study first, so Study leads and the form
+          follows; from the list the form leads (WI-091). */}
+      {!(origin && from) && attempt}
       {origin && (
         <section className="card flat" aria-labelledby="study-heading">
           <div className="section-head">
@@ -251,6 +267,7 @@ export default async function Problem({
           />
         </section>
       )}
+      {origin && from && attempt}
       {traceForTopic(p.topic.name) && (
         <WatchItRun kind={traceForTopic(p.topic.name)!} />
       )}

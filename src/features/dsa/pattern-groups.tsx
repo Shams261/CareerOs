@@ -10,6 +10,8 @@ export type GroupRow = {
   more: boolean;
   difficulty: 'EASY' | 'MEDIUM' | 'HARD';
   url: string | null;
+  /** "LeetCode": names the link at the row's end (WI-091). */
+  platform: string;
   confidence: 'RED' | 'YELLOW' | 'GREEN';
   attempted: boolean;
   /** 'due' | 'overdue' | 'upcoming' | null, with the date label for the last two. */
@@ -49,6 +51,7 @@ export function PatternGroups({
         <span>Problem</span>
         <span>Difficulty</span>
         <span>Status</span>
+        <span></span>
       </div>
       {groups.map((g) => {
         const isOpen = open.has(g.id);
@@ -80,6 +83,8 @@ export function PatternGroups({
             >
               {g.rows.map((p) => (
                 <div key={p.id} className="problem-line">
+                  {/* The title's link reaches over the whole row (WI-091); the platform link at
+                      the row's end sits above it. */}
                   <span className="problem-cell-title">
                     <Link
                       prefetch={false}
@@ -90,18 +95,6 @@ export function PatternGroups({
                     </Link>
                     {p.more && (
                       <span className="muted problem-tag">more practice</span>
-                    )}
-                    {p.url && (
-                      <a
-                        className="problem-open"
-                        href={p.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        aria-label={`Open ${p.title} in a new tab`}
-                        title="Open the problem in a new tab"
-                      >
-                        <ExternalLink size={14} aria-hidden="true" />
-                      </a>
                     )}
                   </span>
                   <span
@@ -127,6 +120,20 @@ export function PatternGroups({
                     )}
                     {p.revision?.state === 'upcoming' && (
                       <span className="problem-date">{p.revision.label}</span>
+                    )}
+                  </span>
+                  <span className="problem-cell-open">
+                    {p.url && (
+                      <a
+                        className="problem-open"
+                        href={p.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        aria-label={`Open ${p.title} on ${p.platform} in a new tab`}
+                      >
+                        {p.platform}{' '}
+                        <ExternalLink size={13} aria-hidden="true" />
+                      </a>
                     )}
                   </span>
                 </div>

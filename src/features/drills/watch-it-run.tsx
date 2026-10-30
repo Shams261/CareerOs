@@ -68,7 +68,7 @@ export function WatchItRun({ kind }: { kind: TraceKind }) {
         <h2 id="trace-heading">Watch it run · {meta.title}</h2>
       </div>
       <p className="muted">
-        {meta.question}
+        A sample of the pattern, not this problem. {meta.question}
         {kind === 'binary-search' ? ` Target ${target}.` : ''}
       </p>
       <div
