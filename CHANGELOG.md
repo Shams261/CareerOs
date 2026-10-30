@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- WI-083 (Plan as one list). No migration: the week is one list in Today's compact rows, each day a line in it ("Thu 29 · 3 blocks · 1h 20m planned") and empty neighbours merged into one ("Mon 26 – Tue 27 · Nothing planned"); today keeps its own line with + Add a block (Today's form, on Plan); the header is Plan, the week ("26 Oct – 1 Nov"), ‹ › and More (the date field, Routines); the facts read "4 blocks planned · 3 done · 1h 40m planned" in bold numbers; a rail carries This week (the Today card, this week only), a Routines card that opens the panel, and the Google Calendar line; the day chips scroll to the day; the old seven sections and their big rows are gone.
+
 - WI-082 (a closed day on Today). No migration: once today is reviewed, the Day Print sits in the rail where Today so far was, at the rail's size ("Day print · 1 session", Save the print, the keep-or-remove question), instead of a 640 px card above the plan with the rail empty beside it; the launcher reads "Day closed · The day is closed · 1 block completed · 1 min recorded · 1h 40m planned" with Edit review beside it and Add a block, instead of "Nothing more planned today · Edit the review from the header". A past day's print card is 480 px wide.
 
 - WI-081 (Start 20 min and refusals as toasts). No migration:

@@ -4229,55 +4229,114 @@ a.attention-link:hover .attention-title {
 .week-chip.is-today .muted {
   color: var(--primary);
 }
-.week-day-section {
-  margin-top: 26px;
-  scroll-margin-top: 16px;
-}
-.week-day-head {
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  gap: 12px;
-  padding-bottom: 8px;
-  border-bottom: 1px solid var(--border);
-}
-.week-day-head h2 {
-  margin: 0;
-  font-size: 20px;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-.week-day-head h2 a {
-  color: inherit;
-  text-decoration: none;
-}
-.week-day-head h2 a:hover {
-  color: var(--primary);
-}
-.week-day-section.is-today .week-day-head {
-  border-bottom-color: var(--primary);
-}
-.week-day-section.is-today .week-day-head h2 a {
-  color: var(--primary);
-}
-.week-day-head .muted {
-  font-size: 13px;
-  white-space: nowrap;
-}
-.week-day-section > .empty {
-  margin: 12px 0 0;
-  font-size: 14px;
-  color: var(--muted);
-}
-.week-day-section .agenda-details {
-  text-decoration: none;
-}
 .week-prepare {
   margin-top: 28px;
 }
 .routines-panel .routine-row:first-of-type {
   margin-top: 16px;
+}
+/* WI-083: the week as one list. A day is a line in the list, not a section; Today's compact
+   rows follow it; the rail carries This week, the routines and the Google line. */
+.plan-list .agenda-rows {
+  border-top: 1px solid var(--border);
+}
+.plan-dayline {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 10px;
+  padding: 12px 0 6px;
+  border-top: 1px solid var(--divider);
+  font-size: 13px;
+  color: var(--muted);
+  scroll-margin-top: 16px;
+}
+.plan-dayline:first-child {
+  border-top: 0;
+}
+.plan-dayline h2 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--foreground);
+}
+.plan-dayline h2 a {
+  color: inherit;
+  text-decoration: none;
+}
+.plan-dayline h2 a:hover {
+  color: var(--primary);
+}
+.plan-dayline.is-today h2,
+.plan-dayline.is-today h2 a {
+  color: var(--primary);
+}
+.plan-dayline .plan-add {
+  margin-left: auto;
+  font-size: 13px;
+}
+.plan-list .week-prepare {
+  margin-top: 20px;
+}
+.routines-card {
+  position: relative;
+}
+.routines-card:has(.rail-card-link:hover) {
+  border-color: var(--border-strong);
+}
+.routines-card:has(.rail-card-link:focus-visible) {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+.routine-list {
+  display: grid;
+  gap: 6px;
+  margin: 10px 0 0;
+  font-size: 13px;
+}
+.routine-list li {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 0;
+}
+.routine-list-title {
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.routine-list .muted {
+  font-size: 12px;
+  white-space: nowrap;
+}
+.plan-status {
+  font-size: 13px;
+}
+/* The whole row opens the block on Today; the › marks it. */
+.plan-list .agenda-details::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+}
+@media (max-width: 700px) {
+  /* On a phone the › sits at the row's right edge and the status, when there is one, under
+     the title, so a planned row stays two lines. */
+  .plan-list .agenda-row {
+    padding-right: 36px;
+  }
+  .plan-list .agenda-details {
+    position: absolute;
+    right: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+  }
+  .plan-list .agenda-side {
+    margin-top: 0;
+  }
+  .plan-list .agenda-side:has(> .agenda-status:empty) {
+    display: none;
+  }
 }
 @media (max-width: 700px) {
   .week-strip {
@@ -4288,10 +4347,6 @@ a.attention-link:hover .attention-title {
   }
   .week-chip {
     flex: 0 0 auto;
-  }
-  .week-day-head .muted {
-    white-space: normal;
-    text-align: right;
   }
 }
 
