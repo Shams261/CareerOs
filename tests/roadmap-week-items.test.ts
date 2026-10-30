@@ -1,19 +1,19 @@
 import { describe, expect, it } from 'vitest';
 import {
   adjacent,
+  afterDone,
   afterRemoval,
   initialItem,
   kindBadge,
   linkTitle,
-  openSections,
+  neighbourSections,
   primaryAction,
   problemFacts,
   scopeLines,
   statusBadge,
-  statusOp,
+  weekSection,
   type PaneRow,
-} from '@/features/roadmap/pane-domain';
-import { nextStatus } from '@/features/roadmap/domain';
+} from '@/features/roadmap/week-items-domain';
 
 const row = (
   id: string,
@@ -29,7 +29,7 @@ const rows = [
   row('e', 'Week 2'),
 ];
 
-describe('initialItem (WI-084)', () => {
+describe('initialItem (WI-084, kept by WI-088)', () => {
   it('prefers the hash, then the section asked for, then Continue, then the first shown row', () => {
     expect(initialItem(rows, { hash: 'e', section: 'Week 1', next: 'b' })).toBe(
       'e',
@@ -78,33 +78,6 @@ describe('adjacent', () => {
   });
 });
 
-describe('openSections', () => {
-  it('opens the open item’s section and the one asked for', () => {
-    expect(openSections(rows, { openId: 'e', section: null, q: '' })).toEqual([
-      'Week 2',
-    ]);
-    expect(
-      openSections(rows, { openId: 'b', section: 'Week 2', q: '' }),
-    ).toEqual(['Week 1', 'Week 2']);
-  });
-  it('opens the first section with a row when nothing is named', () => {
-    expect(
-      openSections(rows, { openId: 'gone', section: null, q: '' }),
-    ).toEqual(['Week 1']);
-    expect(openSections([], { openId: null, section: null, q: '' })).toEqual(
-      [],
-    );
-  });
-  it('opens every section with a match while searching', () => {
-    expect(
-      openSections(
-        [row('a', 'S1', 'DONE', false), row('b', 'S2'), row('c', 'S3')],
-        { openId: null, section: null, q: 'x' },
-      ),
-    ).toEqual(['S2', 'S3']);
-  });
-});
-
 describe('afterRemoval', () => {
   it('keeps an item that is still there, else moves to the next shown row, else the previous', () => {
     expect(afterRemoval(rows, rows, 'c')).toBe('c');
@@ -113,24 +86,6 @@ describe('afterRemoval', () => {
     expect(afterRemoval(rows, without('e'), 'e')).toBe('c');
     expect(afterRemoval(rows, [], 'c')).toBeNull();
     expect(afterRemoval(rows, rows, null)).toBeNull();
-  });
-});
-
-describe('statusOp', () => {
-  it('sends the op that reaches the chosen status, none for the current one', () => {
-    expect(statusOp('IN_PROGRESS', 'NOT_STARTED')).toBe('start');
-    expect(statusOp('IN_PROGRESS', 'DONE')).toBe('reopen');
-    expect(statusOp('DONE', 'IN_PROGRESS')).toBe('done');
-    expect(statusOp('NOT_STARTED', 'IN_PROGRESS')).toBe('unstart');
-    expect(statusOp('NOT_STARTED', 'DONE')).toBe('unstart');
-    expect(statusOp('DONE', 'DONE')).toBeNull();
-  });
-  it('lands where it says through nextStatus', () => {
-    for (const from of ['NOT_STARTED', 'IN_PROGRESS', 'DONE'] as const)
-      for (const to of ['NOT_STARTED', 'IN_PROGRESS', 'DONE'] as const) {
-        const op = statusOp(to, from);
-        expect(op ? nextStatus(op, from) : from).toBe(to);
-      }
   });
 });
 
@@ -236,5 +191,67 @@ describe('the task card (WI-085)', () => {
         practice: true,
       }),
     ).toBe('attempt');
+  });
+});
+
+describe('the roadmap as weeks (WI-088)', () => {
+  const sections = ['Week 1', 'Week 2', 'Week 3'];
+  it('shows the section asked for, else the first with a match under a filter, else the current, else the first', () => {
+    const input = { asked: null, filtered: false, rows, current: 'Week 2' };
+    expect(weekSection(sections, { ...input, asked: 'Week 3' })).toBe('Week 3');
+    expect(weekSection(sections, { ...input, asked: 'Nope' })).toBe('Week 2');
+    expect(weekSection(sections, input)).toBe('Week 2');
+    expect(weekSection(sections, { ...input, current: null })).toBe('Week 1');
+    expect(weekSection([], { ...input, current: null })).toBeNull();
+  });
+  it('opens the first week with a shown row while a filter is on, unless a section is named', () => {
+    const only2 = rows.map((r) => ({ ...r, shown: r.section === 'Week 2' }));
+    expect(
+      weekSection(sections, {
+        asked: null,
+        filtered: true,
+        rows: only2,
+        current: 'Week 1',
+      }),
+    ).toBe('Week 2');
+    expect(
+      weekSection(sections, {
+        asked: 'Week 1',
+        filtered: true,
+        rows: only2,
+        current: null,
+      }),
+    ).toBe('Week 1');
+    // Nothing matches anywhere: the current week, so the page can say so.
+    expect(
+      weekSection(sections, {
+        asked: null,
+        filtered: true,
+        rows: rows.map((r) => ({ ...r, shown: false })),
+        current: 'Week 3',
+      }),
+    ).toBe('Week 3');
+  });
+  it('names the weeks before and after', () => {
+    expect(neighbourSections(sections, 'Week 2')).toEqual({
+      prev: 'Week 1',
+      next: 'Week 3',
+    });
+    expect(neighbourSections(sections, 'Week 1').prev).toBeNull();
+    expect(neighbourSections(sections, 'Week 3').next).toBeNull();
+    expect(neighbourSections(sections, null)).toEqual({
+      prev: null,
+      next: null,
+    });
+  });
+  it('moves the open row to the next item left after Mark done, else stays', () => {
+    expect(afterDone(rows, 'b')).toBe('c');
+    // d is hidden, so c skips to e.
+    expect(afterDone(rows, 'c')).toBe('e');
+    expect(afterDone(rows, 'e')).toBe('e');
+    expect(afterDone(rows, 'zz')).toBe('zz');
+    expect(afterDone(rows, null)).toBeNull();
+    // Nothing after it but done rows: it stays.
+    expect(afterDone([row('x', 'S'), row('y', 'S', 'DONE')], 'x')).toBe('x');
   });
 });

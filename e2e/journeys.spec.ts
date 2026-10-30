@@ -103,20 +103,19 @@ test('a block for today runs through Focus to Done', async ({ page }) => {
 
 test('a roadmap item is added and marked done', async ({ page }) => {
   await page.goto('/roadmap');
-  await page.getByRole('button', { name: 'New roadmap' }).click();
+  // The goal card leads the page (WI-088), with its form while no goal is set.
+  await expect(page.getByRole('heading', { name: 'Set a goal' })).toBeVisible();
+  await page.getByRole('button', { name: 'Add your own roadmap' }).click();
   await page.getByLabel('Title').fill('System design');
   await page.getByRole('button', { name: 'Create roadmap' }).click();
-  await expect(
-    page.getByRole('link', { name: /System design/ }).first(),
-  ).toBeVisible();
+  // The roadmap is a band that opens to its weeks; its last row adds items.
+  const band = page.getByRole('button', { name: /System design/ });
+  await expect(band).toBeVisible();
   await accessible(page);
+  await band.click();
   await page
-    .getByRole('link', { name: /System design/ })
-    .first()
+    .getByRole('button', { name: /Add a week or items to System design/ })
     .click();
-  // Add items lives in the header's More menu (WI-084) and opens as a panel.
-  await page.getByRole('button', { name: 'More' }).click();
-  await page.getByRole('button', { name: 'Add items' }).click();
   const add = page.getByRole('form', { name: 'Add items' });
   await add.getByLabel('Section').fill('Building blocks');
   await add
@@ -124,26 +123,25 @@ test('a roadmap item is added and marked done', async ({ page }) => {
     .fill('Consistent hashing\n? Design a rate limiter');
   await add.getByRole('button', { name: 'Add items' }).click();
   await page.keyboard.press('Escape');
-  // The outline lists the item on the left and the pane shows it on the right (WI-084).
-  const row = page.locator('li.outline-row', { hasText: 'Consistent hashing' });
-  await expect(row).toHaveClass(/is-current/);
-  const pane = page.getByRole('article', { name: 'Consistent hashing' });
-  await expect(pane.getByText('Building blocks · 1 of 2')).toBeVisible();
-  // One primary per state (WI-085): Mark done, then the badge reads Done and the row is ticked.
-  await expect(pane.getByText('Not started').first()).toBeVisible();
-  await pane.getByRole('button', { name: 'Mark done' }).click();
-  await expect(page.getByText(/1 done/).first()).toBeVisible();
-  await expect(row).toHaveClass(/is-done/);
-  await expect(pane.locator('.item-metaline .status-badge')).toContainText(
-    /^Done/,
-  );
-  // Next walks the outline to the question.
-  await pane
-    .getByRole('button', { name: /^Next: Design a rate limiter/ })
-    .click();
+  // The new week lists under the band and opens as its own page.
+  await page.getByRole('link', { name: /Building blocks/ }).click();
   await expect(
-    page.getByRole('article', { name: 'Design a rate limiter' }),
+    page.getByRole('heading', { level: 1, name: 'Building blocks' }),
   ).toBeVisible();
+  await expect(page.getByText('0 done · 2 left')).toBeVisible();
+  // The first item still to do is open on arrival, as a card with one primary.
+  const first = page.locator('.week-item', { hasText: 'Consistent hashing' });
+  await expect(first).toHaveClass(/is-open/);
+  await expect(
+    first.getByRole('button', { name: /Not started: Consistent hashing/ }),
+  ).toHaveAttribute('aria-expanded', 'true');
+  await first.getByRole('button', { name: 'Mark done' }).click();
+  await expect(page.getByText('1 done · 1 left')).toBeVisible();
+  await expect(first).toHaveClass(/is-done/);
+  // Mark done opens the next item left.
+  await expect(
+    page.locator('.week-item', { hasText: 'Design a rate limiter' }),
+  ).toHaveClass(/is-open/);
   await accessible(page);
   await fitsPhone(page, page.url().replace(/^https?:\/\/[^/]+/, ''));
 });

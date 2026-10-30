@@ -8,7 +8,11 @@ import { revisionContext } from '@/features/attention/domain';
 import { PageShortcuts } from '@/components/shortcuts';
 import { BulkItemsForm, RoadmapForm } from '@/features/roadmap/forms';
 import { LinkOptionsProvider } from '@/features/roadmap/item-form';
-import { RoadmapPane, type Row } from '@/features/roadmap/pane';
+import { WeekItems, type Row } from '@/features/roadmap/week-items';
+import {
+  neighbourSections,
+  weekSection,
+} from '@/features/roadmap/week-items-domain';
 import { ItemFilters } from '@/features/roadmap/filters';
 import { UtilityMenu } from '@/features/today/utility-menu';
 import { PendingRegion } from '@/components/pending-region';
@@ -26,7 +30,7 @@ import { isTestNamed } from '@/lib/test-data';
 import { aiState } from '@/features/ai/service';
 import { budgetLine } from '@/features/ai/domain';
 import { formatInTimeZone } from 'date-fns-tz';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, ArrowRight } from 'lucide-react';
 export const metadata = { title: 'Roadmap' };
 
 const dateLabel = (d: Date) =>
@@ -35,9 +39,10 @@ const shows = ['all', 'open', 'p0', 'revision', 'asked'] as const;
 type Show = (typeof shows)[number];
 
 /**
- * One roadmap as an outline and a reading pane (WI-084): one header line, the outline of every
- * section with its items on the left, the open item on the right. Search and Show narrow the
- * outline across the whole roadmap; `?section=` opens that section and `#item-` names the item.
+ * One week of a roadmap as its own page (WI-088): ← the roadmap, the week's name as the title,
+ * its counts and next item, and its items as rows that open in place. `?section=` names the
+ * week (the current one when absent), `#item-` the open item; Search and Show narrow this
+ * week's rows, and a Show view without a section opens the first week that has a match.
  */
 export default async function RoadmapDetail({
   params,
@@ -78,82 +83,95 @@ export default async function RoadmapDetail({
       ? { budget: budgetLine(ai.spent) }
       : null;
   const sectionNames = [...roadmap.sections.keys()];
-  const sections = sectionNames.map((name) => {
-    const items = roadmap.sections.get(name)!;
-    return {
-      name,
-      total: items.length,
-      done: items.filter((i) => i.status === 'DONE').length,
-      due: revisionQueue(items, today).length,
-    };
-  });
   const due = revisionQueue(roadmap.items, today).length;
-  const left = roadmap.progress.total - roadmap.progress.done;
   const scenarios = (roadmap.scenarios as Scenario[] | null)?.length
     ? (roadmap.scenarios as Scenario[])
     : DEFAULT_SCENARIOS;
-  const section =
-    query.section && roadmap.sections.has(query.section) ? query.section : null;
   const show: Show = shows.includes(query.show as Show)
     ? (query.show as Show)
     : 'all';
   const q = (query.q ?? '').trim().toLowerCase();
   const doneToday = (item: { completedAt: Date | null }) =>
     !!item.completedAt && dayKey(item.completedAt, user.timezone) === today;
-  const rows: Row[] = sectionNames
+  const shown = (item: (typeof roadmap.items)[number]) =>
+    // An item done today stays in the "not done" views until tomorrow (WI-048).
+    (show === 'all' ||
+      (show === 'open' && (item.status !== 'DONE' || doneToday(item))) ||
+      (show === 'revision' &&
+        ['due', 'overdue'].includes(revisionState(item, today))) ||
+      (show === 'asked' && item.askedInInterview) ||
+      (show === 'p0' &&
+        item.priority === 1 &&
+        (item.status !== 'DONE' || doneToday(item)))) &&
+    (!q || item.title.toLowerCase().includes(q));
+  const allRows = sectionNames
     .flatMap((name) => roadmap.sections.get(name)!)
     .map((item) => ({
-      item,
-      revision: revisionState(item, today),
-      revisionLabel: item.nextRevisionAt
-        ? dateLabel(item.nextRevisionAt)
-        : null,
-      doneLabel: item.completedAt
-        ? shortDate(dayKey(item.completedAt, user.timezone))
-        : null,
-      revisionText:
-        item.status === 'DONE' && item.nextRevisionAt
-          ? revisionContext(revisionDay(item.nextRevisionAt), today)
-          : null,
-      links: {
-        learningTopic: item.learningTopic
-          ? {
-              id: item.learningTopic.id,
-              title: item.learningTopic.title,
-              subject: item.learningTopic.subject.name,
-            }
-          : null,
-        dsaProblem: item.dsaProblem
-          ? {
-              id: item.dsaProblem.id,
-              title: item.dsaProblem.title,
-              confidence: item.dsaProblem.confidence,
-              attemptsCount: item.dsaProblem.attemptsCount,
-              nextRevision: item.dsaProblem.nextRevisionAt
-                ? dateLabel(item.dsaProblem.nextRevisionAt)
-                : null,
-            }
-          : null,
-        dsaTopic: item.dsaTopic,
-      },
-      cards: cards.filter((c) => c.roadmapItemId === item.id),
-      grillable: !!grill && !isTestNamed(item.title, roadmap.title),
-      listenable:
-        !!grill &&
-        !isTestNamed(item.title, roadmap.title) &&
-        sourcePlan(item.references).fetch.length > 0,
-      // An item done today stays in the "not done" views until tomorrow (WI-048).
-      shown:
-        (show === 'all' ||
-          (show === 'open' && (item.status !== 'DONE' || doneToday(item))) ||
-          (show === 'revision' &&
-            ['due', 'overdue'].includes(revisionState(item, today))) ||
-          (show === 'asked' && item.askedInInterview) ||
-          (show === 'p0' &&
-            item.priority === 1 &&
-            (item.status !== 'DONE' || doneToday(item)))) &&
-        (!q || item.title.toLowerCase().includes(q)),
+      id: item.id,
+      section: item.section,
+      status: item.status,
+      shown: shown(item),
     }));
+  const section = weekSection(sectionNames, {
+    asked: query.section ?? null,
+    filtered: show !== 'all' || !!q,
+    rows: allRows,
+    current: roadmap.next?.section ?? null,
+  });
+  const items = section ? (roadmap.sections.get(section) ?? []) : [];
+  const { prev, next } = neighbourSections(sectionNames, section);
+  const sectionDone = items.filter((i) => i.status === 'DONE').length;
+  const sectionNext =
+    roadmap.next?.section === section
+      ? roadmap.next
+      : (items.find((i) => i.status === 'IN_PROGRESS') ??
+        items.find((i) => i.status === 'NOT_STARTED') ??
+        null);
+  const matchesElsewhere = allRows.filter(
+    (r) => r.shown && r.section !== section,
+  ).length;
+  const weekHref = (name: string) =>
+    `/roadmap/${roadmap.id}?section=${encodeURIComponent(name)}`;
+  const rows: Row[] = items.map((item) => ({
+    item,
+    revision: revisionState(item, today),
+    revisionLabel: item.nextRevisionAt ? dateLabel(item.nextRevisionAt) : null,
+    doneLabel: item.completedAt
+      ? shortDate(dayKey(item.completedAt, user.timezone))
+      : null,
+    revisionText:
+      item.status === 'DONE' && item.nextRevisionAt
+        ? revisionContext(revisionDay(item.nextRevisionAt), today)
+        : null,
+    links: {
+      learningTopic: item.learningTopic
+        ? {
+            id: item.learningTopic.id,
+            title: item.learningTopic.title,
+            subject: item.learningTopic.subject.name,
+          }
+        : null,
+      dsaProblem: item.dsaProblem
+        ? {
+            id: item.dsaProblem.id,
+            title: item.dsaProblem.title,
+            confidence: item.dsaProblem.confidence,
+            attemptsCount: item.dsaProblem.attemptsCount,
+            nextRevision: item.dsaProblem.nextRevisionAt
+              ? dateLabel(item.dsaProblem.nextRevisionAt)
+              : null,
+          }
+        : null,
+      dsaTopic: item.dsaTopic,
+    },
+    cards: cards.filter((c) => c.roadmapItemId === item.id),
+    grillable: !!grill && !isTestNamed(item.title, roadmap.title),
+    listenable:
+      !!grill &&
+      !isTestNamed(item.title, roadmap.title) &&
+      sourcePlan(item.references).fetch.length > 0,
+    shown: shown(item),
+  }));
   return (
     <>
       <PageShortcuts
@@ -163,7 +181,7 @@ export default async function RoadmapDetail({
           { key: 'k', label: 'Previous item', press: 'row-prev' },
           {
             key: 'd',
-            label: 'Mark the item done (or revised)',
+            label: 'Mark the open item done (or revised)',
             press: 'row-done',
           },
           { key: 'c', label: 'Copy the study prompt', press: 'row-copy' },
@@ -176,7 +194,7 @@ export default async function RoadmapDetail({
                 },
               ]
             : []),
-          { key: 'Escape', label: 'Back to the outline', press: 'row-close' },
+          { key: 'Escape', label: 'Close the open item', press: 'row-close' },
         ]}
       />
       <header className="today-head roadmap-head">
@@ -187,20 +205,12 @@ export default async function RoadmapDetail({
               className="link roadmap-back"
               href="/roadmap"
             >
-              <ArrowLeft size={14} aria-hidden="true" /> Roadmap
-            </Link>
-            <h1>{roadmap.title}</h1>
-            <span className="today-date roadmap-count">
-              {roadmap.progress.total
-                ? `${roadmap.progress.done} done · ${left} left`
-                : 'No items yet'}
+              <ArrowLeft size={14} aria-hidden="true" /> {roadmap.title}
               {roadmap.archivedAt ? ' · Archived' : ''}
-            </span>
+            </Link>
           </div>
           <div className="today-head-actions">
-            {roadmap.progress.total > 5 && (
-              <ItemFilters q={query.q ?? ''} show={show} />
-            )}
+            {items.length > 8 && <ItemFilters q={query.q ?? ''} show={show} />}
             <UtilityMenu>
               <PanelButton
                 panel="add-items"
@@ -236,21 +246,32 @@ export default async function RoadmapDetail({
             </UtilityMenu>
           </div>
         </div>
-        {(roadmap.goal || roadmap.curriculum) && (
-          <p className="today-summary">
-            <span>
-              {roadmap.curriculum
-                ? 'Default roadmap'
-                : `Toward ${roadmap.goal!.title}`}
-            </span>
-          </p>
+        {section && (
+          <div className="week-head">
+            <h1>{section}</h1>
+            <p className="week-head-facts">
+              <b>
+                {sectionDone} done · {items.length - sectionDone} left
+              </b>
+              {sectionNext && <span> · Next: {sectionNext.title}</span>}
+              {(show !== 'all' || q) && (
+                <span>
+                  {' '}
+                  · {rows.filter((r) => r.shown).length} shown
+                  {matchesElsewhere > 0
+                    ? `, ${matchesElsewhere} more in other weeks`
+                    : ''}
+                </span>
+              )}
+            </p>
+          </div>
         )}
       </header>
       <SidePanel id="add-items" title="Add items">
         <BulkItemsForm
           roadmapId={roadmap.id}
           sections={sectionNames}
-          section={section ?? sectionNames[0]}
+          section={section ?? undefined}
         />
       </SidePanel>
       <SidePanel id="roadmap-edit" title={`Edit ${roadmap.title}`}>
@@ -267,25 +288,26 @@ export default async function RoadmapDetail({
           </div>
         )}
       </SidePanel>
-      {!roadmap.items.length ? (
+      {!roadmap.items.length || !section ? (
         <section className="card">
+          <h1 className="week-empty-title">{roadmap.title}</h1>
           <p className="empty">
             Nothing here yet. Add items from More: paste an outline, one line
             per item, and start a line with ? for a question.
           </p>
         </section>
       ) : (
-        <PendingRegion className="roadmap-pane-region">
+        <PendingRegion className="week-region">
           <LinkOptionsProvider links={links}>
-            <RoadmapPane
-              key={`${q}:${show}`}
+            <WeekItems
+              key={`${section}:${q}:${show}`}
               roadmap={{
                 id: roadmap.id,
                 title: roadmap.title,
                 promptTemplate: roadmap.promptTemplate,
               }}
               scenarios={scenarios}
-              sections={sections}
+              sections={sectionNames}
               rows={rows}
               next={roadmap.next?.id ?? null}
               section={section}
@@ -293,6 +315,26 @@ export default async function RoadmapDetail({
               grill={grill}
             />
           </LinkOptionsProvider>
+          <nav className="week-nav" aria-label="Weeks">
+            {prev ? (
+              <Link prefetch={false} className="link" href={weekHref(prev)}>
+                <ArrowLeft size={14} aria-hidden="true" /> {prev}
+              </Link>
+            ) : (
+              <Link prefetch={false} className="link" href="/roadmap">
+                <ArrowLeft size={14} aria-hidden="true" /> {roadmap.title}
+              </Link>
+            )}
+            {next && (
+              <Link
+                prefetch={false}
+                className="link week-nav-next"
+                href={weekHref(next)}
+              >
+                {next} <ArrowRight size={14} aria-hidden="true" />
+              </Link>
+            )}
+          </nav>
         </PendingRegion>
       )}
     </>

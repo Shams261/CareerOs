@@ -1,20 +1,54 @@
-import type { ItemOp, ItemStatus } from './domain';
+import type { ItemStatus } from './domain';
 
 /**
- * The roadmap as an outline and a reading pane (WI-084): the pure rules for which item the
- * pane shows, which sections the outline opens, and where Prev and Next go.
+ * The roadmap as weeks (WI-088): a roadmap opens to its sections on the Roadmap page, a section
+ * (a week) is its own page, and an item opens in place on that page. These are the pure rules:
+ * which section a page shows, which item is open on arrival, and where the open row goes after
+ * a mark or a removal.
  */
 export type PaneRow = {
   id: string;
   section: string;
   status: ItemStatus;
-  /** The outline lists the row; a row filtered out by search or Show is still readable. */
+  /** The page lists the row; a row filtered out by search or Show is still readable. */
   shown: boolean;
 };
 
 /**
- * The item the pane shows on arrival: the one named in the hash, else the first item not done
- * in the section asked for, else the Continue item, else the first row the outline shows.
+ * The section a roadmap page shows: the one asked for (`?section=`) when it exists; under a
+ * filter (Show or a search) the first section with a shown row; else the current section (the
+ * one holding the Continue item); else the first section.
+ */
+export function weekSection(
+  sections: string[],
+  input: {
+    asked: string | null;
+    filtered: boolean;
+    rows: PaneRow[];
+    current: string | null;
+  },
+) {
+  if (input.asked && sections.includes(input.asked)) return input.asked;
+  if (input.filtered) {
+    const first = input.rows.find((r) => r.shown);
+    if (first) return first.section;
+  }
+  if (input.current && sections.includes(input.current)) return input.current;
+  return sections[0] ?? null;
+}
+
+/** The sections before and after `name`, for ← Week 1 / Week 3 → on a week page. */
+export function neighbourSections(sections: string[], name: string | null) {
+  const i = name ? sections.indexOf(name) : -1;
+  return {
+    prev: i > 0 ? sections[i - 1] : null,
+    next: i >= 0 && i < sections.length - 1 ? sections[i + 1] : null,
+  };
+}
+
+/**
+ * The item open on arrival: the one named in the hash, else the first shown item not done in
+ * the section, else the Continue item when the page shows it, else the first shown row.
  */
 export function initialItem(
   rows: PaneRow[],
@@ -29,13 +63,13 @@ export function initialItem(
     const open = inSection.find((r) => r.status !== 'DONE') ?? inSection[0];
     if (open) return open.id;
   }
-  // Continue only when the outline shows it; under a filter the first shown row wins.
+  // Continue only when the page shows it; under a filter the first shown row wins.
   const next = rows.find((r) => r.id === input.next);
   if (next?.shown) return next.id;
   return rows.find((r) => r.shown)?.id ?? null;
 }
 
-/** Prev and Next walk the rows the outline shows, in outline order. */
+/** Prev and Next walk the rows the page shows, in page order. */
 export function adjacent(rows: PaneRow[], id: string | null) {
   const shown = rows.filter((r) => r.shown || r.id === id);
   const i = shown.findIndex((r) => r.id === id);
@@ -46,29 +80,23 @@ export function adjacent(rows: PaneRow[], id: string | null) {
 }
 
 /**
- * The sections open on arrival: the open item's, the one the link asked for, and every section
- * holding a match while a search is on (so the matches are all in view).
+ * Where the open row goes once its item is marked done (WI-088): the next shown row after it
+ * that is not done, so the study loop reads open → study → done → next; the same row when
+ * nothing is left after it.
  */
-export function openSections(
-  rows: PaneRow[],
-  input: { openId: string | null; section: string | null; q: string },
-) {
-  const open = new Set<string>();
-  const current = rows.find((r) => r.id === input.openId);
-  if (current) open.add(current.section);
-  if (input.section) open.add(input.section);
-  if (input.q) for (const r of rows) if (r.shown) open.add(r.section);
-  // Nothing named: the first section with a row, so the outline never arrives collapsed.
-  if (!open.size) {
-    const first = rows.find((r) => r.shown) ?? rows[0];
-    if (first) open.add(first.section);
-  }
-  return [...open];
+export function afterDone(rows: PaneRow[], id: string | null) {
+  if (!id) return id;
+  const i = rows.findIndex((r) => r.id === id);
+  if (i < 0) return id;
+  const next = rows
+    .slice(i + 1)
+    .find((r) => r.shown && r.status !== 'DONE' && r.id !== id);
+  return next?.id ?? id;
 }
 
 /**
- * Where the pane goes when its item leaves the rows (removed, or filtered out and gone): the
- * next shown row after it in the old order, else the one before, else nothing.
+ * Where the open row goes when its item leaves the rows (removed, or filtered out and gone):
+ * the next shown row after it in the old order, else the one before, else nothing.
  */
 export function afterRemoval(
   before: PaneRow[],
@@ -83,20 +111,6 @@ export function afterRemoval(
     .reverse()
     .find((r) => stays.has(r.id));
   return next?.id ?? prev?.id ?? after.find((r) => r.shown)?.id ?? null;
-}
-
-/**
- * The op a choice on the status control sends from the current status; null for the choice
- * already made. Done starts revision as before; Studying from done reopens.
- */
-export function statusOp(
-  choice: ItemStatus,
-  current: ItemStatus,
-): ItemOp | null {
-  if (choice === current) return null;
-  if (choice === 'NOT_STARTED') return 'unstart';
-  if (choice === 'DONE') return 'done';
-  return current === 'DONE' ? 'reopen' : 'start';
 }
 
 /**

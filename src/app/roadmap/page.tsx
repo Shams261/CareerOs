@@ -1,18 +1,17 @@
 import { ConfirmDelete } from '@/components/confirm-delete';
 import { deleteGoalAction } from '@/features/deletes/actions';
 import Link from 'next/link';
-import { forTodayPicks } from '@/features/for-today/service';
-import { ForTodayCard } from '@/features/for-today/card';
-import { ArrowRight, ChevronRight, Route } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
 import { owner } from '@/server/db';
-import { dayKey } from '@/lib/time';
+import { dayKey, longDate, shortDate } from '@/lib/time';
 import { Disclosure } from '@/components/disclosure';
 import { PageShortcuts } from '@/components/shortcuts';
 import { UtilityMenu } from '@/features/today/utility-menu';
 import { RoadmapIllustration } from '@/components/illustrations';
 import { FeedbackOutlet } from '@/components/feedback-outlet';
 import { PanelButton, SidePanel } from '@/components/side-panel';
-import { GoalForm, RoadmapForm } from '@/features/roadmap/forms';
+import { BulkItemsForm, GoalForm, RoadmapForm } from '@/features/roadmap/forms';
+import { RoadmapBands } from '@/features/roadmap/bands';
 import {
   goalsOverview,
   revisionDue,
@@ -23,10 +22,8 @@ import { planQuestion } from '@/features/roadmap/week';
 import { AskRumiButton } from '@/features/agent/ask-button';
 import { AGENT_NAME } from '@/features/agent/domain';
 import { aiConfig } from '@/lib/env';
-import { shortDate } from '@/lib/time';
-import { continueTarget, goalLine } from '@/features/roadmap/domain';
+import { revisionQueue, targetLabel } from '@/features/roadmap/domain';
 import { roadmapRevisionRows } from '@/features/attention/domain';
-import { formatDuration } from '@/features/schedule/row';
 import { AttentionPages } from '@/features/today/attention-rows';
 export const metadata = { title: 'Roadmap' };
 
@@ -37,30 +34,55 @@ const statusText = {
   ARCHIVED: 'Archived',
 } as const;
 
+/**
+ * The Roadmap page (WI-088): the goal, centred and bold, as the reminder; one line to This week
+ * and the revision queue; the roadmaps as bands that open to their weeks; one button to add
+ * your own roadmap. No picks and no Continue button: the current week inside an open band is
+ * where the work is.
+ */
 export default async function RoadmapPage() {
   const user = await owner(),
     now = new Date(),
     today = dayKey(now, user.timezone);
-  const [goals, roadmaps, due, week, picks] = await Promise.all([
+  const [goals, roadmaps, due, week] = await Promise.all([
     goalsOverview(user, now),
     roadmapList(user, now),
     revisionDue(user, now),
     weekPlan(user, now),
-    forTodayPicks(user, now),
   ]);
   const active = goals.filter((g) => g.status === 'ACTIVE'),
     rest = goals.filter((g) => g.status !== 'ACTIVE'),
     live = roadmaps.filter((r) => !r.archivedAt),
     archived = roadmaps.filter((r) => r.archivedAt),
-    next = continueTarget(roadmaps),
-    // The revision panel leaves out what For today already offers (WI-060).
-    dueRows = roadmapRevisionRows(due, now, user.timezone).filter(
-      (r) => !picks.some((p) => p.key === `revise:item:${r.id.split(':')[1]}`),
-    );
+    dueRows = roadmapRevisionRows(due, now, user.timezone),
+    lead = active[0] ?? null,
+    others = active.slice(1);
+  const target = (g: { targetDate: Date | null }) =>
+    g.targetDate?.toISOString().slice(0, 10) ?? null;
+  const bands = live.map((r) => {
+    const dueBySection = new Map<string, number>();
+    for (const item of revisionQueue(r.items, today))
+      dueBySection.set(item.section, (dueBySection.get(item.section) ?? 0) + 1);
+    return {
+      id: r.id,
+      title: r.title,
+      done: r.progress.done,
+      total: r.progress.total,
+      due: r.due,
+      current: r.next?.section ?? null,
+      nextTitle: r.next?.title ?? null,
+      sections: r.sections.map((s) => ({
+        ...s,
+        due: dueBySection.get(s.name) ?? 0,
+      })),
+    };
+  });
   return (
     <>
       <PageShortcuts
-        shortcuts={[{ key: 'n', label: 'New roadmap', press: 'new-roadmap' }]}
+        shortcuts={[
+          { key: 'n', label: 'Add your own roadmap', press: 'new-roadmap' },
+        ]}
       />
       <header className="today-head">
         <div className="today-head-row">
@@ -68,67 +90,74 @@ export default async function RoadmapPage() {
             <h1>Roadmap</h1>
           </div>
           <div className="today-head-actions">
-            {/* Always there: with no goal yet, this is where one is set (WI-064). */}
             <UtilityMenu>
               <PanelButton panel="goals" className="link-button today-util">
-                {!goals.length
-                  ? 'Set a goal'
-                  : active.length === 1
-                    ? 'Edit goal'
-                    : 'Goals'}
+                {!goals.length ? 'Set a goal' : 'Goals'}
               </PanelButton>
             </UtilityMenu>
-            {/* For today leads with the page's primary; Continue stays when it has no picks. */}
-            {next && !picks.length && (
-              <Link className="button" href={next.href} prefetch={false}>
-                Continue · {next.title}{' '}
-                <ArrowRight size={14} aria-hidden="true" />
-              </Link>
-            )}
           </div>
         </div>
-        {active.length > 0 && (
-          <p className="today-summary">
-            {active.map((g) => (
-              <span key={g.id}>{goalLine(g, today, formatDuration)}</span>
-            ))}
+      </header>
+      <div className="roadmap-single">
+        {/* The goal, centred and bold: the one thing on the page that is not a list. */}
+        <section className="goal-hero" aria-labelledby="goal-heading">
+          <p className="goal-hero-eyebrow">Your goal</p>
+          {lead ? (
+            <>
+              <h2 id="goal-heading" className="goal-hero-title">
+                {lead.title}
+              </h2>
+              <p className="goal-hero-when">
+                <b>{targetLabel(target(lead), today)}</b>
+                {target(lead) && <span> · {longDate(target(lead)!)}</span>}
+              </p>
+              {others.map((g) => (
+                <p className="goal-hero-more" key={g.id}>
+                  Also: {g.title} · {targetLabel(target(g), today)}
+                </p>
+              ))}
+              <PanelButton
+                panel="goals"
+                focus={`goal-${lead.id}`}
+                className="link-button goal-hero-edit"
+              >
+                Edit goal
+              </PanelButton>
+            </>
+          ) : (
+            <>
+              <h2 id="goal-heading" className="goal-hero-title">
+                Set a goal
+              </h2>
+              <div className="goal-hero-form">
+                <GoalForm compact />
+              </div>
+            </>
+          )}
+        </section>
+        {(live.length > 0 || dueRows.length > 0) && (
+          <p className="more-line goal-hero-line">
+            {live.length > 0 && (
+              <PanelButton panel="week" className="link-button">
+                This week
+              </PanelButton>
+            )}
+            {dueRows.length > 0 && (
+              <PanelButton panel="revision" className="link-button">
+                {dueRows.length} due for revision{' '}
+                <ArrowRight size={14} aria-hidden="true" />
+              </PanelButton>
+            )}
           </p>
         )}
-      </header>
-      {/* Goals are set on Today and in Goals; the curriculum needs none (WI-064). */}
-      {/* One "next" list (WI-063): For today leads; This week and the revision queue open in
-          panels from one line, and roadmap rows show their counts without a second "Next". */}
-      <div className="roadmap-single">
-        <section className="jobs-main" aria-labelledby="roadmaps-heading">
-          <ForTodayCard picks={picks} />
-          {(live.length > 0 || dueRows.length > 0) && (
-            <p className="more-line">
-              {live.length > 0 && (
-                <PanelButton panel="week" className="link-button">
-                  This week
-                </PanelButton>
-              )}
-              {dueRows.length > 0 && (
-                <PanelButton panel="revision" className="link-button">
-                  {dueRows.length} due for revision{' '}
-                  <ArrowRight size={14} aria-hidden="true" />
-                </PanelButton>
-              )}
-            </p>
-          )}
+        <section aria-labelledby="roadmaps-heading">
           <div className="agenda-head">
             <h2 id="roadmaps-heading" className="agenda-heading">
-              Roadmaps
+              Roadmaps{' '}
+              {live.length > 0 && (
+                <span className="muted agenda-count">· {live.length}</span>
+              )}
             </h2>
-            <Disclosure
-              label="New roadmap"
-              variant={live.length ? 'link' : 'primary'}
-              shortcut="new-roadmap"
-              draft="roadmap:new"
-              className="agenda-add"
-            >
-              <RoadmapForm goals={goals} />
-            </Disclosure>
           </div>
           <FeedbackOutlet channel="roadmaps" className="mb-2" />
           {!live.length && (
@@ -137,60 +166,36 @@ export default async function RoadmapPage() {
               <h3>Your first roadmap</h3>
               <p className="empty">
                 A roadmap is the list of topics and questions you want to be
-                ready for, in sections, with what you have covered and what came
-                up in interviews. Import your study material, or start one with
-                New roadmap.
+                ready for, in weeks or sections, with what you have covered and
+                what came up in interviews. Import your study material, or start
+                one with Add your own roadmap.
               </p>
             </div>
           )}
-          <ul className="plain-list attention-list">
-            {live.map((r) => {
-              const left = r.progress.total - r.progress.done;
-              return (
-                <li className="attention-row" data-source="roadmap" key={r.id}>
-                  <Link
-                    className="attention-link"
-                    href={
-                      r.next
-                        ? `/roadmap/${r.id}?section=${encodeURIComponent(r.next.section)}#item-${r.next.id}`
-                        : `/roadmap/${r.id}`
-                    }
-                    prefetch={false}
-                  >
-                    <span className="attention-icon" aria-hidden="true">
-                      <Route size={22} />
-                    </span>
-                    {/* The roadmap's name and counts; the row opens at what comes next. */}
-                    <span className="attention-main">
-                      <span className="attention-title">{r.title}</span>
-                      {!r.next && (
-                        <span className="attention-context">
-                          {r.progress.total
-                            ? 'Everything done'
-                            : r.goal
-                              ? `No items yet · Toward ${r.goal.title}`
-                              : 'No items yet'}
-                        </span>
-                      )}
-                    </span>
-                    <span className="roadmap-counts">
-                      {r.progress.total > 0 && (
-                        <span>
-                          {r.progress.done} done · {left} left
-                        </span>
-                      )}
-                      {r.due > 0 && <span className="is-due">{r.due} due</span>}
-                    </span>
-                    <ChevronRight
-                      size={18}
-                      aria-hidden="true"
-                      className="attention-chevron"
-                    />
-                  </Link>
-                </li>
-              );
-            })}
-          </ul>
+          <RoadmapBands roadmaps={bands} />
+          {live.map((r) => (
+            <SidePanel
+              key={r.id}
+              id={`add-items:${r.id}`}
+              title={`Add items to ${r.title}`}
+            >
+              <BulkItemsForm
+                roadmapId={r.id}
+                sections={r.sections.map((s) => s.name)}
+                section={r.next?.section ?? r.sections[0]?.name}
+              />
+            </SidePanel>
+          ))}
+          <div className="roadmap-add">
+            <Disclosure
+              label="Add your own roadmap"
+              variant={live.length ? 'secondary' : 'primary'}
+              shortcut="new-roadmap"
+              draft="roadmap:new"
+            >
+              <RoadmapForm goals={goals} />
+            </Disclosure>
+          </div>
           {archived.length > 0 && (
             <Disclosure
               variant="link"
@@ -224,7 +229,7 @@ export default async function RoadmapPage() {
                   </AskRumiButton>
                 )}
               </div>
-              {/* The goal already reads in the header; here only the P0 count (WI-058). */}
+              {/* The goal already reads on the card; here only the P0 count (WI-058). */}
               <p className="muted week-ready">
                 {active.length
                   ? `P0 first · ${week.p0Left} not done`
