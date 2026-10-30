@@ -2042,6 +2042,68 @@ a.problem-title:hover {
   margin: 0;
   padding: 0;
 }
+/* The Practice head carries the same More menu as Today (WI-091): the menu sits under it. */
+.page-head .today-utils {
+  position: relative;
+}
+/* The attempt form as three lines (WI-091): chips, one line of fields, notes behind links. */
+.dsa-form .choice-group.is-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.choice-group.is-chips legend {
+  width: 100%;
+}
+.dsa-form .choice-group.is-chips .choice {
+  flex: 0 0 auto;
+  width: auto;
+  display: inline-flex;
+  padding: 8px 14px;
+  border-radius: 999px;
+}
+/* The Practice head on a phone: the title on its line, More and Add a problem on the next. */
+@media (max-width: 700px) {
+  .page-head.is-practice {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+  .page-head.is-practice h1 {
+    flex-basis: 100%;
+  }
+}
+.attempt-form .attempt-line {
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+  margin-top: 14px;
+}
+.attempt-form .attempt-line label {
+  margin-bottom: 10px;
+}
+.attempt-notes {
+  display: flex;
+  gap: 16px;
+  margin: 0 0 12px;
+  font-size: 14px;
+}
+.attempt-notes:empty {
+  display: none;
+}
+@media (max-width: 700px) {
+  .attempt-form .attempt-line {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+.facts-strip dd.is-due {
+  color: var(--warning-text);
+  font-weight: 600;
+}
+.drill-missed {
+  margin: 0 0 16px;
+  padding-left: 18px;
+  display: grid;
+  gap: 4px;
+}
 .attempt-row {
   display: grid;
   grid-template-columns: 160px minmax(0, 1fr);
@@ -2085,7 +2147,7 @@ a.problem-title:hover {
 /* Practice library: four aligned columns, grouped by pattern, paged. */
 .problem-table {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 110px 200px;
+  grid-template-columns: minmax(0, 1fr) 110px 200px auto;
   gap: 0 20px;
   align-items: center;
 }
@@ -2112,6 +2174,34 @@ a.problem-title:hover {
 .problem-line {
   padding: 10px 0;
   border-top: 1px solid var(--border-subtle);
+  position: relative;
+}
+/* The whole row opens the problem (WI-091): the title's link reaches over the row; the
+   platform link at the end sits above it. */
+.problem-line .problem-title::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+}
+.problem-line:hover {
+  background: var(--subtle);
+}
+.problem-cell-open {
+  position: relative;
+  z-index: 1;
+  justify-self: end;
+  font-size: 13px;
+  white-space: nowrap;
+}
+.problem-cell-open .problem-open {
+  gap: 4px;
+  padding: 4px 8px;
+  color: var(--ink-2);
+  text-decoration: none;
+}
+.problem-cell-open .problem-open:hover {
+  color: var(--primary);
+  background: var(--surface);
 }
 .problem-cell-title {
   display: flex;
@@ -2169,10 +2259,14 @@ a.problem-title:hover {
   }
   .problem-cell-status {
     grid-column: 2;
-    grid-row: 1 / span 2;
+    grid-row: 1;
     flex-direction: column;
     align-items: flex-end;
     gap: 2px;
+  }
+  .problem-cell-open {
+    grid-column: 2;
+    grid-row: 2;
   }
   /* The group heading already names the pattern on a phone. */
   .problem-cell-pattern {
@@ -6364,12 +6458,12 @@ button.attention-link {
     min-width: 36px;
     padding: 0;
   }
-  .today-head .today-utils {
+  :is(.today-head, .page-head) .today-utils {
     flex: 0 0 auto;
     flex-wrap: wrap;
     justify-content: flex-end;
   }
-  .today-head .today-utils.is-open .today-utils-items {
+  :is(.today-head, .page-head) .today-utils.is-open .today-utils-items {
     position: absolute;
     top: calc(100% + 6px);
     right: 0;
@@ -6849,13 +6943,13 @@ button.attention-link {
   flex: 1 1 auto;
   min-width: 0;
 }
-.today-head .today-utils-toggle {
+:is(.today-head, .page-head) .today-utils-toggle {
   display: inline-flex;
 }
-.today-head .today-utils-items {
+:is(.today-head, .page-head) .today-utils-items {
   display: none;
 }
-.today-head .today-utils.is-open .today-utils-items {
+:is(.today-head, .page-head) .today-utils.is-open .today-utils-items {
   display: flex;
   flex-direction: column;
   align-items: stretch;
@@ -6876,8 +6970,8 @@ button.attention-link {
   margin-bottom: 4px;
 }
 /* Every item reads as a row of the menu, like the "⋯" menus. */
-.today-head .today-utils-items .today-util,
-.today-head .today-utils-items .button.secondary {
+:is(.today-head, .page-head) .today-utils-items .today-util,
+:is(.today-head, .page-head) .today-utils-items .button.secondary {
   display: flex;
   align-items: center;
   justify-content: flex-start;
@@ -6896,8 +6990,8 @@ button.attention-link {
   text-align: left;
   text-decoration: none;
 }
-.today-head .today-utils-items .today-util:hover,
-.today-head .today-utils-items .button.secondary:hover {
+:is(.today-head, .page-head) .today-utils-items .today-util:hover,
+:is(.today-head, .page-head) .today-utils-items .button.secondary:hover {
   background: var(--subtle);
   color: var(--foreground);
 }

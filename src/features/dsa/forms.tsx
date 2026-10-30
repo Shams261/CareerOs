@@ -112,21 +112,19 @@ export function ProblemForm({
         />
       </label>
       <label>
-        Platform
+        Platform <span className="muted">(optional)</span>
         <input
           name="platform"
-          required
           maxLength={80}
-          placeholder="LeetCode, HackerRank, custom…"
+          placeholder="LeetCode, HackerRank, a book…"
           defaultValue={problem?.platform}
         />
       </label>
       <label>
-        Problem URL
+        Problem URL <span className="muted">(optional)</span>
         <input
           name="problemUrl"
           type="url"
-          required
           defaultValue={problem?.problemUrl}
         />
       </label>

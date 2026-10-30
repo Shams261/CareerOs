@@ -65,12 +65,20 @@ export async function saveTopic(user: ScheduleUser, raw: unknown) {
 /** One click from the Topics list; the same rule as the form's "Current topic" box. */
 export async function setCurrentTopic(user: ScheduleUser, topicId: string) {
   return locked(user.id, async (tx) => {
-    const topic = await tx.dsaTopic.findUnique({ where: { id: topicId } });
-    if (!topic) throw new Error('Topic not found.');
-    if (['PAUSED', 'COMPLETED', 'NOT_STARTED'].includes(topic.status))
+    const found = await tx.dsaTopic.findUnique({ where: { id: topicId } });
+    if (!found) throw new Error('Topic not found.');
+    if (['PAUSED', 'COMPLETED'].includes(found.status))
       throw new Error(
         'Set a current topic to Learning, Revising or Interview ready.',
       );
+    // Making a topic current starts it (WI-091): the import leaves every topic Not started.
+    const topic =
+      found.status === 'NOT_STARTED'
+        ? await tx.dsaTopic.update({
+            where: { id: found.id },
+            data: { status: 'LEARNING' },
+          })
+        : found;
     await tx.user.update({
       where: { id: user.id },
       data: { currentDsaTopicId: topic.id },
@@ -83,8 +91,13 @@ export async function saveProblem(user: ScheduleUser, raw: unknown) {
     .object({
       id: z.string().default(''),
       title: z.string().trim().min(1).max(200),
-      platform: z.string().trim().min(1).max(80),
-      problemUrl: resourceUrl,
+      // A problem from a book or a whiteboard has no platform or link (WI-091).
+      platform: z
+        .string()
+        .trim()
+        .max(80)
+        .transform((v) => v || 'Other'),
+      problemUrl: z.union([z.literal(''), resourceUrl]),
       difficulty: z.enum(['EASY', 'MEDIUM', 'HARD']),
       topicId: z.string().min(1),
       notes: z.string().trim().max(2000).default(''),

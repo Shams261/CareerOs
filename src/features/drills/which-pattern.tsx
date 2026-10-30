@@ -44,6 +44,10 @@ export function WhichPattern({ deck }: { deck: Card[] }) {
 
   if (done) {
     const result = drillResult(picks);
+    // The problems picked wrong, each a link, so the next step is one click (WI-091).
+    const missed = deck.filter(
+      (c, i) => picks[i] && picks[i].picked !== c.answer,
+    );
     return (
       <section className="drill-card" aria-labelledby="drill-result">
         <h2 id="drill-result" ref={heading} tabIndex={-1}>
@@ -55,6 +59,21 @@ export function WhichPattern({ deck }: { deck: Card[] }) {
             <ul className="drill-mixed">
               {result.mixedUp.map((pair) => (
                 <li key={pair}>{pair}</li>
+              ))}
+            </ul>
+            <p className="muted">The problems</p>
+            <ul className="drill-missed">
+              {missed.map((c) => (
+                <li key={c.problemId}>
+                  <Link
+                    className="link"
+                    href={`/dsa/${c.problemId}`}
+                    prefetch={false}
+                  >
+                    {c.title}
+                  </Link>{' '}
+                  <span className="muted">· {c.answer}</span>
+                </li>
               ))}
             </ul>
           </>

@@ -21,6 +21,7 @@ import { ActionForm } from '@/components/action-form';
 import { makeCurrentAction } from '@/features/dsa/actions';
 import { Disclosure } from '@/components/disclosure';
 import { PanelButton, SidePanel } from '@/components/side-panel';
+import { UtilityMenu } from '@/features/today/utility-menu';
 import { dayKey, localInstant } from '@/lib/time';
 import { resourceUrl } from '@/lib/validation';
 import { shiftDay } from '@/features/schedule/domain';
@@ -124,6 +125,7 @@ export default async function Dsa({
             url: resourceUrl.safeParse(p.problemUrl).success
               ? p.problemUrl
               : null,
+            platform: p.platform,
             confidence: p.confidence,
             attempted: p.attemptsCount > 0,
             revision:
@@ -147,32 +149,32 @@ export default async function Dsa({
     (['GREEN', 'YELLOW', 'RED'] as const)
       .map((c) => [items.filter((p) => p.confidence === c).length, c] as const)
       .filter(([n]) => n > 0)
-      .map(([n, c]) => `${n} ${c[0]}${c.slice(1).toLowerCase()}`)
+      .map(([n, c]) => `${n} ${confidenceWord(c)}`)
       .join(' · ');
   const overdueDays = (d: Date) => Math.round((+new Date(day) - +d) / 86400000);
   return (
     <>
-      <div className="page-head">
+      <div className="page-head is-practice">
         <h1>Practice</h1>
         {topics.length > 0 && (
           <>
-            {/* One auto margin packs the actions to the right; the primary sits last
-                before Add a problem, whose form opens on its own line (WI-058). */}
-            <PanelButton
-              panel="topics"
-              className="button secondary page-head-link"
-            >
-              Topics
-            </PanelButton>
-            {problems.length >= 4 && (
-              <Link
-                className="button secondary"
-                href="/dsa/drill"
-                prefetch={false}
-              >
-                Pattern quiz
-              </Link>
-            )}
+            {/* Topics and the quiz sit in More (WI-091, like every other page), so the head
+                is one row on a phone; the primary sits last before Add a problem, whose form
+                opens on its own line (WI-058). */}
+            <UtilityMenu>
+              <PanelButton panel="topics" className="link-button today-util">
+                Topics
+              </PanelButton>
+              {problems.length >= 4 && (
+                <Link
+                  className="link-button today-util"
+                  href="/dsa/drill"
+                  prefetch={false}
+                >
+                  Pattern quiz
+                </Link>
+              )}
+            </UtilityMenu>
             {nextProblem && !picks.length && (
               <Link
                 className="button"
@@ -310,7 +312,7 @@ export default async function Dsa({
             )}
             {groups.length > 0 && (
               <PatternGroups
-                key={`${q}|${status}`}
+                key={`${q}|${status}|${currentTopic?.id ?? ''}`}
                 groups={groups}
                 openIds={openIds}
               />
