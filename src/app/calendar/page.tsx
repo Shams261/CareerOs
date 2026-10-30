@@ -13,7 +13,11 @@ import { db, owner } from '@/server/db';
 import { dayKey, hhmm } from '@/lib/time';
 import { generateThroughSunday } from '@/features/schedule/service';
 import { dateInput, weekDays, shiftDay } from '@/features/schedule/domain';
-import { RoutineForm, CategoryOptions } from '@/features/schedule/forms';
+import {
+  BlockForm,
+  RoutineForm,
+  CategoryOptions,
+} from '@/features/schedule/forms';
 import { BlockRowShell } from '@/features/schedule/block-row';
 import {
   blockFacts,
@@ -26,16 +30,21 @@ import {
 } from '@/features/schedule/row';
 import { PanelButton, SidePanel } from '@/components/side-panel';
 import { PrepareNextWeekForm } from '@/features/review/forms';
+import {
+  dayName,
+  groupName,
+  weekGroups,
+  weekRange,
+} from '@/features/schedule/week-list';
+import { UtilityMenu } from '@/features/today/utility-menu';
+import { WeekCard } from '@/features/today/week-card';
+import { weekProgress } from '@/features/today/home';
+import { nextSlot } from '@/features/today/domain';
 export const metadata = { title: 'Plan' };
 
 const WEEKDAY = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const label = (day: string, pattern: string) =>
   formatInTimeZone(new Date(`${day}T12:00:00Z`), 'UTC', pattern);
-/** "Week of 19 – 25 October", or "Week of 26 October – 1 November" across a month. */
-const weekLabel = (days: string[]) =>
-  label(days[0], 'MMMM') === label(days[6], 'MMMM')
-    ? `Week of ${label(days[0], 'd')} – ${label(days[6], 'd MMMM')}`
-    : `Week of ${label(days[0], 'd MMMM')} – ${label(days[6], 'd MMMM')}`;
 const statusText = {
   CONNECTED: 'connected',
   REAUTH_REQUIRED: 'reconnect required',
@@ -131,11 +140,35 @@ export default async function Calendar({
         : 'Not planned yet';
     return `${facts.planned} block${facts.planned === 1 ? '' : 's'} · ${formatDuration(facts.plannedMinutes)} planned`;
   };
+  // The week as one list (WI-083): days with blocks and today on their own, empty neighbours
+  // merged into one line.
+  const groups = weekGroups(
+    days.map((day) => ({
+      day,
+      blocks: planOf(day)?.blocks ?? [],
+      line: dayLine(day),
+    })),
+    today,
+  );
+  const facts = blockFacts(weekBlocks, now);
+  const thisWeekShown = days[0] === thisWeek[0];
+  const todayBlocks = planOf(today)?.blocks ?? [];
+  const slot = nextSlot(
+    now,
+    user.timezone,
+    today,
+    todayBlocks
+      .filter((b) => b.status !== 'CANCELLED')
+      .map((b) => ({ start: b.plannedStart, end: b.plannedEnd })),
+  );
   return (
     <>
       <CategoryOptions />
       <PageShortcuts
-        shortcuts={[{ key: 'n', label: 'Routines', press: 'routines' }]}
+        shortcuts={[
+          { key: 'n', label: 'Add a block', press: 'add-block' },
+          { key: 'r', label: 'Routines', press: 'routines' },
+        ]}
         prev={`/calendar?date=${shiftDay(days[0], -7)}`}
         next={`/calendar?date=${shiftDay(days[0], 7)}`}
       />
@@ -143,7 +176,7 @@ export default async function Calendar({
         <div className="today-head-row">
           <div className="today-title">
             <h1>Plan</h1>
-            <span className="today-date">{weekLabel(days)}</span>
+            <span className="today-date">{weekRange(days)}</span>
             <nav className="day-nav" aria-label="Week navigation">
               <Link
                 className="button secondary small day-nav-step"
@@ -161,7 +194,7 @@ export default async function Calendar({
               >
                 <ChevronRight size={16} aria-hidden="true" />
               </Link>
-              {days[0] !== thisWeek[0] && (
+              {!thisWeekShown && (
                 <Link
                   className="button secondary small"
                   href="/calendar"
@@ -170,32 +203,64 @@ export default async function Calendar({
                   This week
                 </Link>
               )}
+            </nav>
+          </div>
+          {/* The date field and the routines behind one More, as on Today (WI-083). */}
+          <UtilityMenu>
+            <span className="today-util-date">
               <DateJump
                 key={selected}
                 value={selected}
                 path="/calendar"
                 label="Open the week containing a date"
               />
-            </nav>
-          </div>
-          <div className="today-utils">
-            <div className="today-utils-items">
-              {!empty && (
-                <PanelButton
-                  panel="routines"
-                  className={`button${routines.length ? ' secondary' : ''}`}
-                  data-shortcut="routines"
-                >
-                  {routines.length
-                    ? `Routines · ${routines.length}`
-                    : 'Add routine'}
-                </PanelButton>
-              )}
-            </div>
-          </div>
+            </span>
+            <PanelButton
+              panel="routines"
+              className="button secondary"
+              data-shortcut="routines"
+            >
+              {routines.length
+                ? `Routines · ${routines.length}`
+                : 'Add routine'}
+            </PanelButton>
+          </UtilityMenu>
         </div>
-        <p className="today-summary">
-          {factsLine(blockFacts(weekBlocks, now))}
+        <p className="today-facts" aria-label="The week in numbers">
+          {facts.planned ? (
+            <>
+              <span className="today-fact">
+                <strong>{facts.planned}</strong> block
+                {facts.planned === 1 ? '' : 's'} planned
+              </span>
+              {facts.done > 0 && (
+                <span className="today-fact">
+                  <strong>{facts.done}</strong> done
+                </span>
+              )}
+              {facts.skipped > 0 && (
+                <span className="today-fact">
+                  <strong>{facts.skipped}</strong> skipped
+                </span>
+              )}
+              {facts.notRecorded > 0 && (
+                <span className="today-fact">
+                  <strong>{facts.notRecorded}</strong> not recorded
+                </span>
+              )}
+              {facts.needsUpdate > 0 && (
+                <span className="today-fact">
+                  <strong>{facts.needsUpdate}</strong> need
+                  {facts.needsUpdate === 1 ? 's' : ''} update
+                </span>
+              )}
+              <span className="today-fact">
+                <strong>{formatDuration(facts.plannedMinutes)}</strong> planned
+              </span>
+            </>
+          ) : (
+            <span className="today-fact">Nothing planned</span>
+          )}
         </p>
       </header>
       {generationError && (
@@ -229,10 +294,13 @@ export default async function Calendar({
               const n = planOf(day)?.blocks.filter(
                 (b) => b.status !== 'CANCELLED',
               ).length;
+              const group = groups.find(
+                (g) => g.days[0] <= day && day <= g.days[g.days.length - 1],
+              );
               return (
                 <a
                   key={day}
-                  href={`#day-${day}`}
+                  href={`#day-${group?.days[0] ?? day}`}
                   className={`week-chip${day === today ? ' is-today' : ''}`}
                   aria-current={day === today ? 'date' : undefined}
                 >
@@ -244,31 +312,44 @@ export default async function Calendar({
               );
             })}
           </nav>
-          {days.map((day, index) => {
-            const plan = planOf(day);
-            const blocks = plan?.blocks ?? [];
-            const isToday = day === today;
-            const dayName = `${WEEKDAY[(index + 1) % 7]} ${label(day, 'd')}`;
-            return (
-              <section
-                key={day}
-                id={`day-${day}`}
-                className={`week-day-section${isToday ? ' is-today' : ''}`}
-                aria-labelledby={`day-heading-${day}`}
-                aria-current={isToday ? 'date' : undefined}
-              >
-                <div className="week-day-head">
-                  <h2 id={`day-heading-${day}`}>
-                    <Link href={`/today?date=${day}`} prefetch={false}>
-                      {dayName}
-                    </Link>
-                    {isToday && <span className="pill success">Today</span>}
-                  </h2>
-                  <span className="muted">{dayLine(day)}</span>
-                </div>
-                {blocks.length > 0 && (
-                  <ol className="plain-list agenda-rows">
-                    {blocks.map((b) => {
+          <div className="today-workspace is-today plan-workspace">
+            <section
+              className="agenda is-compact plan-list"
+              aria-label="The week's plan"
+            >
+              <ol className="plain-list agenda-rows">
+                {groups.map((group) => {
+                  const first = group.days[0];
+                  const name = groupName(group);
+                  return [
+                    <li
+                      key={`day-${first}`}
+                      id={`day-${first}`}
+                      className={`plan-dayline${group.isToday ? ' is-today' : ''}`}
+                    >
+                      <h2>
+                        {group.days.length > 1 ? (
+                          name
+                        ) : (
+                          <Link href={`/today?date=${first}`} prefetch={false}>
+                            {name}
+                          </Link>
+                        )}
+                      </h2>
+                      <span className="plan-dayline-meta">
+                        {group.isToday ? `Today · ${group.line}` : group.line}
+                      </span>
+                      {group.isToday && (
+                        <PanelButton
+                          panel="add-block"
+                          className="link-button plan-add"
+                          data-shortcut="add-block"
+                        >
+                          + Add a block
+                        </PanelButton>
+                      )}
+                    </li>,
+                    ...group.blocks.map((b) => {
                       const resolution = blockResolution(b, now);
                       const sync = syncing
                         ? blockSyncView(
@@ -309,8 +390,8 @@ export default async function Calendar({
                           side={
                             <Link
                               className="agenda-details"
-                              href={`/today?date=${day}#block-${b.id}`}
-                              aria-label={`Open ${title} on Today, ${dayName}`}
+                              href={`/today?date=${first}#block-${b.id}`}
+                              aria-label={`Open ${title} on Today, ${dayName(first)}`}
                               prefetch={false}
                             >
                               <ChevronRight size={18} aria-hidden="true" />
@@ -318,28 +399,97 @@ export default async function Calendar({
                           }
                         />
                       );
-                    })}
-                  </ol>
+                    }),
+                  ];
+                })}
+              </ol>
+              {unplanned && (
+                <div className="week-prepare">
+                  <PrepareNextWeekForm monday={days[0]} />
+                </div>
+              )}
+            </section>
+            <aside className="today-rail" aria-label="This week and routines">
+              {thisWeekShown && (
+                <WeekCard
+                  week={weekProgress({
+                    done: weekBlocks.filter((b) => b.status === 'COMPLETED')
+                      .length,
+                    planned: weekBlocks.filter((b) => b.status !== 'CANCELLED')
+                      .length,
+                  })}
+                  weekKey={days[0]}
+                  facts={factsLine(facts)}
+                />
+              )}
+              {/* Routines as a card that opens the panel (WI-083), like This week opens Plan. */}
+              <section
+                className="card rail-card routines-card"
+                aria-labelledby="routines-heading"
+              >
+                <div className="week-card-head">
+                  <h2 id="routines-heading">Routines</h2>
+                  <span className="muted">
+                    {routines.length
+                      ? `${routines.filter((r) => r.enabled).length} on`
+                      : 'none yet'}
+                  </span>
+                </div>
+                {routines.length ? (
+                  <ul className="plain-list routine-list">
+                    {routines.slice(0, 5).map((r) => (
+                      <li key={r.id}>
+                        <span className="routine-list-title">{r.title}</span>
+                        <span className="muted">
+                          {r.weekdays.map((d) => WEEKDAY[d]).join(' ')} ·{' '}
+                          {r.startLocal}
+                          {r.enabled ? '' : ' · Paused'}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="week-line">
+                    A routine fills every week from here on.
+                  </p>
                 )}
+                <PanelButton
+                  panel="routines"
+                  className="link-button rail-card-link"
+                >
+                  {routines.length ? 'Routines' : 'Add routine'}{' '}
+                  <ChevronRight size={14} aria-hidden="true" />
+                </PanelButton>
               </section>
-            );
-          })}
+              <p className="status-line plan-status">
+                <span>
+                  Google Calendar{' '}
+                  {syncing ? statusText[connection.status] : 'not connected'}
+                </span>
+                <Link
+                  prefetch={false}
+                  className="link"
+                  href="/settings#google-heading"
+                >
+                  {syncing ? 'Manage in Settings' : 'Connect in Settings'}
+                </Link>
+              </p>
+            </aside>
+          </div>
+          {/* Adding a block to today from Plan (WI-083): Today's own form. */}
+          {thisWeekShown && (
+            <SidePanel id="add-block" title="Add a block" variant="modal">
+              <BlockForm
+                day={today}
+                zone={user.timezone}
+                goals={goals}
+                defaultStart={slot.start}
+                defaultEnd={slot.end}
+              />
+            </SidePanel>
+          )}
         </>
       )}
-      {unplanned && (
-        <div className="week-prepare">
-          <PrepareNextWeekForm monday={days[0]} />
-        </div>
-      )}
-      <p className="status-line mt-5">
-        <span>
-          Google Calendar{' '}
-          {syncing ? statusText[connection.status] : 'not connected'}
-        </span>
-        <Link prefetch={false} className="link" href="/settings#google-heading">
-          {syncing ? 'Manage in Settings' : 'Connect in Settings'}
-        </Link>
-      </p>
       <SidePanel id="routines" title="Routines">
         <div className="routines-panel">
           <Disclosure
