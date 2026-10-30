@@ -92,9 +92,14 @@ export function PageShortcuts({
   if (!open) return null;
   const rows: [string, string][] = [
     ...shortcuts.map((s) => [s.key.toUpperCase(), s.label] as [string, string]),
+    // The arrows list whenever one of them works (WI-090: the first week has only →).
     ...(prev && next
       ? ([['← →', 'Previous and next']] as [string, string][])
-      : []),
+      : prev
+        ? ([['←', 'Previous']] as [string, string][])
+        : next
+          ? ([['→', 'Next']] as [string, string][])
+          : []),
     ['⌘K', 'Search and run anything (Ctrl K)'],
     ['?', 'Show or hide this list'],
     ['Esc', 'Close'],

@@ -8,6 +8,7 @@ import {
   unhideProblemAction,
 } from '@/features/deletes/actions';
 import { notFound } from 'next/navigation';
+import { memo } from '@/server/memo';
 import { randomUUID } from 'node:crypto';
 import { formatInTimeZone } from 'date-fns-tz';
 import { ExternalLink, ArrowLeft } from 'lucide-react';
@@ -27,7 +28,22 @@ import {
   type Reference,
   type Scenario,
 } from '@/features/roadmap/domain';
-export const metadata = { title: 'Practice' };
+/** The tab names the problem; an id that is not the owner's answers 404 (WI-090). */
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
+  const [user, { id }] = await Promise.all([owner(), params]);
+  const p = await memo(user.id, `problem-name:${id}`, () =>
+    db().dsaProblem.findFirst({
+      where: { id, userId: user.id },
+      select: { title: true },
+    }),
+  );
+  if (!p) notFound();
+  return { title: `${p.title} · Practice` };
+}
 
 const tone = { RED: 'danger', YELLOW: 'warning', GREEN: 'success' } as const;
 
