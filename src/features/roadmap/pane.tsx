@@ -24,6 +24,7 @@ import { StudyPrompt } from './study-prompt';
 import type { ItemStatus, Reference, Scenario } from './domain';
 import {
   adjacent,
+  afterRemoval,
   initialItem,
   kindBadge,
   linkTitle,
@@ -246,6 +247,18 @@ export function RoadmapPane({
   const [seenRows, setSeenRows] = useState(rows);
   if (rows !== seenRows) {
     setSeenRows(rows);
+    // The open item left the rows (removed): the pane moves to its neighbour.
+    const moved = afterRemoval(
+      seenRows.map((r) => ({
+        id: r.item.id,
+        section: r.item.section,
+        status: r.item.status,
+        shown: r.shown,
+      })),
+      paneRows,
+      open,
+    );
+    if (moved !== open) setOpen(moved);
     if (optimistic.size) {
       const n = new Map(optimistic);
       for (const r of rows)
@@ -331,7 +344,10 @@ export function RoadmapPane({
             const id =
               focused?.closest<HTMLElement>('.outline-title')?.dataset.item;
             if (id && id !== open) show(id);
-            setTimeout(() => pressInPane('.study-prompt button'), 50);
+            setTimeout(
+              () => pressInPane('.pane-tool-main, .study-prompt button'),
+              50,
+            );
           }}
         />
         <button
@@ -874,6 +890,16 @@ function ItemPane({
           </ul>
         </section>
       )}
+      {/* Started by itself, quietly: the badge and the outline icon are the only answer. */}
+      <ActionForm
+        action={itemOpAction}
+        className="pane-autostart"
+        onPending={(f) => flip(item.id, f)}
+        onSettled={(r) => settle(item.id, r.ok)}
+      >
+        <input type="hidden" name="id" value={item.id} />
+        <button ref={startRef} name="op" value="start" tabIndex={-1} hidden />
+      </ActionForm>
       <ActionForm
         action={itemOpAction}
         broadcast="roadmap-items"
@@ -882,9 +908,6 @@ function ItemPane({
         onSettled={(r) => settle(item.id, r.ok)}
       >
         <input type="hidden" name="id" value={item.id} />
-        <span hidden>
-          <button ref={startRef} name="op" value="start" tabIndex={-1} />
-        </span>
         <div className="item-foot">
           {primary === 'attempt' && (
             <Link prefetch={false} className="button" href={practice!}>

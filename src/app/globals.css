@@ -8621,6 +8621,9 @@ button.attention-link {
   min-height: 0;
   font-size: 14.5px;
 }
+.pane-autostart {
+  display: none;
+}
 .item-foot .button.secondary.small.is-pressed {
   background: var(--tint);
   border-color: var(--tint);

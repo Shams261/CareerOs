@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   adjacent,
+  afterRemoval,
   initialItem,
   kindBadge,
   linkTitle,
@@ -49,6 +50,11 @@ describe('initialItem (WI-084)', () => {
       null,
     );
   });
+  it('skips a Continue item the filter hides', () => {
+    expect(initialItem(rows, { hash: null, section: null, next: 'd' })).toBe(
+      'a',
+    );
+  });
   it('opens a finished section on its first item', () => {
     expect(
       initialItem([row('x', 'S', 'DONE'), row('y', 'S', 'DONE')], {
@@ -81,6 +87,14 @@ describe('openSections', () => {
       openSections(rows, { openId: 'b', section: 'Week 2', q: '' }),
     ).toEqual(['Week 1', 'Week 2']);
   });
+  it('opens the first section with a row when nothing is named', () => {
+    expect(
+      openSections(rows, { openId: 'gone', section: null, q: '' }),
+    ).toEqual(['Week 1']);
+    expect(openSections([], { openId: null, section: null, q: '' })).toEqual(
+      [],
+    );
+  });
   it('opens every section with a match while searching', () => {
     expect(
       openSections(
@@ -88,6 +102,17 @@ describe('openSections', () => {
         { openId: null, section: null, q: 'x' },
       ),
     ).toEqual(['S2', 'S3']);
+  });
+});
+
+describe('afterRemoval', () => {
+  it('keeps an item that is still there, else moves to the next shown row, else the previous', () => {
+    expect(afterRemoval(rows, rows, 'c')).toBe('c');
+    const without = (id: string) => rows.filter((r) => r.id !== id);
+    expect(afterRemoval(rows, without('c'), 'c')).toBe('e');
+    expect(afterRemoval(rows, without('e'), 'e')).toBe('c');
+    expect(afterRemoval(rows, [], 'c')).toBeNull();
+    expect(afterRemoval(rows, rows, null)).toBeNull();
   });
 });
 
