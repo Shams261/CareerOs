@@ -72,3 +72,125 @@ export function statusOp(
   if (choice === 'DONE') return 'done';
   return current === 'DONE' ? 'reopen' : 'start';
 }
+
+/**
+ * Scope text as bullet lines (WI-085): the curriculum separates with newlines, " · " or, in one
+ * line, a long comma list. A short single line stays one line.
+ */
+export function scopeLines(scope: string | null | undefined): string[] {
+  const text = (scope ?? '').trim();
+  if (!text) return [];
+  const lines = text
+    .split(/\r?\n/)
+    .flatMap((l) => l.split(/\s+·\s+/))
+    .map((l) => l.trim())
+    .filter(Boolean);
+  if (lines.length === 1 && lines[0].length > 60 && !/[.;:]\s/.test(lines[0]))
+    return lines[0]
+      .split(/,\s+/)
+      .map((l) => l.trim())
+      .filter(Boolean);
+  return lines;
+}
+
+/**
+ * The facts a problem item's scope carries, written by the import as
+ * "Easy · pattern: Arrays & Hashing", "Lists: NeetCode 150, Blind 75", "Asked at (Prashad): Google, Amazon".
+ */
+export function problemFacts(scope: string | null | undefined) {
+  const facts = {
+    difficulty: null as string | null,
+    pattern: null as string | null,
+    lists: [] as string[],
+    companies: [] as string[],
+  };
+  for (const raw of (scope ?? '').split(/\r?\n/)) {
+    for (const part of raw.split(/\s+·\s+/)) {
+      const p = part.trim();
+      const m = /^(pattern|lists?|asked at(?:\s*\([^)]*\))?)\s*:\s*(.+)$/i.exec(
+        p,
+      );
+      if (m) {
+        const key = m[1].toLowerCase();
+        const values = m[2]
+          .split(/,\s*/)
+          .map((v) => v.trim())
+          .filter(Boolean);
+        if (key === 'pattern') facts.pattern = m[2].trim();
+        else if (key.startsWith('list')) facts.lists = values;
+        else facts.companies = values;
+      } else if (/^(easy|medium|hard)$/i.test(p)) facts.difficulty = p;
+    }
+  }
+  return facts;
+}
+
+const KIND_BADGES: [RegExp, string][] = [
+  [/video|youtube|lecture|playlist|channel/i, 'VIDEO'],
+  [/rfc|spec|standard/i, 'SPEC'],
+  [/doc|reference|manual|guide|guidance|cheat sheet|handbook/i, 'DOCS'],
+  [/article|blog|post|essay/i, 'ARTICLE'],
+  [/course|lesson|tutorial|class/i, 'COURSE'],
+  [/book|chapter/i, 'BOOK'],
+  [/repo|github|code/i, 'CODE'],
+];
+/** A short badge for a reference's kind: VIDEO, DOCS, SPEC, ARTICLE, COURSE, BOOK, CODE or LINK. */
+export function kindBadge(kind?: string | null) {
+  const k = (kind ?? '').trim();
+  if (!k) return 'LINK';
+  return KIND_BADGES.find(([re]) => re.test(k))?.[1] ?? 'LINK';
+}
+
+/** "Open on LeetCode" for a LeetCode link, "Open on NeetCode", else "Open link". */
+export function linkTitle(url: string) {
+  try {
+    const host = new URL(url).hostname.replace(/^www\./, '');
+    if (host.endsWith('leetcode.com')) return 'Open on LeetCode';
+    if (host.endsWith('neetcode.io')) return 'Open on NeetCode';
+    if (host.endsWith('hackerrank.com')) return 'Open on HackerRank';
+    return 'Open link';
+  } catch {
+    return 'Open link';
+  }
+}
+
+export type BadgeInput = {
+  status: ItemStatus;
+  revision: 'none' | 'upcoming' | 'due' | 'overdue';
+  /** "Revision due today", "Revision overdue by 2 days", "Revision due Oct 28". */
+  revisionText: string | null;
+  /** "Oct 28": the day the item was marked done. */
+  doneLabel: string | null;
+  /** "Nov 4": the next revision day. */
+  revisionLabel: string | null;
+};
+/** The status badge: what the item is now, in a few words, and its tone. */
+export function statusBadge(i: BadgeInput): {
+  text: string;
+  tone: 'quiet' | 'on' | 'due';
+} {
+  if (i.status === 'DONE') {
+    if ((i.revision === 'due' || i.revision === 'overdue') && i.revisionText)
+      return { text: i.revisionText, tone: 'due' };
+    const done = i.doneLabel ? `Done ${i.doneLabel}` : 'Done';
+    return {
+      text: i.revisionLabel ? `${done} · revise ${i.revisionLabel}` : done,
+      tone: 'on',
+    };
+  }
+  if (i.status === 'IN_PROGRESS') return { text: 'Started', tone: 'on' };
+  return { text: 'Not started', tone: 'quiet' };
+}
+
+/** The one primary action of the foot for the item's state. */
+export function primaryAction(i: {
+  status: ItemStatus;
+  revision: BadgeInput['revision'];
+  practice: boolean;
+}): 'attempt' | 'revised' | 'done' | 'is-done' {
+  if (i.practice) return 'attempt';
+  if (i.status !== 'DONE') return 'done';
+  return i.revision === 'due' || i.revision === 'overdue'
+    ? 'revised'
+    : 'is-done';
+}

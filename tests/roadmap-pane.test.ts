@@ -2,7 +2,13 @@ import { describe, expect, it } from 'vitest';
 import {
   adjacent,
   initialItem,
+  kindBadge,
+  linkTitle,
   openSections,
+  primaryAction,
+  problemFacts,
+  scopeLines,
+  statusBadge,
   statusOp,
   type PaneRow,
 } from '@/features/roadmap/pane-domain';
@@ -100,5 +106,110 @@ describe('statusOp', () => {
         const op = statusOp(to, from);
         expect(op ? nextStatus(op, from) : from).toBe(to);
       }
+  });
+});
+
+describe('the task card (WI-085)', () => {
+  it('splits scope into lines by newline, middle dot or a long comma list', () => {
+    expect(scopeLines('A, B\nC · D')).toEqual(['A, B', 'C', 'D']);
+    expect(
+      scopeLines(
+        'Methods, status codes, headers, content negotiation, conditional requests, ETag',
+      ),
+    ).toEqual([
+      'Methods',
+      'status codes',
+      'headers',
+      'content negotiation',
+      'conditional requests',
+      'ETag',
+    ]);
+    expect(
+      scopeLines('Signal: Counting, de-duplication, O(1) lookup.'),
+    ).toEqual(['Signal: Counting, de-duplication, O(1) lookup.']);
+    expect(scopeLines('')).toEqual([]);
+  });
+  it('reads a problem’s facts from its scope', () => {
+    expect(
+      problemFacts(
+        'Easy · pattern: Arrays & Hashing\nLists: NeetCode 150, Blind 75\nAsked at (Prashad): Google, Amazon',
+      ),
+    ).toEqual({
+      difficulty: 'Easy',
+      pattern: 'Arrays & Hashing',
+      lists: ['NeetCode 150', 'Blind 75'],
+      companies: ['Google', 'Amazon'],
+    });
+    expect(problemFacts(null)).toEqual({
+      difficulty: null,
+      pattern: null,
+      lists: [],
+      companies: [],
+    });
+  });
+  it('badges a reference by its kind and names a problem link', () => {
+    expect(kindBadge('Video channel: find matching lecture')).toBe('VIDEO');
+    expect(kindBadge('Official documentation')).toBe('DOCS');
+    expect(kindBadge('Protocol standard')).toBe('SPEC');
+    expect(kindBadge('Security guidance')).toBe('DOCS');
+    expect(kindBadge(undefined)).toBe('LINK');
+    expect(linkTitle('https://leetcode.com/problems/two-sum/')).toBe(
+      'Open on LeetCode',
+    );
+    expect(linkTitle('https://example.org/x')).toBe('Open link');
+    expect(linkTitle('not a url')).toBe('Open link');
+  });
+  it('shows the status and picks one primary action', () => {
+    const base = {
+      revision: 'none' as const,
+      revisionText: null,
+      doneLabel: null,
+      revisionLabel: null,
+    };
+    expect(statusBadge({ ...base, status: 'NOT_STARTED' })).toEqual({
+      text: 'Not started',
+      tone: 'quiet',
+    });
+    expect(statusBadge({ ...base, status: 'IN_PROGRESS' })).toEqual({
+      text: 'Started',
+      tone: 'on',
+    });
+    expect(
+      statusBadge({
+        ...base,
+        status: 'DONE',
+        doneLabel: 'Oct 28',
+        revisionLabel: 'Nov 4',
+        revision: 'upcoming',
+      }),
+    ).toEqual({ text: 'Done Oct 28 · revise Nov 4', tone: 'on' });
+    expect(
+      statusBadge({
+        ...base,
+        status: 'DONE',
+        revision: 'overdue',
+        revisionText: 'Revision overdue by 3 days',
+      }),
+    ).toEqual({ text: 'Revision overdue by 3 days', tone: 'due' });
+    expect(
+      primaryAction({
+        status: 'NOT_STARTED',
+        revision: 'none',
+        practice: false,
+      }),
+    ).toBe('done');
+    expect(
+      primaryAction({ status: 'DONE', revision: 'due', practice: false }),
+    ).toBe('revised');
+    expect(
+      primaryAction({ status: 'DONE', revision: 'upcoming', practice: false }),
+    ).toBe('is-done');
+    expect(
+      primaryAction({
+        status: 'NOT_STARTED',
+        revision: 'none',
+        practice: true,
+      }),
+    ).toBe('attempt');
   });
 });

@@ -20,7 +20,7 @@ import {
   revisionState,
   type Scenario,
 } from '@/features/roadmap/domain';
-import { dayKey } from '@/lib/time';
+import { dayKey, shortDate } from '@/lib/time';
 import { sourcePlan } from '@/features/listen/domain';
 import { isTestNamed } from '@/lib/test-data';
 import { aiState } from '@/features/ai/service';
@@ -107,6 +107,9 @@ export default async function RoadmapDetail({
       revision: revisionState(item, today),
       revisionLabel: item.nextRevisionAt
         ? dateLabel(item.nextRevisionAt)
+        : null,
+      doneLabel: item.completedAt
+        ? shortDate(dayKey(item.completedAt, user.timezone))
         : null,
       revisionText:
         item.status === 'DONE' && item.nextRevisionAt
