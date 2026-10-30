@@ -7990,269 +7990,438 @@ button.attention-link {
   }
 }
 
-/* WI-084: the roadmap as an outline and a reading pane (the list-detail layout). */
-.roadmap-head .today-title h1 {
-  font-size: 26px;
+/* WI-088: the roadmap as weeks. The Roadmap page: the goal as the reminder, the roadmaps as
+   bands that open to their weeks, one Add button. A week page: the items as rows that open in
+   place (the shape of Practice's pattern bands). */
+.roadmap-single {
+  max-width: 1040px;
 }
-.roadmap-back {
-  font-size: 13px;
-  font-weight: 500;
-}
-.roadmap-count {
-  font-size: 15px;
-}
-.roadmap-head .item-filters input[type='search'] {
-  width: 200px;
-}
-.roadmap-pane-layout {
+.goal-hero {
+  position: relative;
+  margin: 26px auto 0;
+  max-width: 720px;
+  padding: 30px 28px 24px;
+  text-align: center;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  box-shadow: var(--shadow-card);
   display: grid;
-  grid-template-columns: 280px minmax(0, 1fr);
-  gap: 32px;
-  align-items: start;
-  margin-top: 8px;
+  gap: 8px;
+  justify-items: center;
+  overflow: hidden;
 }
-.roadmap-outline {
-  position: sticky;
-  top: 16px;
-  max-height: calc(100vh / var(--ui-zoom, 1) - 32px);
-  overflow: hidden auto;
-  padding-right: 12px;
-  border-right: 1px solid var(--border-subtle);
-  font-size: 14px;
-  display: grid;
-  gap: 2px;
-  align-content: start;
+.goal-hero::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto;
+  height: 5px;
+  background: var(--primary);
 }
-.outline-section,
-.outline-items {
-  min-width: 0;
+.goal-hero-eyebrow {
+  margin: 0;
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  font-weight: 700;
+  color: var(--primary);
 }
-.outline-heading {
+.goal-hero-title {
+  margin: 0;
+  font-family: var(--font-display), Georgia, serif;
+  font-size: 40px;
+  font-weight: 700;
+  line-height: 1.1;
+  letter-spacing: -0.005em;
+  text-wrap: balance;
+  max-width: 20ch;
+}
+.goal-hero-when {
+  margin: 0;
+  font-size: 17px;
+  color: var(--foreground);
+}
+.goal-hero-when b {
+  font-weight: 700;
+}
+.goal-hero-more {
   margin: 0;
   font-size: 14px;
-}
-.outline-section-toggle {
-  display: flex;
-  width: 100%;
-  justify-content: space-between;
-  align-items: center;
-  gap: 10px;
-  background: none;
-  border: 0;
-  padding: 8px;
-  font: inherit;
-  font-weight: 600;
-  color: var(--foreground);
-  text-align: left;
-  border-radius: var(--radius-sm);
-  cursor: pointer;
-  min-height: 36px;
-}
-.outline-section-toggle:hover {
-  background: var(--subtle);
-}
-.outline-section:not(.is-open) .outline-section-toggle {
   color: var(--ink-2);
+}
+.goal-hero-edit {
+  margin-top: 2px;
+  font-size: 14px;
+  font-weight: 600;
+}
+.goal-hero-form {
+  width: 100%;
+  max-width: 440px;
+  text-align: left;
+  margin-top: 6px;
+}
+.goal-hero-line {
+  justify-content: center;
+  margin: 14px 0 0;
+  font-weight: 600;
+}
+.roadmap-single > section[aria-labelledby='roadmaps-heading'] {
+  margin-top: 34px;
+}
+.agenda-count {
+  font-size: 15px;
   font-weight: 500;
 }
-.outline-section-name {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.outline-section-count {
-  display: inline-flex;
-  gap: 8px;
-  align-items: center;
-  font-size: 12px;
-  color: var(--muted);
-  font-variant-numeric: tabular-nums;
-  white-space: nowrap;
-}
-.outline-chevron {
-  transition: transform var(--motion-fast) var(--motion-easing);
-}
-.outline-section.is-open .outline-chevron {
-  transform: rotate(180deg);
-}
-.outline-due {
-  color: var(--warning-text);
-  font-weight: 600;
-}
-.outline-items {
+.roadmap-bands {
   display: grid;
-  gap: 1px;
-  padding: 0 0 6px;
+  gap: 10px;
+  margin-top: 4px;
 }
-.outline-row {
+.roadmap-band-head {
+  margin: 0;
+  font-size: inherit;
+}
+.roadmap-band-toggle {
   display: grid;
-  grid-template-columns: 16px minmax(0, 1fr) auto;
-  gap: 0 8px;
+  grid-template-columns: 40px minmax(0, 1fr) auto 20px;
   align-items: center;
-  padding: 0 8px 0 10px;
-  border-radius: var(--radius-sm);
-  min-height: 34px;
-}
-.outline-row.is-current {
-  background: var(--tint);
-}
-.outline-row.is-current .outline-title {
-  color: var(--primary);
-  font-weight: 600;
-}
-.outline-row.is-current .outline-meta {
-  color: var(--ink-2);
-}
-.outline-title {
-  background: none;
-  border: 0;
-  padding: 6px 0;
+  gap: 14px;
+  width: 100%;
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  color: var(--foreground);
   font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.roadmap-band-toggle:hover {
+  border-color: var(--primary);
+}
+.roadmap-band.is-open .roadmap-band-toggle {
+  background: var(--tint);
+  border-color: var(--tint);
+  box-shadow: inset 0 0 0 1px var(--primary);
+}
+.roadmap-band-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: var(--tint);
+  display: grid;
+  place-items: center;
+  color: var(--primary);
+}
+.roadmap-band.is-open .roadmap-band-icon {
+  background: var(--surface);
+}
+.roadmap-band-name {
+  font-size: 17px;
+  font-weight: 700;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.roadmap-band-counts {
+  display: inline-flex;
+  gap: 12px;
+  align-items: center;
   font-size: 13.5px;
   font-weight: 500;
-  text-align: left;
-  color: var(--foreground);
-  cursor: pointer;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  min-height: 34px;
-  min-width: 0;
-  max-width: 100%;
-}
-.outline-title:focus-visible {
-  outline-offset: -2px;
-}
-.outline-row.is-done .outline-title {
-  color: var(--muted);
-}
-.outline-title .pill.priority {
-  margin-left: 6px;
-  padding: 1px 5px;
-  font-size: 10px;
-  vertical-align: 1px;
-}
-.outline-meta {
-  font-size: 12px;
-  color: var(--muted);
+  color: var(--ink-2);
   white-space: nowrap;
   font-variant-numeric: tabular-nums;
 }
-.outline-meta .pill {
-  padding: 2px 6px;
-  font-size: 10px;
+.roadmap-band-counts .is-due,
+.band-section-count .is-due {
+  color: var(--warning-text);
+  font-weight: 700;
 }
-.outline-row.muted {
-  min-height: 30px;
-  font-size: 13px;
-  padding-left: 34px;
+.roadmap-band-chevron {
+  color: var(--muted);
+  transition: transform var(--motion-fast) var(--motion-easing);
 }
-.outline-empty {
-  padding: 8px;
+.roadmap-band.is-open .roadmap-band-chevron {
+  transform: rotate(180deg);
+  color: var(--primary);
 }
-.item-pane {
-  min-width: 0;
+.band-sections {
   display: grid;
-  gap: 14px;
-  align-content: start;
+  margin: 2px 0 6px;
+  padding-left: 54px;
 }
-.item-pane-where {
-  display: flex;
+.band-section {
+  border-bottom: 1px solid var(--divider);
+}
+.band-section:last-child {
+  border-bottom: 0;
+}
+.band-section-link {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto 18px;
   align-items: center;
   gap: 12px;
-  font-size: 12.5px;
-  color: var(--muted);
+  padding: 12px 14px;
+  color: var(--foreground);
+  text-decoration: none;
+  font-size: 15.5px;
+  min-height: 48px;
 }
-.item-pane-back {
-  display: none;
+.band-section-link:hover .band-section-text {
+  text-decoration: underline;
+  text-underline-offset: 3px;
 }
-
-.item-pane > .pill {
-  justify-self: start;
-}
-
-.item-foot-form fieldset {
-  border: 0;
-  padding: 0;
-  margin: 0;
-  display: grid;
-  gap: 10px;
-}
-.item-foot {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px 12px;
-  padding: 10px 12px;
+.band-section.is-current {
+  margin: 4px 0;
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
   background: var(--surface);
 }
-
-.item-foot-nav {
-  margin-left: auto;
+.band-section-name {
+  min-width: 0;
+  font-weight: 500;
+  overflow-wrap: anywhere;
+}
+.band-section.is-current .band-section-name {
+  font-weight: 700;
+}
+.band-section-name small {
+  display: block;
+  margin-top: 1px;
+  font-size: 12.5px;
+  font-weight: 400;
+  color: var(--muted);
+}
+.band-section-current {
+  margin-left: 8px;
+  padding: 2px 7px;
+  font-size: 10px;
+  vertical-align: 2px;
+}
+.band-section-count {
   display: inline-flex;
-  gap: 6px;
-}
-.item-foot-next-label {
-  max-width: 220px;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  gap: 10px;
+  align-items: center;
+  font-size: 13px;
+  color: var(--muted);
   white-space: nowrap;
-  display: inline-block;
-  vertical-align: middle;
+  font-variant-numeric: tabular-nums;
+}
+.band-section-chevron {
+  color: var(--muted);
+}
+.band-section-add {
+  padding: 10px 14px;
+}
+.band-section-add-button {
+  font-size: 14.5px;
+  font-weight: 600;
+}
+.roadmap-add {
+  display: flex;
+  justify-content: center;
+  margin-top: 26px;
+}
+.roadmap-add .disclosure-panel {
+  width: 100%;
+  max-width: 640px;
+  margin-inline: auto;
 }
 
-.roadmap-pane-region.is-pending .item-pane,
-.roadmap-pane-region.is-pending .roadmap-outline {
+/* A week page. */
+.roadmap-head .roadmap-back {
+  font-size: 14px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.roadmap-head .item-filters input[type='search'] {
+  width: 200px;
+}
+.week-head {
+  margin-top: 10px;
+  display: grid;
+  gap: 4px;
+}
+.week-head h1 {
+  font-size: 32px;
+  line-height: 1.15;
+  letter-spacing: -0.01em;
+  margin: 0;
+  text-wrap: balance;
+}
+.week-head-facts {
+  margin: 0;
+  font-size: 15px;
+  color: var(--ink-2);
+}
+.week-head-facts b {
+  color: var(--foreground);
+}
+.week-items {
+  display: grid;
+  gap: 8px;
+  margin-top: 4px;
+}
+.week-item {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  overflow: hidden;
+}
+.week-item.is-open {
+  border-color: var(--primary);
+  box-shadow: var(--shadow-card);
+}
+.week-item-head {
+  margin: 0;
+  font-size: inherit;
+}
+.week-item-toggle {
+  display: grid;
+  grid-template-columns: 22px minmax(0, 1fr) auto 18px;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 13px 16px;
+  border: 0;
+  background: none;
+  color: var(--foreground);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  min-height: 52px;
+}
+.week-item-toggle:focus-visible {
+  outline-offset: -3px;
+}
+.week-item-toggle .item-icon {
+  color: var(--border-strong);
+}
+.week-item-toggle .item-icon.is-active {
+  color: var(--primary);
+}
+.week-item-toggle .item-icon.is-done {
+  color: var(--success);
+}
+.week-item-title {
+  font-size: 16px;
+  font-weight: 600;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.week-item.is-open .week-item-title {
+  font-size: 19px;
+}
+.week-item.is-done:not(.is-open) .week-item-title {
+  color: var(--ink-2);
+  font-weight: 500;
+}
+.week-item-title .pill.priority {
+  margin-left: 8px;
+  padding: 1px 6px;
+  font-size: 10px;
+  vertical-align: 2px;
+}
+.week-item-badge {
+  white-space: nowrap;
+}
+.week-item-chevron {
+  color: var(--muted);
+  transition: transform var(--motion-fast) var(--motion-easing);
+}
+.week-item.is-open .week-item-chevron {
+  transform: rotate(180deg);
+  color: var(--primary);
+}
+.week-item-body {
+  padding: 2px 18px 18px 52px;
+}
+.item-card {
+  display: grid;
+  gap: 16px;
+  min-width: 0;
+}
+/* Seven scope points take four lines, not seven. */
+.item-card .pane-scope:has(> li:nth-child(5)) {
+  display: block;
+  columns: 2;
+  column-gap: 28px;
+}
+.item-card .pane-scope:has(> li:nth-child(5)) li {
+  margin-bottom: 3px;
+}
+.item-card .pane-scope li {
+  break-inside: avoid;
+}
+.week-empty {
+  padding: 8px 0;
+}
+.week-empty-title {
+  margin: 0 0 8px;
+  font-size: 24px;
+}
+.week-nav {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  margin-top: 22px;
+  font-size: 14px;
+  font-weight: 600;
+}
+.week-nav .link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.week-nav-next {
+  margin-left: auto;
+  text-align: right;
+}
+.week-region.is-pending .week-items {
   opacity: 0.55;
   transition: opacity var(--motion-fast) var(--motion-easing);
 }
-@media (max-width: 1000px) {
-  .roadmap-pane-layout {
-    grid-template-columns: 240px minmax(0, 1fr);
-    gap: 24px;
-  }
-}
 @media (max-width: 700px) {
-  .roadmap-pane-layout {
-    display: block;
+  .goal-hero {
+    margin-top: 16px;
+    padding: 22px 18px 18px;
   }
-  .roadmap-outline {
-    position: static;
-    max-height: none;
-    border-right: 0;
-    padding-right: 0;
+  .goal-hero-title {
+    font-size: 30px;
   }
-  .item-pane {
+  .goal-hero-when {
+    font-size: 16px;
+  }
+  .roadmap-band-toggle {
+    grid-template-columns: minmax(0, 1fr) 20px;
+    padding: 12px 14px;
+  }
+  .roadmap-band-icon {
     display: none;
   }
-  /* The item is its own screen once chosen, over the outline (Odin, MDN, roadmap.sh). */
-  .roadmap-pane-layout.is-explicit .item-pane {
-    display: grid;
-    position: fixed;
-    inset: 0;
-    z-index: 40;
-    overflow: auto;
-    background: var(--background);
-    padding: 16px 16px 96px;
+  .roadmap-band-counts {
+    grid-column: 1;
+    font-size: 13px;
   }
-  /* The header on a phone: the title on its own line, Search, Show and More under it. */
+  .roadmap-band-chevron {
+    grid-column: 2;
+    grid-row: 1 / span 2;
+  }
+  .band-sections {
+    padding-left: 0;
+  }
+  .band-section-link {
+    font-size: 15px;
+    padding: 12px 10px;
+  }
   .roadmap-head .today-head-row {
     flex-wrap: wrap;
   }
   .roadmap-head .today-title {
     flex-basis: 100%;
-    flex-wrap: wrap;
     margin-right: 0;
-  }
-  .roadmap-head .today-title h1 {
-    font-size: 22px;
-  }
-  .roadmap-head .roadmap-count {
-    flex-basis: 100%;
-    font-size: 14px;
   }
   .roadmap-head .today-head-actions {
     width: 100%;
@@ -8268,43 +8437,42 @@ button.attention-link {
     flex: 1;
     min-width: 0;
   }
+  .roadmap-head .item-filters input[type='search'] {
+    width: 100%;
+  }
   .roadmap-head .item-filters select {
     min-width: 0;
     width: 118px;
   }
-  .item-pane-back {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
+  .week-head h1 {
+    font-size: 24px;
   }
-  .item-pane-crumb {
+  .week-item-toggle {
+    grid-template-columns: 22px minmax(0, 1fr) 18px;
+    font-size: 15px;
+  }
+  /* Named with its parent: the WI-085 badge rule comes later in this file. */
+  .week-item-toggle .week-item-badge {
     display: none;
   }
-  .item-foot-nav {
-    margin-left: 0;
-    width: 100%;
-    justify-content: space-between;
+  .week-item.is-open .week-item-title {
+    font-size: 17px;
   }
-  .item-foot-next-label {
-    max-width: 160px;
+  .week-item-body {
+    padding: 2px 14px 16px;
   }
-  .roadmap-head .item-filters input[type='search'] {
-    width: 100%;
+  .item-card .pane-scope:has(> li:nth-child(5)) {
+    columns: 1;
   }
 }
 @media (prefers-reduced-motion: reduce) {
-  .outline-chevron {
+  .roadmap-band-chevron,
+  .week-item-chevron {
     transition: none;
   }
 }
 
 /* WI-085: the item as a task card. */
-.item-pane-title {
-  margin: 0;
-  font-size: 28px;
-  line-height: 1.2;
-  letter-spacing: -0.015em;
-}
 .item-metaline {
   display: flex;
   flex-wrap: wrap;
@@ -8312,7 +8480,6 @@ button.attention-link {
   gap: 6px 14px;
   font-size: 13.5px;
   color: var(--ink-2);
-  margin-top: -4px;
 }
 .status-badge {
   display: inline-flex;
@@ -8636,18 +8803,16 @@ button.attention-link {
 .item-foot .more-menu {
   margin-left: -4px;
 }
-/* A wide window: the outline and the card sit centred as one reading block. */
+/* A wide window: the page sits centred as one reading block. */
 @media (min-width: 1600px) {
   .roadmap-head,
-  .roadmap-pane-region {
+  .week-region,
+  .roadmap-single {
     max-width: 1180px;
     margin-inline: auto;
   }
 }
 @media (max-width: 700px) {
-  .item-pane-title {
-    font-size: 23px;
-  }
   .pane-stats {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }

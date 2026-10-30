@@ -3,11 +3,8 @@ import Link from 'next/link';
 import { confidenceWord } from '@/features/dsa/words';
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import {
-  ArrowLeft,
   Check,
   ChevronDown,
-  ChevronLeft,
-  ChevronRight,
   Circle,
   CircleCheck,
   CircleDot,
@@ -23,17 +20,16 @@ import { ItemForm } from './item-form';
 import { StudyPrompt } from './study-prompt';
 import type { ItemStatus, Reference, Scenario } from './domain';
 import {
-  adjacent,
+  afterDone,
   afterRemoval,
   initialItem,
   kindBadge,
   linkTitle,
-  openSections,
   primaryAction,
   problemFacts,
   scopeLines,
   statusBadge,
-} from './pane-domain';
+} from './week-items-domain';
 import { Button } from '@/components/ui/button';
 import { GrillMe } from '@/features/ai/grill';
 import { Listen } from '@/features/listen/listen';
@@ -71,25 +67,18 @@ export type Row = {
   grillable: boolean;
   /** Listen is offered too: Grill Me's conditions and a reference on a checked site (WI-037). */
   listenable: boolean;
-  /** The outline lists the row; search and Show hide the others, the pane can still show them. */
+  /** The page lists the row; search and Show hide the others. */
   shown: boolean;
   /** "Oct 28": the day the item was marked done, in the owner's zone (WI-085). */
   doneLabel: string | null;
 };
-export type Section = {
-  name: string;
-  total: number;
-  done: number;
-  due: number;
-};
 
 const statusText: Record<ItemStatus, string> = {
   NOT_STARTED: 'Not started',
-  IN_PROGRESS: 'Studying',
+  IN_PROGRESS: 'Started',
   DONE: 'Done',
 };
 const tone = { RED: 'danger', YELLOW: 'warning', GREEN: 'success' } as const;
-const PHONE = '(max-width: 700px)';
 
 function subscribeHash(onChange: () => void) {
   window.addEventListener('hashchange', onChange);
@@ -98,9 +87,9 @@ function subscribeHash(onChange: () => void) {
 
 function StatusIcon({ status, pop }: { status: ItemStatus; pop: boolean }) {
   const common = {
-    size: 16,
+    size: 20,
     'aria-hidden': true as const,
-    strokeWidth: 2,
+    strokeWidth: 1.8,
     className: `item-icon${status === 'DONE' ? ' is-done' : status === 'IN_PROGRESS' ? ' is-active' : ''}${pop ? ' is-pop' : ''}`,
   };
   if (status === 'DONE') return <CircleCheck {...common} />;
@@ -109,15 +98,14 @@ function StatusIcon({ status, pop }: { status: ItemStatus; pop: boolean }) {
 }
 
 /**
- * The roadmap as an outline and a reading pane (WI-084, the list-detail layout the field
- * research found in every learning app): the outline on the left lists every section with its
- * items, the open section expanded and the open item highlighted; the pane on the right shows
- * that one item in reading order with one status control and Prev / Next at its foot. On a phone
- * the outline is the page and a tapped item opens as its own screen.
- * Keys: J and K move along the outline, D marks done (or revised), C copies the prompt, Esc
- * goes back to the outline.
+ * A week's items as rows that open in place (WI-088, the shape of Practice's pattern bands):
+ * one row per item with its status icon, title, P0 and status badge; the open row shows the
+ * task card of WI-085 under its title. The first item still to do is open on arrival; a hash
+ * or the command bar names another; Mark done moves the open row to the next item left.
+ * Keys: J and K move along the rows, Enter opens the focused row, D marks done (or revised),
+ * C copies the prompt, Esc closes the open row.
  */
-export function RoadmapPane({
+export function WeekItems({
   roadmap,
   scenarios,
   sections,
@@ -129,12 +117,13 @@ export function RoadmapPane({
 }: {
   roadmap: { id: string; title: string; promptTemplate: string | null };
   scenarios: Scenario[];
-  sections: Section[];
+  /** Every section of the roadmap, for the item form's section field. */
+  sections: string[];
+  /** The rows of this section, in order. */
   rows: Row[];
-  /** The Continue item, shown on arrival when no link named another. */
+  /** The Continue item, open on arrival when no link named another. */
   next: string | null;
-  /** The section a link asked for (`?section=`): opened in the outline, its first open item shown. */
-  section: string | null;
+  section: string;
   q?: string;
   /** Grill Me for this roadmap, with the month's budget line; null when off (WI-031). */
   grill?: { budget: string } | null;
@@ -150,70 +139,48 @@ export function RoadmapPane({
     status: r.item.status,
     shown: r.shown,
   }));
-  // The open item is picked once on arrival and then only by the owner, a link or the command
-  // bar: a mark never moves the pane, even when the server's Continue item changes with it.
+  // The open row is picked once on arrival and then only by the owner, a link, the command bar
+  // or a Mark done: the server's Continue item changing never moves it.
   const [open, setOpen] = useState<string | null>(() =>
     initialItem(paneRows, { hash: hashId || null, section, next }),
   );
-  // On a phone the pane is its own screen only once the owner chose an item or a link named one.
-  const [explicit, setExplicit] = useState(false);
   // A new hash (a link, or the command bar on this same page) wins over an earlier click.
   const [seenHash, setSeenHash] = useState(hashId);
   if (hashId !== seenHash) {
     setSeenHash(hashId);
-    if (hashId && rows.some((r) => r.item.id === hashId)) {
-      setOpen(hashId);
-      setExplicit(true);
-    }
+    if (hashId && rows.some((r) => r.item.id === hashId)) setOpen(hashId);
   }
   useEffect(() => {
     const onOpen = (e: Event) => {
       const id = (e as CustomEvent<string>).detail;
-      if (rows.some((r) => r.item.id === id)) {
-        setOpen(id);
-        setExplicit(true);
-      }
+      if (rows.some((r) => r.item.id === id)) setOpen(id);
     };
     window.addEventListener(OPEN_ITEM_EVENT, onOpen);
     return () => window.removeEventListener(OPEN_ITEM_EVENT, onOpen);
   }, [rows]);
-  // The outline's open sections: the open item's and the link's on arrival, then as toggled.
-  const [opened, setOpened] = useState<string[] | null>(null);
-  const openedNow =
-    opened ?? openSections(paneRows, { openId: open, section, q });
-  const current = rows.find((r) => r.item.id === open) ?? null;
-  const show = (id: string) => {
-    setOpen(id);
-    setExplicit(true);
-    const s = rows.find((r) => r.item.id === id)?.item.section;
-    if (s && !openedNow.includes(s)) setOpened([...openedNow, s]);
-  };
-  useEffect(() => {
-    if (!open) return;
-    document
-      .getElementById(`outline-${open}`)
-      ?.scrollIntoView({ block: 'nearest' });
-  }, [open]);
-  // The pane starts at its top when another item opens, so the title is what shows first.
-  const paneRef = useRef<HTMLElement>(null);
+  // The open row comes into view when something other than a click opened it.
+  const listRef = useRef<HTMLOListElement>(null);
   const lastOpen = useRef(open);
   useEffect(() => {
     if (lastOpen.current === open) return;
     lastOpen.current = open;
-    const pane = paneRef.current;
-    if (!pane) return;
-    if (window.matchMedia(PHONE).matches) pane.scrollTo({ top: 0 });
-    else if (pane.getBoundingClientRect().top < 0)
-      pane.scrollIntoView({ block: 'start' });
+    if (!open) return;
+    const el = document.getElementById(`week-item-${open}`);
+    if (el && el.getBoundingClientRect().top < 0)
+      el.scrollIntoView({ block: 'start' });
   }, [open]);
   // The icon pops once when an item turns done while the page is open.
   const statuses = useRef(new Map(rows.map((r) => [r.item.id, r.item.status])));
   const [popped, setPopped] = useState<string | null>(null);
-  // Optimistic marks (WI-017): the outline and the control flip as soon as a choice is made
-  // and reconcile with the server's rows; a failed action puts them back.
+  // Optimistic marks (WI-017): the row flips as soon as a choice is made and reconciles with
+  // the server's rows; a failed action puts it back.
   const [optimistic, setOptimistic] = useState<Map<string, ItemStatus>>(
     new Map(),
   );
+  const toggleOf = (id: string) =>
+    document.querySelector<HTMLButtonElement>(
+      `#week-item-${id} .week-item-toggle`,
+    );
   const flip = (id: string, f: FormData) => {
     const op = f.get('op');
     const to: ItemStatus | null =
@@ -230,6 +197,14 @@ export function RoadmapPane({
       statuses.current.set(id, 'DONE');
       setPopped(id);
       setTimeout(() => setPopped((p) => (p === id ? null : p)), 900);
+      // Done moves the open row to the next item left (WI-088), and the keyboard with it, so
+      // j / k / c continue from the row that is now open, not the one just finished.
+      if (open === id) {
+        const to = afterDone(paneRows, id);
+        setOpen(to);
+        if (to && to !== id)
+          setTimeout(() => toggleOf(to)?.focus({ preventScroll: true }), 0);
+      }
     }
   };
   const settle = (id: string, ok: boolean | undefined) => {
@@ -247,7 +222,7 @@ export function RoadmapPane({
   const [seenRows, setSeenRows] = useState(rows);
   if (rows !== seenRows) {
     setSeenRows(rows);
-    // The open item left the rows (removed): the pane moves to its neighbour.
+    // The open item left the rows (removed): the open row moves to its neighbour.
     const moved = afterRemoval(
       seenRows.map((r) => ({
         id: r.item.id,
@@ -286,14 +261,13 @@ export function RoadmapPane({
   const statusOf = (r: Row) => optimistic.get(r.item.id) ?? r.item.status;
 
   // Keyboard: the page's shortcut list presses these hidden buttons.
-  const outlineRef = useRef<HTMLElement>(null);
-  const titles = () => [
-    ...(outlineRef.current?.querySelectorAll<HTMLButtonElement>(
-      '.outline-title',
+  const toggles = () => [
+    ...(listRef.current?.querySelectorAll<HTMLButtonElement>(
+      '.week-item-toggle',
     ) ?? []),
   ];
   const move = (delta: 1 | -1) => {
-    const all = titles();
+    const all = toggles();
     if (!all.length) return;
     const focused = all.findIndex((b) => b === document.activeElement);
     const current =
@@ -305,15 +279,16 @@ export function RoadmapPane({
     all[at].focus();
     all[at].scrollIntoView({ block: 'nearest' });
   };
-  const pressInPane = (selector: string) =>
-    paneRef.current?.querySelector<HTMLElement>(selector)?.click();
-  const { prev, next: after } = adjacent(paneRows, open);
-  const sectionOf = (name: string) =>
-    sections.find((s) => s.name === name) ?? null;
+  const pressIn = (id: string | null, selector: string) =>
+    id &&
+    document
+      .getElementById(`week-item-${id}`)
+      ?.querySelector<HTMLElement>(selector)
+      ?.click();
+  const pressInOpen = (selector: string) => pressIn(open, selector);
+  const shown = rows.filter((r) => r.shown || r.item.id === open);
   return (
-    <div
-      className={`roadmap-pane-layout${explicit ? ' is-explicit' : ''}${!rows.some((r) => r.shown) ? ' is-empty' : ''}`}
-    >
+    <div className="week-items-region">
       <span hidden>
         <button
           type="button"
@@ -332,7 +307,7 @@ export function RoadmapPane({
           data-shortcut="row-done"
           tabIndex={-1}
           onClick={() =>
-            pressInPane('button[value="revised"], button[value="done"]')
+            pressInOpen('button[value="revised"], button[value="done"]')
           }
         />
         <button
@@ -340,12 +315,14 @@ export function RoadmapPane({
           data-shortcut="row-copy"
           tabIndex={-1}
           onClick={() => {
+            // The focused row's prompt, opening it first; else the open row's.
             const focused = document.activeElement as HTMLElement | null;
             const id =
-              focused?.closest<HTMLElement>('.outline-title')?.dataset.item;
-            if (id && id !== open) show(id);
+              focused?.closest<HTMLElement>('.week-item-toggle')?.dataset.item;
+            const target = id ?? open;
+            if (id && id !== open) setOpen(id);
             setTimeout(
-              () => pressInPane('.pane-tool-main, .study-prompt button'),
+              () => pressIn(target, '.pane-tool-main, .study-prompt button'),
               50,
             );
           }}
@@ -354,227 +331,131 @@ export function RoadmapPane({
           type="button"
           data-shortcut="row-grill"
           tabIndex={-1}
-          onClick={() => pressInPane('[data-grill-open]')}
+          onClick={() => pressInOpen('[data-grill-open]')}
         />
         <button
           type="button"
           data-shortcut="row-close"
           tabIndex={-1}
           onClick={() => {
-            titles()
+            toggles()
               .find((b) => b.dataset.item === open)
               ?.focus();
-            // On a phone the item is its own screen; Escape goes back to the outline.
-            if (window.matchMedia(PHONE).matches) setExplicit(false);
+            setOpen(null);
           }}
         />
       </span>
-      <nav className="roadmap-outline" aria-label="Items" ref={outlineRef}>
-        {sections.map((s) => {
-          const inSection = rows.filter(
-            (r) => r.item.section === s.name && r.shown,
-          );
-          const isOpen = openedNow.includes(s.name);
-          const headingId = `outline-section-${s.name.replace(/\W+/g, '-')}`;
+      <FeedbackOutlet channel="roadmap-items" className="mb-3" />
+      {!shown.length && (
+        <p className="muted week-empty">
+          {q ? `Nothing matches “${q}” in this week.` : 'Nothing matches here.'}
+        </p>
+      )}
+      <ol className="plain-list week-items" ref={listRef}>
+        {shown.map((r) => {
+          const status = statusOf(r);
+          const isOpen = open === r.item.id;
+          const badge = statusBadge({
+            status,
+            revision: r.revision,
+            revisionText: r.revisionText,
+            doneLabel: r.doneLabel,
+            revisionLabel: r.revisionLabel,
+          });
+          const bodyId = `week-item-body-${r.item.id}`;
           return (
-            <section
-              key={s.name}
-              className={`outline-section${isOpen ? ' is-open' : ''}`}
-              aria-labelledby={headingId}
+            <li
+              key={r.item.id}
+              id={`week-item-${r.item.id}`}
+              className={`week-item is-${status.toLowerCase().replace('_', '-')}${isOpen ? ' is-open' : ''}`}
             >
-              <h2 className="outline-heading">
+              <h2 className="week-item-head">
                 <button
                   type="button"
-                  id={headingId}
-                  className="outline-section-toggle"
+                  className="week-item-toggle"
+                  data-item={r.item.id}
                   aria-expanded={isOpen}
-                  onClick={() =>
-                    setOpened(
-                      isOpen
-                        ? openedNow.filter((n) => n !== s.name)
-                        : [...openedNow, s.name],
-                    )
-                  }
+                  aria-controls={bodyId}
+                  onClick={() => setOpen(isOpen ? null : r.item.id)}
                 >
-                  <span className="outline-section-name">{s.name}</span>
-                  <span className="outline-section-count">
-                    {s.due > 0 && (
-                      <span className="outline-due">{s.due} due</span>
+                  <StatusIcon status={status} pop={popped === r.item.id} />
+                  <span className="week-item-title">
+                    <span className="sr-only">{statusText[status]}: </span>
+                    {r.item.title}
+                    {r.item.priority === 1 && (
+                      <span className="pill priority">P0</span>
                     )}
-                    {s.done} / {s.total}
-                    <ChevronDown
-                      size={14}
-                      aria-hidden="true"
-                      className="outline-chevron"
-                    />
                   </span>
+                  <span
+                    className={`status-badge is-${badge.tone} week-item-badge`}
+                    aria-hidden="true"
+                  >
+                    {badge.text}
+                  </span>
+                  <ChevronDown
+                    size={18}
+                    aria-hidden="true"
+                    className="week-item-chevron"
+                  />
                 </button>
               </h2>
-              {isOpen && (
-                <ol className="plain-list outline-items">
-                  {inSection.map((r) => {
-                    const status = statusOf(r);
-                    const isCurrent = open === r.item.id;
-                    return (
-                      <li
-                        key={r.item.id}
-                        id={`outline-${r.item.id}`}
-                        className={`outline-row is-${status.toLowerCase().replace('_', '-')}${isCurrent ? ' is-current' : ''}`}
-                      >
-                        <StatusIcon
-                          status={status}
-                          pop={popped === r.item.id}
-                        />
-                        <button
-                          type="button"
-                          className="outline-title"
-                          data-item={r.item.id}
-                          aria-current={isCurrent ? 'true' : undefined}
-                          onClick={() => show(r.item.id)}
-                          title={r.item.title}
-                        >
-                          <span className="sr-only">
-                            {statusText[status]}:{' '}
-                          </span>
-                          {r.item.title}
-                          {r.item.priority === 1 && (
-                            <span className="pill priority">P0</span>
-                          )}
-                        </button>
-                        <span className="outline-meta">
-                          {r.revision === 'due' || r.revision === 'overdue' ? (
-                            <span
-                              className={`pill ${r.revision === 'due' ? 'warning' : 'danger'}`}
-                              title={r.revisionText ?? undefined}
-                            >
-                              Due
-                            </span>
-                          ) : r.item.estimateMinutes ? (
-                            `${r.item.estimateMinutes} min`
-                          ) : null}
-                        </span>
-                      </li>
-                    );
-                  })}
-                  {!inSection.length && (
-                    <li className="outline-row muted">
-                      {q ? 'No match here' : 'Nothing here'}
-                    </li>
-                  )}
-                </ol>
-              )}
-            </section>
+              <div id={bodyId} className="week-item-body" hidden={!isOpen}>
+                {isOpen && (
+                  <ItemBody
+                    key={r.item.id}
+                    row={r}
+                    status={status}
+                    roadmap={roadmap}
+                    scenarios={scenarios}
+                    sections={sections}
+                    grill={grill}
+                    flip={flip}
+                    settle={settle}
+                  />
+                )}
+              </div>
+            </li>
           );
         })}
-        {!rows.some((r) => r.shown) && (
-          <p className="muted outline-empty">
-            {q ? `Nothing matches “${q}”.` : 'Nothing matches here.'}
-          </p>
-        )}
-      </nav>
-      <article
-        className="item-pane"
-        ref={paneRef}
-        aria-labelledby={current ? `pane-title-${current.item.id}` : undefined}
-        aria-label={current ? undefined : 'Item'}
-      >
-        <FeedbackOutlet channel="roadmap-items" className="mb-3" />
-        {current ? (
-          <ItemPane
-            key={current.item.id}
-            row={current}
-            status={statusOf(current)}
-            roadmap={roadmap}
-            scenarios={scenarios}
-            sections={sections.map((s) => s.name)}
-            sectionCount={sectionOf(current.item.section)}
-            position={
-              rows
-                .filter((r) => r.item.section === current.item.section)
-                .findIndex((r) => r.item.id === current.item.id) + 1
-            }
-            grill={grill}
-            flip={flip}
-            settle={settle}
-            back={() => setExplicit(false)}
-            prev={prev ? rows.find((r) => r.item.id === prev.id)! : null}
-            next={after ? rows.find((r) => r.item.id === after.id)! : null}
-            go={show}
-          />
-        ) : (
-          <p className="muted">
-            {q ? 'Nothing matches the search.' : 'Choose an item.'}
-          </p>
-        )}
-      </article>
+      </ol>
     </div>
   );
 }
 
 /**
- * One item as a task card (WI-085): where it sits, the title with its status badge, the goal
- * (Done when) first, the scope as bullets, the references as rows to study from, the three study
- * tools as cards, the note always present, and one foot with one primary action for the state
- * (Mark done, Mark revised, Record an attempt), the interview mark, ⋯ and Prev / Next. A
- * problem-linked item shows the problem card instead: its facts, Open on LeetCode, Record an
- * attempt. The status is shown, never chosen: copying the prompt or opening a reference starts
- * an item by itself.
+ * One item as a task card (WI-085), inside its row since WI-088: the goal (Done when) first,
+ * the scope as bullets, the references as rows to study from, the three study tools as cards,
+ * the note always present, and one foot with one primary action for the state (Mark done, Mark
+ * revised, Record an attempt), the interview mark and ⋯. A problem-linked item shows the
+ * problem card instead: its facts, Open on LeetCode, Record an attempt. The status is shown,
+ * never chosen: copying the prompt or opening a reference starts an item by itself.
  */
-function ItemPane({
+function ItemBody({
   row,
   status,
   roadmap,
   scenarios,
   sections,
-  sectionCount,
-  position,
   grill,
   flip,
   settle,
-  back,
-  prev,
-  next,
-  go,
 }: {
   row: Row;
   status: ItemStatus;
   roadmap: { id: string; title: string; promptTemplate: string | null };
   scenarios: Scenario[];
   sections: string[];
-  sectionCount: Section | null;
-  position: number;
   grill: { budget: string } | null;
   flip: (id: string, f: FormData) => void;
   settle: (id: string, ok: boolean | undefined) => void;
-  back: () => void;
-  prev: Row | null;
-  next: Row | null;
-  go: (id: string) => void;
 }) {
-  const {
-    item,
-    revision,
-    revisionText,
-    revisionLabel,
-    doneLabel,
-    links,
-    cards,
-    grillable,
-    listenable,
-  } = row;
+  const { item, revision, links, cards, grillable, listenable } = row;
   const references = (item.references as Reference[] | null) ?? [];
   // A problem item follows Practice (WI-046): its marks come from attempts there.
   const practice = links.dsaProblem
     ? `/dsa/${links.dsaProblem.id}?from=${item.id}`
     : null;
   const due = revision === 'due' || revision === 'overdue';
-  const badge = statusBadge({
-    status,
-    revision,
-    revisionText,
-    doneLabel,
-    revisionLabel,
-  });
   const primary = primaryAction({ status, revision, practice: !!practice });
   const facts = practice ? problemFacts(item.scope) : null;
   const scope = practice ? [] : scopeLines(item.scope);
@@ -606,36 +487,26 @@ function ItemPane({
       ? `${Math.round((item.estimateMinutes / 60) * 10) / 10} h`
       : `${item.estimateMinutes} min`
     : null;
+  const meta = [
+    item.askedInInterview ? 'asked' : null,
+    facts?.difficulty,
+    estimate,
+    !practice && status !== 'DONE' ? 'Revision 7 days after done' : null,
+  ].filter(Boolean);
   return (
-    <>
-      <p className="item-pane-where">
-        <button
-          type="button"
-          className="link-button item-pane-back"
-          onClick={back}
-        >
-          <ArrowLeft size={14} aria-hidden="true" /> {item.section}
-        </button>
-        <span className="item-pane-crumb">
-          {item.section}
-          {sectionCount ? ` · ${position} of ${sectionCount.total}` : ''}
-        </span>
-      </p>
-      <h2 className="item-pane-title" id={`pane-title-${item.id}`}>
-        {item.title}
-      </h2>
-      <p className="item-metaline">
-        <span className={`status-badge is-${badge.tone}`}>{badge.text}</span>
-        {item.priority === 1 && <span className="pill priority">P0</span>}
-        {item.askedInInterview && (
-          <span className="pill success">Asked in an interview</span>
-        )}
-        {facts?.difficulty && <span>{facts.difficulty}</span>}
-        {estimate && <span>{estimate}</span>}
-        {!practice && status !== 'DONE' && (
-          <span className="muted">Revision 7 days after done</span>
-        )}
-      </p>
+    <div className="item-card">
+      {meta.length > 0 && (
+        <p className="item-metaline">
+          {item.askedInInterview && (
+            <span className="pill success">Asked in an interview</span>
+          )}
+          {facts?.difficulty && <span>{facts.difficulty}</span>}
+          {estimate && <span>{estimate}</span>}
+          {!practice && status !== 'DONE' && (
+            <span className="muted">Revision 7 days after done</span>
+          )}
+        </p>
+      )}
       {facts && links.dsaProblem && (
         <dl className="pane-stats">
           <div>
@@ -890,7 +761,7 @@ function ItemPane({
           </ul>
         </section>
       )}
-      {/* Started by itself, quietly: the badge and the outline icon are the only answer. */}
+      {/* Started by itself, quietly: the badge and the row icon are the only answer. */}
       <ActionForm
         action={itemOpAction}
         className="pane-autostart"
@@ -958,33 +829,6 @@ function ItemPane({
               Remove
             </button>
           </MoreMenu>
-          <span className="item-foot-nav">
-            {prev ? (
-              <Button
-                type="button"
-                variant="secondary"
-                className="small"
-                onClick={() => go(prev.item.id)}
-                aria-label={`Prev: ${prev.item.title}`}
-              >
-                <ChevronLeft size={14} aria-hidden="true" /> Prev
-              </Button>
-            ) : null}
-            {next ? (
-              <Button
-                type="button"
-                variant="secondary"
-                className="small item-foot-next"
-                onClick={() => go(next.item.id)}
-                title={`Next: ${next.item.title}`}
-              >
-                <span className="item-foot-next-label">
-                  Next: {next.item.title}
-                </span>
-                <ChevronRight size={14} aria-hidden="true" />
-              </Button>
-            ) : null}
-          </span>
         </div>
       </ActionForm>
       <SidePanel id={`item-edit:${item.id}`} title={`Edit ${item.title}`}>
@@ -1005,7 +849,7 @@ function ItemPane({
           <Listen item={studyItem} budget={grill.budget} />
         </SidePanel>
       )}
-    </>
+    </div>
   );
 }
 

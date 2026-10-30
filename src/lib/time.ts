@@ -31,6 +31,9 @@ export const shortDate = (day: string) =>
 /** A DATE label shown as "Thu, Oct 22". */
 export const weekdayDate = (day: string) =>
   formatInTimeZone(new Date(`${day}T12:00:00Z`), 'UTC', 'EEE, MMM d');
+/** A DATE label shown in full, "Wednesday 31 December", for the goal card (WI-088). */
+export const longDate = (day: string) =>
+  formatInTimeZone(new Date(`${day}T12:00:00Z`), 'UTC', 'EEEE d MMMM');
 /** A clock time as the app reads it everywhere since WI-021: "06:00", "19:30". */
 export const hhmm = (date: Date, zone: string) =>
   formatInTimeZone(date, zone, 'HH:mm');
