@@ -1,13 +1,7 @@
 'use client';
 import Link from 'next/link';
 import { confidenceWord } from '@/features/dsa/words';
-import {
-  useEffect,
-  useRef,
-  useState,
-  useSyncExternalStore,
-  type ReactNode,
-} from 'react';
+import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import {
   ArrowLeft,
   Check,
@@ -28,7 +22,17 @@ import { askedNoteAction, itemOpAction, noteAction } from './actions';
 import { ItemForm } from './item-form';
 import { StudyPrompt } from './study-prompt';
 import type { ItemStatus, Reference, Scenario } from './domain';
-import { adjacent, initialItem, openSections, statusOp } from './pane-domain';
+import {
+  adjacent,
+  initialItem,
+  kindBadge,
+  linkTitle,
+  openSections,
+  primaryAction,
+  problemFacts,
+  scopeLines,
+  statusBadge,
+} from './pane-domain';
 import { Button } from '@/components/ui/button';
 import { GrillMe } from '@/features/ai/grill';
 import { Listen } from '@/features/listen/listen';
@@ -68,6 +72,8 @@ export type Row = {
   listenable: boolean;
   /** The outline lists the row; search and Show hide the others, the pane can still show them. */
   shown: boolean;
+  /** "Oct 28": the day the item was marked done, in the owner's zone (WI-085). */
+  doneLabel: string | null;
 };
 export type Section = {
   name: string;
@@ -490,9 +496,13 @@ export function RoadmapPane({
 }
 
 /**
- * One item in reading order: where it sits, the title, Done when, Scope, References, the Study
- * strip, then one foot with the status control and Prev / Next, and a folded row for Notes,
- * Grill me, Listen and the interview mark.
+ * One item as a task card (WI-085): where it sits, the title with its status badge, the goal
+ * (Done when) first, the scope as bullets, the references as rows to study from, the three study
+ * tools as cards, the note always present, and one foot with one primary action for the state
+ * (Mark done, Mark revised, Record an attempt), the interview mark, ⋯ and Prev / Next. A
+ * problem-linked item shows the problem card instead: its facts, Open on LeetCode, Record an
+ * attempt. The status is shown, never chosen: copying the prompt or opening a reference starts
+ * an item by itself.
  */
 function ItemPane({
   row,
@@ -525,17 +535,61 @@ function ItemPane({
   next: Row | null;
   go: (id: string) => void;
 }) {
-  const { item, revision, revisionText, links, cards, grillable, listenable } =
-    row;
+  const {
+    item,
+    revision,
+    revisionText,
+    revisionLabel,
+    doneLabel,
+    links,
+    cards,
+    grillable,
+    listenable,
+  } = row;
   const references = (item.references as Reference[] | null) ?? [];
   // A problem item follows Practice (WI-046): its marks come from attempts there.
   const practice = links.dsaProblem
     ? `/dsa/${links.dsaProblem.id}?from=${item.id}`
     : null;
-  // The folded row under the item: one of these open at a time, none by default.
-  const [fold, setFold] = useState<'notes' | null>(null);
   const due = revision === 'due' || revision === 'overdue';
-  const noteCount = cards.length + (item.notes ? 1 : 0);
+  const badge = statusBadge({
+    status,
+    revision,
+    revisionText,
+    doneLabel,
+    revisionLabel,
+  });
+  const primary = primaryAction({ status, revision, practice: !!practice });
+  const facts = practice ? problemFacts(item.scope) : null;
+  const scope = practice ? [] : scopeLines(item.scope);
+  // Studying starts the item by itself: the prompt copied or a reference opened.
+  const startRef = useRef<HTMLButtonElement>(null);
+  const autoStart = () => {
+    if (status === 'NOT_STARTED' && !practice) startRef.current?.click();
+  };
+  const promptItem = {
+    title: item.title,
+    section: item.section,
+    scope: item.scope,
+    checkpoint: item.checkpoint,
+    priority: item.priority,
+    estimateMinutes: item.estimateMinutes,
+    references,
+    notes: item.notes,
+    url: item.url,
+  };
+  const studyItem = {
+    id: item.id,
+    title: item.title,
+    scope: item.scope,
+    checkpoint: item.checkpoint,
+    references: item.references,
+  };
+  const estimate = item.estimateMinutes
+    ? item.estimateMinutes >= 60
+      ? `${Math.round((item.estimateMinutes / 60) * 10) / 10} h`
+      : `${item.estimateMinutes} min`
+    : null;
   return (
     <>
       <p className="item-pane-where">
@@ -553,56 +607,24 @@ function ItemPane({
       </p>
       <h2 className="item-pane-title" id={`pane-title-${item.id}`}>
         {item.title}
-        {item.priority === 1 && <span className="pill priority">P0</span>}
-        {item.askedInInterview && <span className="pill success">Asked</span>}
       </h2>
-      {due && revisionText && (
-        <p className={`pill ${revision === 'due' ? 'warning' : 'danger'}`}>
-          {revisionText}
-        </p>
-      )}
-      {item.checkpoint && (
-        <Field label="Done when" lead>
-          {item.checkpoint}
-        </Field>
-      )}
-      {item.scope && <Field label="Scope">{item.scope}</Field>}
-      {(references.length > 0 || item.url) && (
-        <Field label="References">
-          <ul className="plain-list reference-lines">
-            {item.url && (
-              <li>
-                <a
-                  className="link"
-                  href={item.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  Open link <ExternalLink size={12} aria-hidden="true" />
-                </a>
-              </li>
-            )}
-            {references.map((r) => (
-              <li key={r.url}>
-                <a
-                  className="link"
-                  href={r.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  {r.label} <ExternalLink size={12} aria-hidden="true" />
-                </a>
-                {r.kind && <span className="reference-kind">{r.kind}</span>}
-              </li>
-            ))}
-          </ul>
-        </Field>
-      )}
-      {(links.dsaProblem || links.learningTopic || links.dsaTopic) && (
-        <p className="item-links">
-          {links.dsaProblem && (
-            <span className="item-practice">
-              <span className="muted whitespace-nowrap">From Practice</span>
+      <p className="item-metaline">
+        <span className={`status-badge is-${badge.tone}`}>{badge.text}</span>
+        {item.priority === 1 && <span className="pill priority">P0</span>}
+        {item.askedInInterview && (
+          <span className="pill success">Asked in an interview</span>
+        )}
+        {facts?.difficulty && <span>{facts.difficulty}</span>}
+        {estimate && <span>{estimate}</span>}
+        {!practice && status !== 'DONE' && (
+          <span className="muted">Revision 7 days after done</span>
+        )}
+      </p>
+      {facts && links.dsaProblem && (
+        <dl className="pane-stats">
+          <div>
+            <dt>Confidence</dt>
+            <dd>
               <span
                 className={`pill ${links.dsaProblem.attemptsCount ? tone[links.dsaProblem.confidence] : ''}`}
               >
@@ -610,17 +632,113 @@ function ItemPane({
                   ? confidenceWord(links.dsaProblem.confidence)
                   : 'Unattempted'}
               </span>
-              {links.dsaProblem.attemptsCount > 0 && (
-                <span className="muted">
-                  {links.dsaProblem.attemptsCount} attempt
-                  {links.dsaProblem.attemptsCount === 1 ? '' : 's'}
-                  {links.dsaProblem.nextRevision
-                    ? ` · next revision ${links.dsaProblem.nextRevision}`
-                    : ''}
-                </span>
-              )}
-            </span>
+            </dd>
+          </div>
+          <div>
+            <dt>Attempts</dt>
+            <dd>{links.dsaProblem.attemptsCount}</dd>
+          </div>
+          <div>
+            <dt>Next revision</dt>
+            <dd>{links.dsaProblem.nextRevision ?? 'Not scheduled'}</dd>
+          </div>
+          {facts.pattern && (
+            <div>
+              <dt>Pattern</dt>
+              <dd>{facts.pattern}</dd>
+            </div>
           )}
+        </dl>
+      )}
+      {facts && (facts.lists.length > 0 || facts.companies.length > 0) && (
+        <p className="pane-chips">
+          {facts.lists.map((l) => (
+            <span className="chip" key={l}>
+              {l}
+            </span>
+          ))}
+          {facts.companies.length > 0 && (
+            <span className="chip">Asked at {facts.companies.join(', ')}</span>
+          )}
+        </p>
+      )}
+      {item.checkpoint && (
+        <div className="pane-goal">
+          <b>Done when</b>
+          <span>{item.checkpoint}</span>
+        </div>
+      )}
+      {scope.length > 1 && (
+        <div className="pane-block">
+          <b>Scope</b>
+          <ul className="pane-scope">
+            {scope.map((line) => (
+              <li key={line}>{line}</li>
+            ))}
+          </ul>
+        </div>
+      )}
+      {scope.length === 1 && (
+        <div className="pane-block">
+          <b>Scope</b>
+          <p className="pane-scope-line">{scope[0]}</p>
+        </div>
+      )}
+      {(references.length > 0 || item.url) && (
+        <div className="pane-block">
+          <b>{practice ? 'Solve' : 'Study here first'}</b>
+          <ul className="plain-list pane-refs">
+            {item.url && (
+              <li>
+                <a
+                  className="pane-ref"
+                  href={item.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={autoStart}
+                >
+                  <span className="pane-ref-kind" aria-hidden="true">
+                    {practice ? 'GO' : 'LINK'}
+                  </span>
+                  <span className="pane-ref-title">
+                    {linkTitle(item.url)}
+                    <small>
+                      {item.url.replace(/^https?:\/\/(www\.)?/, '')}
+                    </small>
+                  </span>
+                  <span className="pane-ref-open">
+                    Open <ExternalLink size={13} aria-hidden="true" />
+                  </span>
+                </a>
+              </li>
+            )}
+            {references.map((r) => (
+              <li key={r.url}>
+                <a
+                  className="pane-ref"
+                  href={r.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={autoStart}
+                >
+                  <span className="pane-ref-kind" aria-hidden="true">
+                    {kindBadge(r.kind)}
+                  </span>
+                  <span className="pane-ref-title">
+                    {r.label}
+                    {r.kind && <small>{r.kind}</small>}
+                  </span>
+                  <span className="pane-ref-open">
+                    Open <ExternalLink size={13} aria-hidden="true" />
+                  </span>
+                </a>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+      {(links.learningTopic || links.dsaTopic) && (
+        <p className="item-links">
           {links.learningTopic && (
             <Link
               prefetch={false}
@@ -635,30 +753,127 @@ function ItemPane({
           )}
         </p>
       )}
-      {/* Study (WI-053): the prompt is the main path; it leaves the app and comes back to mark. */}
-      <section className="study-aids" aria-labelledby={`study-${item.id}`}>
-        <p className="eyebrow" id={`study-${item.id}`}>
-          Study
-        </p>
+      <div className="pane-block">
+        <b>{practice ? 'If stuck' : 'Then, with Silsila'}</b>
         <StudyHint />
-        <StudyPrompt
-          roadmap={{ title: roadmap.title }}
-          template={roadmap.promptTemplate}
-          scenarios={scenarios}
-          storageKey={`silsila-scenario:${roadmap.id}`}
-          item={{
-            title: item.title,
-            section: item.section,
-            scope: item.scope,
-            checkpoint: item.checkpoint,
-            priority: item.priority,
-            estimateMinutes: item.estimateMinutes,
-            references,
-            notes: item.notes,
-            url: item.url,
-          }}
-        />
-      </section>
+        <div className="pane-tools">
+          <StudyPrompt
+            card
+            title={
+              practice ? 'Copy the pattern prompt' : 'Copy the study prompt'
+            }
+            roadmap={{ title: roadmap.title }}
+            template={roadmap.promptTemplate}
+            scenarios={scenarios}
+            storageKey={`silsila-scenario:${roadmap.id}`}
+            item={promptItem}
+            onCopy={autoStart}
+          />
+          {grill && grillable && (
+            <PanelButton
+              panel={`grill:${item.id}`}
+              className="pane-tool"
+              data-grill-open
+            >
+              <b>Grill me</b>
+              <span>
+                {practice
+                  ? 'Five questions on the pattern'
+                  : 'Five questions on this item, kept as cards'}
+              </span>
+            </PanelButton>
+          )}
+          {grill && listenable && (
+            <PanelButton
+              panel={`listen:${item.id}`}
+              className="pane-tool"
+              data-listen-open
+            >
+              <b>Listen</b>
+              <span>A spoken summary from the references</span>
+            </PanelButton>
+          )}
+        </div>
+      </div>
+      <ActionForm
+        action={noteAction}
+        label={`Note for ${item.title}`}
+        className="pane-note"
+      >
+        <input type="hidden" name="id" value={item.id} />
+        <label>
+          <b>My note</b>
+          <textarea
+            name="notes"
+            rows={item.notes ? 3 : 1}
+            maxLength={20000}
+            defaultValue={item.notes ?? ''}
+            placeholder="What tripped me up, a link, a reminder for next time"
+            onFocus={(e) => {
+              e.currentTarget.rows = 3;
+            }}
+            onBlur={(e) => {
+              if (e.currentTarget.value !== (item.notes ?? ''))
+                e.currentTarget.form?.requestSubmit();
+            }}
+          />
+        </label>
+      </ActionForm>
+      {item.askedInInterview && (
+        <ActionForm
+          action={askedNoteAction}
+          label={`Where ${item.title} came up`}
+          className="asked-form"
+        >
+          <input type="hidden" name="id" value={item.id} />
+          <label>
+            Asked at
+            <input
+              name="askedNote"
+              maxLength={200}
+              defaultValue={item.askedNote ?? ''}
+              placeholder="Amazon phone screen, Oct 2026"
+              onBlur={(e) => {
+                if (e.currentTarget.value !== (item.askedNote ?? ''))
+                  e.currentTarget.form?.requestSubmit();
+              }}
+            />
+          </label>
+        </ActionForm>
+      )}
+      {cards.length > 0 && (
+        <section
+          className="kept-cards"
+          aria-label={`Kept cards for ${item.title}`}
+        >
+          <p className="eyebrow">Kept cards · {cards.length}</p>
+          <ul className="plain-list">
+            {cards.map((c) => (
+              <li key={c.id} className="kept-card">
+                <p className="kept-card-q">{c.question}</p>
+                {c.change && (
+                  <p className="muted kept-card-change">{c.change}</p>
+                )}
+                <ul>
+                  {c.points.map((p) => (
+                    <li key={p}>{p}</li>
+                  ))}
+                </ul>
+                <ActionForm
+                  action={removeCardAction}
+                  broadcast="roadmap-items"
+                  label={`Remove the card ${c.question}`}
+                >
+                  <input type="hidden" name="id" value={c.id} />
+                  <Button variant="link" className="danger small">
+                    Remove card
+                  </Button>
+                </ActionForm>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
       <ActionForm
         action={itemOpAction}
         broadcast="roadmap-items"
@@ -667,47 +882,59 @@ function ItemPane({
         onSettled={(r) => settle(item.id, r.ok)}
       >
         <input type="hidden" name="id" value={item.id} />
+        <span hidden>
+          <button ref={startRef} name="op" value="start" tabIndex={-1} />
+        </span>
         <div className="item-foot">
-          {practice ? (
-            <Link prefetch={false} className="button small" href={practice}>
+          {primary === 'attempt' && (
+            <Link prefetch={false} className="button" href={practice!}>
               Record an attempt
             </Link>
-          ) : (
-            <div
-              className="status-control"
-              role="group"
-              aria-label={`Status: ${item.title}`}
-            >
-              {(['NOT_STARTED', 'IN_PROGRESS', 'DONE'] as const).map((s) => {
-                const op = statusOp(s, status);
-                return op ? (
-                  <button
-                    key={s}
-                    className="status-choice"
-                    name="op"
-                    value={op}
-                    aria-pressed="false"
-                  >
-                    {statusText[s]}
-                  </button>
-                ) : (
-                  <button
-                    key={s}
-                    type="button"
-                    className="status-choice is-on"
-                    aria-pressed="true"
-                  >
-                    {statusText[s]}
-                  </button>
-                );
-              })}
-            </div>
           )}
-          {!practice && status === 'DONE' && due && (
-            <button className="button small" name="op" value="revised">
-              <Check size={14} aria-hidden="true" /> Mark revised
+          {primary === 'done' && (
+            <button className="button" name="op" value="done">
+              <Check size={15} aria-hidden="true" /> Mark done
             </button>
           )}
+          {primary === 'revised' && (
+            <button className="button" name="op" value="revised">
+              <Check size={15} aria-hidden="true" /> Mark revised
+            </button>
+          )}
+          {primary === 'is-done' && (
+            <span className="status-badge is-on item-foot-done">
+              <Check size={14} aria-hidden="true" /> Done
+            </span>
+          )}
+          <button
+            className={`button secondary small${item.askedInInterview ? ' is-pressed' : ''}`}
+            name="op"
+            value={item.askedInInterview ? 'unasked' : 'asked'}
+            aria-pressed={item.askedInInterview}
+          >
+            Asked in an interview
+          </button>
+          <MoreMenu label={`More for ${item.title}`}>
+            <PanelButton
+              panel={`item-edit:${item.id}`}
+              className="more-menu-item"
+            >
+              Edit
+            </PanelButton>
+            {!practice && status === 'DONE' && (
+              <button className="more-menu-item" name="op" value="reopen">
+                Reopen
+              </button>
+            )}
+            {!practice && status === 'IN_PROGRESS' && (
+              <button className="more-menu-item" name="op" value="unstart">
+                Back to not started
+              </button>
+            )}
+            <button className="more-menu-item danger" name="op" value="remove">
+              Remove
+            </button>
+          </MoreMenu>
           <span className="item-foot-nav">
             {prev ? (
               <Button
@@ -736,154 +963,14 @@ function ItemPane({
             ) : null}
           </span>
         </div>
-        <div className="item-fold">
-          <button
-            type="button"
-            className="link-button item-fold-item"
-            aria-expanded={fold === 'notes'}
-            aria-controls={`notes-${item.id}`}
-            onClick={() => setFold(fold === 'notes' ? null : 'notes')}
-          >
-            Notes{noteCount ? ` · ${noteCount}` : ''}
-          </button>
-          {grill && grillable && (
-            <PanelButton
-              panel={`grill:${item.id}`}
-              className="link-button item-fold-item"
-              data-grill-open
-            >
-              Grill me
-            </PanelButton>
-          )}
-          {grill && listenable && (
-            <PanelButton
-              panel={`listen:${item.id}`}
-              className="link-button item-fold-item"
-              data-listen-open
-            >
-              Listen
-            </PanelButton>
-          )}
-          <button
-            className="link-button item-fold-item"
-            name="op"
-            value={item.askedInInterview ? 'unasked' : 'asked'}
-          >
-            {item.askedInInterview
-              ? 'Asked in an interview ✓'
-              : 'Asked in an interview'}
-          </button>
-          <span className="item-actions-spacer" />
-          <MoreMenu label={`More for ${item.title}`}>
-            <PanelButton
-              panel={`item-edit:${item.id}`}
-              className="more-menu-item"
-            >
-              Edit
-            </PanelButton>
-            <button className="more-menu-item danger" name="op" value="remove">
-              Remove
-            </button>
-          </MoreMenu>
-        </div>
       </ActionForm>
-      <div
-        id={`notes-${item.id}`}
-        hidden={fold !== 'notes'}
-        className="item-notes"
-      >
-        {cards.length > 0 && (
-          <section
-            className="kept-cards"
-            aria-label={`Kept cards for ${item.title}`}
-          >
-            <p className="eyebrow">Kept cards · {cards.length}</p>
-            <ul className="plain-list">
-              {cards.map((c) => (
-                <li key={c.id} className="kept-card">
-                  <p className="kept-card-q">{c.question}</p>
-                  {c.change && (
-                    <p className="muted kept-card-change">{c.change}</p>
-                  )}
-                  <ul>
-                    {c.points.map((p) => (
-                      <li key={p}>{p}</li>
-                    ))}
-                  </ul>
-                  <ActionForm
-                    action={removeCardAction}
-                    broadcast="roadmap-items"
-                    label={`Remove the card ${c.question}`}
-                  >
-                    <input type="hidden" name="id" value={c.id} />
-                    <Button variant="link" className="danger small">
-                      Remove card
-                    </Button>
-                  </ActionForm>
-                </li>
-              ))}
-            </ul>
-          </section>
-        )}
-        <ActionForm
-          action={noteAction}
-          label={`Note for ${item.title}`}
-          className="note-form"
-        >
-          <input type="hidden" name="id" value={item.id} />
-          <label>
-            My note{' '}
-            <span className="muted">(saves when you leave the field)</span>
-            <textarea
-              name="notes"
-              rows={2}
-              maxLength={20000}
-              defaultValue={item.notes ?? ''}
-              placeholder="What tripped me up, a link, a reminder for next time"
-              onBlur={(e) => {
-                if (e.currentTarget.value !== (item.notes ?? ''))
-                  e.currentTarget.form?.requestSubmit();
-              }}
-            />
-          </label>
-          <Button className="secondary small">Save note</Button>
-        </ActionForm>
-        {item.askedInInterview && (
-          <ActionForm
-            action={askedNoteAction}
-            label={`Where ${item.title} came up`}
-            className="asked-form"
-          >
-            <input type="hidden" name="id" value={item.id} />
-            <label>
-              Asked at
-              <input
-                name="askedNote"
-                maxLength={200}
-                defaultValue={item.askedNote ?? ''}
-                placeholder="Amazon phone screen, Oct 2026"
-                onBlur={(e) => {
-                  if (e.currentTarget.value !== (item.askedNote ?? ''))
-                    e.currentTarget.form?.requestSubmit();
-                }}
-              />
-            </label>
-          </ActionForm>
-        )}
-      </div>
       <SidePanel id={`item-edit:${item.id}`} title={`Edit ${item.title}`}>
         <ItemForm item={item} sections={sections} />
       </SidePanel>
       {grill && grillable && (
         <SidePanel id={`grill:${item.id}`} title={`Grill me · ${item.title}`}>
           <GrillMe
-            item={{
-              id: item.id,
-              title: item.title,
-              scope: item.scope,
-              checkpoint: item.checkpoint,
-              references: item.references,
-            }}
+            item={studyItem}
             budget={grill.budget}
             status={status}
             revisionDue={due}
@@ -892,37 +979,10 @@ function ItemPane({
       )}
       {grill && listenable && (
         <SidePanel id={`listen:${item.id}`} title={`Listen · ${item.title}`}>
-          <Listen
-            item={{
-              id: item.id,
-              title: item.title,
-              scope: item.scope,
-              checkpoint: item.checkpoint,
-              references: item.references,
-            }}
-            budget={grill.budget}
-          />
+          <Listen item={studyItem} budget={grill.budget} />
         </SidePanel>
       )}
     </>
-  );
-}
-
-/** A labelled line of the item: a small uppercase label over its text. */
-function Field({
-  label,
-  lead = false,
-  children,
-}: {
-  label: string;
-  lead?: boolean;
-  children: ReactNode;
-}) {
-  return (
-    <div className={`item-field${lead ? ' is-lead' : ''}`}>
-      <b>{label}</b>
-      <div className="item-field-body">{children}</div>
-    </div>
   );
 }
 

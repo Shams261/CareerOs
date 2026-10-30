@@ -1,0 +1,47 @@
+# WI-085 handoff — the item as a task card
+
+Date: 2026-10-30. Branch `feat/wi-085-task-card` from `main` `f2b51a7` (WI-084).
+
+**Source.** The owner used WI-084 on production and did not like it: the pane looked empty and small, the Study box offered only Copy prompt, "Studying" and "Done" made no sense as choices, and a DSA problem got the same card as a lesson. I then walked the page as a user (Today → the day's pick → Copy prompt → Done → DSA patterns → Two Sum) and reviewed it as a designer, a product manager and the developer; the two views agreed (report: the artifact "Roadmap Pane Review"). The outline + one item navigation is right; the item card was a database record rather than a workspace, its actions sat in three places, the three-way status control came from a reading-status pattern (roadmap.sh) that does not fit a revision loop, and a problem needs its own card. One more fact: the owner's Chrome runs Silsila at 50 % zoom (3,008 CSS px wide), which doubles every empty area; the card now centres on wide windows but is drawn for 90–110 %.
+
+**Migration:** none.
+
+## What changed
+
+| Part                 | Where                                                                      | What                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| -------------------- | -------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| The rules            | `src/features/roadmap/pane-domain.ts` (pure), `tests/roadmap-pane.test.ts` | `statusBadge` (Not started · Started · "Done Oct 28 · revise Nov 4" · "Revision overdue by 3 days", with a tone), `primaryAction` (done / revised / is-done / attempt), `scopeLines` (newlines, " · ", or one long comma list as bullets; a short line stays a line), `problemFacts` (difficulty, pattern, lists, companies from the import's scope lines), `kindBadge` (VIDEO, DOCS, SPEC, ARTICLE, COURSE, BOOK, CODE, LINK), `linkTitle` ("Open on LeetCode").                                                                                          |
+| The card             | `src/features/roadmap/pane.tsx` (`ItemPane`)                               | Where it sits · the title at 28 px · a meta line with the status badge, P0, Asked, the estimate, "Revision 7 days after done" · Done when as a callout · Scope as bullets · "Study here first": the item's link and references as rows with a kind badge and Open · "Then, with Silsila": the tool cards · My note, always present (one row, three on focus, saves on blur) · Asked at when asked · kept cards · the foot. Status is shown, never chosen: copying the prompt or opening a reference presses a hidden `start` button on a not-started item. |
+| The foot             | `pane.tsx`, `globals.css` (`.item-foot`, `.status-badge`)                  | One primary per state: Mark done (`done`), Mark revised (`revised`, a done item that is due), a Done badge once done, Record an attempt for a problem item. Then Asked in an interview as a pressed toggle, ⋯ (Edit, Reopen when done, Back to not started when started, Remove), and Prev / Next on the right.                                                                                                                                                                                                                                            |
+| The problem card     | `pane.tsx`                                                                 | A problem-linked item: the stat row (Confidence as the word, Attempts, Next revision, Pattern), chips for the lists and "Asked at …", Done when, "Solve" with Open on LeetCode, "If stuck" with Copy the pattern prompt and Grill me; no scope paragraph. The marks stay in Practice (ADR-025).                                                                                                                                                                                                                                                            |
+| The prompt as a card | `src/features/roadmap/study-prompt.tsx` (`card`, `title`, `onCopy`)        | The first tool card: its whole top is the copy button ("Copy the study prompt · Start / continue lesson · for Claude or ChatGPT"), the scenario select and "+ Add a doubt" under it, the doubt field and the clipboard fallback inside the card. The Practice problem page keeps the strip.                                                                                                                                                                                                                                                                |
+| The page             | `src/app/roadmap/[id]/page.tsx`                                            | `doneLabel` per row ("Oct 28" in the owner's zone) for the badge.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| Wide windows         | `globals.css`                                                              | Above 1,600 px the header and the outline + card centre at 1,180 px.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
+
+Removed: the three-way status control (`.status-control`), the folded row (Notes · Grill me · Listen · Asked), the labelled lines (`.item-field`), the reference links with grey kind text, the Study box with the strip. `unstart` stays as "Back to not started" in ⋯.
+
+Unchanged: the outline, Prev / Next, the phone sheet, the links into the page, the keys, Grill me and Listen panels, Edit, the data.
+
+## Tests
+
+- `tests/roadmap-pane.test.ts`: 12 tests (the four WI-085 rules added).
+- `e2e/journeys.spec.ts`: the roadmap journey expects "Not started", presses Mark done, sees "1 done", the row ticked and the badge "Done …".
+
+## Gate
+
+- `pnpm typecheck` and ESLint are clean, and Prettier is clean on changed files.
+- `pnpm test:ci` on a fresh disposable database: 121 files, 653 tests.
+- `pnpm build` passes.
+- `pnpm test:e2e` and `pnpm test:e2e:safari` each pass 7 journeys, axe clean (the roadmap journey updated for Mark done and the badge).
+- `pnpm docs:check` passes, and so does `git diff --check`.
+
+## Verification (local production build, Playwright, the owner's curriculum in a disposable database)
+
+- Concept item (Backend engineering · HTTP semantics, 1440 px): "Week 1 · … · 2 of 7", the title at 28 px, "Not started · P0 · Revision 7 days after done", the Done when callout, Scope as five bullets, "Study here first" with SPEC / DOCS / VIDEO rows and Open, "Then, with Silsila" with the prompt card (Start / continue lesson · for Claude or ChatGPT, the scenario select and + Add a doubt inside), Grill me and Listen cards, My note, the foot "Mark done · Asked in an interview · ⋯ · ‹ Prev · Next: HTTP operational details ›". axe clean, no console errors.
+- Opening a reference turns the badge to "Started" and the outline icon to in progress by itself; Mark done turns the badge to "Done Oct 30 · revise Nov 6", the foot to "✓ Done", and ⋯ offers Reopen; Reopen returns to "Started".
+- Problem item (DSA patterns · 217. Contains Duplicate): "Started · P0 · Easy · 25 min", the stat row Confidence Shaky · Attempts 1 · Next revision Oct 30 · Pattern Arrays & Hashing, chips NeetCode 150 · Blind 75 · Grind 75 · Prashad · Asked at Google, Amazon, Meta, Microsoft, Bloomberg, the Done when callout, "Solve" with Open on LeetCode, "If stuck" with Copy the pattern prompt and Grill me, Record an attempt as the primary. axe clean after the current row's meta was given secondary ink on the tint.
+- Dark theme and 1,800 px (centred at 1,180 px) checked; phone 390: the item as its own screen, no overflow, axe clean.
+
+## Production
+
+Merge and deploy; there is no database step.

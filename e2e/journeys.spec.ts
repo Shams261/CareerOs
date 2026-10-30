@@ -129,13 +129,14 @@ test('a roadmap item is added and marked done', async ({ page }) => {
   await expect(row).toHaveClass(/is-current/);
   const pane = page.getByRole('article', { name: 'Consistent hashing' });
   await expect(pane.getByText('Building blocks · 1 of 2')).toBeVisible();
-  // One status control: Not started · Studying · Done.
-  await pane
-    .getByRole('group', { name: 'Status: Consistent hashing' })
-    .getByRole('button', { name: 'Done' })
-    .click();
+  // One primary per state (WI-085): Mark done, then the badge reads Done and the row is ticked.
+  await expect(pane.getByText('Not started').first()).toBeVisible();
+  await pane.getByRole('button', { name: 'Mark done' }).click();
   await expect(page.getByText(/1 done/).first()).toBeVisible();
   await expect(row).toHaveClass(/is-done/);
+  await expect(pane.locator('.item-metaline .status-badge')).toContainText(
+    /^Done/,
+  );
   // Next walks the outline to the question.
   await pane
     .getByRole('button', { name: /^Next: Design a rate limiter/ })
