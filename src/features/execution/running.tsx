@@ -86,6 +86,7 @@ export async function RunningNow() {
             action={executionAction}
             label={`Resume ${paused.title}`}
             broadcast="blocks"
+            toast
           >
             <input type="hidden" name="id" value={paused.id} />
             <div className="running-actions">
@@ -142,6 +143,7 @@ export async function RunningNow() {
             action={executionAction}
             label="Pause the running session"
             broadcast="blocks"
+            toast
           >
             <input type="hidden" name="id" value={task.id} />
             <Button className="secondary" name="action" value="stop">

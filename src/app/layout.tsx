@@ -15,6 +15,7 @@ import type { Viewport } from 'next';
 import { currentSession } from '@/server/session';
 import { signOutAction } from '@/features/auth/actions';
 import { NavigationProgress } from '@/components/progress-bar-top';
+import { ToastHost } from '@/components/toast';
 import { CommandBar, CommandButton } from '@/features/command/bar';
 export const metadata: Metadata = {
   title: { default: 'Silsila', template: '%s · Silsila' },
@@ -99,6 +100,7 @@ export default async function RootLayout({
           </main>
           <PresenceBeat />
           <CommandBar />
+          <ToastHost />
           {/* Rumi from any page (WI-060), only where the server has AI. */}
           {aiConfig() && <RumiDrawer />}
         </div>

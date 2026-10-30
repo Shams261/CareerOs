@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- WI-081 (Start 20 min and refusals as toasts). No migration:
+  - **Start 20 min** goes over a done or skipped block's slot instead of refusing it as an overlap; a block still planned or running over that time refuses by name ("X is planned for 17:30–18:00. Start that block, or move it first.").
+  - **Refusals as toasts**: when the launcher (Start session, Resume, Complete, Start 20 min, Stop session) or the sidebar card (Pause, Resume, Complete) is refused, the message shows as a toast at the bottom of the screen with a × and goes by itself after seven seconds, instead of a line squeezed into the card (`ActionForm toast`, `ToastHost` in the layout, `src/components/toast.tsx`).
+  - **Phone rows**: on a phone a past row's status and actions (Not recorded · Log time · Reschedule · ›) sit under the title again instead of squeezing it to one letter a line and pushing the page sideways.
+
 - WI-080 (the rail cards open somewhere). No migration: on Today, clicking This week opens the week on Plan and clicking Today so far opens Activity (the last fourteen days); each card says so in its corner ("Plan →", "Activity →") and works from the keyboard.
 
 - WI-079 (Needs attention as a card). No migration: on Today, Needs attention sits in a card like This week and Today so far, as in the mockup.

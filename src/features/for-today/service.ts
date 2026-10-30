@@ -1,5 +1,6 @@
 import 'server-only';
 import { memo } from '@/server/memo';
+import { db } from '@/server/db';
 import { dayKey } from '@/lib/time';
 import { locked, type ScheduleUser } from '@/features/schedule/service';
 import { executeIn } from '@/features/execution/service';
@@ -50,7 +51,8 @@ export const forTodayPicks = (user: ScheduleUser, now = new Date()) =>
 
 /**
  * Start 20 min on a pick (WI-059): a 20-minute block added for today from the next whole
- * minute, written like any added block (it refuses an overlap), then Focus opens on it.
+ * minute, then Focus opens on it. A block still planned or running over that time refuses
+ * it by name; a done or skipped block's slot is free, so the pick goes over it (WI-080 fix).
  */
 export async function startPick(
   user: ScheduleUser,
@@ -60,6 +62,19 @@ export async function startPick(
   const start = new Date(Math.ceil(+now / 60_000) * 60_000);
   const end = new Date(+start + PICK_MINUTES * 60_000);
   const at = (d: Date, f: string) => formatInTimeZone(d, user.timezone, f);
+  const live = await db().timeBlock.findFirst({
+    where: {
+      dailyPlan: { userId: user.id },
+      status: { in: ['PLANNED', 'IN_PROGRESS'] },
+      plannedStart: { lt: end },
+      plannedEnd: { gt: start },
+    },
+    orderBy: { plannedStart: 'asc' },
+  });
+  if (live)
+    throw new Error(
+      `${live.title} is planned for ${at(live.plannedStart, 'HH:mm')}–${at(live.plannedEnd, 'HH:mm')}. Start that block, or move it first.`,
+    );
   return saveBlock(
     user,
     {
@@ -72,7 +87,7 @@ export async function startPick(
       startLocal: at(start, 'HH:mm'),
       endLocal: at(end, 'HH:mm'),
     },
-    false,
+    true,
   );
 }
 

@@ -10,6 +10,7 @@ import {
   useSyncExternalStore,
 } from 'react';
 import { Check } from 'lucide-react';
+import { publishToast } from './toast';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import type { ActionState } from '@/features/schedule/actions';
@@ -49,6 +50,7 @@ export function ActionForm({
   onPending,
   onSettled,
   draft,
+  toast = false,
 }: {
   action: (state: ActionState, form: FormData) => Promise<ActionState>;
   children: React.ReactNode;
@@ -73,6 +75,8 @@ export function ActionForm({
    * so Back, a refresh or a closed panel never loses it (WI-018).
    */
   draft?: string;
+  /** A refusal shows as a toast at the foot of the screen, not beside the button (WI-080). */
+  toast?: boolean;
 }) {
   const disclosure = useDisclosure();
   const [state, dispatch, pending] = useActionState(
@@ -86,6 +90,8 @@ export function ActionForm({
         onSuccess?.();
         if (closeOnSuccess) disclosure?.close();
       }
+      if (toast && !result.ok && result.message && !result.preview)
+        publishToast(result.message);
       onSettled?.(result);
       return result;
     },
@@ -130,7 +136,12 @@ export function ActionForm({
     return () => clearTimeout(timer);
   }, [state]);
   const shown =
-    state.message && faded !== state && !(broadcast && state.ok) ? state : null;
+    state.message &&
+    faded !== state &&
+    !(broadcast && state.ok) &&
+    !(toast && !state.ok && !state.preview)
+      ? state
+      : null;
   // The top progress bar runs while the action is on its way (also across a redirect).
   useEffect(() => {
     if (!pending) return;

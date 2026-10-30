@@ -364,6 +364,7 @@ export function ExecutionControls({
     <ActionForm
       action={executionAction}
       broadcast={more || launcher ? 'blocks' : undefined}
+      toast={launcher}
     >
       <input type="hidden" name="id" value={block.id} />
       <div className="actions">
