@@ -29,7 +29,9 @@ export function initialItem(
     const open = inSection.find((r) => r.status !== 'DONE') ?? inSection[0];
     if (open) return open.id;
   }
-  if (has(input.next)) return input.next;
+  // Continue only when the outline shows it; under a filter the first shown row wins.
+  const next = rows.find((r) => r.id === input.next);
+  if (next?.shown) return next.id;
   return rows.find((r) => r.shown)?.id ?? null;
 }
 
@@ -56,7 +58,31 @@ export function openSections(
   if (current) open.add(current.section);
   if (input.section) open.add(input.section);
   if (input.q) for (const r of rows) if (r.shown) open.add(r.section);
+  // Nothing named: the first section with a row, so the outline never arrives collapsed.
+  if (!open.size) {
+    const first = rows.find((r) => r.shown) ?? rows[0];
+    if (first) open.add(first.section);
+  }
   return [...open];
+}
+
+/**
+ * Where the pane goes when its item leaves the rows (removed, or filtered out and gone): the
+ * next shown row after it in the old order, else the one before, else nothing.
+ */
+export function afterRemoval(
+  before: PaneRow[],
+  after: PaneRow[],
+  openId: string | null,
+) {
+  if (!openId || after.some((r) => r.id === openId)) return openId;
+  const stays = new Set(after.filter((r) => r.shown).map((r) => r.id));
+  const i = before.findIndex((r) => r.id === openId);
+  const next = before.slice(i + 1).find((r) => stays.has(r.id));
+  const prev = [...before.slice(0, Math.max(i, 0))]
+    .reverse()
+    .find((r) => stays.has(r.id));
+  return next?.id ?? prev?.id ?? after.find((r) => r.shown)?.id ?? null;
 }
 
 /**
