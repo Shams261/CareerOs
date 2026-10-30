@@ -122,14 +122,25 @@ export async function itemOpAction(_s: ActionState, f: FormData) {
           },
         },
       };
-    if (op === 'reopen' || op === 'unstart')
+    // Every change of state can be taken back (WI-089: Done and Revised too, since their
+    // answer now floats away from the row): the item's previous marks and schedule come back.
+    if (
+      op === 'reopen' ||
+      op === 'unstart' ||
+      op === 'done' ||
+      op === 'revised'
+    )
       return {
         message:
           op === 'unstart'
             ? 'Back to not started.'
-            : item.nextRevisionAt
-              ? 'Reopened; the revision schedule is cleared.'
-              : 'Reopened.',
+            : op === 'done'
+              ? 'Done. Revision in 7 days.'
+              : op === 'revised'
+                ? 'Revision recorded; the next one is scheduled.'
+                : item.nextRevisionAt
+                  ? 'Reopened; the revision schedule is cleared.'
+                  : 'Reopened.',
         undo: {
           kind: 'restore-roadmap-state',
           payload: {
@@ -148,10 +159,6 @@ export async function itemOpAction(_s: ActionState, f: FormData) {
         ? 'Interview mark removed.'
         : op === 'start'
           ? 'Started.'
-          : op === 'revised'
-            ? 'Revision recorded; the next one is scheduled.'
-            : op === 'done'
-              ? 'Done. Revision in 7 days.'
-              : 'Saved.';
+          : 'Saved.';
   });
 }

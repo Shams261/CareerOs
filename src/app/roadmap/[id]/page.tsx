@@ -11,6 +11,7 @@ import { LinkOptionsProvider } from '@/features/roadmap/item-form';
 import { WeekItems, type Row } from '@/features/roadmap/week-items';
 import {
   neighbourSections,
+  nextSectionWithMatch,
   weekSection,
 } from '@/features/roadmap/week-items-domain';
 import { ItemFilters } from '@/features/roadmap/filters';
@@ -31,7 +32,25 @@ import { aiState } from '@/features/ai/service';
 import { budgetLine } from '@/features/ai/domain';
 import { formatInTimeZone } from 'date-fns-tz';
 import { ArrowLeft, ArrowRight } from 'lucide-react';
-export const metadata = { title: 'Roadmap' };
+/** The tab names the week and the roadmap (WI-089), so open weeks can be told apart. */
+export async function generateMetadata({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ section?: string }>;
+}) {
+  const [user, { id }, query] = await Promise.all([
+    owner(),
+    params,
+    searchParams,
+  ]);
+  const roadmap = await roadmapDetail(user, id);
+  if (!roadmap) return { title: 'Roadmap' };
+  const section =
+    query.section && roadmap.sections.has(query.section) ? query.section : null;
+  return { title: section ? `${section} · ${roadmap.title}` : roadmap.title };
+}
 
 const dateLabel = (d: Date) =>
   formatInTimeZone(new Date(`${revisionDay(d)}T12:00:00Z`), 'UTC', 'MMM d');
@@ -130,8 +149,11 @@ export default async function RoadmapDetail({
   const matchesElsewhere = allRows.filter(
     (r) => r.shown && r.section !== section,
   ).length;
+  const filterQuery = `${show !== 'all' ? `&show=${show}` : ''}${q ? `&q=${encodeURIComponent(query.q ?? '')}` : ''}`;
   const weekHref = (name: string) =>
     `/roadmap/${roadmap.id}?section=${encodeURIComponent(name)}`;
+  // "N more in other weeks" takes the owner to the next week with a match (WI-089).
+  const nextMatch = nextSectionWithMatch(sectionNames, allRows, section);
   const rows: Row[] = items.map((item) => ({
     item,
     revision: revisionState(item, today),
@@ -175,6 +197,8 @@ export default async function RoadmapDetail({
   return (
     <>
       <PageShortcuts
+        prev={prev ? weekHref(prev) : undefined}
+        next={next ? weekHref(next) : undefined}
         shortcuts={[
           { key: 'n', label: 'Add items', press: 'add-items' },
           { key: 'j', label: 'Next item', press: 'row-next' },
@@ -258,9 +282,19 @@ export default async function RoadmapDetail({
                 <span>
                   {' '}
                   · {rows.filter((r) => r.shown).length} shown
-                  {matchesElsewhere > 0
-                    ? `, ${matchesElsewhere} more in other weeks`
-                    : ''}
+                  {matchesElsewhere > 0 && nextMatch && (
+                    <>
+                      {', '}
+                      <Link
+                        prefetch={false}
+                        className="link"
+                        href={`${weekHref(nextMatch)}${filterQuery}`}
+                      >
+                        {matchesElsewhere} more in other weeks{' '}
+                        <ArrowRight size={13} aria-hidden="true" />
+                      </Link>
+                    </>
+                  )}
                 </span>
               )}
             </p>

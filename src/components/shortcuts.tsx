@@ -39,6 +39,13 @@ export function PageShortcuts({
       // open marker by now, so a handled key must not also close the open row.
       if (event.defaultPrevented) return;
       if (document.documentElement.hasAttribute('data-panel-open')) return;
+      // An open ⋯ or More menu takes the key (Escape closes it), never the page (WI-089).
+      if (
+        document.querySelector(
+          '.more-menu-toggle[aria-expanded="true"], .today-utils-toggle[aria-expanded="true"]',
+        )
+      )
+        return;
       const target = event.target as HTMLElement | null;
       if (
         target &&

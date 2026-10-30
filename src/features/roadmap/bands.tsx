@@ -37,10 +37,11 @@ function readOpen() {
     return null;
   }
 }
+/** The owner closed a band by hand: remembered as "none", so the default does not reopen it. */
+const NONE = 'none';
 function writeOpen(id: string | null) {
   try {
-    if (id) localStorage.setItem(OPEN_KEY, id);
-    else localStorage.removeItem(OPEN_KEY);
+    localStorage.setItem(OPEN_KEY, id ?? NONE);
   } catch {
     /* storage unavailable: the band still opens for this view */
   }
@@ -52,10 +53,23 @@ function writeOpen(id: string | null) {
  * bands): one roadmap open at a time, remembered in this browser so Back from a week lands on
  * the open band. A section row is a link to its page; the current section (the one holding the
  * Continue item) is marked and names its next item; the last row adds items to the roadmap.
+ * On a first visit the band holding the current work is open (WI-089).
  */
-export function RoadmapBands({ roadmaps }: { roadmaps: Band[] }) {
+export function RoadmapBands({
+  roadmaps,
+  defaultOpen = null,
+}: {
+  roadmaps: Band[];
+  /** Open on a first visit, when nothing is remembered: the roadmap holding the current work (WI-089). */
+  defaultOpen?: string | null;
+}) {
   const remembered = useSyncExternalStore(subscribe, readOpen, () => null);
-  const open = roadmaps.some((r) => r.id === remembered) ? remembered : null;
+  const open =
+    remembered === null
+      ? defaultOpen
+      : roadmaps.some((r) => r.id === remembered)
+        ? remembered
+        : null;
   return (
     <ul className="plain-list roadmap-bands">
       {roadmaps.map((r) => {

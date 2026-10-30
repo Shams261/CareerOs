@@ -22,7 +22,11 @@ import { planQuestion } from '@/features/roadmap/week';
 import { AskRumiButton } from '@/features/agent/ask-button';
 import { AGENT_NAME } from '@/features/agent/domain';
 import { aiConfig } from '@/lib/env';
-import { revisionQueue, targetLabel } from '@/features/roadmap/domain';
+import {
+  continueTarget,
+  revisionQueue,
+  targetLabel,
+} from '@/features/roadmap/domain';
 import { roadmapRevisionRows } from '@/features/attention/domain';
 import { AttentionPages } from '@/features/today/attention-rows';
 export const metadata = { title: 'Roadmap' };
@@ -172,7 +176,10 @@ export default async function RoadmapPage() {
               </p>
             </div>
           )}
-          <RoadmapBands roadmaps={bands} />
+          <RoadmapBands
+            roadmaps={bands}
+            defaultOpen={continueTarget(roadmaps)?.roadmapId ?? null}
+          />
           {live.map((r) => (
             <SidePanel
               key={r.id}

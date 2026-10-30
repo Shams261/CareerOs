@@ -1,5 +1,6 @@
 'use client';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { confidenceWord } from '@/features/dsa/words';
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import {
@@ -10,7 +11,7 @@ import {
   CircleDot,
   ExternalLink,
 } from 'lucide-react';
-import { PanelButton, SidePanel } from '@/components/side-panel';
+import { PanelButton, SidePanel, closePanel } from '@/components/side-panel';
 import { MoreMenu } from '@/components/more-menu';
 import { ActionForm } from '@/components/action-form';
 import { FeedbackOutlet } from '@/components/feedback-outlet';
@@ -345,7 +346,9 @@ export function WeekItems({
           }}
         />
       </span>
-      <FeedbackOutlet channel="roadmap-items" className="mb-3" />
+      {/* The row's answer (Done · Undo, Removed · Undo) floats at the foot of the screen, so it
+          is in view wherever the open row sits (WI-089). */}
+      <FeedbackOutlet channel="roadmap-items" className="feedback-float" />
       {!shown.length && (
         <p className="muted week-empty">
           {q ? `Nothing matches “${q}” in this week.` : 'Nothing matches here.'}
@@ -451,6 +454,19 @@ function ItemBody({
 }) {
   const { item, revision, links, cards, grillable, listenable } = row;
   const references = (item.references as Reference[] | null) ?? [];
+  // An item edited into another week is followed there, with the row open (WI-089).
+  const router = useRouter();
+  const editedSection = useRef<string | null>(null);
+  const followMove = (r: { ok?: boolean }) => {
+    const to = editedSection.current;
+    editedSection.current = null;
+    if (!r.ok || !to || to === item.section) return;
+    // The panel closes itself only on a path change; this is the same path, another week.
+    closePanel();
+    router.push(
+      `/roadmap/${roadmap.id}?section=${encodeURIComponent(to)}#item-${item.id}`,
+    );
+  };
   // A problem item follows Practice (WI-046): its marks come from attempts there.
   const practice = links.dsaProblem
     ? `/dsa/${links.dsaProblem.id}?from=${item.id}`
@@ -832,7 +848,14 @@ function ItemBody({
         </div>
       </ActionForm>
       <SidePanel id={`item-edit:${item.id}`} title={`Edit ${item.title}`}>
-        <ItemForm item={item} sections={sections} />
+        <ItemForm
+          item={item}
+          sections={sections}
+          onPending={(f) => {
+            editedSection.current = String(f.get('section') ?? '').trim();
+          }}
+          onSettled={followMove}
+        />
       </SidePanel>
       {grill && grillable && (
         <SidePanel id={`grill:${item.id}`} title={`Grill me · ${item.title}`}>

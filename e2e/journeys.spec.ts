@@ -138,10 +138,13 @@ test('a roadmap item is added and marked done', async ({ page }) => {
   await first.getByRole('button', { name: 'Mark done' }).click();
   await expect(page.getByText('1 done · 1 left')).toBeVisible();
   await expect(first).toHaveClass(/is-done/);
-  // Mark done opens the next item left.
+  // Mark done opens the next item left; its answer floats in view with Undo (WI-089).
   await expect(
     page.locator('.week-item', { hasText: 'Design a rate limiter' }),
   ).toHaveClass(/is-open/);
+  await expect(page.getByRole('button', { name: 'Undo' })).toBeInViewport();
+  // The browser tab names the week (WI-089).
+  await expect(page).toHaveTitle(/^Building blocks · System design/);
   await accessible(page);
   await fitsPhone(page, page.url().replace(/^https?:\/\/[^/]+/, ''));
 });

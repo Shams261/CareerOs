@@ -7,6 +7,7 @@ import {
   kindBadge,
   linkTitle,
   neighbourSections,
+  nextSectionWithMatch,
   primaryAction,
   problemFacts,
   scopeLines,
@@ -231,6 +232,20 @@ describe('the roadmap as weeks (WI-088)', () => {
         current: 'Week 3',
       }),
     ).toBe('Week 3');
+  });
+  it('finds the next week with a match, wrapping round, for the filtered count (WI-089)', () => {
+    const only2 = rows.map((r) => ({ ...r, shown: r.section === 'Week 2' }));
+    expect(nextSectionWithMatch(sections, only2, 'Week 1')).toBe('Week 2');
+    expect(nextSectionWithMatch(sections, only2, 'Week 3')).toBe('Week 2');
+    expect(nextSectionWithMatch(sections, only2, 'Week 2')).toBeNull();
+    expect(nextSectionWithMatch(sections, rows, null)).toBe('Week 1');
+    expect(
+      nextSectionWithMatch(
+        sections,
+        rows.map((r) => ({ ...r, shown: false })),
+        'Week 1',
+      ),
+    ).toBeNull();
   });
   it('names the weeks before and after', () => {
     expect(neighbourSections(sections, 'Week 2')).toEqual({
