@@ -1,5 +1,5 @@
 import { cookies } from 'next/headers';
-import { savedTheme } from '@/server/theme';
+import { savedTextSize, savedTheme } from '@/server/theme';
 import { setupState } from '@/features/setup/service';
 import { setupLine, SETUP_COOKIE } from '@/features/setup/domain';
 import Link from 'next/link';
@@ -18,6 +18,7 @@ import {
   Quote,
   Server,
   Sun,
+  ALargeSmall,
   UserRound,
 } from 'lucide-react';
 import { db, owner } from '@/server/db';
@@ -55,6 +56,8 @@ import { memories } from '@/features/agent/service';
 import { MemorySettings, memoryContext } from '@/features/agent/memory';
 import { AGENT_NAME } from '@/features/agent/domain';
 import { ThemeSwitch } from '@/features/settings/theme-switch';
+import { TextSizeSwitch } from '@/features/settings/text-size-switch';
+import { textSizeLabel } from '@/lib/theme';
 import {
   lastSentText,
   reminderContext,
@@ -71,7 +74,7 @@ export default async function Settings({
   searchParams: Promise<{ google?: string; reason?: string }>;
 }) {
   const user = await owner();
-  const theme = await savedTheme();
+  const [theme, size] = await Promise.all([savedTheme(), savedTextSize()]);
   const now = new Date();
   const flash = await searchParams;
   const push = (() => {
@@ -403,6 +406,14 @@ export default async function Settings({
                 title={theme === 'dark' ? 'Dark' : 'Light'}
                 context="Light is the default; Dark is saved for this browser"
                 control={<ThemeSwitch theme={theme} />}
+              />
+              <SettingRow
+                source="practice"
+                icon={<ALargeSmall size={22} />}
+                label="Text size"
+                title={textSizeLabel(size)}
+                context="Larger steps the whole app up on screens wider than a phone; kept for this browser"
+                control={<TextSizeSwitch size={size} />}
               />
               <SettingRow
                 source="practice"
