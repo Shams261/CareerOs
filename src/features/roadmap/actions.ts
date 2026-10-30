@@ -122,11 +122,14 @@ export async function itemOpAction(_s: ActionState, f: FormData) {
           },
         },
       };
-    if (op === 'reopen')
+    if (op === 'reopen' || op === 'unstart')
       return {
-        message: item.nextRevisionAt
-          ? 'Reopened; the revision schedule is cleared.'
-          : 'Reopened.',
+        message:
+          op === 'unstart'
+            ? 'Back to not started.'
+            : item.nextRevisionAt
+              ? 'Reopened; the revision schedule is cleared.'
+              : 'Reopened.',
         undo: {
           kind: 'restore-roadmap-state',
           payload: {
