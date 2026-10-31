@@ -599,3 +599,23 @@ The owner's decisions (2026-10-26) and the R5 spike (2026-10-27, `scripts/r5-spi
 
 - The daily line is the second exception to the plain-facts voice on Today, beside ADR-027's cheer line, and only on the current day's header.
 - Adding a quotation means adding it to `QUOTES` with its source checked; a model never writes one (the Version 2 rule stands).
+
+## ADR-029 — The revision ladder: three fixed revisions from the solve day, missed when passed
+
+**Status:** Accepted (2026-10-31, WI-094). Replaces the confidence-driven revision dates of WI-003 for Practice problems.
+
+**Context:** Since WI-003 an attempt set the next revision from its confidence (Shaky tomorrow, Okay in three days, Solid in 7 / 14 / 30), so revisions appeared on Practice without the owner choosing them and a passed date stayed "overdue" for weeks. The owner wants what works for memory: solve a problem, revise it on the third day, the seventh and the fourteenth, and when a revision is skipped, see that it was missed rather than carry it.
+
+**Decision:**
+
+- **The ladder.** `LADDER_DAYS = [3, 7, 14]`. The first attempt on a problem starts it (`revisionStartedOn` is that day) and each step's day is counted from that day, not from the previous revision. `nextRevisionAt` is the open step's day; `revisionOutcomes` records each settled step as `revised` or `missed`; `revisionStage` is their count.
+- **Revised.** Mark revised on the problem page, or any attempt recorded while a step is open, settles the step as revised; the next step keeps its own day. The third revision ends the ladder; a later attempt starts a new one. Change revision date moves the open step only.
+- **Missed.** A step whose day has passed unrevised is settled as missed by `settleRevisions`, run before Practice is read (`dsaSnapshot`) and before the DSA reminder counts; several steps settle at once after days away. Nothing in Practice is ever overdue; the due queue is today's open steps.
+- **The confidence** stays a label (Shaky / Okay / Solid) and sets no date.
+- **The word "missed"** is used on the ladder and the list ("Missed · Nov 7", "2 of 3 · Nov 7 · missed 1", "Missed 3 of 3", the Show filter "Missed a revision", the review's "Revisions missed") because the owner asked for the gap to be named here. It is the one exception to the voice rule that keeps "missed" out of the app; Today, the nudges, Rumi and the reminders keep their plain facts.
+- **Next problem** is the Practice head's primary: the working topic's first untried core problem in the list's order (the current topic while it has untried core problems, else the topic of the latest attempt, moving to the next topic once its core is done, the first topic with nothing attempted); the "More practice" problems come only when every topic's core is tried, the curriculum's second pass. A revision due today sits beside it as Revise · title · n of 3.
+
+**Consequences:**
+
+- The migration clears the WI-003 dates; a problem attempted before it shows Start revision until the owner starts its ladder. Production had no attempts at the time.
+- The roadmap's problem-linked items keep following Practice (ADR-025); they never carry a revision of their own.

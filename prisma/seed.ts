@@ -4,7 +4,7 @@ import { seedReview } from './seed-review';
 import 'dotenv/config';
 import { PrismaClient } from '../src/generated/prisma/client';
 import { createPgAdapter } from '../src/lib/database';
-import { revision } from '../src/features/dsa/domain';
+import { markRevised, startLadder } from '../src/features/dsa/domain';
 import { dayKey, localInstant } from '../src/lib/time';
 import { resourceUrl } from '../src/lib/validation';
 import { routineOccurrence, shiftDay } from '../src/features/schedule/domain';
@@ -96,11 +96,23 @@ async function main() {
               difficulty: e.difficulty,
             },
           });
-          let stage = 0;
+          // The revision ladder (WI-094): the first attempt starts it, a later one revises
+          // the open step; a finished ladder starts again.
+          type Ladder = {
+            revisionStartedOn: Date;
+            revisionOutcomes: string[];
+            revisionStage: number;
+            nextRevisionAt: Date | null;
+            revisionManual: boolean;
+          };
+          let ladder: Ladder | null = null;
           let previous: 'RED' | 'YELLOW' | 'GREEN' | null = null;
           for (const [offset, confidenceAfter] of e.history) {
             const attemptedDay = shiftDay(day, offset);
-            const state = revision(confidenceAfter, stage, attemptedDay);
+            const state: Ladder =
+              ladder && ladder.nextRevisionAt
+                ? { ...ladder, ...markRevised({ attemptsCount: 1, ...ladder }) }
+                : startLadder(attemptedDay);
             const attemptedAt = localInstant(attemptedDay, '08:30', zone);
             await tx.dsaAttempt.create({
               data: {
@@ -138,7 +150,7 @@ async function main() {
                 attemptsCount: { increment: 1 },
               },
             });
-            stage = state.revisionStage;
+            ladder = state;
             previous = confidenceAfter;
           }
         }

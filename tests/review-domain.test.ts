@@ -224,6 +224,7 @@ describe('module summaries', () => {
       toRed: 1,
       current: { RED: 1, YELLOW: 1, GREEN: 1 },
       overdue: 1,
+      missed: 0,
     });
   });
   it('summarises learning activities, readiness gains and regressions', () => {

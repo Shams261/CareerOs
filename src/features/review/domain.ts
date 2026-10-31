@@ -268,6 +268,7 @@ export function dsaWeek(
     confidence: string;
     attemptsCount: number;
     nextRevisionAt: Date | null;
+    revisionOutcomes?: string[];
   }[],
   today: string,
 ) {
@@ -299,6 +300,8 @@ export function dsaWeek(
       (p) =>
         p.nextRevisionAt && p.nextRevisionAt.toISOString().slice(0, 10) < today,
     ).length,
+    // Steps of the revision ladder that passed unrevised (WI-094).
+    missed: tried.filter((p) => p.revisionOutcomes?.includes('missed')).length,
   };
 }
 

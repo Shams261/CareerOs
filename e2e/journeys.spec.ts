@@ -183,6 +183,11 @@ test('a problem is added without a link and an attempt is recorded', async ({
   await page.getByRole('button', { name: 'Save attempt' }).click();
   await expect(page.locator('.facts-strip')).toContainText('Okay');
   await expect(page.locator('.facts-strip')).toContainText(/Attempts\s*1/);
+  // The first attempt starts the revision ladder: step 1 in three days (WI-094).
+  await expect(page.locator('.facts-strip')).toContainText('1 of 3');
+  await expect(page.locator('.ladder-step').first()).toContainText(
+    'Revision 1',
+  );
   // The form is fresh again: nothing chosen, no stale confidence.
   await expect(page.getByRole('radio', { name: 'Okay' })).not.toBeChecked();
   await expect(

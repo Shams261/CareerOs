@@ -6,7 +6,14 @@ import { locked, type ScheduleUser } from '@/features/schedule/service';
 import { resourceUrl } from '@/lib/validation';
 import { dayKey } from '@/lib/time';
 import { dateInput } from '@/features/schedule/domain';
-import { attemptInput, isDsa, revision } from './domain';
+import {
+  attemptInput,
+  isDsa,
+  ladderState,
+  markRevised as revisedData,
+  settleLadder,
+  startLadder,
+} from './domain';
 import { followPractice } from '@/features/roadmap/follow';
 import type { Prisma } from '@/generated/prisma/client';
 export async function ownedProblem(
@@ -153,23 +160,29 @@ export async function recordAttempt(
         actualSessionId: session && isDsa(session.category) ? session.id : null,
       },
     });
+    // The ladder (WI-094): an attempt while a step is open counts as that revision; with no
+    // ladder, or a finished one, it starts one from today. The confidence sets no date.
+    const today = dayKey(now, user.timezone);
+    const ladder = ladderState(
+      { ...problem, attemptsCount: problem.attemptsCount + 1 },
+      today,
+    );
     await tx.dsaProblem.update({
       where: { id: problem.id },
       data: {
         confidence: input.confidenceAfter,
         lastAttemptedAt: now,
         attemptsCount: { increment: 1 },
-        ...revision(
-          input.confidenceAfter,
-          problem.revisionStage,
-          dayKey(now, user.timezone),
-        ),
+        ...(ladder.state === 'due' || ladder.state === 'upcoming'
+          ? revisedData(problem)
+          : startLadder(today)),
       },
     });
     await followPractice(tx, user.id, { problemId: problem.id }, now);
     return attempt;
   });
 }
+/** Moves the open step to another day by hand (the later steps keep their own days). */
 export async function scheduleRevision(
   user: ScheduleUser,
   id: string,
@@ -180,13 +193,68 @@ export async function scheduleRevision(
     const p = await ownedProblem(tx, user.id, id);
     if (!p.attemptsCount)
       throw new Error('Record a first attempt before scheduling a revision.');
+    if (!p.revisionStartedOn || !p.nextRevisionAt)
+      throw new Error('No revision is open. Start the ladder first.');
     await tx.dsaProblem.update({
       where: { id },
       data: { nextRevisionAt: new Date(date), revisionManual: true },
     });
   });
 }
-async function loadDsaSnapshot(user: ScheduleUser) {
+/** Starts the 3 · 7 · 14 ladder today on a problem that has been attempted (WI-094). */
+export async function startRevision(
+  user: ScheduleUser,
+  id: string,
+  now = new Date(),
+) {
+  return locked(user.id, async (tx) => {
+    const p = await ownedProblem(tx, user.id, id);
+    if (!p.attemptsCount)
+      throw new Error('Record a first attempt before starting the ladder.');
+    await tx.dsaProblem.update({
+      where: { id },
+      data: startLadder(dayKey(now, user.timezone)),
+    });
+  });
+}
+/** Mark revised: the open step is done and the next one waits on its own day (WI-094). */
+export async function markRevised(user: ScheduleUser, id: string) {
+  return locked(user.id, async (tx) => {
+    const p = await ownedProblem(tx, user.id, id);
+    await tx.dsaProblem.update({ where: { id }, data: revisedData(p) });
+    return ladderState(
+      await tx.dsaProblem.findUniqueOrThrow({ where: { id } }),
+      dayKey(new Date(), user.timezone),
+    );
+  });
+}
+/**
+ * Settles the steps whose day has passed as missed (WI-094), so nothing reads as overdue.
+ * Run before Practice is read and before the revision reminder counts; writes only when a
+ * step has lapsed, so a quiet day costs one read.
+ */
+export async function settleRevisionsIn(
+  tx: Prisma.TransactionClient,
+  userId: string,
+  today: string,
+) {
+  const lapsed = await tx.dsaProblem.findMany({
+    where: {
+      userId,
+      revisionStartedOn: { not: null },
+      nextRevisionAt: { lt: new Date(today) },
+    },
+  });
+  for (const p of lapsed) {
+    const data = settleLadder(p, today);
+    if (data) await tx.dsaProblem.update({ where: { id: p.id }, data });
+  }
+  return lapsed.length;
+}
+export const settleRevisions = (user: ScheduleUser, now = new Date()) =>
+  settleRevisionsIn(db(), user.id, dayKey(now, user.timezone));
+async function loadDsaSnapshot(user: ScheduleUser, now: Date) {
+  await settleRevisions(user, now);
   const [problems, topics, current] = await Promise.all([
     db().dsaProblem.findMany({
       // A hidden problem (WI-060) leaves Practice, For today, drills and revisions.
@@ -203,5 +271,5 @@ async function loadDsaSnapshot(user: ScheduleUser) {
   return { problems, topics, currentTopic: current.currentDsaTopic };
 }
 /** Cached for a few seconds per owner; every write drops it (see src/server/memo.ts). */
-export const dsaSnapshot = (user: ScheduleUser) =>
-  memo(user.id, 'dsa', () => loadDsaSnapshot(user));
+export const dsaSnapshot = (user: ScheduleUser, now = new Date()) =>
+  memo(user.id, 'dsa', () => loadDsaSnapshot(user, now));

@@ -682,7 +682,7 @@ export default async function Review({
                 ['Revisions', w.dsa.revisionAttempts],
                 ['Shaky to Okay', w.dsa.redToYellow],
                 ['Okay to Solid', w.dsa.yellowToGreen],
-                ['Revisions overdue', w.dsa.overdue],
+                ['Revisions missed', w.dsa.missed],
               ]}
             />
             {w.dsa.attempts > 0 && (
@@ -759,7 +759,7 @@ export default async function Review({
               <ul className="plain-list">
                 {carry.dsa.length > 0 && (
                   <li>
-                    DSA revisions overdue: {carry.dsa.length}{' '}
+                    DSA revisions missed, ladder still on: {carry.dsa.length}{' '}
                     {carry.dsa.slice(0, 3).map((p) => (
                       <Link
                         prefetch={false}

@@ -14,8 +14,12 @@ export type GroupRow = {
   platform: string;
   confidence: 'RED' | 'YELLOW' | 'GREEN';
   attempted: boolean;
-  /** 'due' | 'overdue' | 'upcoming' | null, with the date label for the last two. */
-  revision: { state: 'due' | 'overdue' | 'upcoming'; label: string } | null;
+  /** The revision ladder's line (WI-094): "Revision 1 of 3 · Due today", "2 of 3 · Nov 7". */
+  ladder: {
+    state: 'due' | 'upcoming' | 'finished';
+    text: string;
+    missed: boolean;
+  } | null;
 };
 export type Group = {
   id: string;
@@ -115,16 +119,12 @@ export function PatternGroups({
                           ? confidenceWord(p.confidence)
                           : 'Unattempted'}
                       </span>
-                      {p.revision?.state === 'overdue' && (
-                        <span className="problem-date is-overdue">
-                          Overdue {p.revision.label}
+                      {p.ladder && (
+                        <span
+                          className={`problem-date${p.ladder.state === 'due' ? ' is-due' : ''}${p.ladder.missed ? ' is-missed' : ''}`}
+                        >
+                          {p.ladder.text}
                         </span>
-                      )}
-                      {p.revision?.state === 'due' && (
-                        <span className="problem-date is-due">Due today</span>
-                      )}
-                      {p.revision?.state === 'upcoming' && (
-                        <span className="problem-date">{p.revision.label}</span>
                       )}
                     </span>
                   </span>

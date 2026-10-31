@@ -92,6 +92,7 @@ async function loadWeekReview(
         confidence: true,
         attemptsCount: true,
         nextRevisionAt: true,
+        revisionOutcomes: true,
       },
     }),
     db().learningActivity.findMany({
@@ -212,12 +213,14 @@ async function loadWeekReview(
 export async function carryForward(user: ScheduleUser, now = new Date()) {
   const today = dayKey(now, user.timezone);
   const [problems, topics, apps] = await Promise.all([
+    // Problems with a missed revision and a step still to come (WI-094): the ladder goes on.
     db().dsaProblem.findMany({
       where: {
         userId: user.id,
         hiddenAt: null,
         attemptsCount: { gt: 0 },
-        nextRevisionAt: { lt: date(today) },
+        revisionOutcomes: { has: 'missed' },
+        nextRevisionAt: { not: null },
       },
       orderBy: { nextRevisionAt: 'asc' },
       select: { id: true, title: true, nextRevisionAt: true },
