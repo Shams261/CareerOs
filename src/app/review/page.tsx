@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import type { ReactNode } from 'react';
 import { confidenceWord } from '@/features/dsa/words';
 import { getPatterns } from '@/features/agent/tools';
 import { patternLine } from '@/features/agent/plan-domain';
@@ -9,7 +10,7 @@ import { CategoryIcon } from '@/components/category-icon';
 import { PageShortcuts } from '@/components/shortcuts';
 import { UtilityMenu } from '@/features/today/utility-menu';
 import { remindersPreview } from '@/features/notifications/preview';
-import { dayKey, hhmm, weekdayDate } from '@/lib/time';
+import { dayKey, hhmm, shortDate, weekdayDate } from '@/lib/time';
 import { shiftDay } from '@/features/schedule/domain';
 import { BlockRowShell } from '@/features/schedule/block-row';
 import {
@@ -19,13 +20,19 @@ import {
   rowMeta,
 } from '@/features/schedule/row';
 import {
+  closeWeekLine,
   currentWeek,
   weekSummary,
   defaultReviewWeek,
   formatMinutes,
+  hasReflection,
   isMonday,
+  lastReviewLine,
+  lastReviewQuote,
+  MAX_PRIORITIES,
+  plural,
   reviewSummaryLine,
-  weekOf,
+  reviewWeekParam,
 } from '@/features/review/domain';
 import {
   carryForward,
@@ -52,6 +59,13 @@ const weekLabel = (monday: string) => {
     ? `Week of ${label(monday, 'd')} – ${label(sunday, 'd MMMM')}`
     : `Week of ${label(monday, 'd MMMM')} – ${label(sunday, 'd MMMM')}`;
 };
+/** "19 – 25 Oct", or "26 Oct – 1 Nov": the title's label, as on Plan (WI-097). */
+const shortWeekLabel = (monday: string) => {
+  const sunday = shiftDay(monday, 6);
+  return label(monday, 'MMM') === label(sunday, 'MMM')
+    ? `${label(monday, 'd')} – ${label(sunday, 'd MMM')}`
+    : `${label(monday, 'd MMM')} – ${label(sunday, 'd MMM')}`;
+};
 const weekday = (day: string) => label(day, 'EEE');
 const symbol = {
   done: ['✓', 'done'],
@@ -61,8 +75,9 @@ const symbol = {
   'needs-update': ['!', 'recorded, needs update'],
   planned: ['○', 'planned'],
 } as const;
+// "The week", not "This week": a past week's step must not share the header's button's name.
 const STEPS = [
-  ['week', 'This week'],
+  ['week', 'The week'],
   ['reflect', 'Reflect'],
   ['plan', 'Next week'],
 ] as const;
@@ -81,21 +96,21 @@ function Bar({
 }) {
   const pct = (n: number) => `${max ? Math.round((n / max) * 100) : 0}%`;
   return (
-    <div className="week-bar">
+    <div className="review-bar">
       <div className="row">
         <strong>{label}</strong>
         <span className="muted">
           Planned {formatMinutes(planned)} · Actual {formatMinutes(actual)}
         </span>
       </div>
-      <div className="week-bar-track" aria-hidden="true">
-        <span className="week-bar-planned" style={{ width: pct(planned) }} />
-        <span className="week-bar-actual" style={{ width: pct(actual) }} />
+      <div className="review-bar-track" aria-hidden="true">
+        <span className="review-bar-planned" style={{ width: pct(planned) }} />
+        <span className="review-bar-actual" style={{ width: pct(actual) }} />
       </div>
     </div>
   );
 }
-const Fact = ({ label, value }: { label: string; value: string | number }) => (
+const Fact = ({ label, value }: { label: string; value: ReactNode }) => (
   <div>
     <dt className="muted">{label}</dt>
     <dd>{value}</dd>
@@ -141,12 +156,11 @@ export default async function Review({
           })
         )?.completedAt
       : true;
-  const monday =
-    query.week && /^\d{4}-\d{2}-\d{2}$/.test(query.week)
-      ? isMonday(query.week)
-        ? query.week
-        : weekOf(query.week)
-      : defaultReviewWeek(today, lastWeekCompleted);
+  // Any real day snaps to its Monday; a date that does not exist falls back (WI-097).
+  const monday = reviewWeekParam(
+    query.week,
+    defaultReviewWeek(today, lastWeekCompleted),
+  );
   const openLastWeek = !query.week && monday !== thisWeek;
   const step: Step = (['week', 'reflect', 'plan', 'details'] as const).includes(
     query.step as Step,
@@ -172,8 +186,8 @@ export default async function Review({
           })
         : [],
       plan ? remindersPreview(user, nextMonday) : [],
-      // WI-041: the owner's patterns over the last four weeks, on the first step only.
-      step === 'week' ? getPatterns(user, now) : null,
+      // WI-041: the owner's patterns over the last four weeks, on the first two steps.
+      step === 'week' || step === 'reflect' ? getPatterns(user, now) : null,
     ]);
   const habitLine = habits ? patternLine(habits) : null;
   const summary = weekSummary(w.schedule.days);
@@ -185,6 +199,11 @@ export default async function Review({
     ...s.rows.map((r) => Math.max(r.planned, r.actual)),
     1,
   );
+  // The review looks back: › stops at this week (WI-097).
+  const hasNext = monday < thisWeek;
+  const priorities = w.review?.priorities ?? [];
+  const remindersOn = reminders.filter((r) => r.on);
+  const lastQuote = w.lastReview ? lastReviewQuote(w.lastReview) : null;
   const status = w.review?.completedAt
     ? 'Completed'
     : w.review
@@ -204,30 +223,35 @@ export default async function Review({
       <PageShortcuts
         shortcuts={[]}
         prev={href(step, shiftDay(monday, -7))}
-        next={href(step, nextMonday)}
+        next={hasNext ? href(step, nextMonday) : undefined}
       />
-      <header className="today-head">
+      <header className="today-head is-review">
         <div className="today-head-row">
           <div className="today-title">
             <h1>Weekly review</h1>
-            <span className="today-date">{weekLabel(monday)}</span>
+            <span className="today-date" aria-label={weekLabel(monday)}>
+              {shortWeekLabel(monday)}
+            </span>
             <nav className="day-nav" aria-label="Week navigation">
               <Link
                 className="button secondary small day-nav-step"
                 href={href(step, shiftDay(monday, -7))}
-                aria-label="Previous week"
+                aria-label="Earlier week"
                 prefetch={false}
               >
                 <ChevronLeft size={16} aria-hidden="true" />
               </Link>
-              <Link
-                className="button secondary small day-nav-step"
-                href={href(step, nextMonday)}
-                aria-label="Next week"
-                prefetch={false}
-              >
-                <ChevronRight size={16} aria-hidden="true" />
-              </Link>
+              {/* Earlier / Later, so the stepper's Next week keeps its name to itself. */}
+              {hasNext && (
+                <Link
+                  className="button secondary small day-nav-step"
+                  href={href(step, nextMonday)}
+                  aria-label="Later week"
+                  prefetch={false}
+                >
+                  <ChevronRight size={16} aria-hidden="true" />
+                </Link>
+              )}
               {monday !== thisWeek && (
                 <Link
                   className="button secondary small"
@@ -258,7 +282,13 @@ export default async function Review({
           </UtilityMenu>
         </div>
         <p className="today-summary">
-          {weekWord} · {reviewSummaryLine(status, s.totals, s.focus.actual)}
+          {/* One span: the summary is a flex row and would wrap at every text node. */}
+          <span>
+            <span className="review-week-phone">
+              {shortWeekLabel(monday)} ·{' '}
+            </span>
+            {weekWord} · {reviewSummaryLine(status, s.totals, s.focus.actual)}
+          </span>
         </p>
       </header>
       <nav className="stepper" aria-label="Review steps">
@@ -304,14 +334,13 @@ export default async function Review({
         <>
           <section className="card" aria-labelledby="week-heading">
             <h2 id="week-heading">Planned versus done</h2>
-            <Bar
-              label="Focused work"
-              planned={s.focus.planned}
-              actual={s.focus.actual}
-              max={max}
-            />
+            {/* One facts line instead of a third copy of the bar (WI-097). */}
+            <p className="status-line review-facts">
+              <strong>{formatMinutes(s.focus.actual)} focused</strong> of{' '}
+              {formatMinutes(s.focus.planned)} planned
+            </p>
             <div
-              className="week-chart mt-5"
+              className="week-chart mt-4"
               role="img"
               aria-label={`Planned and recorded minutes per day: ${s.days
                 .map(
@@ -358,8 +387,10 @@ export default async function Review({
               className="review-summary"
               aria-labelledby="summary-heading"
             >
-              <h3 id="summary-heading">The week in short</h3>
-              <p className="muted">{summary.line}</p>
+              <h3 id="summary-heading">
+                The week in short{' '}
+                <span className="muted">· {summary.line}</span>
+              </h3>
               {s.rows.length > 0 && (
                 <ul className="plain-list review-kinds">
                   {s.rows.map((r) => (
@@ -411,18 +442,15 @@ export default async function Review({
                   )}
                 </>
               )}
-              <p className="mt-3">
-                <Link
-                  className="link"
-                  href={`/calendar?date=${monday}`}
-                  prefetch={false}
-                >
-                  See every day on Plan{' '}
-                  <ArrowRight size={14} aria-hidden="true" />
-                </Link>
-              </p>
             </section>
             <div className="step-foot">
+              <Link
+                className="button secondary"
+                href={`/calendar?date=${monday}`}
+                prefetch={false}
+              >
+                See every day on Plan
+              </Link>
               <Link prefetch={false} className="button" href={href('reflect')}>
                 Next: Reflect <ArrowRight size={14} aria-hidden="true" />
               </Link>
@@ -432,152 +460,238 @@ export default async function Review({
       )}
 
       {step === 'reflect' && (
-        <>
-          {w.commitments.length > 0 && (
-            <section className="card" aria-labelledby="commit-heading">
-              <h2 id="commit-heading">What you set out to do</h2>
-              <PriorityList priorities={w.commitments} editable={false} />
+        // The prompts in one column; the week's facts stay in view in a rail (WI-097).
+        <div className="today-workspace is-today review-workspace">
+          <div className="jobs-main">
+            <section className="card" aria-labelledby="reflect-heading">
+              <h2 id="reflect-heading">
+                Reflection{' '}
+                <span className="muted">· all five are optional</span>
+              </h2>
+              <ReviewForm key={monday} weekStart={monday} review={w.review} />
             </section>
-          )}
-          <section className="card" aria-labelledby="reflect-heading">
-            <h2 id="reflect-heading">Reflection</h2>
-            <ReviewForm key={monday} weekStart={monday} review={w.review} />
-          </section>
-        </>
+          </div>
+          <aside
+            className="today-rail"
+            aria-label="The week beside the reflection"
+          >
+            <section className="card rail-card" aria-labelledby="facts-heading">
+              <h2 id="facts-heading">The week in short</h2>
+              <p className="muted review-rail-line">{summary.line}</p>
+              {s.rows.length > 0 && (
+                <ul className="plain-list review-kinds">
+                  {s.rows.map((r) => (
+                    <li key={r.label}>
+                      <span>{r.label}</span>
+                      <span className="muted">
+                        {formatMinutes(r.actual)} of {formatMinutes(r.planned)}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+              {summary.open.length > 0 && (
+                <ul className="plain-list rail-list review-open">
+                  {summary.open.map(({ day, item: b }) => (
+                    <li key={b.id} className="rail-item">
+                      <strong>{resolutionText[blockResolution(b, now)]}</strong>
+                      <span className="muted">
+                        {' '}
+                        · {blockTitle(b, null)}, {weekday(day)}{' '}
+                        {hhmm(b.plannedStart, zone)}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+              {habitLine && <p className="review-patterns">{habitLine}</p>}
+            </section>
+            {w.commitments.length > 0 && (
+              <section
+                className="card rail-card"
+                aria-labelledby="commit-heading"
+              >
+                <h2 id="commit-heading">What you set out to do</h2>
+                <PriorityList priorities={w.commitments} editable={false} />
+              </section>
+            )}
+          </aside>
+        </div>
       )}
 
       {step === 'plan' && (
-        <>
-          <section className="card" aria-labelledby="priorities-heading">
-            <h2 id="priorities-heading">
-              Priorities · {weekLabel(nextMonday)}
-            </h2>
-            <PriorityList priorities={w.review?.priorities ?? []} editable />
-            <PriorityForm
-              weekStart={monday}
-              count={w.review?.priorities.length ?? 0}
-              goals={goals}
-            />
-            {!planning && (
-              <p className="status-line mt-5">
-                <span>
-                  The week after this one is already planned. Prepare is for the
-                  coming week.
+        // Priorities and next week on the left; closing the week in the rail (WI-097).
+        <div className="today-workspace is-today review-workspace">
+          <div className="jobs-main">
+            <section className="card" aria-labelledby="priorities-heading">
+              <h2 id="priorities-heading">
+                Priorities · {shortWeekLabel(nextMonday)}{' '}
+                <span className="muted">
+                  · {priorities.length} of {MAX_PRIORITIES}
                 </span>
+              </h2>
+              <PriorityList priorities={priorities} editable />
+              <PriorityForm
+                weekStart={monday}
+                count={priorities.length}
+                goals={goals}
+              />
+              {!planning && (
+                <p className="status-line mt-5">
+                  <span>
+                    The week after this one is already planned. Prepare is for
+                    the coming week.
+                  </span>
+                  <Link
+                    prefetch={false}
+                    className="link"
+                    href={href('plan', thisWeek)}
+                  >
+                    Open this week&apos;s review{' '}
+                    <ArrowRight size={14} aria-hidden="true" />
+                  </Link>
+                </p>
+              )}
+            </section>
+            {next && (
+              <section className="card" aria-labelledby="next-heading">
+                <h2 id="next-heading">
+                  Next week · {shortWeekLabel(nextMonday)}
+                </h2>
+                {next.jobs.interviews.length > 0 && (
+                  <ul className="plain-list next-rows">
+                    {next.jobs.interviews.map((i) => (
+                      <li key={i.id} className="next-row">
+                        <span className="next-row-when">
+                          {weekdayDate(dayKey(i.start, zone))} ·{' '}
+                          {hhmm(i.start, zone)}
+                        </span>
+                        <Link
+                          className="link"
+                          href={`/jobs/${i.applicationId}#round-${i.id}`}
+                          prefetch={false}
+                        >
+                          Prepare {i.title}
+                        </Link>
+                        <span className="muted">
+                          {i.company}
+                          {i.prepTotal
+                            ? ` · ${i.prepDone} of ${i.prepTotal} prep done`
+                            : ''}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+                {next.jobs.followUps.length > 0 && (
+                  <ul className="plain-list next-rows">
+                    {next.jobs.followUps.map((a) => (
+                      <li key={a.id} className="next-row">
+                        <span className="next-row-when">
+                          {weekdayDate(
+                            a.nextActionDate!.toISOString().slice(0, 10),
+                          )}
+                        </span>
+                        <Link
+                          className="link"
+                          href={`/jobs/${a.id}`}
+                          prefetch={false}
+                        >
+                          {a.nextAction ?? 'Follow up'}
+                        </Link>
+                        <span className="muted">{a.company}</span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+                {/* The facts that matter for planning; the reminders fold in (WI-097). */}
+                <dl className="job-facts review-strip">
+                  <Fact
+                    label="Days planned"
+                    value={`${next.generatedDays} of 7`}
+                  />
+                  {next.dsa.topic && (
+                    <Fact label="DSA topic" value={next.dsa.topic} />
+                  )}
+                  <Fact
+                    label="DSA revisions due"
+                    value={next.dsa.revisionsDue}
+                  />
+                  {next.learning.reviewsDue > 0 && (
+                    <Fact
+                      label="Technical reviews due"
+                      value={next.learning.reviewsDue}
+                    />
+                  )}
+                  <Fact
+                    label="Applications needing action"
+                    value={next.jobs.actionRequired}
+                  />
+                  <Fact
+                    label="Reminders on"
+                    value={
+                      <>
+                        {remindersOn.length
+                          ? remindersOn.map((r) => r.title).join(', ')
+                          : 'None'}{' '}
+                        ·{' '}
+                        <Link
+                          prefetch={false}
+                          className="link"
+                          href="/settings#notifications-heading"
+                        >
+                          Change
+                        </Link>
+                      </>
+                    }
+                  />
+                </dl>
+                <PrepareNextWeekForm monday={next.bounds.monday} />
+              </section>
+            )}
+          </div>
+          <aside className="today-rail" aria-label="Closing the week">
+            <section
+              className="card rail-card close-week"
+              aria-labelledby="close-heading"
+            >
+              <h2 id="close-heading">Close the week</h2>
+              <p className="review-rail-line">
+                {closeWeekLine({
+                  completed: !!w.review?.completedAt,
+                  reflected: hasReflection(w.review),
+                  priorities: priorities.length,
+                  generatedDays: next ? next.generatedDays : null,
+                })}
+              </p>
+              <CompleteReviewForm
+                weekStart={monday}
+                completedAt={w.review?.completedAt ?? null}
+              />
+            </section>
+            {w.lastReview && (
+              <section
+                className="card rail-card"
+                aria-labelledby="last-heading"
+              >
+                <h2 id="last-heading">Last week&apos;s review</h2>
+                <p className="review-rail-line">
+                  {lastReviewLine(w.lastReview)}
+                </p>
+                {lastQuote && (
+                  <p className="muted review-quote">“{lastQuote}”</p>
+                )}
                 <Link
                   prefetch={false}
                   className="link"
-                  href={href('plan', thisWeek)}
+                  href={href('reflect', shiftDay(monday, -7))}
                 >
-                  Open this week&apos;s review{' '}
-                  <ArrowRight size={14} aria-hidden="true" />
+                  Open last week
                 </Link>
-              </p>
+              </section>
             )}
-            <CompleteReviewForm
-              weekStart={monday}
-              completedAt={w.review?.completedAt ?? null}
-            />
-          </section>
-          {next && (
-            <section className="card" aria-labelledby="next-heading">
-              <h2 id="next-heading">Next week</h2>
-              {next.jobs.interviews.length > 0 && (
-                <ul className="plain-list next-rows">
-                  {next.jobs.interviews.map((i) => (
-                    <li key={i.id} className="next-row">
-                      <span className="next-row-when">
-                        {weekdayDate(dayKey(i.start, zone))} ·{' '}
-                        {hhmm(i.start, zone)}
-                      </span>
-                      <Link
-                        className="link"
-                        href={`/jobs/${i.applicationId}#round-${i.id}`}
-                        prefetch={false}
-                      >
-                        Prepare {i.title}
-                      </Link>
-                      <span className="muted">
-                        {i.company}
-                        {i.prepTotal
-                          ? ` · ${i.prepDone} of ${i.prepTotal} prep done`
-                          : ''}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              )}
-              <dl className="job-facts">
-                <Fact label="DSA topic" value={next.dsa.topic ?? 'Not set'} />
-                <Fact label="DSA revisions due" value={next.dsa.revisionsDue} />
-                <Fact
-                  label="Learning focus"
-                  value={next.learning.subject ?? 'Not set'}
-                />
-                <Fact
-                  label="Technical reviews due"
-                  value={next.learning.reviewsDue}
-                />
-                <Fact
-                  label="Applications needing action"
-                  value={next.jobs.actionRequired}
-                />
-                <Fact
-                  label="Days planned"
-                  value={`${next.generatedDays} of 7`}
-                />
-              </dl>
-              {next.jobs.followUps.length > 0 && (
-                <ul className="plain-list next-rows">
-                  {next.jobs.followUps.map((a) => (
-                    <li key={a.id} className="next-row">
-                      <span className="next-row-when">
-                        {weekdayDate(
-                          a.nextActionDate!.toISOString().slice(0, 10),
-                        )}
-                      </span>
-                      <Link
-                        className="link"
-                        href={`/jobs/${a.id}`}
-                        prefetch={false}
-                      >
-                        {a.nextAction ?? 'Follow up'}
-                      </Link>
-                      <span className="muted">{a.company}</span>
-                    </li>
-                  ))}
-                </ul>
-              )}
-              <PrepareNextWeekForm monday={next.bounds.monday} />
-            </section>
-          )}
-          <section className="card flat" aria-labelledby="reminders-heading">
-            <div className="section-head">
-              <h2 id="reminders-heading">Reminders next week</h2>
-              <Link
-                prefetch={false}
-                className="link"
-                href="/settings#notifications-heading"
-              >
-                Change in Settings
-              </Link>
-            </div>
-            {reminders.some((r) => r.on) ? (
-              <ul className="plain-list reminder-lines">
-                {reminders
-                  .filter((r) => r.on)
-                  .map((r) => (
-                    <li key={r.title}>
-                      <strong>{r.title}</strong>
-                      <span className="muted">{r.detail}</span>
-                    </li>
-                  ))}
-              </ul>
-            ) : (
-              <p className="muted">No reminders are on.</p>
-            )}
-          </section>
-        </>
+          </aside>
+        </div>
       )}
 
       {step === 'details' && (
@@ -614,7 +728,7 @@ export default async function Review({
                 <div key={d.day}>
                   <strong>
                     {weekday(d.day)}{' '}
-                    <span className="muted">{d.day.slice(5)}</span>
+                    <span className="muted">{shortDate(d.day)}</span>
                   </strong>
                   <ul className="plain-list">
                     {d.items.map((i) => (
@@ -646,14 +760,17 @@ export default async function Review({
             {trend.length > 0 && (
               <>
                 <h3 className="mt-4">Recent weeks</h3>
-                <p className="status-line">
-                  {trend
-                    .map(
-                      (t) =>
-                        `${t.monday.slice(5)}: ${formatMinutes(t.focus)} focus, ${t.applications} applications`,
-                    )
-                    .join(' · ')}
-                </p>
+                <ul className="plain-list review-kinds">
+                  {trend.map((t) => (
+                    <li key={t.monday}>
+                      <span>Week of {shortDate(t.monday)}</span>
+                      <span className="muted">
+                        {formatMinutes(t.focus)} focus ·{' '}
+                        {plural(t.applications, 'application')}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
               </>
             )}
             {w.goals.length > 0 && (
@@ -687,8 +804,13 @@ export default async function Review({
             />
             {w.dsa.attempts > 0 && (
               <p className="muted">
-                Now: {w.dsa.current.RED} red · {w.dsa.current.YELLOW} yellow ·{' '}
-                {w.dsa.current.GREEN} green
+                Practice now:{' '}
+                {(['RED', 'YELLOW', 'GREEN'] as const)
+                  .map(
+                    (k) =>
+                      `${w.dsa.current[k]} ${confidenceWord(k).toLowerCase()}`,
+                  )
+                  .join(' · ')}
               </p>
             )}
             <h3 className="mt-4">

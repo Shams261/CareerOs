@@ -265,6 +265,58 @@ test('Rumi proposes tomorrow, the plan is added and undone', async ({
   await accessible(page);
 });
 
+test('the weekly review walks its three steps and closes the week', async ({
+  page,
+}) => {
+  // WI-097: the steps are The week, Reflect, Next week; a week with blocks (the Focus journey
+  // planned one) leads with Next: Reflect, an empty one with Reflect anyway.
+  await page.goto('/review');
+  await expect(
+    page.getByRole('heading', { name: 'Weekly review', level: 1 }),
+  ).toBeVisible();
+  const steps = page.getByRole('navigation', { name: 'Review steps' });
+  await expect(steps).toContainText('The week');
+  await accessible(page);
+  await page
+    .getByRole('link', { name: /Next: Reflect|Reflect anyway/ })
+    .click();
+  await expect(page).toHaveURL(/step=reflect/);
+  await page.getByLabel('What went well?').fill('Four mornings in a row');
+  await page.getByRole('button', { name: 'Save and continue' }).click();
+  await expect(page).toHaveURL(/step=plan/);
+  await expect(page.locator('.today-summary')).toContainText('Draft');
+  await accessible(page);
+  // A priority with Undo, then the week closes from the rail.
+  await page
+    .getByLabel('Priority', { exact: true })
+    .fill('Finish Sliding Window');
+  await page.getByRole('button', { name: 'Add priority' }).click();
+  const row = page.locator('.prep-item', { hasText: 'Finish Sliding Window' });
+  await expect(row).toBeVisible();
+  await expect(page.locator('#priorities-heading')).toContainText('1 of 5');
+  await page
+    .getByRole('button', { name: 'Remove: Finish Sliding Window' })
+    .click();
+  await expect(row).toHaveCount(0);
+  await page.getByRole('button', { name: 'Undo' }).click();
+  await expect(row).toBeVisible();
+  await expect(page.locator('.close-week')).toContainText(
+    'Reflection saved as a draft · 1 priority',
+  );
+  await page.getByRole('button', { name: 'Complete review' }).click();
+  await expect(page.locator('.today-summary')).toContainText('Completed');
+  await expect(page.locator('.close-week')).toContainText('Review completed');
+  // The review looks back: no link past this week.
+  await expect(page.getByRole('link', { name: 'Later week' })).toHaveCount(0);
+  await expect(page.getByRole('link', { name: 'Earlier week' })).toBeVisible();
+  await page.goto('/review?step=details');
+  await expect(
+    page.getByRole('heading', { name: 'Past reviews' }),
+  ).toBeVisible();
+  await accessible(page);
+  await fitsPhone(page, '/review?step=plan');
+});
+
 test('Settings saves the dark theme and stays accessible', async ({ page }) => {
   await page.goto('/settings');
   await expect(

@@ -547,34 +547,35 @@ details[open] > summary {
   font-weight: 600;
 }
 
-/* WI-007 weekly review */
-.week-bar {
+/* WI-007 weekly review. Named review-bar since WI-097: Today's week card took .week-bar
+   in WI-065 and its 6 px pill clipped these bars and their labels. */
+.review-bar {
   margin: 0.6rem 0;
 }
-.week-bar .row {
+.review-bar .row {
   flex-wrap: wrap;
   gap: 4px 12px;
 }
-.week-bar-track {
+.review-bar-track {
   position: relative;
   height: 14px;
   background: var(--subtle);
   border-radius: 4px;
   margin-top: 4px;
 }
-.week-bar-planned,
-.week-bar-actual {
+.review-bar-planned,
+.review-bar-actual {
   position: absolute;
   left: 0;
   border-radius: 4px;
 }
-.week-bar-planned {
+.review-bar-planned {
   top: 0;
   height: 14px;
   border: 1px solid var(--primary);
   background: transparent;
 }
-.week-bar-actual {
+.review-bar-actual {
   top: 3px;
   height: 8px;
   background: var(--primary);
@@ -4102,7 +4103,8 @@ a.attention-link:hover .attention-title {
 
 /* WI-022: Jobs as moves. The list and the rail reuse Today's workspace and rows. */
 .jobs-workspace.is-today,
-.roadmap-workspace.is-today {
+.roadmap-workspace.is-today,
+.review-workspace.is-today {
   grid-template-areas: 'main rail';
   grid-template-columns: minmax(0, 1fr) 340px;
   grid-template-rows: none;
@@ -4294,7 +4296,8 @@ a.attention-link:hover .attention-title {
 @media (max-width: 1099px) {
   /* One column: the list first, the rail after it (WI-096; the roadmap since WI-060). */
   .jobs-workspace.is-today,
-  .roadmap-workspace.is-today {
+  .roadmap-workspace.is-today,
+  .review-workspace.is-today {
     grid-template-columns: minmax(0, 1fr);
     grid-template-areas: 'main' 'rail';
   }
@@ -9396,5 +9399,121 @@ html {
   }
   .details-list > div {
     grid-template-columns: 84px minmax(0, 1fr);
+  }
+}
+
+/* WI-097: the Weekly review redrawn. */
+.review-facts {
+  margin: 4px 0 0;
+  font-size: 14px;
+  color: var(--ink-2);
+}
+.review-facts strong {
+  color: var(--foreground);
+}
+.review-summary h3 .muted {
+  font-weight: 400;
+  font-size: 14px;
+}
+.step-foot {
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.review-workspace.is-today {
+  margin-top: 0;
+}
+.review-workspace .rail-card h2 {
+  font-size: 18px;
+  margin: 0 0 6px;
+}
+.review-rail-line {
+  margin: 0 0 10px;
+  font-size: 14px;
+  color: var(--ink-2);
+}
+.review-workspace .review-kinds {
+  margin-top: 4px;
+}
+.review-open {
+  margin-top: 10px;
+}
+.review-open .rail-item {
+  font-size: 14px;
+}
+.review-workspace .review-patterns {
+  margin-top: 12px;
+}
+.review-quote {
+  margin: 0 0 10px;
+  font-size: 14px;
+}
+/* The five prompts in one column, a reading measure wide. */
+.form-grid.is-stacked {
+  grid-template-columns: minmax(0, 1fr);
+  max-width: 62ch;
+}
+/* One line to add a priority; the rest under More. */
+.priority-line {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  margin-top: 12px;
+}
+.priority-line label {
+  flex: 1 1 auto;
+  margin: 0;
+}
+.priority-line input {
+  margin: 0;
+}
+.priority-line .button {
+  flex-shrink: 0;
+}
+.review-strip {
+  margin-top: 16px;
+}
+.review-strip .link {
+  display: inline-block;
+  padding: 3px 0;
+}
+.next-row .link {
+  display: inline-block;
+  padding: 2px 0;
+}
+.close-week .step-foot {
+  justify-content: flex-start;
+  margin-top: 6px;
+}
+.review-week-phone {
+  display: none;
+}
+@media (max-width: 700px) {
+  /* The week label leads the facts; the title row keeps the title, the arrows and More. */
+  .today-head.is-review .today-date {
+    display: none;
+  }
+  .review-week-phone {
+    display: inline;
+  }
+  /* Three equal tabs on one row. */
+  .stepper {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    width: auto;
+    gap: 4px;
+  }
+  .stepper a {
+    justify-content: center;
+    padding: 8px 6px;
+    min-height: 38px;
+  }
+  .stepper .step-number {
+    display: none;
+  }
+  .priority-line {
+    flex-wrap: wrap;
+  }
+  .priority-line label {
+    flex-basis: 100%;
   }
 }
