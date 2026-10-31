@@ -39,8 +39,12 @@ export async function noteOpAction(_s: ActionState, f: FormData) {
       id: f.get('id'),
       op: f.get('op'),
     });
+    // Done can be undone like Remove (WI-098): the note comes back to the list.
     return op === 'done'
-      ? 'Done.'
+      ? {
+          message: 'Done.',
+          undo: { kind: 'reopen-note', payload: { id: note.id } },
+        }
       : {
           message: 'Removed.',
           undo: { kind: 'restore-note', payload: { body: note.body } },

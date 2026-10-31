@@ -565,3 +565,35 @@ export function nextSlot(
     `${String(Math.floor(n / 60)).padStart(2, '0')}:${String(n % 60).padStart(2, '0')}`;
   return { start: clock(start), end: clock(end) };
 }
+
+/**
+ * "3 blocks · 2 still ahead" on today or a coming day; on a past day what is left is a
+ * decision, so "2 blocks · 1 to decide" or "2 blocks · all decided" (WI-098).
+ */
+export function planCountLine(
+  blocks: { status: string; plannedEnd: Date }[],
+  now: Date,
+  past: boolean,
+) {
+  const live = blocks.filter((b) => b.status !== 'CANCELLED');
+  // Only cancelled blocks: say so instead of "0 blocks · none left ahead" (WI-066).
+  if (!live.length) return `Nothing planned · ${blocks.length} cancelled`;
+  const count = `${live.length} block${live.length === 1 ? '' : 's'}`;
+  if (past) {
+    const undecided = live.filter(
+      (b) => b.status === 'PLANNED' || b.status === 'IN_PROGRESS',
+    ).length;
+    return `${count} · ${undecided ? `${undecided} to decide` : 'all decided'}`;
+  }
+  const ahead = live.filter(
+    (b) =>
+      b.status !== 'COMPLETED' && b.status !== 'SKIPPED' && b.plannedEnd > now,
+  ).length;
+  return `${count} · ${ahead ? `${ahead} still ahead` : 'none left ahead'}`;
+}
+/** "5 min", "1h", "5h 12m": the launcher's wait in the app's own duration words (WI-098). */
+export function startsInLabel(start: Date, now: Date) {
+  const m = Math.max(1, Math.round((+start - +now) / 60000));
+  if (m < 60) return `${m} min`;
+  return `${Math.floor(m / 60)}h${m % 60 ? ` ${m % 60}m` : ''}`;
+}

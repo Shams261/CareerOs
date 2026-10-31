@@ -127,7 +127,7 @@ export function TodayHeader({
             </PanelButton>
           )}
           <PressButton press="add-block" className="button secondary">
-            <Plus size={14} aria-hidden="true" /> Add
+            <Plus size={14} aria-hidden="true" /> Add a block
           </PressButton>
           {reviewed !== null && !(closing && reviewed === false) && (
             <PanelButton panel="review" className="button secondary">

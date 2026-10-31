@@ -7,6 +7,7 @@ import type { Metadata } from 'next';
 import { Suspense } from 'react';
 import { Navigation } from '@/components/navigation';
 import { RunningNow } from '@/features/execution/running';
+import { HideOnFocus } from '@/features/execution/hide-on-focus';
 import { PresenceBeat } from '@/features/nudges/presence';
 import { RumiDrawer } from '@/features/agent/drawer';
 import { aiConfig } from '@/lib/env';
@@ -88,7 +89,9 @@ export default async function RootLayout({
             </div>
             {/* Under the search box, so it is in view on every page at any height (WI-070). */}
             <Suspense fallback={null}>
-              <RunningNow />
+              <HideOnFocus>
+                <RunningNow />
+              </HideOnFocus>
             </Suspense>
             <Navigation />
             <footer className="muted mt-auto">

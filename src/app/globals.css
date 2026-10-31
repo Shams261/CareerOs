@@ -7782,10 +7782,17 @@ button.attention-link {
     grid-template-columns: minmax(0, 1fr);
     gap: 4px;
   }
-  /* The row's menu opens from the left on a phone, inside the screen (WI-072). */
+  /* The row's menu hangs from the actions' right edge on a phone (WI-098), so it stays
+     inside the screen whatever the row; WI-072 had anchored it to the ⋯ itself. */
+  .agenda-actions {
+    position: relative;
+  }
+  .agenda-actions .exec-menu {
+    position: static;
+  }
   .exec-secondary.is-always.is-open {
-    right: auto;
-    left: 0;
+    right: 0;
+    left: auto;
     max-width: calc(100vw - 32px);
   }
 }
@@ -7890,12 +7897,13 @@ button.attention-link {
   --band-ink: #04342c;
   --band-ink-2: #085041;
   --band-meta: #0f6e56;
+  /* Centred like the roadmap's goal card (WI-098): date, clock, greeting, quotation. */
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 16px 24px;
-  align-items: start;
+  justify-items: center;
+  text-align: center;
+  gap: 0;
   margin: 10px 0 18px;
-  padding: 22px 26px 20px;
+  padding: 28px 26px 26px;
   border-radius: var(--radius-lg);
   background: var(--band-bg);
   color: var(--band-ink);
@@ -7922,21 +7930,19 @@ button.attention-link {
   display: none;
 }
 .daily-eyebrow {
-  margin: 0 0 8px;
+  margin: 0;
   font-size: 12px;
   letter-spacing: 2px;
   text-transform: uppercase;
   font-weight: 600;
   color: var(--band-meta);
 }
-.daily-band-text {
-  min-width: 0;
-}
 .daily-greeting {
   margin: 0;
   font-family: var(--font-display), Georgia, serif;
-  font-size: 30px;
-  line-height: 1.15;
+  font-size: 44px;
+  line-height: 1.1;
+  text-wrap: balance;
   font-weight: 600;
   letter-spacing: -0.01em;
   color: var(--band-ink);
@@ -7946,7 +7952,8 @@ button.attention-link {
   font-size: 17px;
   line-height: 1.5;
   color: var(--band-ink-2);
-  max-width: 62ch;
+  max-width: 60ch;
+  text-wrap: balance;
 }
 .daily-quote q {
   font-style: italic;
@@ -7958,52 +7965,45 @@ button.attention-link {
 .daily-another {
   display: inline-flex;
   align-items: center;
-  margin-left: 8px;
-  padding: 4px;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  margin-left: 4px;
+  padding: 0;
+  border-radius: 999px;
   color: var(--band-meta);
   vertical-align: middle;
 }
 .daily-another:hover {
   color: var(--band-ink);
 }
-.daily-band-clock {
-  display: grid;
-  justify-items: end;
-  gap: 4px;
-}
 .daily-clock {
-  font-size: 42px;
+  display: block;
+  margin: 10px 0 8px;
+  font-size: 30px;
   line-height: 1;
   font-weight: 600;
   letter-spacing: -0.02em;
   font-variant-numeric: tabular-nums;
   color: var(--band-ink);
 }
-.daily-part {
-  font-size: 13px;
-  color: var(--band-meta);
-}
 .home-head .daily-band {
   margin-top: 14px;
 }
 @media (max-width: 700px) {
   .daily-band {
-    grid-template-columns: minmax(0, 1fr) auto;
-    gap: 8px 14px;
-    padding: 16px 16px 14px;
+    padding: 20px 16px 18px;
     margin: 4px 0 14px;
   }
-  .daily-band-text {
-    grid-row: 1 / 3;
-  }
   .daily-greeting {
-    font-size: 24px;
+    font-size: 30px;
   }
   .daily-quote {
     font-size: 15px;
   }
   .daily-clock {
-    font-size: 30px;
+    margin: 8px 0 6px;
+    font-size: 26px;
   }
 }
 @media (prefers-reduced-motion: no-preference) {
@@ -9516,4 +9516,45 @@ html {
   .priority-line label {
     flex-basis: 100%;
   }
+}
+
+/* WI-098: Today fixes from the check of 2026-10-31. */
+.row-decide {
+  display: contents;
+}
+.row-decide .link-button {
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--ink-2);
+  min-height: 28px;
+}
+.row-decide .link-button:hover {
+  color: var(--primary);
+  text-decoration: underline;
+}
+/* Targets of 24 px and more on a phone: the goal fact, the card links, View full schedule. */
+.today-fact-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.28em;
+  min-height: 28px;
+}
+.rail-card-link {
+  min-height: 24px;
+}
+.agenda-foot .link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 24px;
+}
+.rail-card.setup-steps {
+  margin-bottom: 0;
+}
+.rail-card.setup-steps .section-head h2 {
+  font-size: 18px;
+  margin: 0;
+}
+.rail-card.setup-steps .setup-hide {
+  min-height: 24px;
 }

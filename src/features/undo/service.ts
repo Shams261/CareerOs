@@ -67,6 +67,7 @@ const kinds = {
   }),
   'problem-unhide': z.object({ id: z.string().min(1) }),
   'restore-note': z.object({ body: z.string().min(1).max(500) }),
+  'reopen-note': z.object({ id: z.string().min(1) }),
   'restore-priority': z.object({
     weekStart: z.string(),
     title: z.string().min(1).max(160),
@@ -271,6 +272,15 @@ export async function restore(
     case 'restore-note': {
       await addNote(user, kinds[k].parse(payload));
       return 'Note restored.';
+    }
+    case 'reopen-note': {
+      const { id } = kinds[k].parse(payload);
+      const { count } = await db().quickNote.updateMany({
+        where: { id, userId: user.id },
+        data: { doneAt: null },
+      });
+      if (!count) throw new Error('This note no longer exists.');
+      return 'Note back on the list.';
     }
     case 'restore-priority': {
       const p = kinds[k].parse(payload);

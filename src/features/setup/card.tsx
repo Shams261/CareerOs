@@ -14,11 +14,14 @@ export function SetupCard({
   steps,
   line,
   compact = false,
+  rail = false,
 }: {
   steps: SetupStep[];
   line: string;
   /** One line until opened: the first-run card already asks for the first routine (WI-059). */
   compact?: boolean;
+  /** In Today's rail it is a card like the others (WI-098). */
+  rail?: boolean;
 }) {
   const router = useRouter();
   const [pending, start] = useTransition();
@@ -29,7 +32,7 @@ export function SetupCard({
   };
   return (
     <section
-      className="card flat setup-steps"
+      className={`card setup-steps${rail ? ' rail-card' : ' flat'}`}
       aria-labelledby="make-yours-heading"
     >
       <div className="section-head">

@@ -16,7 +16,13 @@ import { categoryGroup } from '@/features/review/domain';
 import { letGoDayAction } from './actions';
 
 import type { TimeBlock } from '@/generated/prisma/client';
-import { blockTitle, hhmm, type LauncherState, type RoundLike } from './domain';
+import {
+  blockTitle,
+  hhmm,
+  type LauncherState,
+  type RoundLike,
+  startsInLabel,
+} from './domain';
 import {
   blockResolution,
   recordedMinutes,
@@ -24,13 +30,6 @@ import {
   type BlockLike,
 } from '@/features/schedule/row';
 import { PanelButton, PressButton } from './panels';
-
-const startsIn = (d: Date, now: Date) => {
-  const m = Math.max(1, Math.round((+d - +now) / 60000));
-  return m < 60
-    ? `${m} min`
-    : `${Math.floor(m / 60)} h${m % 60 ? ` ${m % 60} min` : ''}`;
-};
 
 /**
  * The compact focus launcher: one surface, one primary action on the right, the timer
@@ -186,7 +185,7 @@ export function Launcher({
     const facts = [
       round || kind.toLowerCase() !== title.toLowerCase() ? kind : null,
       !paused && state.kind === 'next'
-        ? `Starts in ${startsIn(block.plannedStart, now)}`
+        ? `Starts in ${startsInLabel(block.plannedStart, now)}`
         : null,
       paused || state.kind !== 'next'
         ? `Until ${hhmm(block.plannedEnd, zone)}`
