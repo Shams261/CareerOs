@@ -565,7 +565,7 @@ The owner's decisions (2026-10-26) and the R5 spike (2026-10-27, `scripts/r5-spi
 
 **Decision:**
 
-- **Empty account** (no routine, no block, no running session): `FirstRunToday` shows the welcome "Start small. Build your rhythm.", **Plan my first focus** and "or try a 20-minute session". The panel offers today's picks with Start 20 min, or a block for later in four fields (`BlockForm quick`).
+- **Empty account** (no routine, no block, no running session): `FirstRunToday` shows the welcome "Start small. Build your rhythm.", **Plan my first focus** and "or try a 20-minute session". The panel offers today's picks with Start 20 min, or a block for later in four fields (`BlockForm quick`). (Since WI-092 the picks and the 20-minute link are gone: Plan my first focus alone.)
   - "Your first 3 steps" lists goal, study times and a learning focus. Each opens a panel or the Roadmap, and "Skip for now" hides the steps for 30 days (`silsila-first-steps-hidden`).
   - A calm empty day finishes the page. No form is required.
 - **A day with a plan:**

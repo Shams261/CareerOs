@@ -13,8 +13,7 @@ import { clock } from '@/features/execution/ring';
 import { stopUnlinkedAction } from '@/features/schedule/actions';
 import { ExecutionControls } from '@/features/schedule/forms';
 import { categoryGroup } from '@/features/review/domain';
-import { letGoDayAction, startPickAction } from '@/features/for-today/actions';
-import type { TodayPick } from '@/features/for-today/domain';
+import { letGoDayAction } from './actions';
 
 import type { TimeBlock } from '@/generated/prisma/client';
 import { blockTitle, hhmm, type LauncherState, type RoundLike } from './domain';
@@ -47,7 +46,6 @@ export function Launcher({
   closing = false,
   closed = false,
   closedLine = '',
-  pick = null,
   quiet = null,
 }: {
   state: LauncherState;
@@ -61,8 +59,6 @@ export function Launcher({
   closed?: boolean;
   /** The closed day's facts ("3 blocks completed · 1 min recorded · 1h 40m planned"). */
   closedLine?: string;
-  /** The first "For today" pick, offered when nothing is current or next (WI-059). */
-  pick?: TodayPick | null;
   /** Yesterday's blocks when none of them was recorded: the launcher says so (WI-059). */
   quiet?: { day: string; planned: number; recorded: number } | null;
 }) {
@@ -71,6 +67,19 @@ export function Launcher({
     block?.interviewRoundId
       ? (rounds.find((r) => r.id === block.interviewRoundId) ?? null)
       : null;
+  // A quiet yesterday (the facts line already states it) keeps its blocks one link from being
+  // let go (WI-059). Until WI-092 the link sat under a "For today" pick; the pick is gone.
+  const letGo = quiet ? (
+    <ActionForm
+      action={letGoDayAction}
+      label="Let go of yesterday's blocks"
+      broadcast="blocks"
+      className="launcher-letgo"
+    >
+      <input type="hidden" name="day" value={quiet.day} />
+      <Button variant="link">Let go of yesterday&apos;s blocks</Button>
+    </ActionForm>
+  ) : null;
   let eyebrow = '',
     title = '',
     context: React.ReactNode = null,
@@ -239,55 +248,6 @@ export function Launcher({
         Close the day
       </PanelButton>
     );
-  } else if (
-    pick &&
-    (state.kind === 'reconcile' || (state.kind === 'done' && !closed))
-  ) {
-    // Free time: the first pick, started as a short session, with the facts that make it
-    // the move. Earlier blocks without a decision stay one quiet link away.
-    eyebrow = quiet ? 'Start from here' : 'Free now';
-    title = pick.title;
-    context = quiet
-      ? `Yesterday: ${quiet.recorded} of ${quiet.planned} block${quiet.planned === 1 ? '' : 's'} recorded · ${pick.reason}`
-      : pick.reason;
-    action = (
-      <ActionForm
-        action={startPickAction}
-        label={`Start 20 min: ${pick.title}`}
-        toast
-      >
-        <input type="hidden" name="title" value={pick.title} />
-        <input type="hidden" name="category" value={pick.category} />
-        <Button>Start 20 min</Button>
-      </ActionForm>
-    );
-    next = (
-      <>
-        <Link className="link" href={pick.href} prefetch={false}>
-          Open it first
-        </Link>
-        {state.kind === 'reconcile' && (
-          <>
-            {' · '}
-            <a className="link" href={`#block-${state.blocks[0].id}`}>
-              {state.blocks.length} earlier block
-              {state.blocks.length === 1 ? '' : 's'} without a decision
-            </a>
-          </>
-        )}
-        {quiet && (
-          <ActionForm
-            action={letGoDayAction}
-            label="Let go of yesterday's blocks"
-            broadcast="blocks"
-            className="launcher-letgo"
-          >
-            <input type="hidden" name="day" value={quiet.day} />
-            <Button variant="link">Let go of yesterday&apos;s blocks</Button>
-          </ActionForm>
-        )}
-      </>
-    );
   } else if (state.kind === 'reconcile') {
     eyebrow = 'Earlier today';
     title = 'Update earlier blocks';
@@ -297,6 +257,7 @@ export function Launcher({
         Update earlier blocks
       </a>
     );
+    next = letGo;
   } else if (closed && state.kind === 'done') {
     // The day is reviewed: its facts, the review one link away, and room for a late block.
     eyebrow = 'Day closed';
@@ -313,6 +274,7 @@ export function Launcher({
     title = 'That is the plan for today';
     context = 'Add a block if something comes up; the review is in the header.';
     action = <PressButton press="add-block">Add a block</PressButton>;
+    next = letGo;
   }
   const live = state.kind === 'running';
   return (

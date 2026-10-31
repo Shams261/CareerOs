@@ -6634,38 +6634,7 @@ button.attention-link {
   font-size: 13px;
 }
 
-/* WI-059: For today, Today's facts line, the launcher's Let go, and the Done check. */
-.for-today {
-  margin-bottom: 24px;
-}
-.for-today .section-head {
-  margin-bottom: 8px;
-}
-.for-today-row {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 4px 16px;
-  align-items: center;
-  padding: 12px 0;
-  border-top: 1px solid var(--border-subtle);
-}
-.for-today-row:first-child {
-  border-top: 0;
-}
-.for-today-main {
-  display: grid;
-  gap: 2px;
-  min-width: 0;
-}
-.for-today-title {
-  font-weight: 600;
-  color: var(--foreground);
-  overflow-wrap: anywhere;
-}
-.for-today-reason {
-  font-size: 14px;
-  color: var(--ink-2);
-}
+/* WI-059: Today's facts line, the launcher's Let go, and the Done check. */
 .today-facts {
   margin: 4px 0 0;
   font-size: 14px;
@@ -6679,17 +6648,13 @@ button.attention-link {
   padding: 0;
   border: 0;
 }
+/* WI-092: the link stands alone in the launcher's next line. */
+.launcher-next > .launcher-letgo:first-child {
+  margin-left: 0;
+}
 @media (prefers-reduced-motion: no-preference) {
   .agenda-row.is-just-done .agenda-status svg {
     animation: silsila-pop 600ms var(--motion-easing) both;
-  }
-}
-@media (max-width: 700px) {
-  .for-today-row {
-    grid-template-columns: minmax(0, 1fr);
-  }
-  .for-today-row .button {
-    justify-self: start;
   }
 }
 .template-chips {
