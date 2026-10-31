@@ -296,30 +296,34 @@ model DsaTopic {
 }
 
 model DsaProblem {
-  prepItems       InterviewPrepItem[]
-  roadmapItems    RoadmapItem[]
-  attempts        DsaAttempt[]
-  revisionStage   Int                 @default(0)
-  revisionManual  Boolean             @default(false)
-  id              String              @id @default(cuid())
-  userId          String
-  user            User                @relation(fields: [userId], references: [id], onDelete: Cascade)
-  title           String
-  platform        String
-  problemUrl      String
-  difficulty      Difficulty
-  topicId         String
-  topic           DsaTopic            @relation(fields: [topicId], references: [id])
-  confidence      Confidence          @default(RED)
-  notes           String?
-  lastAttemptedAt DateTime?           @db.Timestamptz(3)
-  nextRevisionAt  DateTime?           @db.Date
-  attemptsCount   Int                 @default(0)
+  prepItems         InterviewPrepItem[]
+  roadmapItems      RoadmapItem[]
+  attempts          DsaAttempt[]
+  revisionStage     Int                 @default(0)
+  revisionManual    Boolean             @default(false)
+  id                String              @id @default(cuid())
+  userId            String
+  user              User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title             String
+  platform          String
+  problemUrl        String
+  difficulty        Difficulty
+  topicId           String
+  topic             DsaTopic            @relation(fields: [topicId], references: [id])
+  confidence        Confidence          @default(RED)
+  notes             String?
+  lastAttemptedAt   DateTime?           @db.Timestamptz(3)
+  nextRevisionAt    DateTime?           @db.Date
+  /// The day the revision ladder started, the attempt that began it (WI-094). Null: no ladder.
+  revisionStartedOn DateTime?           @db.Date
+  /// The ladder's settled steps in order, "revised" or "missed" (WI-094); three at most.
+  revisionOutcomes  String[]            @default([])
+  attemptsCount     Int                 @default(0)
   /// Hidden by the owner (WI-060): an imported problem leaves every list but stays for the import.
-  hiddenAt        DateTime?           @db.Timestamptz(3)
-  createdAt       DateTime            @default(now()) @db.Timestamptz(3)
-  updatedAt       DateTime            @updatedAt @db.Timestamptz(3)
-  resources       Resource[]
+  hiddenAt          DateTime?           @db.Timestamptz(3)
+  createdAt         DateTime            @default(now()) @db.Timestamptz(3)
+  updatedAt         DateTime            @updatedAt @db.Timestamptz(3)
+  resources         Resource[]
 
   @@index([userId, nextRevisionAt])
 }

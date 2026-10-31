@@ -23,11 +23,12 @@ import {
 import { AttemptForm } from '@/features/dsa/attempt-form';
 import {
   isDsa,
-  learningState,
+  ladderLine,
+  ladderState,
   problemNoteLine,
-  revisionDay,
   solvedText,
 } from '@/features/dsa/domain';
+import { RevisionLadder } from '@/features/dsa/ladder';
 import { resourceUrl } from '@/lib/validation';
 import { dayKey, shortDate } from '@/lib/time';
 import { traceForTopic } from '@/features/drills/trace';
@@ -121,15 +122,11 @@ export default async function Problem({
       ? Math.max(1, Math.round((+now - +running.startedAt) / 60000))
       : null;
   const validUrl = resourceUrl.safeParse(p.problemUrl).success;
-  // The revision fact says the state, as the list does (WI-091): overdue, due, or the day.
-  const state = learningState(p, dayKey(now, user.timezone));
-  const revisionFact = !p.nextRevisionAt
-    ? 'Not scheduled'
-    : state === 'overdue'
-      ? `Overdue since ${shortDate(revisionDay(p.nextRevisionAt))}`
-      : state === 'due'
-        ? 'Due today'
-        : shortDate(revisionDay(p.nextRevisionAt));
+  // The revision fact is the ladder's line (WI-094): "Revision 1 of 3 · Due today",
+  // "2 of 3 · Nov 7 · missed 1", "Revised 3 of 3", or Not started.
+  const today = dayKey(now, user.timezone);
+  const ladder = ladderState(p, today);
+  const revisionFact = ladderLine(ladder, shortDate) ?? 'Not started';
   const note = problemNoteLine(p.notes);
   const back = origin
     ? `/roadmap/${origin.roadmapId}?section=${encodeURIComponent(origin.section)}&show=all#item-${origin.id}`
@@ -201,7 +198,7 @@ export default async function Problem({
             <PanelButton panel="problem-edit" className="more-menu-item">
               Edit problem
             </PanelButton>
-            {p.attemptsCount > 0 && (
+            {ladder.step && (
               <PanelButton panel="problem-revision" className="more-menu-item">
                 Change revision date
               </PanelButton>
@@ -220,7 +217,7 @@ export default async function Problem({
       <SidePanel id="problem-edit" title="Edit problem" variant="modal">
         <ProblemForm problem={p} topics={topics} inPanel />
       </SidePanel>
-      {p.attemptsCount > 0 && (
+      {ladder.step && (
         <SidePanel
           id="problem-revision"
           title="Change revision date"
@@ -260,9 +257,7 @@ export default async function Problem({
         </div>
         <div>
           <dt className="muted">Revision</dt>
-          <dd
-            className={state === 'overdue' || state === 'due' ? 'is-due' : ''}
-          >
+          <dd className={ladder.state === 'due' ? 'is-due' : ''}>
             {revisionFact}
             {p.revisionManual ? ' (set by hand)' : ''}
           </dd>
@@ -276,6 +271,9 @@ export default async function Problem({
           <dd>{date(p.lastAttemptedAt)}</dd>
         </div>
       </dl>
+      {p.attemptsCount > 0 && (
+        <RevisionLadder problemId={p.id} ladder={ladder} today={today} />
+      )}
       {note.line && <p className="muted mb-5">{note.line}</p>}
       {p.resources.length > 0 && (
         <p className="item-links mb-5">

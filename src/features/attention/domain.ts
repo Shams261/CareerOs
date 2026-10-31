@@ -196,6 +196,8 @@ export function practiceRevisionRows(
     title: string;
     confidence: string;
     nextRevisionAt: Date | null;
+    /** The ladder step this revision is, 1–3 (WI-094). */
+    step?: number | null;
   }[],
   now: Date,
   zone: string,
@@ -209,7 +211,7 @@ export function practiceRevisionRows(
             source: 'practice' as const,
             label: 'Practice',
             title: `Review ${p.title}`,
-            context: `${revisionContext(dateLabel(p.nextRevisionAt), today)} · ${p.confidence.charAt(0)}${p.confidence.slice(1).toLowerCase()}`,
+            context: `${revisionContext(dateLabel(p.nextRevisionAt), today)}${p.step ? ` · ${p.step} of 3` : ''} · ${p.confidence.charAt(0)}${p.confidence.slice(1).toLowerCase()}`,
             href: `/dsa/${p.id}`,
             tier: 3 as const,
             due: +p.nextRevisionAt,

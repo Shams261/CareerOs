@@ -4,7 +4,11 @@ import { BrandMark } from '@/components/brand';
 import { db, owner } from '@/server/db';
 import { dsaSnapshot } from '@/features/dsa/service';
 import {
+  curriculumOrder,
+  ladderLine,
+  ladderState,
   learningState,
+  nextProblemFor,
   revisionDay,
   revisionQueue,
   STATUS_FILTERS,
@@ -30,6 +34,8 @@ const tone = { RED: 'danger', YELLOW: 'warning', GREEN: 'success' } as const;
 const levelRank = { EASY: 0, MEDIUM: 1, HARD: 2 } as const;
 const dateLabel = (d: Date) =>
   formatInTimeZone(new Date(`${revisionDay(d)}T12:00:00Z`), 'UTC', 'MMM d');
+const dayLabel = (day: string) =>
+  formatInTimeZone(new Date(`${day}T12:00:00Z`), 'UTC', 'MMM d');
 
 export default async function Dsa({
   searchParams,
@@ -60,15 +66,22 @@ export default async function Dsa({
       },
     }),
   ]);
-  const nextInTopic = currentTopic
-    ? problems.find((p) => p.topicId === currentTopic.id && !p.attemptsCount)
-    : null;
   const queue = revisionQueue(problems, day),
     practiced = problems.filter((p) => p.attemptsCount > 0);
-  // The page's one primary (WI-058): a revision that is due, else the current topic's next
-  // problem, else the first problem not tried yet.
-  const nextProblem =
-    queue[0] ?? nextInTopic ?? problems.find((p) => !p.attemptsCount) ?? null;
+  // Next problem (WI-094): the working topic's first untried problem in the list's order,
+  // moving to the next topic once one is done; a revision due today sits beside it.
+  const nextProblem = nextProblemFor(
+    curriculumOrder(problems, topics),
+    topics,
+    currentTopic?.id ?? null,
+  );
+  const workingTopic = nextProblem
+    ? (topics.find((t) => t.id === nextProblem.topicId) ?? null)
+    : currentTopic;
+  const revise = queue[0] ?? null;
+  const reviseStep = revise
+    ? Math.min(3, revise.revisionOutcomes.length + 1)
+    : null;
   const q = (query.q ?? '').trim();
   const status: StatusFilter =
     query.status && query.status in STATUS_FILTERS
@@ -81,7 +94,7 @@ export default async function Dsa({
       status === '' ||
       (status === 'unattempted' && !p.attemptsCount) ||
       (status === 'due' && state === 'due') ||
-      (status === 'overdue' && state === 'overdue') ||
+      (status === 'missed' && p.revisionOutcomes.includes('missed')) ||
       (['RED', 'YELLOW', 'GREEN'].includes(status) &&
         p.attemptsCount > 0 &&
         p.confidence === status);
@@ -117,7 +130,7 @@ export default async function Dsa({
           ['due', 'overdue'].includes(learningState(p, day)),
         ).length,
         rows: rows.map((p) => {
-          const state = learningState(p, day);
+          const ladder = ladderState(p, day);
           return {
             id: p.id,
             title: p.title,
@@ -129,11 +142,14 @@ export default async function Dsa({
             platform: p.platform,
             confidence: p.confidence,
             attempted: p.attemptsCount > 0,
-            revision:
-              state === 'due' || state === 'overdue' || state === 'upcoming'
+            ladder:
+              ladder.state === 'due' ||
+              ladder.state === 'upcoming' ||
+              ladder.state === 'finished'
                 ? {
-                    state: state as 'due' | 'overdue' | 'upcoming',
-                    label: dateLabel(p.nextRevisionAt!),
+                    state: ladder.state,
+                    text: ladderLine(ladder, dayLabel)!,
+                    missed: ladder.missed.length > 0,
                   }
                 : null,
           };
@@ -142,7 +158,9 @@ export default async function Dsa({
     })
     .filter((g) => g.rows.length > 0);
   const openIds = groups
-    .filter((g) => filtering || g.current || g.due > 0)
+    .filter(
+      (g) => filtering || g.current || g.due > 0 || g.id === workingTopic?.id,
+    )
     .map((g) => g.id);
   // Nothing current and nothing due: open the first pattern so there is a place to start.
   if (!openIds.length && groups.length) openIds.push(groups[0].id);
@@ -152,7 +170,6 @@ export default async function Dsa({
       .filter(([n]) => n > 0)
       .map(([n, c]) => `${n} ${confidenceWord(c)}`)
       .join(' · ');
-  const overdueDays = (d: Date) => Math.round((+new Date(day) - +d) / 86400000);
   return (
     <>
       <div className="page-head is-practice">
@@ -188,13 +205,22 @@ export default async function Dsa({
             >
               Add a problem
             </PanelButton>
+            {revise && (
+              <Link
+                className="button secondary practice-revise"
+                href={`/dsa/${revise.id}`}
+                prefetch={false}
+              >
+                Revise · {revise.title} · {reviseStep} of 3
+              </Link>
+            )}
             {nextProblem && (
               <Link
                 className="button practice-primary"
                 href={`/dsa/${nextProblem.id}`}
                 prefetch={false}
               >
-                {queue[0] ? 'Revise' : 'Next problem'} · {nextProblem.title}
+                Next problem · {nextProblem.title}
               </Link>
             )}
           </div>
@@ -250,18 +276,18 @@ export default async function Dsa({
                 </>
               )}
             </span>
-            {currentTopic && (
+            {workingTopic && (
               <span>
-                Current topic: {currentTopic.name}
-                {nextInTopic && (
+                Working on {workingTopic.name}
+                {nextProblem && (
                   <>
                     {' · next '}
                     <Link
                       prefetch={false}
                       className="link"
-                      href={`/dsa/${nextInTopic.id}`}
+                      href={`/dsa/${nextProblem.id}`}
                     >
-                      {nextInTopic.title}
+                      {nextProblem.title}
                     </Link>
                   </>
                 )}
@@ -274,7 +300,7 @@ export default async function Dsa({
           >
             <ol className="plain-list">
               {queue.map((p) => {
-                const state = learningState(p, day);
+                const ladder = ladderState(p, day);
                 return (
                   <li className="problem-row" key={p.id}>
                     <Link
@@ -288,12 +314,8 @@ export default async function Dsa({
                       {confidenceWord(p.confidence)}
                     </span>
                     <span className="problem-date">
-                      <span
-                        className={`pill ${state === 'overdue' ? 'danger' : 'warning'}`}
-                      >
-                        {state === 'overdue'
-                          ? `${overdueDays(p.nextRevisionAt!)} day${overdueDays(p.nextRevisionAt!) === 1 ? '' : 's'} overdue`
-                          : 'Due today'}
+                      <span className="pill warning">
+                        {ladder.step ? `${ladder.step} of 3 · ` : ''}Due today
                       </span>
                     </span>
                     <span className="problem-meta muted">

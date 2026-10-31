@@ -217,6 +217,9 @@ describe.skipIf(!url)('weekly review loop (PostgreSQL)', () => {
         topicId: topic.id,
         confidence: 'YELLOW',
         attemptsCount: 2,
+        // A ladder with its first step missed and the second still to come (WI-094).
+        revisionStartedOn: new Date('2026-09-17'),
+        revisionOutcomes: ['missed'],
         nextRevisionAt: new Date('2026-09-20'),
       },
     });
@@ -276,6 +279,7 @@ describe.skipIf(!url)('weekly review loop (PostgreSQL)', () => {
       newProblems: 1,
       redToYellow: 1,
       overdue: 1,
+      missed: 1,
     });
     expect(w.jobs).toMatchObject({
       submitted: 1,

@@ -103,6 +103,9 @@ export async function Attention({
             title: p.title,
             confidence: p.confidence,
             nextRevisionAt: p.nextRevisionAt,
+            step: p.revisionStartedOn
+              ? Math.min(3, p.revisionOutcomes.length + 1)
+              : null,
           }))
         : [],
     notifications: reminders.status === 'fulfilled' ? reminders.value : [],

@@ -15,6 +15,7 @@ import { weekdayDate } from '@/lib/time';
 import { processStudyNudges, nudgeKey } from '@/features/nudges/service';
 import { isStudyCategory } from '@/features/nudges/domain';
 import { nudgeSetting } from '@/features/nudges/service';
+import { settleRevisionsIn } from '@/features/dsa/service';
 export async function processNotifications(now = new Date()) {
   const users = await db().user.findMany({
     include: { preferences: { where: { enabled: true } }, studyNudges: true },
@@ -255,6 +256,8 @@ export async function processNotifications(now = new Date()) {
         if (pref.type === 'DSA_REVISION') {
           // Revision dates and daily deduplication use the owner's calendar zone.
           const revisionDay = dayKey(now, user.timezone);
+          // A step whose day passed is missed, never counted as due (WI-094).
+          await settleRevisionsIn(tx, user.id, revisionDay);
           const due = await tx.dsaProblem.count({
             where: {
               userId: user.id,

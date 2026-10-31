@@ -2151,7 +2151,7 @@ a.problem-title:hover {
 /* Practice library: four aligned columns, grouped by pattern, paged. */
 .problem-table {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 90px 230px 32px;
+  grid-template-columns: minmax(0, 1fr) 90px 280px 32px;
   gap: 0 20px;
   align-items: center;
 }
@@ -2162,6 +2162,9 @@ a.problem-title:hover {
   align-items: center;
 }
 /* The difficulty and the status are two columns on a desktop, one line on a phone (WI-093). */
+.problem-date.is-missed {
+  color: var(--error);
+}
 .problem-cell-meta {
   display: contents;
 }
@@ -9056,5 +9059,118 @@ html {
   }
   .study-split .study-scenario select {
     width: 100%;
+  }
+}
+
+/* WI-094: the revision ladder on a problem page, and Revise beside Next problem. */
+.ladder {
+  margin: 0 0 20px;
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+}
+.ladder-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 16px;
+}
+.ladder-title {
+  margin: 0;
+  font-size: 15px;
+}
+.ladder-head form,
+.ladder-head fieldset {
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+.ladder-note {
+  margin: 8px 0 0;
+  font-size: 13px;
+}
+.ladder-steps {
+  list-style: none;
+  margin: 12px 0 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+.ladder-step {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 10px;
+  background: var(--surface-2);
+  font-size: 13px;
+  color: var(--ink-2);
+}
+.ladder-step-n {
+  flex: 0 0 auto;
+  display: inline-grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--ink-2);
+}
+.ladder-step-body {
+  display: grid;
+  gap: 1px;
+  min-width: 0;
+}
+.ladder-step-body b {
+  color: var(--foreground);
+  font-weight: 600;
+}
+.ladder-step.is-revised .ladder-step-n {
+  background: var(--success-bg);
+  border-color: var(--success-bg);
+  color: var(--success-text);
+}
+.ladder-step.is-missed {
+  border-color: var(--error-bg);
+}
+.ladder-step.is-missed .ladder-step-n {
+  background: var(--error-bg);
+  border-color: var(--error-bg);
+  color: var(--error);
+}
+.ladder-step.is-missed span:last-child span {
+  color: var(--error);
+  font-weight: 600;
+}
+.ladder-step.is-due {
+  border-color: var(--primary);
+  background: var(--tint);
+}
+.ladder-step.is-due .ladder-step-n {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: var(--on-primary);
+}
+.ladder-step.is-due .ladder-step-body span {
+  color: var(--primary);
+  font-weight: 600;
+}
+@media (max-width: 700px) {
+  .ladder-steps {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .page-head.is-practice .practice-revise {
+    grid-column: 1 / -1;
+    width: 100%;
+    justify-content: flex-start;
+    white-space: normal;
+    text-align: left;
   }
 }

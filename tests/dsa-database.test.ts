@@ -11,7 +11,10 @@ import {
   recordAttempt,
   scheduleRevision,
   dsaSnapshot,
+  markRevised,
+  settleRevisions,
   setCurrentTopic,
+  startRevision,
 } from '../src/features/dsa/service';
 import { processNotifications } from '../src/features/notifications/service';
 import { revisionQueue, todayDsaSummary } from '../src/features/dsa/domain';
@@ -158,52 +161,109 @@ describe.skipIf(!url)('DSA PostgreSQL integrity', () => {
       }),
     ).rejects.toThrow();
   });
-  it('persists immutable history, Green progression, reset, and manual override', async () => {
+  it('starts the ladder on the first attempt, revises on an open step, moves a step by hand (WI-094)', async () => {
     const p = await fresh();
-    let count = 0;
-    for (const [conf, independence, stage, days] of [
-      ['RED', 'NO', 0, 1],
-      ['YELLOW', 'PARTIAL', 0, 3],
-      ['GREEN', 'YES', 1, 7],
-      ['GREEN', 'YES', 2, 14],
-      ['GREEN', 'YES', 3, 30],
-      ['RED', 'NO', 0, 1],
-    ] as const) {
-      await recordAttempt(user, input(p.id, conf, independence), now);
-      count++;
-      const state = await prisma.dsaProblem.findUniqueOrThrow({
-        where: { id: p.id },
-      });
-      expect(state.attemptsCount).toBe(count);
-      expect(state.confidence).toBe(conf);
-      expect(state.revisionStage).toBe(stage);
-      expect(+state.nextRevisionAt!).toBe(
-        +new Date('2026-09-24') + days * 86400000,
-      );
-      expect(state.lastAttemptedAt).toEqual(now);
-    }
+    await recordAttempt(user, input(p.id, 'YELLOW', 'PARTIAL'), now);
+    let state = await prisma.dsaProblem.findUniqueOrThrow({
+      where: { id: p.id },
+    });
+    const day = (d: Date | null) => d?.toISOString().slice(0, 10) ?? null;
+    expect(state.confidence).toBe('YELLOW');
+    expect(day(state.revisionStartedOn)).toBe('2026-09-24');
+    expect(day(state.nextRevisionAt)).toBe('2026-09-27');
+    expect(state.revisionOutcomes).toEqual([]);
+    expect(state.lastAttemptedAt).toEqual(now);
+    // An attempt while a step is open counts as that revision; the next keeps its own day.
+    await recordAttempt(
+      user,
+      input(p.id, 'GREEN', 'YES'),
+      new Date('2026-09-27T14:00:00Z'),
+    );
+    state = await prisma.dsaProblem.findUniqueOrThrow({ where: { id: p.id } });
+    expect(state.revisionOutcomes).toEqual(['revised']);
+    expect(state.revisionStage).toBe(1);
+    expect(day(state.nextRevisionAt)).toBe('2026-10-01');
+    expect(day(state.revisionStartedOn)).toBe('2026-09-24');
     const history = await prisma.dsaAttempt.findMany({
       where: { problemId: p.id },
       orderBy: { id: 'asc' },
     });
-    await scheduleRevision(user, p.id, '2026-09-22');
+    await scheduleRevision(user, p.id, '2026-09-30');
     const scheduled = await prisma.dsaProblem.findUniqueOrThrow({
       where: { id: p.id },
     });
     expect(scheduled.revisionManual).toBe(true);
-    expect(scheduled.revisionStage).toBe(0);
-    expect(revisionQueue([scheduled], '2026-09-24')).toHaveLength(1);
+    expect(day(scheduled.nextRevisionAt)).toBe('2026-09-30');
+    expect(revisionQueue([scheduled], '2026-09-30')).toHaveLength(1);
     expect(
       await prisma.dsaAttempt.findMany({
         where: { problemId: p.id },
         orderBy: { id: 'asc' },
       }),
     ).toEqual(history);
-    await recordAttempt(user, input(p.id, 'GREEN', 'YES'), now);
-    expect(
-      (await prisma.dsaProblem.findUniqueOrThrow({ where: { id: p.id } }))
-        .revisionManual,
-    ).toBe(false);
+    // Mark revised closes step 2; step 3 waits on day 14 from the start.
+    await markRevised(user, p.id);
+    state = await prisma.dsaProblem.findUniqueOrThrow({ where: { id: p.id } });
+    expect(state.revisionOutcomes).toEqual(['revised', 'revised']);
+    expect(state.revisionManual).toBe(false);
+    expect(day(state.nextRevisionAt)).toBe('2026-10-08');
+    await markRevised(user, p.id);
+    state = await prisma.dsaProblem.findUniqueOrThrow({ where: { id: p.id } });
+    expect(state.nextRevisionAt).toBeNull();
+    await expect(markRevised(user, p.id)).rejects.toThrow(
+      'No revision is open',
+    );
+    await expect(scheduleRevision(user, p.id, '2026-10-20')).rejects.toThrow(
+      'No revision is open',
+    );
+    // A finished ladder: the next attempt starts a new one from its day.
+    await recordAttempt(
+      user,
+      input(p.id, 'GREEN', 'YES'),
+      new Date('2026-11-01T14:00:00Z'),
+    );
+    state = await prisma.dsaProblem.findUniqueOrThrow({ where: { id: p.id } });
+    expect(day(state.revisionStartedOn)).toBe('2026-11-01');
+    expect(state.revisionOutcomes).toEqual([]);
+    expect(day(state.nextRevisionAt)).toBe('2026-11-04');
+  });
+  it('settles passed steps as missed before Practice and the reminder read them (WI-094)', async () => {
+    const p = await fresh();
+    await recordAttempt(user, input(p.id), now);
+    // Step 1 (Sep 27) passes; read on Sep 29: missed, step 2 open on Oct 1.
+    expect(await settleRevisions(user, new Date('2026-09-29T14:00:00Z'))).toBe(
+      1,
+    );
+    let state = await prisma.dsaProblem.findUniqueOrThrow({
+      where: { id: p.id },
+    });
+    expect(state.revisionOutcomes).toEqual(['missed']);
+    expect(state.nextRevisionAt?.toISOString().slice(0, 10)).toBe('2026-10-01');
+    expect(revisionQueue([state], '2026-09-29')).toHaveLength(0);
+    // Weeks away: the rest lapse too and nothing is due any more.
+    await settleRevisions(user, new Date('2026-11-01T14:00:00Z'));
+    state = await prisma.dsaProblem.findUniqueOrThrow({ where: { id: p.id } });
+    expect(state.revisionOutcomes).toEqual(['missed', 'missed', 'missed']);
+    expect(state.nextRevisionAt).toBeNull();
+    // A problem attempted before the ladder: Start revision begins one today.
+    const legacy = await fresh();
+    await prisma.dsaProblem.update({
+      where: { id: legacy.id },
+      data: { attemptsCount: 2, confidence: 'YELLOW' },
+    });
+    await startRevision(user, legacy.id, now);
+    const started = await prisma.dsaProblem.findUniqueOrThrow({
+      where: { id: legacy.id },
+    });
+    expect(started.revisionStartedOn?.toISOString().slice(0, 10)).toBe(
+      '2026-09-24',
+    );
+    expect(started.nextRevisionAt?.toISOString().slice(0, 10)).toBe(
+      '2026-09-27',
+    );
+    await expect(startRevision(user, (await fresh()).id, now)).rejects.toThrow(
+      'first attempt',
+    );
   });
   it('deduplicates concurrent retries and serializes separate attempts', async () => {
     const p = await fresh(),
@@ -227,7 +287,8 @@ describe.skipIf(!url)('DSA PostgreSQL integrity', () => {
       where: { id: p.id },
     });
     expect(state.attemptsCount).toBe(3);
-    expect(state.revisionStage).toBe(3);
+    // The first attempt started the ladder; the two later ones revised steps 1 and 2.
+    expect(state.revisionStage).toBe(2);
   });
   it('rejects contradictory confidence and cross-owner writes without history', async () => {
     const p = await fresh();
@@ -346,8 +407,11 @@ describe.skipIf(!url)('DSA PostgreSQL integrity', () => {
       await scheduleRevision(user, problem.id, '2026-09-24');
     }
     expect(
-      todayDsaSummary((await dsaSnapshot(user)).problems, now, user.timezone)
-        .queue,
+      todayDsaSummary(
+        (await dsaSnapshot(user, now)).problems,
+        now,
+        user.timezone,
+      ).queue,
     ).toHaveLength(2);
     await Promise.all([processNotifications(now), processNotifications(now)]);
     const logs = await prisma.notificationLog.findMany({
@@ -361,7 +425,23 @@ describe.skipIf(!url)('DSA PostgreSQL integrity', () => {
         where: { userId: user.id, type: 'DSA_REVISION' },
       }),
     ).toBe(1);
+    // The next day the step is missed, not carried (WI-094): nothing is due, no reminder.
     await processNotifications(new Date('2026-09-25T14:00:00Z'));
+    expect(
+      await prisma.notificationLog.count({
+        where: { userId: user.id, type: 'DSA_REVISION' },
+      }),
+    ).toBe(1);
+    expect(
+      (await prisma.dsaProblem.findUniqueOrThrow({ where: { id: p.id } }))
+        .revisionOutcomes,
+    ).toEqual(['missed']);
+    // Step 2 moved to Sep 26: a reminder again on its day.
+    await prisma.dsaProblem.updateMany({
+      where: { id: { in: [p.id, q.id] } },
+      data: { nextRevisionAt: new Date('2026-09-26') },
+    });
+    await processNotifications(new Date('2026-09-26T14:00:00Z'));
     expect(
       await prisma.notificationLog.count({
         where: { userId: user.id, type: 'DSA_REVISION' },
@@ -371,7 +451,11 @@ describe.skipIf(!url)('DSA PostgreSQL integrity', () => {
       where: { userId_type: { userId: user.id, type: 'DSA_REVISION' } },
       data: { enabled: false },
     });
-    await processNotifications(new Date('2026-09-26T14:00:00Z'));
+    await prisma.dsaProblem.updateMany({
+      where: { id: { in: [p.id, q.id] } },
+      data: { nextRevisionAt: new Date('2026-09-27') },
+    });
+    await processNotifications(new Date('2026-09-27T14:00:00Z'));
     expect(
       await prisma.notificationLog.count({
         where: { userId: user.id, type: 'DSA_REVISION' },
@@ -385,7 +469,7 @@ describe.skipIf(!url)('DSA PostgreSQL integrity', () => {
       where: { userId: user.id },
       data: { nextRevisionAt: new Date('2026-10-30') },
     });
-    await processNotifications(new Date('2026-09-27T14:00:00Z'));
+    await processNotifications(new Date('2026-09-28T14:00:00Z'));
     expect(
       await prisma.notificationLog.count({
         where: { userId: user.id, type: 'DSA_REVISION' },
