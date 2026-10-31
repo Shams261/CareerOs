@@ -63,13 +63,21 @@ const AiPolicyField = ({ value = 'UNKNOWN' }: { value?: string }) => (
 );
 const date = (d: Date | null | undefined) => (d ? calendarDate(d) : '');
 
-export function QuickAddForm({ today }: { today: string }) {
+export function QuickAddForm({
+  today,
+  inPanel = false,
+}: {
+  today: string;
+  /** In the Add application modal (WI-096): closes it once saved. */
+  inPanel?: boolean;
+}) {
   return (
     <ActionForm
       action={createApplicationAction}
       label="Add application"
       className="dsa-form"
       resetOnSuccess
+      closePanelOnSuccess={inPanel}
       draft="application:new"
     >
       <input type="hidden" name="requestId" value={randomUUID()} />
@@ -430,7 +438,7 @@ export function RoundForm({
       resetOnSuccess
       draft={`round:${applicationId}`}
       broadcast="rounds"
-      closeOnSuccess
+      closePanelOnSuccess
     >
       <input type="hidden" name="applicationId" value={applicationId} />
       <input type="hidden" name="requestId" value={randomUUID()} />

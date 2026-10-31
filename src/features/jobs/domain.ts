@@ -428,6 +428,8 @@ export type Move = {
   title: string;
   /** The role and the due context: "Platform Engineer · Due today". */
   context: string;
+  /** The due context alone: "Due today" (WI-096, the list row names the role itself). */
+  detail: string;
   /** Due instant (ms) for ordering; later for quieter states. */
   due: number;
   /** True when the move is overdue or due today. */
@@ -447,6 +449,7 @@ export function applicationMove(
     return {
       title: `Closed · ${label(app.stage)}`,
       context: app.role,
+      detail: `Closed · ${label(app.stage)}`,
       due: Number.MAX_SAFE_INTEGER,
       urgent: false,
     };
@@ -457,6 +460,7 @@ export function applicationMove(
     return {
       title: action,
       context: `${app.role} · Overdue by ${reason.days} day${reason.days === 1 ? '' : 's'}`,
+      detail: `Overdue by ${reason.days} day${reason.days === 1 ? '' : 's'}`,
       due: +app.nextActionDate!,
       urgent: true,
     };
@@ -464,6 +468,7 @@ export function applicationMove(
     return {
       title: `Log the ${reason.round.title} result`,
       context: `${app.role} · Interview ended ${weekdayDate(dayKey(reason.round.scheduledStart, zone))}`,
+      detail: `Interview ended ${weekdayDate(dayKey(reason.round.scheduledStart, zone))}`,
       due: +reason.round.scheduledStart,
       urgent: true,
     };
@@ -472,6 +477,7 @@ export function applicationMove(
     return {
       title: `Prepare ${reason.round.title}`,
       context: `${app.role} · ${isToday ? 'Today' : 'Tomorrow'} at ${hhmm(reason.round.scheduledStart, zone)}`,
+      detail: `${isToday ? 'Today' : 'Tomorrow'} at ${hhmm(reason.round.scheduledStart, zone)}`,
       due: +reason.round.scheduledStart,
       urgent: isToday,
     };
@@ -480,6 +486,7 @@ export function applicationMove(
     return {
       title: action,
       context: `${app.role} · Due today`,
+      detail: `Due today`,
       due: +app.nextActionDate!,
       urgent: true,
     };
@@ -488,6 +495,7 @@ export function applicationMove(
     return {
       title: `Prepare ${round.title}`,
       context: `${app.role} · ${weekdayDate(dayKey(round.scheduledStart, zone))} at ${hhmm(round.scheduledStart, zone)}`,
+      detail: `${weekdayDate(dayKey(round.scheduledStart, zone))} at ${hhmm(round.scheduledStart, zone)}`,
       due: +round.scheduledStart,
       urgent: false,
     };
@@ -495,6 +503,7 @@ export function applicationMove(
     return {
       title: action,
       context: `${app.role} · Due ${shortDate(follow.date)}`,
+      detail: `Due ${shortDate(follow.date)}`,
       due: +app.nextActionDate!,
       urgent: false,
     };
@@ -503,6 +512,7 @@ export function applicationMove(
     return {
       title: 'Wait for the company',
       context: `${app.role} · Last activity ${days ? `${days} day${days === 1 ? '' : 's'} ago` : 'today'}`,
+      detail: `Last activity ${days ? `${days} day${days === 1 ? '' : 's'} ago` : 'today'}`,
       due: Number.MAX_SAFE_INTEGER - 1,
       urgent: false,
     };
@@ -510,6 +520,7 @@ export function applicationMove(
   return {
     title: app.nextAction ?? 'Decide the next step',
     context: `${app.role} · No date set`,
+    detail: `No date set`,
     due: Number.MAX_SAFE_INTEGER - 2,
     urgent: false,
   };
@@ -632,4 +643,52 @@ export function weeklyJobSummary(input: WeeklyInput, now: Date, zone: string) {
         ),
     ).length,
   };
+}
+
+/**
+ * The next interviews across applications for the Jobs rail (WI-096): scheduled rounds
+ * still to come, soonest first, with the prep still open on each.
+ */
+export function upcomingInterviews<
+  R extends {
+    id: string;
+    title: string;
+    status: string;
+    scheduledStart: Date;
+    aiPolicy?: string;
+    prepItems?: { completed: boolean }[];
+  },
+>(apps: { id: string; company: string; rounds: R[] }[], now: Date, limit = 5) {
+  return apps
+    .flatMap((a) =>
+      a.rounds
+        .filter((r) => r.status === 'SCHEDULED' && r.scheduledStart >= now)
+        .map((r) => ({
+          id: r.id,
+          applicationId: a.id,
+          company: a.company,
+          title: r.title,
+          scheduledStart: r.scheduledStart,
+          aiPolicy: r.aiPolicy ?? 'UNKNOWN',
+          openPrep: (r.prepItems ?? []).filter((p) => !p.completed).length,
+        })),
+    )
+    .sort((x, y) => +x.scheduledStart - +y.scheduledStart)
+    .slice(0, limit);
+}
+/**
+ * The funnel's rows (WI-096): weeks with nothing fold away unless `showAll`; the current
+ * week always shows. Returns the rows to show and how many were folded.
+ */
+export function funnelRows<T extends { monday: string; counts: number[] }>(
+  weeks: T[],
+  thisMonday: string,
+  showAll: boolean,
+) {
+  const kept = showAll
+    ? weeks
+    : weeks.filter(
+        (w) => w.monday === thisMonday || w.counts.some((n) => n > 0),
+      );
+  return { rows: kept, folded: weeks.length - kept.length };
 }

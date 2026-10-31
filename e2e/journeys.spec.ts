@@ -213,9 +213,11 @@ test('an application gets its interview formats and practice links', async ({
     page.getByRole('heading', { name: 'Backend Engineer' }),
   ).toBeVisible();
   await page.getByRole('button', { name: 'Set formats' }).click();
-  await page.getByLabel('Code review').check();
-  await page.getByLabel('System design').check();
-  await page.getByRole('button', { name: 'Save formats' }).click();
+  // The formats live in a panel; the stage row's Move to… lists the same names (WI-096).
+  const panel = page.getByRole('dialog', { name: 'Interview formats' });
+  await panel.getByLabel('Code review').check();
+  await panel.getByLabel('System design').check();
+  await panel.getByRole('button', { name: 'Save formats' }).click();
   const formats = page.getByRole('region', { name: 'Interview formats' });
   await expect(formats).toContainText('Code review');
   await expect(formats).toContainText('System design');
@@ -224,12 +226,8 @@ test('an application gets its interview formats and practice links', async ({
   // Two more applications put the funnel on the Jobs page (WI-056).
   await page.goto('/jobs');
   for (const company of ['Fabrikam', 'Contoso']) {
-    // The form stays open after an add; open it only when it is closed.
-    const toggle = page.locator('button.disclosure-trigger', {
-      hasText: 'Add application',
-    });
-    if ((await toggle.getAttribute('aria-expanded')) !== 'true')
-      await toggle.click();
+    // Add application opens a modal that closes once saved (WI-096).
+    await page.getByRole('button', { name: 'Add application' }).click();
     const add = page.getByRole('form', { name: 'Add application' });
     await add.getByLabel('Company').fill(company);
     await add.getByLabel('Role').fill('Backend Engineer');
