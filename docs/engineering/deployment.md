@@ -193,3 +193,5 @@ Back up, deploy the new build, run `pnpm db:deploy`, restart, then run the smoke
 ## Not recommended
 
 Serverless/edge functions (no persistent process for `after()` or the rate limiter, pool exhaustion; do not assume compatibility unless the architecture is deliberately changed and verified), several app instances (per-instance rate limits, duplicate background syncs; the leases keep data safe but waste work), plain HTTP on the internet, and sharing the database with other applications.
+
+> **A migration and the deploy, in order (learned on WI-094, 2026-10-31).** `/api/health` answers 503 while `LATEST_MIGRATION` is not applied, and Render's health check is `/api/health`, so a build that starts before the migration is applied fails its deploy. Apply the migration from the workstation (backup, restore check, `pnpm db:deploy`) **before** merging to `main`; if a deploy did fail that way, apply it and use Render → Manual Deploy → Deploy latest commit.
