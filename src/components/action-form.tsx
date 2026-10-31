@@ -1,4 +1,5 @@
 'use client';
+import { closePanel } from '@/components/side-panel';
 import {
   createContext,
   startTransition,
@@ -46,6 +47,7 @@ export function ActionForm({
   resetOnSuccess = false,
   broadcast,
   closeOnSuccess = false,
+  closePanelOnSuccess = false,
   onSuccess,
   onPending,
   onSettled,
@@ -64,6 +66,8 @@ export function ActionForm({
   broadcast?: string;
   /** Close the surrounding Disclosure after a successful save (pair with `broadcast`). */
   closeOnSuccess?: boolean;
+  /** Close the open side panel or modal after a successful save (WI-096). */
+  closePanelOnSuccess?: boolean;
   /** Called after a successful save, for client state the DOM reset cannot touch. */
   onSuccess?: () => void;
   /** Called with the submitted data before the action runs: flip the row optimistically. */
@@ -89,6 +93,7 @@ export function ActionForm({
         if (draft) clearDraft(draft);
         onSuccess?.();
         if (closeOnSuccess) disclosure?.close();
+        if (closePanelOnSuccess) closePanel();
       }
       if (toast && !result.ok && result.message && !result.preview)
         publishToast(result.message);

@@ -1,15 +1,15 @@
 import Link from 'next/link';
-import { ArrowRight } from 'lucide-react';
 import { ApplicationIllustration } from '@/components/illustrations';
 import { owner } from '@/server/db';
 import { dayKey, hhmm, shortDate, weekdayDate } from '@/lib/time';
 import { funnelSnapshot, jobSnapshot } from '@/features/jobs/service';
 import { FUNNEL_STEPS } from '@/features/jobs/funnel';
 import { weekOf } from '@/features/review/domain';
+import { shiftDay } from '@/features/schedule/domain';
 import {
   applicationMove,
-  attentionQueue,
   filterApplications,
+  funnelRows,
   inProcessStages,
   isOpen,
   isWaiting,
@@ -17,27 +17,20 @@ import {
   needsAction,
   nextRound,
   pipelineStages,
+  upcomingInterviews,
   views,
 } from '@/features/jobs/domain';
-import {
-  interviewPrepRows,
-  jobAttentionRows,
-  sortAttention,
-  railRepeatsList,
-} from '@/features/attention/domain';
+import { aiPolicyLabel } from '@/features/jobs/formats';
 import { ApplicationRow } from '@/features/jobs/components';
 import { QuickAddForm } from '@/features/jobs/forms';
-import { AttentionPages, AttentionRow } from '@/features/today/attention-rows';
 import { PanelButton, SidePanel } from '@/components/side-panel';
-import { Disclosure } from '@/components/disclosure';
 import { UtilityMenu } from '@/features/today/utility-menu';
 import { FeedbackOutlet } from '@/components/feedback-outlet';
 import { Button } from '@/components/ui/button';
 export const metadata = { title: 'Jobs' };
 
 const FILTER_THRESHOLD = 8;
-const PREVIEW = 5;
-const PHONE_PREVIEW = 2;
+const RAIL_INTERVIEWS = 5;
 export default async function Jobs({
   searchParams,
 }: {
@@ -46,6 +39,7 @@ export default async function Jobs({
     q?: string;
     focus?: string;
     source?: string;
+    funnel?: string;
   }>;
 }) {
   const user = await owner(),
@@ -58,45 +52,21 @@ export default async function Jobs({
       funnelSnapshot(user, now),
     ]);
   const apps = data.apps;
-  // Needs attention in Today's words: prep for today's interviews, then every reason of
-  // every application (follow-ups, results, interviews soon, undated moves).
-  const prep = interviewPrepRows(
-    apps.flatMap((a) =>
-      a.rounds
-        .filter((r) => r.status === 'SCHEDULED')
-        .map((r) => ({
-          id: r.id,
-          title: r.title,
-          applicationId: a.id,
-          company: a.company,
-          scheduledStart: r.scheduledStart,
-          scheduledEnd: r.scheduledEnd,
-          openPrep: r.prepItems.filter((p) => !p.completed).length,
-        })),
-    ),
-    now,
-    zone,
-  );
-  const attention = sortAttention([
-    ...prep,
-    ...jobAttentionRows(
-      attentionQueue(apps, now, zone),
-      now,
-      zone,
-      new Set(prep.map((i) => i.id.slice('prep:'.length))),
-    ),
-  ]);
-  const preview = attention.slice(0, PREVIEW);
   const upcoming = apps.filter((a) => nextRound(a.rounds, now)).length;
   const filtering =
     apps.length > FILTER_THRESHOLD ||
     !!(filter.q || filter.focus || filter.source);
   const visible = filterApplications(apps, filter, now, zone);
-  // A short list already carries each move; the rail says so instead of repeating it (WI-049).
-  const repeats = railRepeatsList(
-    attention,
-    visible.map((a) => a.id),
-    PREVIEW,
+  // The rail carries what the list does not (WI-096): the next interviews with their prep.
+  const interviews = upcomingInterviews(apps, now, RAIL_INTERVIEWS);
+  const whenLabel = (d: Date) => {
+    const day = dayKey(d, zone);
+    return `${day === today ? 'Today' : day === shiftDay(today, 1) ? 'Tomorrow' : weekdayDate(day)} · ${hhmm(d, zone)}`;
+  };
+  const funnelView = funnelRows(
+    funnel.weeks,
+    weekOf(today),
+    filter.funnel === 'all',
   );
   const view = views.includes(filter.view as (typeof views)[number])
     ? filter.view
@@ -155,12 +125,13 @@ export default async function Jobs({
     : [{ stage: null, items: [...visible].sort(byMove) }];
   return (
     <>
-      <header className="today-head">
-        <div className="today-head-row">
-          <div className="today-title">
-            <h1>Jobs</h1>
-          </div>
-          {apps.length > 0 && (
+      {/* The head like Practice (WI-096): the title and the facts left, More and Add
+          application at the right; on a phone the title and More share a row and Add
+          application sits under them. */}
+      <div className="page-head is-practice is-jobs">
+        <h1>Jobs</h1>
+        {apps.length > 0 && (
+          <div className="page-head-actions">
             <UtilityMenu>
               <Link
                 className="link-button today-util"
@@ -170,10 +141,39 @@ export default async function Jobs({
                 Reminder settings
               </Link>
             </UtilityMenu>
-          )}
-        </div>
-        {apps.length > 0 && <p className="today-summary">{summary}</p>}
-      </header>
+            <PanelButton
+              panel="add-application"
+              className="button practice-primary"
+            >
+              Add application
+            </PanelButton>
+          </div>
+        )}
+      </div>
+      {apps.length > 0 && (
+        <>
+          <p className="status-line practice-facts jobs-facts">
+            {summary.split(' · ').map((part) => (
+              <span key={part}>{part}</span>
+            ))}
+          </p>
+          <p className="status-line practice-facts jobs-facts mb-6">
+            <span>This week</span>
+            {weekFacts.length ? (
+              weekFacts.map((f) => <span key={f}>{f}</span>)
+            ) : (
+              <span>nothing recorded yet</span>
+            )}
+          </p>
+          <SidePanel
+            id="add-application"
+            title="Add application"
+            variant="modal"
+          >
+            <QuickAddForm today={today} inPanel />
+          </SidePanel>
+        </>
+      )}
       {!apps.length ? (
         <section className="card setup-card" aria-labelledby="setup-heading">
           <ApplicationIllustration className="setup-illustration" />
@@ -188,21 +188,11 @@ export default async function Jobs({
       ) : (
         <div className="today-workspace is-today jobs-workspace">
           <section className="jobs-main" aria-labelledby="pipeline-heading">
-            <div className="agenda-head">
-              <h2 id="pipeline-heading" className="agenda-heading">
-                Applications
-              </h2>
-              <Disclosure
-                label="Add application"
-                variant="primary"
-                shortcut="add-application"
-                draft="application:new"
-                className="agenda-add"
-              >
-                <QuickAddForm today={today} />
-              </Disclosure>
+            <div className="section-head">
+              <h2 id="pipeline-heading">Applications</h2>
             </div>
-            <nav className="status-line view-links mb-3" aria-label="Show">
+            <FeedbackOutlet channel="applications" className="mb-2" />
+            <nav className="jobs-views mb-3" aria-label="Show">
               {(
                 [
                   ['active', 'Active', counts.active],
@@ -215,7 +205,7 @@ export default async function Jobs({
                 .map(([v, text, n]) => (
                   <Link
                     key={v}
-                    className="link"
+                    className="jobs-view"
                     href={v === 'active' ? '/jobs' : `/jobs?view=${v}`}
                     aria-current={view === v ? 'page' : undefined}
                     prefetch={false}
@@ -275,7 +265,7 @@ export default async function Jobs({
                     {label(g.stage)} · {g.items.length}
                   </p>
                 )}
-                <ul className="plain-list attention-list">
+                <ul className="plain-list job-rows">
                   {g.items.map((a) => (
                     <ApplicationRow
                       key={a.id}
@@ -300,9 +290,23 @@ export default async function Jobs({
             {/* The funnel (WI-056): once a few applications are out, by the week they went. */}
             {funnel.sent >= 3 && (
               <section className="jobs-funnel" aria-labelledby="funnel-heading">
-                <h2 id="funnel-heading" className="agenda-heading">
-                  Funnel
-                </h2>
+                <div className="section-head">
+                  <h2 id="funnel-heading">Funnel</h2>
+                  {funnelView.folded > 0 && (
+                    <Link
+                      className="link"
+                      href="/jobs?funnel=all"
+                      prefetch={false}
+                    >
+                      Show all {funnel.weeks.length} weeks
+                    </Link>
+                  )}
+                  {filter.funnel === 'all' && (
+                    <Link className="link" href="/jobs" prefetch={false}>
+                      Fold the empty weeks
+                    </Link>
+                  )}
+                </div>
                 <div
                   className="funnel-scroll"
                   role="region"
@@ -325,7 +329,7 @@ export default async function Jobs({
                       </tr>
                     </thead>
                     <tbody>
-                      {funnel.weeks.map((w) => (
+                      {funnelView.rows.map((w) => (
                         <tr key={w.monday}>
                           <th scope="row">
                             {w.monday === weekOf(today)
@@ -357,58 +361,50 @@ export default async function Jobs({
             )}
           </section>
           <aside className="today-rail">
-            <div className="attention-head">
-              <h2 id="attention-heading">Needs attention</h2>
-              {attention.length > PREVIEW && (
-                <span className="muted attention-count is-wide">
-                  Showing {PREVIEW} of {attention.length}
-                </span>
+            <section
+              className="card rail-card"
+              aria-labelledby="next-interviews-heading"
+            >
+              <div className="attention-head">
+                <h2 id="next-interviews-heading">Interviews next</h2>
+              </div>
+              {!interviews.length && (
+                <p className="attention-empty">No interview scheduled yet.</p>
               )}
-              {attention.length > PHONE_PREVIEW && (
-                <span className="muted attention-count is-phone">
-                  Showing {Math.min(PHONE_PREVIEW, attention.length)} of{' '}
-                  {attention.length}
-                </span>
-              )}
-            </div>
-            <FeedbackOutlet channel="attention" className="mb-2" />
-            {!attention.length && (
-              <p className="attention-empty">Nothing needs your attention.</p>
-            )}
-            {repeats ? (
-              <p className="attention-empty">
-                {attention.length === 1
-                  ? 'The move is in Applications.'
-                  : `The ${attention.length} moves are in Applications.`}
-              </p>
-            ) : (
-              preview.length > 0 && (
-                <ul className="plain-list attention-list attention-preview">
-                  {preview.map((item) => (
-                    <AttentionRow key={item.id} item={item} />
+              {interviews.length > 0 && (
+                <ul className="plain-list rail-list">
+                  {interviews.map((r) => (
+                    <li key={r.id} className="rail-item">
+                      <Link
+                        className="rail-item-link"
+                        href={`/jobs/${r.applicationId}#round-${r.id}`}
+                        prefetch={false}
+                      >
+                        <b>
+                          {r.company} · {r.title}
+                        </b>
+                        <span className="muted">
+                          {whenLabel(r.scheduledStart)}
+                          {r.openPrep
+                            ? ` · ${r.openPrep} prep item${r.openPrep === 1 ? '' : 's'} open`
+                            : ''}
+                          {r.aiPolicy !== 'UNKNOWN'
+                            ? ` · ${aiPolicyLabel[r.aiPolicy as keyof typeof aiPolicyLabel]}`
+                            : ''}
+                        </span>
+                      </Link>
+                    </li>
                   ))}
                 </ul>
-              )
-            )}
-            {attention.length > 0 && (
-              <p className="attention-more">
-                <PanelButton panel="attention" className="link-button">
-                  View all {attention.length}{' '}
-                  <ArrowRight size={14} aria-hidden="true" />
-                </PanelButton>
-              </p>
-            )}
-            <SidePanel
-              id="attention"
-              title={`Needs attention · ${attention.length}`}
-            >
-              <FeedbackOutlet channel="attention" className="mb-2" />
-              <AttentionPages items={attention} />
-            </SidePanel>
+              )}
+            </section>
             {data.block && (
-              <>
-                <div className="attention-head rail-head">
-                  <h2>Next job search block</h2>
+              <section
+                className="card rail-card"
+                aria-labelledby="block-heading"
+              >
+                <div className="attention-head">
+                  <h2 id="block-heading">Next job search block</h2>
                 </div>
                 <p className="rail-fact">
                   <strong>{data.block.title}</strong>
@@ -420,16 +416,8 @@ export default async function Jobs({
                     {hhmm(data.block.plannedEnd, zone)}
                   </span>
                 </p>
-              </>
+              </section>
             )}
-            <div className="attention-head rail-head">
-              <h2>This week</h2>
-            </div>
-            <p className="rail-fact muted">
-              {weekFacts.length
-                ? weekFacts.join(' · ')
-                : 'Nothing recorded this week yet.'}
-            </p>
           </aside>
         </div>
       )}

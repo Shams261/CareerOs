@@ -1,6 +1,7 @@
 import Link from 'next/link';
-import { Briefcase, ChevronRight } from 'lucide-react';
-import { applicationMove, label, type AppLike } from './domain';
+import { ChevronRight } from 'lucide-react';
+import { applicationMove, label, nextRound, type AppLike } from './domain';
+import { dayKey, hhmm, weekdayDate } from '@/lib/time';
 
 export type RowApp = AppLike & {
   company: string;
@@ -9,9 +10,9 @@ export type RowApp = AppLike & {
 };
 
 /**
- * One application as Today's row recipe (WI-022): the briefcase tile, the company as the
- * label, the next move as the title, the role and the due context underneath, a chevron.
- * The whole row is the link. The stage pill shows only when rows are not grouped by stage.
+ * One application as two lines (WI-096): the company and the role, then the next move in
+ * Today's words with its due context; the next interview's day at the right. The whole
+ * row is the link. The stage shows only when rows are not grouped by stage.
  */
 export function ApplicationRow({
   app,
@@ -25,31 +26,35 @@ export function ApplicationRow({
   showStage?: boolean;
 }) {
   const move = applicationMove(app, now, zone);
+  const round = nextRound(app.rounds, now);
+  const today = dayKey(now, zone);
+  const when = round
+    ? `${round.title} · ${dayKey(round.scheduledStart, zone) === today ? 'Today' : weekdayDate(dayKey(round.scheduledStart, zone))} ${hhmm(round.scheduledStart, zone)}`
+    : null;
+  const detail = move.detail;
   return (
     <li
-      className={`attention-row${move.urgent ? ' is-urgent' : ''}`}
+      className={`job-row${move.urgent ? ' is-urgent' : ''}`}
       data-source="job"
     >
-      <Link
-        className="attention-link"
-        href={`/jobs/${app.id}`}
-        prefetch={false}
-      >
-        <span className="attention-icon" aria-hidden="true">
-          <Briefcase size={22} />
+      <Link className="job-row-link" href={`/jobs/${app.id}`} prefetch={false}>
+        <span className="job-row-main">
+          <span className="job-row-name">
+            <b>{app.company}</b>
+            <span className="muted"> · {app.role}</span>
+          </span>
+          <span className="job-row-move">
+            <span className="job-row-title">{move.title}</span>
+            {detail && <span className="muted"> · {detail}</span>}
+          </span>
         </span>
-        <span className="attention-main">
-          <span className="attention-label">{app.company}</span>
-          <span className="attention-title">{move.title}</span>
-          <span className="attention-context">{move.context}</span>
+        <span className="job-row-side muted">
+          {showStage ? label(app.stage) : when}
         </span>
-        {showStage && (
-          <span className="pill application-stage">{label(app.stage)}</span>
-        )}
         <ChevronRight
           size={18}
           aria-hidden="true"
-          className="attention-chevron"
+          className="job-row-chevron"
         />
       </Link>
     </li>

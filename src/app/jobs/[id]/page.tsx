@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { formatInTimeZone } from 'date-fns-tz';
-import { ArrowLeft, ChevronRight, X } from 'lucide-react';
+import { ArrowLeft, ChevronRight, ExternalLink, X } from 'lucide-react';
 import { ConfirmDelete } from '@/components/confirm-delete';
 import {
   deleteApplicationAction,
@@ -24,10 +24,9 @@ import {
   label,
   ownerLabel,
   pagePrimary,
-  pipelineStages,
   resultNeeded,
   roundEnd,
-  closedStages,
+  type Stage,
 } from '@/features/jobs/domain';
 import { dueContext } from '@/features/attention/domain';
 import {
@@ -46,12 +45,11 @@ import {
   type LinkOption,
 } from '@/features/jobs/forms';
 import { NextActionBox } from '@/features/jobs/next-action';
+import { StageRow } from '@/features/jobs/stage-row';
 import { MoreMenu } from '@/components/more-menu';
 import { PrepCheck } from '@/features/jobs/prep-check';
 import { randomUUID } from 'node:crypto';
 import { ActionForm } from '@/components/action-form';
-import { Button } from '@/components/ui/button';
-import { stageAction } from '@/features/jobs/actions';
 import { aiConfig } from '@/lib/env';
 import { isTestNamed } from '@/lib/test-data';
 import { AGENT_NAME } from '@/features/agent/domain';
@@ -226,57 +224,105 @@ export default async function Application({
         : 'No date set',
     ownerLabel(app.actionOwner),
   ].join(' · ');
-  const contacts = [
-    ['Recruiter', app.recruiterName, app.recruiterContact],
-    ['Hiring contact', app.hiringContact, null],
-  ].filter(([, v]) => v) as [string, string, string | null][];
+  const details = (
+    [
+      [
+        'Applied',
+        app.appliedAt
+          ? `${shortDate(calendarDate(app.appliedAt))}${app.source ? ` via ${app.source}` : ''}`
+          : app.source
+            ? `Not yet · ${app.source}`
+            : null,
+      ],
+      [
+        'Where',
+        [
+          app.location,
+          app.workArrangement !== 'UNKNOWN' ? label(app.workArrangement) : null,
+          app.employmentType,
+        ]
+          .filter(Boolean)
+          .join(' · ') || null,
+      ],
+      [
+        'Recruiter',
+        app.recruiterName
+          ? `${app.recruiterName}${app.recruiterContact ? ` · ${app.recruiterContact}` : ''}`
+          : null,
+      ],
+      ['Hiring contact', app.hiringContact],
+      [
+        'Priority',
+        app.priority === 1 ? 'High' : app.priority === 3 ? 'Low' : null,
+      ],
+      ['Notes', app.notes],
+      ['Offer / compensation', app.compensationNotes],
+    ] as [string, string | null | undefined][]
+  ).filter((row): row is [string, string] => !!row[1]);
   return (
     <>
       <ZoneOptions />
       <Link className="link" href="/jobs" prefetch={false}>
         <ArrowLeft size={14} aria-hidden="true" /> Jobs
       </Link>
-      <p className="company-line">
-        {app.company}
-        {app.location ? ` · ${app.location}` : ''}
-        {app.workArrangement !== 'UNKNOWN'
-          ? ` · ${label(app.workArrangement)}`
-          : ''}
-      </p>
-      <h1>{app.role}</h1>
-      {/* The stage as one select at every width (WI-063): eleven buttons read as a wall. */}
-      <ActionForm action={stageAction} className="stage-select-form mb-4">
-        <input type="hidden" name="id" value={app.id} />
-        <input type="hidden" name="requestId" value={randomUUID()} />
-        <div className="stage-select">
-          <label htmlFor="stage-select">Stage</label>
-          <select id="stage-select" name="stage" defaultValue={app.stage}>
-            {[...pipelineStages, ...closedStages].map((s) => (
-              <option key={s} value={s}>
-                {label(s)}
-              </option>
-            ))}
-          </select>
+      <div className="page-head is-problem is-application">
+        <div>
+          <p className="company-line">
+            {app.company}
+            {app.location ? ` · ${app.location}` : ''}
+            {app.workArrangement !== 'UNKNOWN'
+              ? ` · ${label(app.workArrangement)}`
+              : ''}
+          </p>
+          <h1>{app.role}</h1>
         </div>
-        <Button variant="secondary" className="small">
-          Move
-        </Button>
-      </ActionForm>
-      <p className="status-line summary-line mb-6">
+        {/* The posting as the head's secondary and the less-used actions in one ⋯ (WI-096). */}
+        <div className="page-head-actions">
+          {app.jobUrl && (
+            <a
+              className="button secondary"
+              href={app.jobUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <ExternalLink size={16} aria-hidden="true" /> Job posting
+            </a>
+          )}
+          <MoreMenu label={`More for ${app.company}`}>
+            <PanelButton panel="details" className="more-menu-item">
+              Edit application
+            </PanelButton>
+            <PanelButton
+              panel="details"
+              focus="delete"
+              className="more-menu-item danger"
+            >
+              Delete application
+            </PanelButton>
+          </MoreMenu>
+        </div>
+      </div>
+      {/* The stage as the pipeline (WI-096), keyed by the stage so a result that moves the
+          application remounts it with the new value. */}
+      <StageRow
+        key={app.stage}
+        id={app.id}
+        stage={app.stage as Stage}
+        requestId={randomUUID()}
+      />
+      <FeedbackOutlet channel="stage" className="mt-2" />
+      <p className="status-line practice-facts mb-5">
         <span>
           Applied{' '}
           {app.appliedAt ? shortDate(calendarDate(app.appliedAt)) : 'not yet'}
           {app.source ? ` via ${app.source}` : ''}
         </span>
-        {app.jobUrl && (
-          <ResourceLink url={app.jobUrl}>Job posting</ResourceLink>
-        )}
+        {app.recruiterName && <span>Recruiter: {app.recruiterName}</span>}
         {!open && <span>Closed · {label(app.stage)}</span>}
       </p>
       <div className="grid-main">
         <section>
-          <section className="card" aria-labelledby="next-heading">
-            <h2 id="next-heading">Next move</h2>
+          <section aria-label="Next action" className="next-move-section">
             <div
               className={`next-move${['overdue', 'today'].includes(follow.state) ? ' is-urgent' : ''}`}
             >
@@ -354,81 +400,15 @@ export default async function Application({
             </SidePanel>
           </section>
 
-          {open && (
-            <section className="card flat" aria-labelledby="formats-heading">
-              <div className="section-head">
-                <h2 id="formats-heading">Interview formats</h2>
-                <PanelButton panel="formats" className="link-button">
-                  {app.formats.length ? 'Edit formats' : 'Set formats'}
-                </PanelButton>
-              </div>
-              {!loop.length && (
-                <p className="empty">
-                  No formats yet. Tick the rounds this company uses, or add an
-                  interview with its type.
-                </p>
-              )}
-              {loop.length > 0 && (
-                <ul className="plain-list format-list">
-                  {loop.map((f) => {
-                    const href = (i: NonNullable<typeof f.next>) =>
-                      i.dsaProblemId
-                        ? `/dsa/${i.dsaProblemId}?from=${i.id}`
-                        : `/roadmap/${i.roadmapId}?section=${encodeURIComponent(i.section)}#item-${i.id}`;
-                    return (
-                      <li className="format-row" key={f.format}>
-                        <div className="format-main">
-                          <strong>{typeLabel[f.format]}</strong>
-                          <small>
-                            {[
-                              f.nextRound
-                                ? `Round ${shortDate(dayKey(f.nextRound, zone))}`
-                                : null,
-                              f.aiPolicy ? aiPolicyLabel[f.aiPolicy] : null,
-                              f.total ? `${f.done} of ${f.total} done` : null,
-                            ]
-                              .filter(Boolean)
-                              .join(' · ') || 'From this company’s loop'}
-                          </small>
-                        </div>
-                        <div className="format-links">
-                          {f.guide && (
-                            <Link
-                              className="link"
-                              href={href(f.guide)}
-                              prefetch={false}
-                            >
-                              What it tests
-                            </Link>
-                          )}
-                          {f.next && (
-                            <Link
-                              className="link"
-                              href={href(f.next)}
-                              prefetch={false}
-                            >
-                              Next: {f.next.title}
-                            </Link>
-                          )}
-                          {!f.guide && !f.next && (
-                            <span className="muted">
-                              No roadmap material for this yet
-                            </span>
-                          )}
-                        </div>
-                      </li>
-                    );
-                  })}
-                </ul>
-              )}
-              <SidePanel id="formats" title="Interview formats">
-                <FormatsForm id={app.id} formats={app.formats} />
-              </SidePanel>
-            </section>
-          )}
-
           <section className="card" aria-labelledby="interviews-heading">
-            <h2 id="interviews-heading">Interviews</h2>
+            <div className="section-head">
+              <h2 id="interviews-heading">Interviews</h2>
+              {open && (
+                <PanelButton panel="add-round" className="link-button">
+                  Add interview
+                </PanelButton>
+              )}
+            </div>
             <FeedbackOutlet channel="rounds" className="mb-3" />
             {!app.rounds.length && <p className="empty">No interviews yet.</p>}
             {app.rounds.map((r) => {
@@ -598,14 +578,18 @@ export default async function Application({
                         )}
                       </div>
                     )}
-                    {prepRound?.id === r.id && (
-                      <div className="round-prep">
-                        <h4>Prepare with {AGENT_NAME}</h4>
-                        {prepTools}
-                      </div>
-                    )}
                     <FeedbackOutlet channel={`round-${r.id}`} />
                     <div className="round-actions">
+                      {prepRound?.id === r.id && prepTools}
+                      {r.status === 'SCHEDULED' && !awaitingResult && (
+                        <PanelButton
+                          panel={panelId}
+                          focus="prep"
+                          className="button secondary small"
+                        >
+                          Add prep
+                        </PanelButton>
+                      )}
                       {awaitingResult && (
                         <PanelButton
                           panel={panelId}
@@ -625,15 +609,6 @@ export default async function Application({
                     {/* Prep, reschedule and the schedule block in one menu (WI-063). */}
                     {r.status !== 'CANCELLED' && (
                       <MoreMenu label={`More for ${r.title}`}>
-                        {r.status === 'SCHEDULED' && !awaitingResult && (
-                          <PanelButton
-                            panel={panelId}
-                            focus="prep"
-                            className="more-menu-item"
-                          >
-                            Add prep
-                          </PanelButton>
-                        )}
                         {r.status === 'COMPLETED' && (
                           <PanelButton
                             panel={panelId}
@@ -736,15 +711,84 @@ export default async function Application({
               );
             })}
             {open && (
-              <Disclosure
-                label="Add interview"
-                className="mt-4"
-                draft={`round:${app.id}`}
-              >
+              <SidePanel id="add-round" title="Add interview" variant="modal">
                 <RoundForm applicationId={app.id} zone={zone} />
-              </Disclosure>
+              </SidePanel>
             )}
           </section>
+
+          {open && (
+            <section className="card flat" aria-labelledby="formats-heading">
+              <div className="section-head">
+                <h2 id="formats-heading">Interview formats</h2>
+                <PanelButton panel="formats" className="link-button">
+                  {app.formats.length ? 'Edit formats' : 'Set formats'}
+                </PanelButton>
+              </div>
+              {!loop.length && (
+                <p className="empty">
+                  No formats yet. Tick the rounds this company uses, or add an
+                  interview with its type.
+                </p>
+              )}
+              {loop.length > 0 && (
+                <ul className="plain-list format-list">
+                  {loop.map((f) => {
+                    const href = (i: NonNullable<typeof f.next>) =>
+                      i.dsaProblemId
+                        ? `/dsa/${i.dsaProblemId}?from=${i.id}`
+                        : `/roadmap/${i.roadmapId}?section=${encodeURIComponent(i.section)}#item-${i.id}`;
+                    return (
+                      <li className="format-row" key={f.format}>
+                        <div className="format-main">
+                          <strong>{typeLabel[f.format]}</strong>
+                          <small>
+                            {[
+                              f.nextRound
+                                ? `Round ${shortDate(dayKey(f.nextRound, zone))}`
+                                : null,
+                              f.aiPolicy ? aiPolicyLabel[f.aiPolicy] : null,
+                              f.total ? `${f.done} of ${f.total} done` : null,
+                            ]
+                              .filter(Boolean)
+                              .join(' · ') || 'From this company’s loop'}
+                          </small>
+                        </div>
+                        <div className="format-links">
+                          {f.guide && (
+                            <Link
+                              className="link"
+                              href={href(f.guide)}
+                              prefetch={false}
+                            >
+                              What it tests
+                            </Link>
+                          )}
+                          {f.next && (
+                            <Link
+                              className="link"
+                              href={href(f.next)}
+                              prefetch={false}
+                            >
+                              Next: {f.next.title}
+                            </Link>
+                          )}
+                          {!f.guide && !f.next && (
+                            <span className="muted">
+                              No roadmap material for this yet
+                            </span>
+                          )}
+                        </div>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+              <SidePanel id="formats" title="Interview formats">
+                <FormatsForm id={app.id} formats={app.formats} />
+              </SidePanel>
+            </section>
+          )}
 
           <section className="card flat" aria-labelledby="timeline-heading">
             <h2 id="timeline-heading">Timeline</h2>
@@ -777,65 +821,52 @@ export default async function Application({
         </section>
         <aside>
           {showPrep && !prepRound && (
-            <section className="card flat" aria-labelledby="prep-heading">
-              <h2 id="prep-heading">Prepare with {AGENT_NAME}</h2>
+            <section className="card rail-card" aria-labelledby="prep-heading">
+              <div className="attention-head">
+                <h2 id="prep-heading">Prepare with {AGENT_NAME}</h2>
+              </div>
               {prepTools}
             </section>
           )}
-          <section className="card flat">
-            <h2>Contacts</h2>
-            {contacts.length ? (
-              <dl className="contacts-list">
-                {contacts.map(([k, v, extra]) => (
+          {/* One Details card (WI-096): only the lines that exist, Edit opens the panel. */}
+          <section className="card rail-card" aria-labelledby="details-heading">
+            <div className="attention-head">
+              <h2 id="details-heading">Details</h2>
+              <PanelButton panel="details" className="link-button">
+                {details.length ? 'Edit' : 'Add details'}
+              </PanelButton>
+            </div>
+            {details.length > 0 && (
+              <dl className="details-list">
+                {details.map(([k, v]) => (
                   <div key={k}>
-                    <dt>{k}</dt>
-                    <dd>
-                      {v}
-                      {extra && <span className="muted"> · {extra}</span>}
-                    </dd>
+                    <dt className="muted">{k}</dt>
+                    <dd className="learning-notes">{v}</dd>
                   </div>
                 ))}
               </dl>
-            ) : (
-              <PanelButton
-                panel="details"
-                focus="contacts"
-                className="link-button"
-              >
-                Add contacts
-              </PanelButton>
-            )}
-          </section>
-          <section className="card flat">
-            <h2>Notes</h2>
-            <p className="learning-notes">{app.notes ?? 'No notes yet.'}</p>
-            {app.compensationNotes && (
-              <>
-                <h3 className="mt-4">Offer / compensation</h3>
-                <p className="learning-notes">{app.compensationNotes}</p>
-              </>
             )}
             {app.jobDescription && (
               <Disclosure
                 variant="link"
                 label="Job description"
-                className="mt-4"
+                className="mt-3"
               >
                 <p className="learning-notes">{app.jobDescription}</p>
               </Disclosure>
             )}
             {app.resources.map((r) => (
-              <p key={r.id}>
+              <p key={r.id} className="mt-2">
                 <ResourceLink url={r.url}>{r.title}</ResourceLink>
               </p>
             ))}
           </section>
-          <PanelButton panel="details" className="button secondary">
-            Edit application
-          </PanelButton>
           <SidePanel id="details" title="Edit application">
             <DetailsForm app={app} />
             <div className="panel-danger">
+              <h3 data-panel-focus="delete" tabIndex={-1}>
+                Delete
+              </h3>
               <ConfirmDelete
                 action={deleteApplicationAction}
                 id={app.id}

@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import {
   applicationMove,
+  funnelRows,
+  upcomingInterviews,
   attention,
   attentionQueue,
   pagePrimary,
@@ -500,5 +502,94 @@ describe('label', () => {
   it('reads an enum as words and an empty value as nothing (WI-058)', () => {
     expect(label('RECRUITER_SCREEN')).toBe('Recruiter screen');
     expect(label('')).toBe('');
+  });
+});
+
+describe('the Jobs rail and funnel (WI-096)', () => {
+  it('lists the next interviews across applications, soonest first, with open prep', () => {
+    const now = new Date('2026-10-31T12:00:00Z');
+    const r = (
+      id: string,
+      start: string,
+      status = 'SCHEDULED',
+      prep: boolean[] = [],
+    ) => ({
+      id,
+      title: id,
+      status,
+      scheduledStart: new Date(start),
+      prepItems: prep.map((completed) => ({ completed })),
+    });
+    const rows = upcomingInterviews(
+      [
+        {
+          id: 'a',
+          company: 'Acme',
+          rounds: [
+            r('late', '2026-11-05T13:00:00Z'),
+            r('past', '2026-10-30T13:00:00Z'),
+          ],
+        },
+        {
+          id: 'b',
+          company: 'Bolt',
+          rounds: [
+            r('soon', '2026-11-01T15:00:00Z', 'SCHEDULED', [false, true]),
+            r('done', '2026-11-02T15:00:00Z', 'COMPLETED'),
+          ],
+        },
+      ],
+      now,
+    );
+    expect(rows.map((x) => `${x.company} ${x.title} ${x.openPrep}`)).toEqual([
+      'Bolt soon 1',
+      'Acme late 0',
+    ]);
+    expect(
+      upcomingInterviews(
+        [
+          {
+            id: 'a',
+            company: 'A',
+            rounds: [
+              r('1', '2026-11-01T00:00:00Z'),
+              r('2', '2026-11-02T00:00:00Z'),
+            ],
+          },
+        ],
+        now,
+        1,
+      ),
+    ).toHaveLength(1);
+  });
+  it('folds the funnel weeks with nothing, keeping this week', () => {
+    const weeks = [
+      { monday: '2026-10-26', counts: [0, 0, 0] },
+      { monday: '2026-10-19', counts: [0, 0, 0] },
+      { monday: '2026-10-12', counts: [1, 0, 0] },
+    ];
+    expect(funnelRows(weeks, '2026-10-26', false)).toEqual({
+      rows: [weeks[0], weeks[2]],
+      folded: 1,
+    });
+    expect(funnelRows(weeks, '2026-10-26', true).folded).toBe(0);
+  });
+  it('the move carries its detail without the role', () => {
+    expect(
+      applicationMove(
+        {
+          id: 'x',
+          stage: 'APPLIED',
+          actionOwner: 'ME',
+          nextAction: 'Send follow-up',
+          nextActionDate: new Date('2026-09-22T00:00:00Z'),
+          rounds: [],
+          role: 'Backend Engineer',
+          lastActivityAt: new Date('2026-09-21T14:00:00Z'),
+        },
+        new Date('2026-09-24T14:00:00Z'),
+        'America/Toronto',
+      ).detail,
+    ).toBe('Overdue by 2 days');
   });
 });
