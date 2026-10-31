@@ -1,8 +1,6 @@
 import Link from 'next/link';
 import { cookies } from 'next/headers';
 import { ArrowRight, CalendarClock, Check, Circle, Plus } from 'lucide-react';
-import { ActionForm } from '@/components/action-form';
-import { Button } from '@/components/ui/button';
 import { FeedbackOutlet } from '@/components/feedback-outlet';
 import { db } from '@/server/db';
 import { formatInTimeZone } from 'date-fns-tz';
@@ -10,8 +8,6 @@ import type { ScheduleUser } from '@/features/schedule/service';
 import { BlockForm, RoutineForm } from '@/features/schedule/forms';
 import { ROUTINE_TEMPLATES } from '@/features/schedule/templates';
 import { GoalForm } from '@/features/roadmap/forms';
-import { startPickAction } from '@/features/for-today/actions';
-import type { TodayPick } from '@/features/for-today/domain';
 import { hideFirstStepsAction } from './actions';
 import { FIRST_STEPS_COOKIE } from './first-steps-cookie';
 import { firstSteps } from './home';
@@ -22,23 +18,21 @@ import { PanelButton, SidePanel } from './panels';
 
 /**
  * Today for an empty account (WI-065, ADR-027): one welcoming action, three optional steps
- * and a calm empty day. Nothing is required: Plan my first focus opens the block form (WI-072),
- * the link under it starts a 20-minute session on today's first pick, and the steps (goal,
- * study times, a learning focus) open in panels.
+ * and a calm empty day. Nothing is required: Plan my first focus opens the block form (WI-072)
+ * and the steps (goal, study times, a learning focus) open in panels. The 20-minute pick under
+ * it left with the For today picks (WI-092).
  */
 export async function FirstRunToday({
   user,
   day,
   bounds,
   goals,
-  picks,
   name = null,
 }: {
   user: ScheduleUser;
   day: string;
   bounds: { start: Date };
   goals: { id: string; title: string; status: string }[];
-  picks: TodayPick[];
   /** The owner's name, for the greeting (WI-073). */
   name?: string | null;
 }) {
@@ -58,7 +52,6 @@ export async function FirstRunToday({
     hasRoutine: false,
     hasFocus: focus,
   });
-  const pick = picks[0] ?? null;
   // A new block starts at the next quarter hour, never at a time already gone (WI-066).
   const slot = nextSlot(new Date(), user.timezone, day);
   const part = dayPart(
@@ -97,16 +90,6 @@ export async function FirstRunToday({
               <PanelButton panel="add-block" className="button">
                 Plan my first focus <ArrowRight size={16} aria-hidden="true" />
               </PanelButton>
-              {pick && (
-                <ActionForm
-                  action={startPickAction}
-                  label={`Try a 20-minute session: ${pick.title}`}
-                >
-                  <input type="hidden" name="title" value={pick.title} />
-                  <input type="hidden" name="category" value={pick.category} />
-                  <Button variant="link">or try a 20-minute session</Button>
-                </ActionForm>
-              )}
             </div>
           </section>
           <section className="card first-day" aria-labelledby="agenda-heading">

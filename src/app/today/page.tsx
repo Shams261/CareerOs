@@ -20,14 +20,12 @@ import {
   agendaEntries,
   daySummary,
   factsLine,
-  freePick,
   launcherState,
   quietYesterday,
   recentFacts,
   summaryLine,
   type RoundLike,
 } from '@/features/today/domain';
-import { forTodayPicks } from '@/features/for-today/service';
 import { jobTodaySummary } from '@/features/jobs/service';
 import { revisionDue } from '@/features/roadmap/service';
 import { dsaSnapshot } from '@/features/dsa/service';
@@ -82,8 +80,8 @@ export default async function Today({
     -((new Date(`${today}T12:00:00Z`).getUTCDay() + 6) % 7),
   );
   const from = monday < yesterday ? monday : yesterday;
-  // Start the snapshots the streamed parts and For today read, so they load alongside the page
-  // instead of after it (WI-061). They are memoized: the parts below take the same promises.
+  // Start the snapshots the streamed parts read, so they load alongside the page instead of
+  // after it (WI-061). They are memoized: the parts below take the same promises.
   if (isToday)
     for (const preload of [
       jobTodaySummary(user, now),
@@ -91,7 +89,6 @@ export default async function Today({
       dsaSnapshot(user),
       noticedFor(user, now),
       setupState(user),
-      forTodayPicks(user, now),
     ])
       preload.catch(() => undefined);
   // Everything independent starts together; only today's plan waits for the week's generation.
@@ -272,14 +269,6 @@ export default async function Today({
       reviewed,
     });
   const preview = closing ? await previewSlots(user, blocks, today, now) : null;
-  // Nothing current or next and the day still open: the launcher offers the first "For
-  // today" pick instead of looking back (WI-059). A failed read only drops the offer.
-  const free =
-    isToday &&
-    !closing &&
-    !!state &&
-    (state.kind === 'reconcile' || (state.kind === 'done' && !reviewed));
-  const picks = free ? await forTodayPicks(user, now).catch(() => []) : [];
   return (
     <>
       <ExecutionRefresh />
@@ -299,7 +288,6 @@ export default async function Today({
           day={day}
           bounds={bounds}
           goals={goals}
-          picks={await forTodayPicks(user, now).catch(() => [])}
           name={user.name}
         />
       ) : (
@@ -454,7 +442,6 @@ export default async function Today({
                 closing={closing}
                 closed={reviewed}
                 closedLine={summaryLine(summary)}
-                pick={freePick(picks, blocks)}
                 quiet={
                   facts?.yesterday && quietYesterday(facts)
                     ? { ...facts.yesterday, day: yesterday }
