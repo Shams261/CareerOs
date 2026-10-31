@@ -206,6 +206,8 @@ async function loadWeekReview(
     goals: goalRows,
     review,
     commitments: previous?.priorities ?? [],
+    // Last week's review as written, for the Close the week rail (WI-097).
+    lastReview: previous,
   };
 }
 

@@ -563,3 +563,77 @@ export function weekSummary<
     more: Math.max(0, open.length - limit),
   };
 }
+
+/**
+ * The week a `?week=` asks for (WI-097): a real day snaps to its Monday; a string that only
+ * looks like a date (2026-13-99, 2026-02-30) or anything else falls back, never throws.
+ */
+export function reviewWeekParam(week: string | undefined, fallback: string) {
+  if (!week || !dateInput.safeParse(week).success) return fallback;
+  const d = new Date(`${week}T12:00:00Z`);
+  if (Number.isNaN(+d) || d.toISOString().slice(0, 10) !== week)
+    return fallback;
+  return weekOf(week);
+}
+export const plural = (n: number, one: string, many = `${one}s`) =>
+  `${n} ${n === 1 ? one : many}`;
+type ReflectionText = {
+  biggestWin: string | null;
+  biggestBlocker: string | null;
+  lessons: string | null;
+  nextWeekChange: string | null;
+  carryForward: string | null;
+};
+export const hasReflection = (r: ReflectionText | null | undefined) =>
+  !!r &&
+  [
+    r.biggestWin,
+    r.biggestBlocker,
+    r.lessons,
+    r.nextWeekChange,
+    r.carryForward,
+  ].some((t) => !!t?.trim());
+/** The Close the week card's line: what completing closes, as facts (WI-097). */
+export function closeWeekLine(input: {
+  completed: boolean;
+  reflected: boolean;
+  priorities: number;
+  generatedDays: number | null;
+}) {
+  const parts = [
+    input.completed
+      ? 'Review completed'
+      : input.reflected
+        ? 'Reflection saved as a draft'
+        : 'No reflection yet',
+    plural(input.priorities, 'priority', 'priorities'),
+  ];
+  if (input.generatedDays !== null)
+    parts.push(
+      input.generatedDays >= 7
+        ? 'next week prepared'
+        : input.generatedDays > 0
+          ? `next week ${input.generatedDays} of 7 days planned`
+          : 'next week not prepared yet',
+    );
+  return parts.join(' · ');
+}
+/** "Completed · 2 of 3 priorities done" / "Draft · 0 of 1 priority done" for last week's card. */
+export function lastReviewLine(r: {
+  completedAt: Date | null;
+  priorities: { completedAt: Date | null }[];
+}) {
+  const done = r.priorities.filter((p) => p.completedAt).length;
+  const state = r.completedAt ? 'Completed' : 'Draft';
+  return r.priorities.length
+    ? `${state} · ${done} of ${plural(r.priorities.length, 'priority', 'priorities')} done`
+    : state;
+}
+/** The first thing written last week, in this order: the change, the blocker, the lesson, the win. */
+export function lastReviewQuote(r: ReflectionText) {
+  const text = [r.nextWeekChange, r.biggestBlocker, r.lessons, r.biggestWin]
+    .map((t) => t?.trim() ?? '')
+    .find(Boolean);
+  if (!text) return null;
+  return text.length > 160 ? `${text.slice(0, 157).trimEnd()}…` : text;
+}

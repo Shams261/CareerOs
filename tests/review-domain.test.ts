@@ -1,7 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import {
   categoryGroup,
+  closeWeekLine,
   defaultReviewWeek,
+  hasReflection,
+  lastReviewLine,
+  lastReviewQuote,
+  plural,
+  reviewWeekParam,
   dsaWeek,
   formatMinutes,
   jobWeek,
@@ -486,5 +492,121 @@ describe('WI-024 review lines', () => {
         0,
       ),
     ).toBe('Draft · 0 planned');
+  });
+});
+
+describe('the week parameter and the Close the week lines (WI-097)', () => {
+  it('snaps a real day to its Monday and falls back on a date that does not exist', () => {
+    expect(reviewWeekParam('2026-11-04', '2026-10-26')).toBe('2026-11-02');
+    expect(reviewWeekParam('2026-11-02', '2026-10-26')).toBe('2026-11-02');
+    expect(reviewWeekParam(undefined, '2026-10-26')).toBe('2026-10-26');
+    for (const bad of [
+      'abc',
+      '2026-13-99',
+      '9999-99-99',
+      '0000-00-00',
+      '2026-02-30',
+      '2026-11-4',
+    ])
+      expect(reviewWeekParam(bad, '2026-10-26')).toBe('2026-10-26');
+  });
+  it('states what completing closes, as facts', () => {
+    expect(
+      closeWeekLine({
+        completed: false,
+        reflected: false,
+        priorities: 0,
+        generatedDays: 0,
+      }),
+    ).toBe('No reflection yet · 0 priorities · next week not prepared yet');
+    expect(
+      closeWeekLine({
+        completed: false,
+        reflected: true,
+        priorities: 1,
+        generatedDays: 3,
+      }),
+    ).toBe(
+      'Reflection saved as a draft · 1 priority · next week 3 of 7 days planned',
+    );
+    expect(
+      closeWeekLine({
+        completed: true,
+        reflected: true,
+        priorities: 3,
+        generatedDays: 7,
+      }),
+    ).toBe('Review completed · 3 priorities · next week prepared');
+    expect(
+      closeWeekLine({
+        completed: false,
+        reflected: false,
+        priorities: 2,
+        generatedDays: null,
+      }),
+    ).toBe('No reflection yet · 2 priorities');
+    expect(hasReflection(null)).toBe(false);
+    expect(
+      hasReflection({
+        biggestWin: ' ',
+        biggestBlocker: null,
+        lessons: null,
+        nextWeekChange: null,
+        carryForward: null,
+      }),
+    ).toBe(false);
+    expect(
+      hasReflection({
+        biggestWin: null,
+        biggestBlocker: 'Late starts',
+        lessons: null,
+        nextWeekChange: null,
+        carryForward: null,
+      }),
+    ).toBe(true);
+  });
+  it("sums up last week's review and quotes the first thing written", () => {
+    const done = new Date('2026-10-25T20:00:00Z');
+    expect(
+      lastReviewLine({
+        completedAt: done,
+        priorities: [
+          { completedAt: done },
+          { completedAt: null },
+          { completedAt: done },
+        ],
+      }),
+    ).toBe('Completed · 2 of 3 priorities done');
+    expect(
+      lastReviewLine({
+        completedAt: null,
+        priorities: [{ completedAt: null }],
+      }),
+    ).toBe('Draft · 0 of 1 priority done');
+    expect(lastReviewLine({ completedAt: null, priorities: [] })).toBe('Draft');
+    const text = {
+      biggestWin: 'Four mornings',
+      biggestBlocker: 'Late starts',
+      lessons: null,
+      nextWeekChange: '  ',
+      carryForward: null,
+    };
+    expect(lastReviewQuote(text)).toBe('Late starts');
+    expect(lastReviewQuote({ ...text, biggestBlocker: null })).toBe(
+      'Four mornings',
+    );
+    const long = lastReviewQuote({ ...text, biggestBlocker: 'x'.repeat(200) });
+    expect(long).toMatch(/^x{157}…$/);
+    expect(
+      lastReviewQuote({
+        biggestWin: null,
+        biggestBlocker: null,
+        lessons: null,
+        nextWeekChange: null,
+        carryForward: null,
+      }),
+    ).toBeNull();
+    expect(plural(1, 'application')).toBe('1 application');
+    expect(plural(2, 'priority', 'priorities')).toBe('2 priorities');
   });
 });

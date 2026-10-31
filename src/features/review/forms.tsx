@@ -16,6 +16,7 @@ import {
 import { MAX_PRIORITIES } from './domain';
 import { ArrowRight, Check, ChevronUp, ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { FormMore } from '@/components/form-more';
 
 const prompts = [
   ['biggestWin', 'What went well?'],
@@ -25,7 +26,7 @@ const prompts = [
   ['carryForward', 'Still to do'],
 ] as const;
 
-/** Five optional short prompts. Save draft or complete; completed reviews stay editable. */
+/** Five optional short prompts in one column (WI-097). Save draft or continue; completed reviews stay editable. */
 export function ReviewForm({
   weekStart,
   review,
@@ -37,14 +38,14 @@ export function ReviewForm({
     <ActionForm
       action={reviewAction}
       label="Weekly reflection"
-      className="dsa-form"
+      className="dsa-form review-form"
       draft={`reflection:${weekStart}`}
     >
       <input type="hidden" name="weekStart" value={weekStart} />
-      <div className="form-grid">
+      <div className="form-grid is-stacked">
         {prompts.map(([name, label]) => (
           <label key={name}>
-            {label} (optional)
+            {label}
             <textarea
               name={name}
               rows={2}
@@ -164,7 +165,7 @@ export function PriorityForm({
   if (count >= MAX_PRIORITIES)
     return (
       <p className="muted">
-        {MAX_PRIORITIES} priorities chosen — remove one to add another.
+        {MAX_PRIORITIES} priorities chosen. Remove one to add another.
       </p>
     );
   return (
@@ -177,43 +178,52 @@ export function PriorityForm({
       draft={`priority:${weekStart}`}
     >
       <input type="hidden" name="weekStart" value={weekStart} />
-      <div className="form-grid">
+      {/* One line to add (WI-097); category, target and goal under More. */}
+      <div className="priority-line">
         <label>
-          Priority
+          <span className="sr-only">Priority</span>
           <input
             name="title"
             required
             maxLength={160}
-            placeholder="Finish Sliding Window"
+            placeholder="Add a priority"
           />
         </label>
-        <label>
-          Category (optional)
-          <input name="category" maxLength={60} placeholder="DSA" />
-        </label>
-        <label>
-          Target (optional)
-          <input name="target" type="number" min="1" max="1000" />
-        </label>
-        <label>
-          Target unit (optional)
-          <input name="targetUnit" maxLength={40} placeholder="applications" />
-        </label>
-        {goals.length > 0 && (
-          <label>
-            Goal (optional)
-            <select name="goalId" defaultValue="">
-              <option value="">None</option>
-              {goals.map((g) => (
-                <option key={g.id} value={g.id}>
-                  {g.title}
-                </option>
-              ))}
-            </select>
-          </label>
-        )}
+        <Button className="secondary">Add priority</Button>
       </div>
-      <Button className="secondary">Add priority</Button>
+      <FormMore label="More: category, target, goal">
+        <div className="form-grid">
+          <label>
+            Category
+            <input name="category" maxLength={60} placeholder="DSA" />
+          </label>
+          <label>
+            Target
+            <input name="target" type="number" min="1" max="1000" />
+          </label>
+          <label>
+            Target unit
+            <input
+              name="targetUnit"
+              maxLength={40}
+              placeholder="applications"
+            />
+          </label>
+          {goals.length > 0 && (
+            <label>
+              Goal
+              <select name="goalId" defaultValue="">
+                <option value="">None</option>
+                {goals.map((g) => (
+                  <option key={g.id} value={g.id}>
+                    {g.title}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
+        </div>
+      </FormMore>
     </ActionForm>
   );
 }
