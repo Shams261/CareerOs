@@ -98,9 +98,12 @@ export async function revisionAction(_state: ActionState, form: FormData) {
 
 export async function markRevisedAction(_state: ActionState, form: FormData) {
   return perform(async () => {
+    // The form names its step, so a double submit settles one step (WI-095).
+    const step = Number(form.get('step'));
     const ladder = await markRevised(
       await owner(),
       String(form.get('id') ?? ''),
+      Number.isInteger(step) && step > 0 ? step : undefined,
     );
     return ladderNote(ladder, true);
   });

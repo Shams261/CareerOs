@@ -199,9 +199,12 @@ export function ProblemForm({
 export function RevisionForm({
   problem,
   inPanel = false,
+  today,
 }: {
   problem: DsaProblem;
   inPanel?: boolean;
+  /** The owner's day: the field refuses an earlier one (WI-095). */
+  today?: string;
 }) {
   return (
     <ActionForm
@@ -217,6 +220,7 @@ export function RevisionForm({
           name="date"
           type="date"
           required
+          min={today}
           defaultValue={
             problem.nextRevisionAt
               ? new Date(problem.nextRevisionAt).toISOString().slice(0, 10)

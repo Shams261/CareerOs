@@ -8999,23 +8999,6 @@ html {
 .problem-form .choice-group.is-chips {
   margin: 2px 0 14px;
 }
-/* Copy prompt and its scenario as one control on a problem page. */
-.study-split {
-  display: inline-flex;
-  align-items: stretch;
-}
-.study-split .button.small {
-  min-height: 36px;
-  white-space: nowrap;
-  border-top-right-radius: 0;
-  border-bottom-right-radius: 0;
-}
-.study-split .study-scenario select {
-  min-height: 36px;
-  margin-left: -1px;
-  border-top-left-radius: 0;
-  border-bottom-left-radius: 0;
-}
 @media (max-width: 700px) {
   .only-desktop {
     display: none !important;
@@ -9048,17 +9031,6 @@ html {
   }
   .page-head.is-problem {
     gap: 10px;
-  }
-  .study-split {
-    display: flex;
-    width: 100%;
-  }
-  .study-split .study-scenario {
-    flex: 1;
-    min-width: 0;
-  }
-  .study-split .study-scenario select {
-    width: 100%;
   }
 }
 
@@ -9173,4 +9145,16 @@ html {
     white-space: normal;
     text-align: left;
   }
+}
+
+/* WI-095: the study tool card on a problem page, and the attempt's answer above the fresh form. */
+.problem-study .pane-tool.is-prompt {
+  max-width: 480px;
+  margin-top: 4px;
+}
+.attempt-note-line {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 0 12px;
 }

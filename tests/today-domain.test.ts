@@ -388,7 +388,7 @@ describe('needs attention', () => {
       'job:a3',
     ]);
     expect(items[1].context).toBe('Over Co · Overdue by 2 days');
-    expect(items[2].context).toBe('Revision overdue by 1 day · Yellow');
+    expect(items[2].context).toBe('Revision overdue by 1 day · Okay');
     expect(items[4].context).toBe('Revision due today · Backend');
     expect(items[0].context).toBe(
       'Example Labs · Today at 16:00 · 2 prep items open',

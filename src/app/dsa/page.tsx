@@ -9,7 +9,6 @@ import {
   ladderState,
   learningState,
   nextProblemFor,
-  revisionDay,
   revisionQueue,
   STATUS_FILTERS,
   type StatusFilter,
@@ -32,8 +31,6 @@ export const metadata = { title: 'Practice' };
 
 const tone = { RED: 'danger', YELLOW: 'warning', GREEN: 'success' } as const;
 const levelRank = { EASY: 0, MEDIUM: 1, HARD: 2 } as const;
-const dateLabel = (d: Date) =>
-  formatInTimeZone(new Date(`${revisionDay(d)}T12:00:00Z`), 'UTC', 'MMM d');
 const dayLabel = (day: string) =>
   formatInTimeZone(new Date(`${day}T12:00:00Z`), 'UTC', 'MMM d');
 
@@ -228,7 +225,12 @@ export default async function Dsa({
       </div>
       {topics.length > 0 && (
         <SidePanel id="add-problem" title="Add a problem" variant="modal">
-          <ProblemForm topics={topics} currentId={currentTopic?.id} inPanel />
+          {/* The topic defaults to the working one (WI-095). */}
+          <ProblemForm
+            topics={topics}
+            currentId={currentTopic?.id ?? workingTopic?.id}
+            inPanel
+          />
         </SidePanel>
       )}
       {!topics.length ? (
@@ -315,7 +317,7 @@ export default async function Dsa({
                     </span>
                     <span className="problem-date">
                       <span className="pill warning">
-                        {ladder.step ? `${ladder.step} of 3 · ` : ''}Due today
+                        {ladderLine(ladder, dayLabel) ?? 'Due today'}
                       </span>
                     </span>
                     <span className="problem-meta muted">

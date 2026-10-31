@@ -41,6 +41,7 @@ export function RevisionLadder({
             label={`Mark revision ${ladder.step} revised`}
           >
             <input type="hidden" name="id" value={problemId} />
+            <input type="hidden" name="step" value={ladder.step} />
             <Button
               variant={ladder.state === 'due' ? 'primary' : 'secondary'}
               className="small"

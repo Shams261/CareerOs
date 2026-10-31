@@ -188,7 +188,7 @@ describe.skipIf(!url)('DSA PostgreSQL integrity', () => {
       where: { problemId: p.id },
       orderBy: { id: 'asc' },
     });
-    await scheduleRevision(user, p.id, '2026-09-30');
+    await scheduleRevision(user, p.id, '2026-09-30', now);
     const scheduled = await prisma.dsaProblem.findUniqueOrThrow({
       where: { id: p.id },
     });
@@ -213,9 +213,9 @@ describe.skipIf(!url)('DSA PostgreSQL integrity', () => {
     await expect(markRevised(user, p.id)).rejects.toThrow(
       'No revision is open',
     );
-    await expect(scheduleRevision(user, p.id, '2026-10-20')).rejects.toThrow(
-      'No revision is open',
-    );
+    await expect(
+      scheduleRevision(user, p.id, '2026-10-20', now),
+    ).rejects.toThrow('No revision is open');
     // A finished ladder: the next attempt starts a new one from its day.
     await recordAttempt(
       user,
@@ -287,8 +287,9 @@ describe.skipIf(!url)('DSA PostgreSQL integrity', () => {
       where: { id: p.id },
     });
     expect(state.attemptsCount).toBe(3);
-    // The first attempt started the ladder; the two later ones revised steps 1 and 2.
-    expect(state.revisionStage).toBe(2);
+    // The first attempt started the ladder; the same-day ones are attempts only (WI-095).
+    expect(state.revisionStage).toBe(0);
+    expect(state.revisionOutcomes).toEqual([]);
   });
   it('rejects contradictory confidence and cross-owner writes without history', async () => {
     const p = await fresh();
@@ -303,6 +304,7 @@ describe.skipIf(!url)('DSA PostgreSQL integrity', () => {
         { id: other, timezone: user.timezone },
         p.id,
         '2026-09-24',
+        now,
       ),
     ).rejects.toThrow('workspace');
     expect(await prisma.dsaAttempt.count({ where: { problemId: p.id } })).toBe(
@@ -345,9 +347,9 @@ describe.skipIf(!url)('DSA PostgreSQL integrity', () => {
   it('leaves unattempted problems unscheduled, preserving legacy counts', async () => {
     const p = await fresh();
     expect(p.nextRevisionAt).toBeNull();
-    await expect(scheduleRevision(user, p.id, '2026-09-24')).rejects.toThrow(
-      'first attempt',
-    );
+    await expect(
+      scheduleRevision(user, p.id, '2026-09-24', now),
+    ).rejects.toThrow('first attempt');
     await prisma.dsaProblem.update({
       where: { id: p.id },
       data: { attemptsCount: 2, confidence: 'YELLOW' },
@@ -404,7 +406,7 @@ describe.skipIf(!url)('DSA PostgreSQL integrity', () => {
       q = await fresh();
     for (const problem of [p, q]) {
       await recordAttempt(user, input(problem.id), now);
-      await scheduleRevision(user, problem.id, '2026-09-24');
+      await scheduleRevision(user, problem.id, '2026-09-24', now);
     }
     expect(
       todayDsaSummary(

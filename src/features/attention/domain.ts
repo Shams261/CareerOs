@@ -4,6 +4,7 @@
  * `attentionItems`, tests/today-domain.test.ts.
  */
 import { dayKey, hhmm, shortDate, weekdayDate } from '@/lib/time';
+import { confidenceWord, type ConfidenceValue } from '@/features/dsa/words';
 import type { Attention } from '@/features/jobs/domain';
 
 export type AttentionSource =
@@ -198,6 +199,8 @@ export function practiceRevisionRows(
     nextRevisionAt: Date | null;
     /** The ladder step this revision is, 1–3 (WI-094). */
     step?: number | null;
+    /** The list's own line, "Revision 2 of 3 · Due today · missed 1" (WI-095). */
+    line?: string | null;
   }[],
   now: Date,
   zone: string,
@@ -211,7 +214,8 @@ export function practiceRevisionRows(
             source: 'practice' as const,
             label: 'Practice',
             title: `Review ${p.title}`,
-            context: `${revisionContext(dateLabel(p.nextRevisionAt), today)}${p.step ? ` · ${p.step} of 3` : ''} · ${p.confidence.charAt(0)}${p.confidence.slice(1).toLowerCase()}`,
+            // The confidence in the owner's words (Shaky / Okay / Solid), never the colour.
+            context: `${p.line ?? `${revisionContext(dateLabel(p.nextRevisionAt), today)}${p.step ? ` · ${p.step} of 3` : ''}`} · ${confidenceWord(p.confidence as ConfidenceValue)}`,
             href: `/dsa/${p.id}`,
             tier: 3 as const,
             due: +p.nextRevisionAt,
