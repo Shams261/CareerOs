@@ -14,6 +14,8 @@ import {
   summaryLine,
   type BlockLike,
   type RoundLike,
+  planCountLine,
+  startsInLabel,
 } from '../src/features/today/domain';
 import { dayBounds, localInstant } from '../src/lib/time';
 
@@ -690,5 +692,39 @@ describe('needs attention', () => {
     expect(attentionPage(many, 3).items).toEqual([40, 41, 42, 43, 44]);
     expect(attentionPage(many, 9).page).toBe(3);
     expect(attentionPage([], 1)).toEqual({ page: 1, pages: 1, items: [] });
+  });
+});
+
+describe("the plan's count line and the launcher's wait (WI-098)", () => {
+  const now = new Date('2026-10-31T19:00:00Z');
+  const b = (status: string, end: string) => ({
+    status,
+    plannedEnd: new Date(end),
+  });
+  it('counts what is ahead today and what is to decide on a past day', () => {
+    const blocks = [
+      b('PLANNED', '2026-10-31T12:00:00Z'),
+      b('COMPLETED', '2026-10-31T14:00:00Z'),
+      b('PLANNED', '2026-10-31T23:00:00Z'),
+      b('CANCELLED', '2026-10-31T23:30:00Z'),
+    ];
+    expect(planCountLine(blocks, now, false)).toBe('3 blocks · 1 still ahead');
+    expect(planCountLine(blocks, now, true)).toBe('3 blocks · 2 to decide');
+    expect(
+      planCountLine([b('COMPLETED', '2026-10-30T12:00:00Z')], now, true),
+    ).toBe('1 block · all decided');
+    expect(
+      planCountLine([b('COMPLETED', '2026-10-31T12:00:00Z')], now, false),
+    ).toBe('1 block · none left ahead');
+    expect(
+      planCountLine([b('CANCELLED', '2026-10-31T12:00:00Z')], now, false),
+    ).toBe('Nothing planned · 1 cancelled');
+  });
+  it("writes the wait in the app's duration words", () => {
+    const at = (m: number) => new Date(+now + m * 60000);
+    expect(startsInLabel(at(5), now)).toBe('5 min');
+    expect(startsInLabel(at(60), now)).toBe('1h');
+    expect(startsInLabel(at(312), now)).toBe('5h 12m');
+    expect(startsInLabel(at(0), now)).toBe('1 min');
   });
 });

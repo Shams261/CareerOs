@@ -5,6 +5,7 @@ import { Disclosure } from '@/components/disclosure';
 import { ActionForm } from '@/components/action-form';
 import { Button } from '@/components/ui/button';
 import { deleteBlockAction } from '@/features/deletes/actions';
+import { executionAction } from '@/features/schedule/actions';
 import { ConfirmDelete } from '@/components/confirm-delete';
 import { FeedbackOutlet } from '@/components/feedback-outlet';
 import { CategoryIcon } from '@/components/category-icon';
@@ -27,6 +28,7 @@ import {
   groupAgenda,
   hhmm,
   nextSlot,
+  planCountLine,
   resolutionText,
   type AgendaEntry,
   type RoundLike,
@@ -61,21 +63,6 @@ const origin = (b: TimeBlock) =>
       ? 'Changed for this day'
       : 'Routine'
     : 'Added for this day';
-
-/** "3 blocks · 2 still ahead": the plan's size and what is left of it, as facts. */
-function planCounts(blocks: Block[], now: Date) {
-  const live = blocks.filter((b) => b.status !== 'CANCELLED');
-  // Only cancelled blocks: say so instead of "0 blocks · none left ahead" (WI-066).
-  if (!live.length) return `Nothing planned · ${blocks.length} cancelled`;
-  const ahead = live.filter(
-    (b) =>
-      b.status !== 'COMPLETED' && b.status !== 'SKIPPED' && b.plannedEnd > now,
-  ).length;
-  return [
-    `${live.length} block${live.length === 1 ? '' : 's'}`,
-    ahead ? `${ahead} still ahead` : 'none left ahead',
-  ].join(' · ');
-}
 
 /** The day as an open list with a timeline rail: Earlier / Now / Later, cancelled apart. */
 export function Agenda(props: Props) {
@@ -132,7 +119,9 @@ export function Agenda(props: Props) {
             {isToday ? "Today's plan" : 'The plan for this day'}
           </h2>
           {props.blocks.length > 0 && (
-            <p className="muted agenda-sub">{planCounts(props.blocks, now)}</p>
+            <p className="muted agenda-sub">
+              {planCountLine(props.blocks, now, day < today)}
+            </p>
           )}
         </div>
         {/* A centred modal with its own scroll (WI-069), never the page's. */}
@@ -369,7 +358,25 @@ function BlockRow({
                 Open prep{round.openPrep ? ` (${round.openPrep} open)` : ''}
               </Link>
             )}
-            {unresolved && (
+            {/* A row with time recorded needs a decision, not more time (WI-098): Mark done
+                or Let go on the row; Log time stays in ⋯ and the modal. */}
+            {resolution === 'needs-update' && (
+              <ActionForm
+                action={executionAction}
+                broadcast="blocks"
+                className="row-decide"
+              >
+                <input type="hidden" name="id" value={block.id} />
+                <input type="hidden" name="reason" value="Let go" />
+                <button className="link-button" name="action" value="complete">
+                  Mark done<span className="sr-only">: {title}</span>
+                </button>
+                <button className="link-button" name="action" value="skip">
+                  Let go<span className="sr-only">: {title}</span>
+                </button>
+              </ActionForm>
+            )}
+            {resolution === 'not-recorded' && (
               <>
                 <PanelButton
                   panel={panelId}

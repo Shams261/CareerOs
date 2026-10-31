@@ -16,5 +16,7 @@ export async function SetupRail({
   if ((await cookies()).get(SETUP_COOKIE)) return null;
   const steps = await setupState(user);
   if (setupComplete(steps)) return null;
-  return <SetupCard steps={steps} line={setupLine(steps)} compact={compact} />;
+  return (
+    <SetupCard steps={steps} line={setupLine(steps)} compact={compact} rail />
+  );
 }

@@ -54,10 +54,10 @@ export function DailyLineToggle({
 }
 
 /**
- * The band at the top of Today (WI-073, WI-075, ADR-028): the greeting large, the day's
- * quotation under it, and a live clock on the right, on the part of the day's tint. "Another"
- * shows the next quotation of the same part; nothing is written. Switched off in Settings, the
- * whole band goes.
+ * The band at the top of Today (WI-073, WI-075, ADR-028; centred since WI-098, like the
+ * roadmap's goal card): the date, the live clock, the greeting large and the day's quotation
+ * under it, on the part of the day's tint. "Another" shows the next quotation of the same
+ * part; nothing is written. Switched off in Settings, the whole band goes.
  */
 export function DailyLine({
   day,
@@ -93,28 +93,23 @@ export function DailyLine({
       hidden={!enabled}
       aria-label="Today's greeting"
     >
-      <div className="daily-band-text">
-        <p className="daily-eyebrow">{dateLabel}</p>
-        <p className="daily-greeting">{greeting(part, name)}</p>
-        <p className="daily-quote" key={quote.text}>
-          <q>{quote.text}</q>
-          <span className="daily-by"> — {quote.by}</span>
-          <button
-            type="button"
-            className="link-button daily-another"
-            onClick={() => setOffset((o) => o + 1)}
-            aria-label="Another quotation"
-          >
-            <RefreshCw size={14} aria-hidden="true" />
-          </button>
-        </p>
-      </div>
-      <div className="daily-band-clock">
-        <time className="daily-clock" suppressHydrationWarning>
-          {clockLabel(now, zone)}
-        </time>
-        <span className="daily-part">{part}</span>
-      </div>
+      <p className="daily-eyebrow">{dateLabel}</p>
+      <time className="daily-clock" suppressHydrationWarning>
+        {clockLabel(now, zone)}
+      </time>
+      <p className="daily-greeting">{greeting(part, name)}</p>
+      <p className="daily-quote" key={quote.text}>
+        <q>{quote.text}</q>
+        <span className="daily-by"> — {quote.by}</span>
+        <button
+          type="button"
+          className="link-button daily-another"
+          onClick={() => setOffset((o) => o + 1)}
+          aria-label="Another quotation"
+        >
+          <RefreshCw size={14} aria-hidden="true" />
+        </button>
+      </p>
     </section>
   );
 }

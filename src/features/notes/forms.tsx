@@ -29,13 +29,19 @@ export function CaptureForm() {
 
 /** Notes waiting on Today. Done and Remove hide the row at once; a refusal brings it back. */
 export function NoteList({ notes }: { notes: QuickNote[] }) {
-  const [gone, setGone] = useState<ReadonlySet<string>>(new Set());
+  // The hidden rows belong to this list; a fresh list from the server (after Undo brings a
+  // note back, WI-098) starts with none hidden.
+  const [hidden, setHidden] = useState<{
+    notes: QuickNote[];
+    ids: ReadonlySet<string>;
+  }>({ notes, ids: new Set() });
+  const gone = hidden.notes === notes ? hidden.ids : new Set<string>();
   const hide = (id: string, on: boolean) =>
-    setGone((s) => {
-      const next = new Set(s);
+    setHidden((s) => {
+      const next = new Set(s.notes === notes ? s.ids : []);
       if (on) next.add(id);
       else next.delete(id);
-      return next;
+      return { notes, ids: next };
     });
   return (
     <ul className="plain-list">
