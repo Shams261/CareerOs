@@ -2062,37 +2062,41 @@ a.problem-title:hover {
   padding: 8px 14px;
   border-radius: 999px;
 }
-/* The Practice head on a phone: the title on its line, More and Add a problem on the next. */
-@media (max-width: 700px) {
-  .page-head.is-practice {
-    flex-direction: row;
-    flex-wrap: wrap;
-    align-items: center;
-  }
-  .page-head.is-practice h1 {
-    flex-basis: 100%;
-  }
+/* The chosen chip shows it (WI-093): the teal border and tint of `.choice.is-on`, which the
+   chips rule above out-ranked, and the radio in the app's own accent. */
+.dsa-form .choice-group.is-chips .choice.is-on,
+.dsa-form .choice-group.is-chips .choice:has(input:checked) {
+  border-color: var(--primary);
+  background: var(--tint);
+  color: var(--primary);
+  font-weight: 600;
+}
+.choice input[type='radio'] {
+  accent-color: var(--primary);
 }
 .attempt-form .attempt-line {
-  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
-  margin-top: 14px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 12px 28px;
+  margin: 14px 0 12px;
 }
-.attempt-form .attempt-line label {
-  margin-bottom: 10px;
+.attempt-form .attempt-line .choice-group.is-chips,
+.attempt-form .attempt-minutes {
+  margin: 0;
+}
+.attempt-form .attempt-minutes input {
+  width: 96px;
+  margin-bottom: 0;
 }
 .attempt-notes {
   display: flex;
   gap: 16px;
   margin: 0 0 12px;
-  font-size: 14px;
+  font-size: 13px;
 }
 .attempt-notes:empty {
   display: none;
-}
-@media (max-width: 700px) {
-  .attempt-form .attempt-line {
-    grid-template-columns: minmax(0, 1fr);
-  }
 }
 .facts-strip dd.is-due {
   color: var(--warning-text);
@@ -2147,29 +2151,19 @@ a.problem-title:hover {
 /* Practice library: four aligned columns, grouped by pattern, paged. */
 .problem-table {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 110px 200px auto;
+  grid-template-columns: minmax(0, 1fr) 90px 230px 32px;
   gap: 0 20px;
   align-items: center;
 }
-.problem-head,
 .problem-line {
   display: grid;
   grid-template-columns: subgrid;
   grid-column: 1 / -1;
   align-items: center;
 }
-.problem-head {
-  padding: 6px 0 10px;
-  border-bottom: 1px solid var(--border);
-  font-size: 11px;
-  letter-spacing: 1.2px;
-  text-transform: uppercase;
-  font-weight: 700;
-  color: var(--muted);
-  position: sticky;
-  top: 0;
-  background: var(--background);
-  z-index: 1;
+/* The difficulty and the status are two columns on a desktop, one line on a phone (WI-093). */
+.problem-cell-meta {
+  display: contents;
 }
 .problem-line {
   padding: 10px 0;
@@ -2210,7 +2204,7 @@ a.problem-title:hover {
   min-width: 0;
 }
 .problem-tag {
-  font-size: 12px;
+  font-size: 13px;
   white-space: nowrap;
 }
 .problem-cell-pattern,
@@ -2220,14 +2214,9 @@ a.problem-title:hover {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.problem-cell-level.is-easy {
-  color: var(--success-text);
-}
-.problem-cell-level.is-medium {
-  color: var(--warning-text);
-}
-.problem-cell-level.is-hard {
-  color: var(--error);
+/* Difficulty in meta ink (WI-093): colour belongs to the confidence and the due state. */
+.problem-cell-level {
+  color: var(--muted);
 }
 .problem-cell-status {
   display: inline-flex;
@@ -2244,38 +2233,34 @@ a.problem-title:hover {
   font-weight: 600;
 }
 @media (max-width: 1100px) {
+  /* Two lines a row (WI-093): the title, then "Easy · Okay · Overdue Oct 29"; the platform
+     is reached from the problem page. */
   .problem-table {
-    grid-template-columns: minmax(0, 1fr) auto;
-  }
-  .problem-head {
-    display: none;
+    grid-template-columns: minmax(0, 1fr);
   }
   .problem-line {
-    grid-template-columns: minmax(0, 1fr) auto;
-    gap: 2px 12px;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 2px;
+    padding: 9px 0;
   }
-  .problem-cell-title {
-    grid-column: 1;
+  .problem-cell-meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px 6px;
+    font-size: 13px;
+  }
+  .problem-cell-status::before,
+  .problem-cell-status .problem-date::before {
+    content: '·';
+    color: var(--muted);
+    margin-right: 6px;
   }
   .problem-cell-status {
-    grid-column: 2;
-    grid-row: 1;
-    flex-direction: column;
-    align-items: flex-end;
-    gap: 2px;
+    gap: 6px;
   }
   .problem-cell-open {
-    grid-column: 2;
-    grid-row: 2;
-  }
-  /* The group heading already names the pattern on a phone. */
-  .problem-cell-pattern {
     display: none;
-  }
-  .problem-cell-level {
-    grid-column: 1;
-    grid-row: 2;
-    font-size: 12px;
   }
   .problem-cell-title {
     flex-wrap: wrap;
@@ -2289,15 +2274,17 @@ a.problem-title:hover {
 .pattern-band {
   grid-column: 1 / -1;
   display: grid;
-  /* Name left in ink like every section title, then its counts and the chevron (WI-058). */
+  /* Name left in ink like every section title, then its counts and the chevron (WI-058). A
+     closed band is a plain row; only the open one is tinted (WI-093). */
   grid-template-columns: 1fr auto auto;
   align-items: center;
   gap: 12px;
-  margin-top: 16px;
-  padding: 10px 14px;
+  margin-top: 0;
+  padding: 12px 10px;
   border: 0;
-  border-radius: var(--radius-sm);
-  background: var(--tint);
+  border-top: 1px solid var(--border-subtle);
+  border-radius: 0;
+  background: transparent;
   color: var(--foreground);
   font: inherit;
   font-weight: 700;
@@ -2305,8 +2292,25 @@ a.problem-title:hover {
   text-align: left;
 }
 .pattern-band:hover {
+  background: var(--subtle);
+}
+.pattern-band.is-open {
+  margin-top: 12px;
+  padding: 10px 14px;
+  border-top-color: transparent;
+  border-radius: var(--radius-sm);
+  background: var(--tint);
+}
+.pattern-band.is-open:hover {
   background: var(--primary-soft);
   filter: brightness(0.97);
+}
+.pattern-band-platform {
+  margin-left: 8px;
+  font-size: 13px;
+  font-weight: 400;
+  /* Secondary ink: meta grey on the open band's tint is under 4.5:1. */
+  color: var(--ink-2);
 }
 .pattern-band.is-current {
   box-shadow: inset 0 0 0 1px var(--primary);
@@ -6764,6 +6768,16 @@ button.attention-link {
 .shell:has(.rumi-fab) .content {
   padding-bottom: 104px;
 }
+/* On a desktop the sidebar's Ask Rumi and ⌘K open Rumi; the round button covered the end of
+   every list row it scrolled over (WI-093). The drawer still opens from a handed-over question. */
+@media (min-width: 701px) {
+  .rumi-fab {
+    display: none;
+  }
+  .shell:has(.rumi-fab) .content {
+    padding-bottom: 0;
+  }
+}
 @media (max-width: 700px) {
   .shell:has(.rumi-fab) .content {
     padding-bottom: calc(148px + env(safe-area-inset-bottom));
@@ -8817,7 +8831,7 @@ button.attention-link {
 .study-scenario select {
   min-height: 32px;
   padding: 3px 26px 3px 9px;
-  font-size: 12.5px;
+  font-size: 13px;
   width: auto;
 }
 .study-doubt {
@@ -8929,5 +8943,118 @@ html {
   html[data-size='larger'] {
     zoom: 1.25;
     --ui-zoom: 1.25;
+  }
+}
+
+/* WI-093: Practice as a designer would redline it. */
+/* The head: the title left, one cluster right with the primary last. */
+.page-head-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 10px;
+}
+:is(.today-head, .page-head) .today-utils-items .today-util.only-phone {
+  display: none;
+}
+/* One facts line: the parts read with a dot between them. */
+.status-line.practice-facts {
+  gap: 6px 8px;
+}
+.status-line.practice-facts > span + span::before {
+  content: '·';
+  margin-right: 8px;
+}
+.status-line.practice-facts .practice-due {
+  font-size: inherit;
+  font-weight: 600;
+}
+/* Practice's chips speak in sentence case, like the dates beside them. */
+.problem-cell-status .pill,
+.facts-strip.is-problem .pill,
+.attempt-row .pill,
+.pattern-band .pill,
+.problem-row .pill {
+  font-size: 12px;
+  letter-spacing: 0;
+  text-transform: none;
+  padding: 3px 8px;
+}
+.problem-cell-status .problem-date {
+  font-size: 13px;
+  min-width: 0;
+}
+.facts-strip.is-problem {
+  border-bottom: 0;
+  padding-bottom: 4px;
+  margin-bottom: 12px;
+}
+/* Add a problem as the short form: title and topic on one line, difficulty as chips. */
+.problem-form .problem-form-line {
+  margin-top: 0;
+}
+.problem-form .choice-group.is-chips {
+  margin: 2px 0 14px;
+}
+/* Copy prompt and its scenario as one control on a problem page. */
+.study-split {
+  display: inline-flex;
+  align-items: stretch;
+}
+.study-split .button.small {
+  min-height: 36px;
+  white-space: nowrap;
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+}
+.study-split .study-scenario select {
+  min-height: 36px;
+  margin-left: -1px;
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+}
+@media (max-width: 700px) {
+  .only-desktop {
+    display: none !important;
+  }
+  :is(.today-head, .page-head) .today-utils-items .today-util.only-phone {
+    display: flex;
+  }
+  /* The title and More on one row, the primary full-width under them. */
+  .page-head.is-practice {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 10px 12px;
+  }
+  .page-head.is-practice .page-head-actions {
+    display: contents;
+  }
+  /* The menu hangs from More's right edge and grows leftwards, inside the screen. */
+  .page-head.is-practice .today-utils.is-open .today-utils-items {
+    left: auto;
+    right: 0;
+    min-width: 240px;
+  }
+  .page-head.is-practice .practice-primary {
+    grid-column: 1 / -1;
+    width: 100%;
+    justify-content: flex-start;
+    white-space: normal;
+    text-align: left;
+  }
+  .page-head.is-problem {
+    gap: 10px;
+  }
+  .study-split {
+    display: flex;
+    width: 100%;
+  }
+  .study-split .study-scenario {
+    flex: 1;
+    min-width: 0;
+  }
+  .study-split .study-scenario select {
+    width: 100%;
   }
 }

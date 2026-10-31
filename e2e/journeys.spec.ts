@@ -162,7 +162,8 @@ test('a problem is added without a link and an attempt is recorded', async ({
   await expect(
     page.getByRole('heading', { name: 'Practice', level: 1 }),
   ).toBeVisible();
-  // Add a problem needs a title and a topic only (WI-091); the topic is the current one.
+  // Add a problem needs a title and a topic only (WI-091); the topic is the current one. The
+  // form opens in a modal (WI-093).
   await page.getByRole('button', { name: 'Add a problem' }).click();
   const add = page.getByRole('form', { name: 'Add problem' });
   await add.getByLabel('Title').fill('Two Sum');
@@ -177,14 +178,16 @@ test('a problem is added without a link and an attempt is recorded', async ({
   ).toBeVisible();
   // The attempt form as three lines: a chip sets the confidence, Save records it.
   await page.getByLabel('With hints').check();
-  await expect(page.locator('select[name=confidenceAfter]')).toHaveValue(
-    'YELLOW',
-  );
+  // The answer chooses the confidence chip (WI-093); the owner can still change it.
+  await expect(page.getByRole('radio', { name: 'Okay' })).toBeChecked();
   await page.getByRole('button', { name: 'Save attempt' }).click();
   await expect(page.locator('.facts-strip')).toContainText('Okay');
   await expect(page.locator('.facts-strip')).toContainText(/Attempts\s*1/);
   // The form is fresh again: nothing chosen, no stale confidence.
-  await expect(page.locator('select[name=confidenceAfter]')).toHaveValue('');
+  await expect(page.getByRole('radio', { name: 'Okay' })).not.toBeChecked();
+  await expect(
+    page.getByRole('radio', { name: 'With hints' }),
+  ).not.toBeChecked();
   await accessible(page);
   await fitsPhone(page, page.url().replace(/^https?:\/\/[^/]+/, ''));
 });

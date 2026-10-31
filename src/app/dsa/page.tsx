@@ -102,9 +102,15 @@ export default async function Dsa({
               Number(/More practice/.test(b.notes ?? '')) ||
             a.title.localeCompare(b.title),
         );
+      const platforms = new Set(rows.map((p) => p.platform.trim()));
       return {
         id: t.id,
         name: t.name,
+        // Named once on the band when every problem of the pattern shares it (WI-093).
+        platform:
+          platforms.size === 1 && rows[0].platform.trim()
+            ? rows[0].platform.trim()
+            : null,
         current: t.id === currentTopic?.id,
         attempted: rows.filter((p) => p.attemptsCount > 0).length,
         due: rows.filter((p) =>
@@ -152,10 +158,10 @@ export default async function Dsa({
       <div className="page-head is-practice">
         <h1>Practice</h1>
         {topics.length > 0 && (
-          <>
-            {/* Topics and the quiz sit in More (WI-091, like every other page), so the head
-                is one row on a phone; the primary sits last before Add a problem, whose form
-                opens on its own line (WI-058). */}
+          <div className="page-head-actions">
+            {/* One cluster at the right, the primary last (WI-093). Topics and the quiz sit
+                in More; on a phone Add a problem joins them and the primary takes its own
+                row under the title. */}
             <UtilityMenu>
               <PanelButton panel="topics" className="link-button today-util">
                 Topics
@@ -169,22 +175,36 @@ export default async function Dsa({
                   Pattern quiz
                 </Link>
               )}
+              <PanelButton
+                panel="add-problem"
+                className="link-button today-util only-phone"
+              >
+                Add a problem
+              </PanelButton>
             </UtilityMenu>
+            <PanelButton
+              panel="add-problem"
+              className="button secondary only-desktop"
+            >
+              Add a problem
+            </PanelButton>
             {nextProblem && (
               <Link
-                className="button"
+                className="button practice-primary"
                 href={`/dsa/${nextProblem.id}`}
                 prefetch={false}
               >
                 {queue[0] ? 'Revise' : 'Next problem'} · {nextProblem.title}
               </Link>
             )}
-            <Disclosure label="Add a problem" variant="secondary">
-              <ProblemForm topics={topics} currentId={currentTopic?.id} />
-            </Disclosure>
-          </>
+          </div>
         )}
       </div>
+      {topics.length > 0 && (
+        <SidePanel id="add-problem" title="Add a problem" variant="modal">
+          <ProblemForm topics={topics} currentId={currentTopic?.id} inPanel />
+        </SidePanel>
+      )}
       {!topics.length ? (
         <section className="card setup-card" aria-labelledby="setup-heading">
           <BrandMark className="setup-mark" />
@@ -198,15 +218,27 @@ export default async function Dsa({
         </section>
       ) : (
         <>
-          <p className="status-line mb-7">
+          {/* One facts line (WI-093): the count, the due link, the week, the current topic. */}
+          <p className="status-line practice-facts mb-7">
             <span>
               {problems.length} problem{problems.length === 1 ? '' : 's'}
             </span>
+            {queue.length > 0 && (
+              <span>
+                <PanelButton
+                  panel="revision-queue"
+                  className="link-button practice-due"
+                >
+                  {queue.length} due for revision{' '}
+                  <ArrowRight size={14} aria-hidden="true" />
+                </PanelButton>
+              </span>
+            )}
             <span>
               {weekCount} attempt{weekCount === 1 ? '' : 's'} this week
               {lastAttempt && (
                 <>
-                  {' · last: '}
+                  {' · last '}
                   <Link
                     prefetch={false}
                     className="link"
@@ -223,7 +255,7 @@ export default async function Dsa({
                 Current topic: {currentTopic.name}
                 {nextInTopic && (
                   <>
-                    {' · next: '}
+                    {' · next '}
                     <Link
                       prefetch={false}
                       className="link"
@@ -236,15 +268,6 @@ export default async function Dsa({
               </span>
             )}
           </p>
-          {/* One "next" list (WI-063): the revision queue opens in a panel from one line. */}
-          {queue.length > 0 && (
-            <p className="more-line">
-              <PanelButton panel="revision-queue" className="link-button">
-                {queue.length} due for revision{' '}
-                <ArrowRight size={14} aria-hidden="true" />
-              </PanelButton>
-            </p>
-          )}
           <SidePanel
             id="revision-queue"
             title={`Due for revision · ${queue.length}`}
@@ -290,11 +313,13 @@ export default async function Dsa({
           >
             <div className="section-head">
               <h2 id="library-heading">
-                All problems{' '}
-                <span className="muted">
-                  · {filtering ? `${matched.length} of ` : ''}
-                  {problems.length}
-                </span>
+                All problems
+                {filtering && (
+                  <span className="muted">
+                    {' '}
+                    · {matched.length} of {problems.length}
+                  </span>
+                )}
               </h2>
               {problems.length > 8 && <LibraryFilters q={q} status={status} />}
             </div>
