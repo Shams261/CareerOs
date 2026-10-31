@@ -155,13 +155,48 @@ export function StudyPrompt({
         {doubt}
       </div>
     );
+  // On a problem page the button and the scenario are one control (WI-093): Copy prompt,
+  // then the scenario it carries, joined.
   return (
     <div className="study-prompt">
       <div className="study-strip">
-        <button type="button" className="button secondary small" onClick={copy}>
-          <Copy size={14} aria-hidden="true" /> Copy prompt
+        <span className="study-split">
+          <button
+            type="button"
+            className="button secondary small"
+            onClick={copy}
+          >
+            <Copy size={14} aria-hidden="true" /> Copy prompt
+          </button>
+          <label className="study-scenario">
+            <span className="sr-only">Scenario</span>
+            <select
+              value={scenario.id}
+              onChange={(e) => choose(e.target.value)}
+            >
+              {scenarios.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.name}
+                </option>
+              ))}
+            </select>
+          </label>
+        </span>
+        <button
+          type="button"
+          className="link-button"
+          aria-expanded={doubtOpen}
+          aria-controls={`${id}-doubt`}
+          onClick={() => setDoubtOpen((o) => !o)}
+        >
+          {extra ? 'Edit the doubt' : '+ Add a doubt'}
         </button>
-        {controls}
+        {state === 'copied' && (
+          <span className="form-success" role="status">
+            <Check size={14} aria-hidden="true" /> Copied. Paste it into Claude
+            or ChatGPT.
+          </span>
+        )}
       </div>
       {doubt}
     </div>

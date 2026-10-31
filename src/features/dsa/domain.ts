@@ -129,3 +129,34 @@ export function curriculumOrder<
       a.title.localeCompare(b.title),
   );
 }
+
+/**
+ * An imported problem's notes, read for the screen (WI-093). The bundle writes
+ * "LeetCode 217 · Companies (Prashad): Google, Amazon · Core list (Arrays & Hashing)": the
+ * source's name and the list's name are the import's business, so the line keeps the number
+ * and the companies, and the list becomes one word for the eyebrow (Core or More practice).
+ */
+export function problemNoteLine(notes: string | null | undefined): {
+  line: string | null;
+  list: 'core' | 'more' | null;
+} {
+  if (!notes?.trim()) return { line: null, list: null };
+  let list: 'core' | 'more' | null = null;
+  const kept = notes
+    .split(/\s·\s/)
+    .map((seg) => seg.trim())
+    .filter((seg) => {
+      if (/^Core list(\s|\(|$)/.test(seg)) {
+        list = 'core';
+        return false;
+      }
+      if (/^More practice(\s|\(|$)/.test(seg)) {
+        list = 'more';
+        return false;
+      }
+      return seg.length > 0;
+    })
+    .map((seg) => seg.replace(/^Companies \([^)]*\):\s*/, 'Companies: '))
+    .filter((seg) => !/^Companies:\s*$/.test(seg));
+  return { line: kept.length ? kept.join(' · ') : null, list };
+}

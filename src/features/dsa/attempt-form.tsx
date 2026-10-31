@@ -9,8 +9,8 @@ type How = keyof typeof inferred;
 
 /**
  * Three lines (WI-091, the shape of Add a block on Today): "How did it go?" as three chips,
- * the confidence and the minutes on one line, and the two notes behind links. The answer sets
- * the confidence; the owner can still change it. Minutes are prefilled from a running DSA
+ * the confidence as three chips with the minutes beside them (WI-093), and the two notes
+ * behind links. The answer chooses the confidence; the owner can still change it. Minutes are prefilled from a running DSA
  * session when there is one. A saved attempt remounts the form, so nothing stale stays shown.
  */
 export function AttemptForm({
@@ -91,33 +91,41 @@ function AttemptFields({
           </label>
         ))}
       </fieldset>
-      <div className="form-grid attempt-line">
-        <label>
-          Confidence now{' '}
-          <span className="muted">(from your answer; change if needed)</span>
-          <select
-            name="confidenceAfter"
-            required
-            value={confidence}
-            onChange={(e) => {
-              setTouched(true);
-              setConfidence(e.target.value);
-            }}
-          >
-            <option value="" disabled>
-              Answer above first
-            </option>
-            <option value="GREEN">Solid — can solve and explain it</option>
-            <option value="YELLOW">
-              Okay — understand it, not yet reliable
-            </option>
-            <option value="RED">Shaky — can’t derive the approach yet</option>
-          </select>
-        </label>
-        <label>
+      {/* The confidence as chips, chosen by the answer and open to change, with the minutes
+          beside them (WI-093). */}
+      <div className="attempt-line">
+        <fieldset className="choice-group is-chips">
+          <legend>Confidence now</legend>
+          {(
+            [
+              ['GREEN', 'Solid'],
+              ['YELLOW', 'Okay'],
+              ['RED', 'Shaky'],
+            ] as const
+          ).map(([value, label]) => (
+            <label
+              key={value}
+              className={`choice${confidence === value ? ' is-on' : ''}`}
+            >
+              <input
+                type="radio"
+                name="confidenceAfter"
+                value={value}
+                checked={confidence === value}
+                onChange={() => {
+                  setTouched(true);
+                  setConfidence(value);
+                }}
+                required
+              />
+              {label}
+            </label>
+          ))}
+        </fieldset>
+        <label className="attempt-minutes">
           Minutes{' '}
           <span className="muted">
-            {defaultMinutes ? '(from the running session)' : '(optional)'}
+            {defaultMinutes ? '(from the session)' : '(optional)'}
           </span>
           <input
             name="durationMinutes"

@@ -3,6 +3,7 @@ import {
   attemptInput,
   revision,
   learningState,
+  problemNoteLine,
   revisionQueue,
   todayDsaSummary,
 } from '../src/features/dsa/domain';
@@ -101,5 +102,32 @@ describe('DSA revision policy', () => {
       todayDsaSummary(list, new Date('2026-09-25T04:00:00Z'), 'America/Toronto')
         .yellow,
     ).toBe(1);
+  });
+});
+
+describe('An imported problem’s notes on screen (WI-093)', () => {
+  it('keeps the number and the companies, names the list as one word, drops the source', () => {
+    expect(
+      problemNoteLine(
+        'LeetCode 217 · Companies (Prashad): Google, Amazon, Meta · Core list (Arrays & Hashing)',
+      ),
+    ).toEqual({
+      line: 'LeetCode 217 · Companies: Google, Amazon, Meta',
+      list: 'core',
+    });
+    expect(
+      problemNoteLine(
+        'LeetCode 617 · Companies (Prashad):  · More practice (Trees), from the Prashad list',
+      ),
+    ).toEqual({ line: 'LeetCode 617', list: 'more' });
+    expect(problemNoteLine('LeetCode 110 · Core list (Trees)')).toEqual({
+      line: 'LeetCode 110',
+      list: 'core',
+    });
+    expect(problemNoteLine('My own note')).toEqual({
+      line: 'My own note',
+      list: null,
+    });
+    expect(problemNoteLine(null)).toEqual({ line: null, list: null });
   });
 });

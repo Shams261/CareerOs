@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { confidenceWord } from '@/features/dsa/words';
-import { ConfirmDelete } from '@/components/confirm-delete';
+import { MoreMenu } from '@/components/more-menu';
+import { PanelButton, SidePanel } from '@/components/side-panel';
 import { ActionForm } from '@/components/action-form';
 import { Button } from '@/components/ui/button';
 import {
@@ -11,15 +12,19 @@ import { notFound } from 'next/navigation';
 import { memo } from '@/server/memo';
 import { randomUUID } from 'node:crypto';
 import { formatInTimeZone } from 'date-fns-tz';
-import { ExternalLink, ArrowLeft } from 'lucide-react';
+import { ExternalLink, ArrowLeft, ArrowRight } from 'lucide-react';
 import { db, owner } from '@/server/db';
-import { Disclosure } from '@/components/disclosure';
 import { InterviewMentions } from '@/features/jobs/summary';
-import { ProblemForm, RevisionForm } from '@/features/dsa/forms';
+import {
+  ProblemForm,
+  RemoveProblemForm,
+  RevisionForm,
+} from '@/features/dsa/forms';
 import { AttemptForm } from '@/features/dsa/attempt-form';
 import {
   isDsa,
   learningState,
+  problemNoteLine,
   revisionDay,
   solvedText,
 } from '@/features/dsa/domain';
@@ -125,6 +130,7 @@ export default async function Problem({
       : state === 'due'
         ? 'Due today'
         : shortDate(revisionDay(p.nextRevisionAt));
+  const note = problemNoteLine(p.notes);
   const back = origin
     ? `/roadmap/${origin.roadmapId}?section=${encodeURIComponent(origin.section)}&show=all#item-${origin.id}`
     : null;
@@ -159,7 +165,7 @@ export default async function Problem({
       )}
       {p.hiddenAt && (
         <div className="status-line mt-4" role="status">
-          <span>Hidden from Practice, For today and revisions.</span>
+          <span>Hidden from Practice and revisions.</span>
           <ActionForm
             action={unhideProblemAction}
             label="Show this problem again"
@@ -173,21 +179,75 @@ export default async function Problem({
       )}
       <p className="eyebrow mt-4">
         {p.topic.name} · {p.platform} · {p.difficulty.toLowerCase()}
+        {note.list === 'core' && ' · core'}
+        {note.list === 'more' && ' · more practice'}
       </p>
-      <div className="page-head">
+      <div className="page-head is-problem">
         <h1>{p.title}</h1>
-        {validUrl && (
-          <a
-            className="button secondary"
-            href={p.problemUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <ExternalLink size={16} aria-hidden="true" /> Open on {p.platform}
-          </a>
-        )}
+        {/* The less-used actions in one ⋯ beside the link (WI-093): Edit problem, Change
+            revision date, Hide or Delete, each in a modal. */}
+        <div className="page-head-actions">
+          {validUrl && (
+            <a
+              className="button secondary"
+              href={p.problemUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <ExternalLink size={16} aria-hidden="true" /> Open on {p.platform}
+            </a>
+          )}
+          <MoreMenu label={`More for ${p.title}`}>
+            <PanelButton panel="problem-edit" className="more-menu-item">
+              Edit problem
+            </PanelButton>
+            {p.attemptsCount > 0 && (
+              <PanelButton panel="problem-revision" className="more-menu-item">
+                Change revision date
+              </PanelButton>
+            )}
+            {!p.hiddenAt && (
+              <PanelButton
+                panel="problem-remove"
+                className="more-menu-item danger"
+              >
+                {imported ? 'Hide problem' : 'Delete problem'}
+              </PanelButton>
+            )}
+          </MoreMenu>
+        </div>
       </div>
-      <dl className="job-facts facts-strip">
+      <SidePanel id="problem-edit" title="Edit problem" variant="modal">
+        <ProblemForm problem={p} topics={topics} inPanel />
+      </SidePanel>
+      {p.attemptsCount > 0 && (
+        <SidePanel
+          id="problem-revision"
+          title="Change revision date"
+          variant="modal"
+        >
+          <RevisionForm problem={p} inPanel />
+        </SidePanel>
+      )}
+      {!p.hiddenAt && (
+        <SidePanel
+          id="problem-remove"
+          title={imported ? 'Hide problem' : 'Delete problem'}
+          variant="modal"
+        >
+          <RemoveProblemForm
+            action={removeProblemAction}
+            id={p.id}
+            label={imported ? 'Hide problem' : 'Delete problem'}
+            question={
+              imported
+                ? `Hide ${p.title} from Practice and revisions? Its attempts stay, and Show again brings it back.`
+                : `Delete ${p.title} and its ${p.attemptsCount} attempt${p.attemptsCount === 1 ? '' : 's'}? This cannot be undone.`
+            }
+          />
+        </SidePanel>
+      )}
+      <dl className="job-facts facts-strip is-problem">
         <div>
           <dt className="muted">Confidence</dt>
           <dd>
@@ -216,7 +276,7 @@ export default async function Problem({
           <dd>{date(p.lastAttemptedAt)}</dd>
         </div>
       </dl>
-      {p.notes && <p className="muted mb-5">{p.notes}</p>}
+      {note.line && <p className="muted mb-5">{note.line}</p>}
       {p.resources.length > 0 && (
         <p className="item-links mb-5">
           {p.resources.map((r) => (
@@ -241,7 +301,7 @@ export default async function Problem({
           <div className="section-head">
             <h2 id="study-heading">Study</h2>
             <Link prefetch={false} className="link" href={back!}>
-              {origin.roadmap.title} · {origin.section}
+              Open in the roadmap <ArrowRight size={14} aria-hidden="true" />
             </Link>
           </div>
           <StudyPrompt
@@ -306,32 +366,8 @@ export default async function Problem({
             </li>
           ))}
         </ol>
-        <div className="roadmap-toggles mt-4">
-          <Disclosure variant="link" label="Edit problem">
-            <ProblemForm problem={p} topics={topics} />
-          </Disclosure>
-          {p.attemptsCount > 0 && (
-            <Disclosure variant="link" label="Change revision date">
-              <RevisionForm problem={p} />
-            </Disclosure>
-          )}
-        </div>
       </section>
       <InterviewMentions userId={user.id} dsaProblemId={p.id} />
-      {!p.hiddenAt && (
-        <div className="panel-danger">
-          <ConfirmDelete
-            action={removeProblemAction}
-            id={p.id}
-            label={imported ? 'Hide problem' : 'Delete problem'}
-            question={
-              imported
-                ? `Hide ${p.title} from Practice, For today and revisions? Its attempts stay, and Show again brings it back.`
-                : `Delete ${p.title} and its ${p.attemptsCount} attempt${p.attemptsCount === 1 ? '' : 's'}? This cannot be undone.`
-            }
-          />
-        </div>
-      )}
     </>
   );
 }
