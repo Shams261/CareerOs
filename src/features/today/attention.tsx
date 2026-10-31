@@ -1,7 +1,8 @@
 import { ArrowRight } from 'lucide-react';
 import { FeedbackOutlet } from '@/components/feedback-outlet';
 import { dsaSnapshot } from '@/features/dsa/service';
-import { revisionQueue } from '@/features/dsa/domain';
+import { formatInTimeZone } from 'date-fns-tz';
+import { ladderLine, ladderState, revisionQueue } from '@/features/dsa/domain';
 import { jobTodaySummary } from '@/features/jobs/service';
 import { revisionDue } from '@/features/roadmap/service';
 import { weeklyReviewOpen } from '@/features/review/service';
@@ -106,6 +107,9 @@ export async function Attention({
             step: p.revisionStartedOn
               ? Math.min(3, p.revisionOutcomes.length + 1)
               : null,
+            line: ladderLine(ladderState(p, dayKey(now, user.timezone)), (d) =>
+              formatInTimeZone(new Date(`${d}T12:00:00Z`), 'UTC', 'MMM d'),
+            ),
           }))
         : [],
     notifications: reminders.status === 'fulfilled' ? reminders.value : [],

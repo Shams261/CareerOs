@@ -160,8 +160,9 @@ export async function recordAttempt(
         actualSessionId: session && isDsa(session.category) ? session.id : null,
       },
     });
-    // The ladder (WI-094): an attempt while a step is open counts as that revision; with no
-    // ladder, or a finished one, it starts one from today. The confidence sets no date.
+    // The ladder (WI-094, WI-095): an attempt on a step's day counts as that revision; before
+    // the day it is only an attempt and the ladder keeps its days; with no ladder, or a
+    // finished one, it starts one from today. The confidence sets no date.
     const today = dayKey(now, user.timezone);
     const ladder = ladderState(
       { ...problem, attemptsCount: problem.attemptsCount + 1 },
@@ -173,9 +174,11 @@ export async function recordAttempt(
         confidence: input.confidenceAfter,
         lastAttemptedAt: now,
         attemptsCount: { increment: 1 },
-        ...(ladder.state === 'due' || ladder.state === 'upcoming'
+        ...(ladder.state === 'due'
           ? revisedData(problem)
-          : startLadder(today)),
+          : ladder.state === 'upcoming'
+            ? {}
+            : startLadder(today)),
       },
     });
     await followPractice(tx, user.id, { problemId: problem.id }, now);
@@ -187,8 +190,12 @@ export async function scheduleRevision(
   user: ScheduleUser,
   id: string,
   date: string,
+  now = new Date(),
 ) {
   dateInput.parse(date);
+  // A day already gone would be missed on the next read (WI-095).
+  if (date < dayKey(now, user.timezone))
+    throw new Error('Pick today or a later day.');
   return locked(user.id, async (tx) => {
     const p = await ownedProblem(tx, user.id, id);
     if (!p.attemptsCount)
@@ -217,10 +224,24 @@ export async function startRevision(
     });
   });
 }
-/** Mark revised: the open step is done and the next one waits on its own day (WI-094). */
-export async function markRevised(user: ScheduleUser, id: string) {
+/**
+ * Mark revised: the open step is done and the next one waits on its own day (WI-094). The
+ * step named by the form must still be the open one, so a double submit settles one step,
+ * never two (WI-095).
+ */
+export async function markRevised(
+  user: ScheduleUser,
+  id: string,
+  step?: number,
+) {
   return locked(user.id, async (tx) => {
     const p = await ownedProblem(tx, user.id, id);
+    if (step !== undefined && p.revisionOutcomes.length !== step - 1)
+      throw new Error(
+        p.revisionOutcomes.length >= step
+          ? `Revision ${step} is already marked.`
+          : 'That revision is not open yet.',
+      );
     await tx.dsaProblem.update({ where: { id }, data: revisedData(p) });
     return ladderState(
       await tx.dsaProblem.findUniqueOrThrow({ where: { id } }),

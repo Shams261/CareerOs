@@ -1,6 +1,8 @@
 'use client';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { Check } from 'lucide-react';
 import { ActionForm } from '@/components/action-form';
+import type { ActionState } from '@/features/schedule/actions';
 import { attemptAction } from './actions';
 import { Button } from '@/components/ui/button';
 
@@ -25,14 +27,31 @@ export function AttemptForm({
   // The first round uses the server's id; each later round draws its own, so a retry of one
   // submission is still deduplicated while a new attempt never is.
   const [round, setRound] = useState({ n: 0, id: requestId });
+  // The answer outlives the reset (WI-095): the fields remount, the line stays a while.
+  const [note, setNote] = useState('');
+  useEffect(() => {
+    if (!note) return;
+    const t = setTimeout(() => setNote(''), 8000);
+    return () => clearTimeout(t);
+  }, [note]);
   return (
-    <AttemptFields
-      key={round.n}
-      problemId={problemId}
-      requestId={round.id}
-      defaultMinutes={defaultMinutes}
-      onSaved={() => setRound((r) => ({ n: r.n + 1, id: crypto.randomUUID() }))}
-    />
+    <>
+      {note && (
+        <p className="form-success attempt-note-line" role="status">
+          <Check size={14} aria-hidden="true" /> {note}
+        </p>
+      )}
+      <AttemptFields
+        key={round.n}
+        problemId={problemId}
+        requestId={round.id}
+        defaultMinutes={defaultMinutes}
+        onSaved={(result) => {
+          setNote(result.message ?? 'Attempt saved.');
+          setRound((r) => ({ n: r.n + 1, id: crypto.randomUUID() }));
+        }}
+      />
+    </>
   );
 }
 
@@ -45,7 +64,7 @@ function AttemptFields({
   problemId: string;
   requestId: string;
   defaultMinutes: number | null;
-  onSaved: () => void;
+  onSaved: (result: ActionState) => void;
 }) {
   // Nothing is chosen until the owner answers; Save stays blocked until then.
   const [how, setHow] = useState<How | null>(null);
@@ -62,7 +81,9 @@ function AttemptFields({
       action={attemptAction}
       label="Record attempt"
       className="dsa-form attempt-form"
-      onSuccess={onSaved}
+      onSettled={(result) => {
+        if (result.ok) onSaved(result);
+      }}
     >
       <input type="hidden" name="problemId" value={problemId} />
       <input type="hidden" name="requestId" value={requestId} />

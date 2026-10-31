@@ -173,7 +173,7 @@ describe('revision rows and order', () => {
       zone,
     );
     expect(practice.map((r) => [r.title, r.context])).toEqual([
-      ['Review Two Sum', 'Revision due today · Yellow'],
+      ['Review Two Sum', 'Revision due today · Okay'],
     ]);
     expect(roadmap.map((r) => [r.title, r.context, r.href])).toEqual([
       [

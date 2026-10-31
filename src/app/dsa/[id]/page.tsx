@@ -223,7 +223,7 @@ export default async function Problem({
           title="Change revision date"
           variant="modal"
         >
-          <RevisionForm problem={p} inPanel />
+          <RevisionForm problem={p} inPanel today={today} />
         </SidePanel>
       )}
       {!p.hiddenAt && (
@@ -295,14 +295,21 @@ export default async function Problem({
           follows; from the list the form leads (WI-091). */}
       {!(origin && from) && attempt}
       {origin && (
-        <section className="card flat" aria-labelledby="study-heading">
+        <section
+          className="card flat problem-study"
+          aria-labelledby="study-heading"
+        >
           <div className="section-head">
             <h2 id="study-heading">Study</h2>
             <Link prefetch={false} className="link" href={back!}>
               Open in the roadmap <ArrowRight size={14} aria-hidden="true" />
             </Link>
           </div>
+          {/* The roadmap's tool card, here too (WI-095): copying is the card's action, the
+              scenario a setting under it. */}
           <StudyPrompt
+            card
+            title="Copy the study prompt"
             roadmap={{ title: origin.roadmap.title }}
             template={origin.roadmap.promptTemplate}
             scenarios={
