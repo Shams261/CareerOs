@@ -4,7 +4,7 @@ import { Lids } from './pose';
 /**
  * Rumi's icon (WI-111): the head of the owner's Rumi render, small. It blinks through two
  * eyelids over its open eyes (`Lids`), bobs and blinks faster while Rumi reads or writes
- * (`busy`), turns to the happy-eyed head when the pointer is on the round button, and carries
+ * (`busy`), turns to the happy-eyed head when the pointer is on the round button (loaded on first hover since WI-115), and carries
  * a small × badge while the drawer is open (`closed`). Decoration: hidden from assistive
  * technology; the button or heading beside it carries the name. Motion only without reduced
  * motion.
@@ -17,12 +17,15 @@ export function RumiMark({
   size = 20,
   state = 'idle',
   closed = false,
+  happy = false,
   className,
 }: {
   size?: number;
   state?: RumiMarkState;
   /** An × badge in the corner, for the round button while the drawer is open. */
   closed?: boolean;
+  /** WI-115: the happy-eyed head for hover, loaded only once the pointer has come near. */
+  happy?: boolean;
   className?: string;
 }) {
   return (
@@ -42,15 +45,16 @@ export function RumiMark({
         decoding="async"
         draggable={false}
       />
-      {/* eslint-disable-next-line @next/next/no-img-element -- a small static webp, no loader */}
-      <img
-        className="rumi-mark-happy"
-        src={HEAD_SRC.happy}
-        alt=""
-        decoding="async"
-        loading="lazy"
-        draggable={false}
-      />
+      {happy && (
+        // eslint-disable-next-line @next/next/no-img-element -- a small static webp, no loader
+        <img
+          className="rumi-mark-happy"
+          src={HEAD_SRC.happy}
+          alt=""
+          decoding="async"
+          draggable={false}
+        />
+      )}
       <Lids lids={HEAD.lids} delay={blinkDelay(`mark-${size}`)} />
       {closed && <span className="rumi-mark-badge">×</span>}
     </span>

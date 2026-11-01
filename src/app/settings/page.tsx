@@ -1,5 +1,9 @@
+import {
+  RumiButtonContext,
+  RumiButtonSetting,
+} from '@/features/agent/button-setting';
 import { cookies } from 'next/headers';
-import { savedTextSize, savedTheme } from '@/server/theme';
+import { savedRumiButton, savedTextSize, savedTheme } from '@/server/theme';
 import { setupState } from '@/features/setup/service';
 import { setupLine, SETUP_COOKIE } from '@/features/setup/domain';
 import Link from 'next/link';
@@ -21,6 +25,7 @@ import {
   Sun,
   ALargeSmall,
   UserRound,
+  MousePointerClick,
 } from 'lucide-react';
 import { db, owner } from '@/server/db';
 import { reminderAction } from '@/server/actions';
@@ -83,7 +88,11 @@ export default async function Settings({
   searchParams: Promise<{ google?: string; reason?: string }>;
 }) {
   const user = await owner();
-  const [theme, size] = await Promise.all([savedTheme(), savedTextSize()]);
+  const [theme, size, rumiButton] = await Promise.all([
+    savedTheme(),
+    savedTextSize(),
+    savedRumiButton(),
+  ]);
   const now = new Date();
   const flash = await searchParams;
   const push = (() => {
@@ -597,6 +606,16 @@ export default async function Settings({
                   title={`${AGENT_NAME} knows`}
                   context={memoryContext(memoryLines)}
                   panel="rumi-memory"
+                />
+              )}
+              {ai.configured && (
+                <SettingRow
+                  source="roadmap"
+                  icon={<MousePointerClick size={22} />}
+                  label={`${AGENT_NAME} button`}
+                  title="The round button on every page"
+                  context={<RumiButtonContext initial={rumiButton} />}
+                  control={<RumiButtonSetting initial={rumiButton} />}
                 />
               )}
               {ai.configured && (

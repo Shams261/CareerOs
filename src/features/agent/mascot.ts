@@ -163,12 +163,18 @@ export const POSES = {
 } as const satisfies Record<string, PoseInfo>;
 export type Pose = keyof typeof POSES;
 
+/**
+ * Bumped whenever a picture changes (WI-115): the files are cached for a year, so a new
+ * version in the path is how a changed picture reaches the browser.
+ */
+export const MASCOT_VERSION = 1;
 /** Where a pose's file is served from. */
-export const poseSrc = (pose: Pose) => `/mascot/${pose}.webp`;
+export const poseSrc = (pose: Pose) =>
+  `/mascot/${pose}.webp?v=${MASCOT_VERSION}`;
 /** The small heads used by the icon: eyes open, and the happy arcs shown on hover. */
 export const HEAD_SRC = {
-  open: '/mascot/head-open-sm.webp',
-  happy: '/mascot/head-sm.webp',
+  open: `/mascot/head-open-sm.webp?v=${MASCOT_VERSION}`,
+  happy: `/mascot/head-sm.webp?v=${MASCOT_VERSION}`,
 } as const;
 /** A blink's place in the cycle differs per pose, so two Rumis on a page never blink together. */
 export const blinkDelay = (pose: string) =>

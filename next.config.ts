@@ -16,6 +16,17 @@ const config: NextConfig = {
         headers: staticSecurityHeaders(process.env.NODE_ENV === 'production'),
       },
       {
+        // WI-115: Rumi's art never changes under a name it was served with: a changed picture
+        // gets a new version in its path (MASCOT_VERSION), so a year's cache is safe.
+        source: '/:dir(mascot|notify)/:file*',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=31536000, immutable',
+          },
+        ],
+      },
+      {
         // The service worker must always be revalidated so fixes reach devices.
         source: '/sw.js',
         headers: [

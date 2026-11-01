@@ -7,7 +7,13 @@ import { AlertTriangle, X } from 'lucide-react';
  * at the foot of the screen instead of a line squeezed beside the button. Each toast leaves
  * by itself after a moment or on ×; three at most; `role="alert"` reads it out at once.
  */
-export type Toast = { id: number; message: string; tone: 'warning' };
+export type Toast = {
+  id: number;
+  message: string;
+  tone: 'warning' | 'info';
+  /** WI-115: one action beside the message, such as Undo. */
+  action?: { label: string; run: () => void };
+};
 const VISIBLE_MS = 7000;
 let toasts: Toast[] = [];
 let nextId = 1;
@@ -24,8 +30,12 @@ const subscribe = (fn: () => void) => {
 };
 const empty: Toast[] = [];
 
-export function publishToast(message: string, tone: Toast['tone'] = 'warning') {
-  const toast = { id: nextId++, message, tone };
+export function publishToast(
+  message: string,
+  tone: Toast['tone'] = 'warning',
+  action?: Toast['action'],
+) {
+  const toast = { id: nextId++, message, tone, action };
   set([...toasts.slice(-2), toast]);
   setTimeout(() => dismissToast(toast.id), VISIBLE_MS);
 }
@@ -52,9 +62,27 @@ export function ToastHost() {
   return (
     <div className="toast-host" aria-label="Messages">
       {list.map((t) => (
-        <div key={t.id} className={`toast is-${t.tone}`} role="alert">
-          <AlertTriangle size={16} aria-hidden="true" />
+        <div
+          key={t.id}
+          className={`toast is-${t.tone}`}
+          role={t.tone === 'info' ? 'status' : 'alert'}
+        >
+          {t.tone === 'warning' && (
+            <AlertTriangle size={16} aria-hidden="true" />
+          )}
           <span className="toast-text">{t.message}</span>
+          {t.action && (
+            <button
+              type="button"
+              className="link-button toast-action"
+              onClick={() => {
+                t.action!.run();
+                dismissToast(t.id);
+              }}
+            >
+              {t.action.label}
+            </button>
+          )}
           <button
             type="button"
             className="toast-close"
