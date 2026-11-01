@@ -18,18 +18,22 @@ export function NoticedRows({ cards }: { cards: NoticedCard[] }) {
   const [, start] = useTransition();
   const shown = cards.filter((c) => !gone.includes(c.key));
   if (!shown.length) return null;
-  const answer = (c: NoticedCard, acted: boolean) => {
+  const answer = (
+    c: NoticedCard,
+    acted: boolean,
+    action: NoticedCard['action'] | null = c.action,
+  ) => {
     setGone((g) => [...g, c.key]);
     start(async () => {
       await answerNoticedAction({ key: c.key, kind: c.kind, acted });
     });
-    if (!acted) return;
-    if ('ask' in c.action) {
-      askRumi(c.action.ask, (href) => router.push(href));
+    if (!acted || !action) return;
+    if ('ask' in action) {
+      askRumi(action.ask, (href) => router.push(href));
       return;
     }
-    router.push(c.action.href);
-    if (c.action.panel) openPanelAfterNavigation(c.action.href, c.action.panel);
+    router.push(action.href);
+    if (action.panel) openPanelAfterNavigation(action.href, action.panel);
   };
   return (
     <ul
@@ -60,15 +64,36 @@ export function NoticedRows({ cards }: { cards: NoticedCard[] }) {
             >
               {c.action.label}
             </button>
-            <button
-              type="button"
-              className="link-button noticed-dismiss"
-              aria-label={`Dismiss: ${c.title}`}
-              onClick={() => answer(c, false)}
-            >
-              <X size={14} aria-hidden="true" />
-              Dismiss
-            </button>
+            {c.alt && (
+              <button
+                type="button"
+                className="button secondary small"
+                onClick={() => answer(c, true, c.alt)}
+              >
+                {c.alt.label}
+              </button>
+            )}
+            {/* The pattern coach (WI-106): Keep going rests the card three days. */}
+            {c.keepGoing ? (
+              <button
+                type="button"
+                className="link-button noticed-dismiss"
+                aria-label={`Keep going: ${c.title}`}
+                onClick={() => answer(c, true, null)}
+              >
+                Keep going
+              </button>
+            ) : (
+              <button
+                type="button"
+                className="link-button noticed-dismiss"
+                aria-label={`Dismiss: ${c.title}`}
+                onClick={() => answer(c, false)}
+              >
+                <X size={14} aria-hidden="true" />
+                Dismiss
+              </button>
+            )}
           </span>
         </li>
       ))}

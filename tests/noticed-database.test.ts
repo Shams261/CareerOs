@@ -49,6 +49,52 @@ describe.skipIf(!url)('Rumi noticed (PostgreSQL)', () => {
       },
     });
 
+  it('the pattern coach reads attempts, due revisions and items in progress; Keep going rests it (WI-106)', async () => {
+    const topic = await prisma.dsaTopic.create({
+      data: { name: `Sliding Window ${randomUUID()}` },
+    });
+    const other = await prisma.dsaTopic.create({
+      data: { name: `Graphs ${randomUUID()}` },
+    });
+    const problem = (title: string, topicId: string) =>
+      prisma.dsaProblem.create({
+        data: {
+          userId: user.id,
+          topicId,
+          title,
+          platform: 'LEETCODE',
+          problemUrl: '',
+          difficulty: 'MEDIUM',
+        },
+      });
+    const p1 = await problem('Longest Substring', topic.id);
+    await problem('Number of Islands', other.id);
+    for (const d of ['2026-10-21', '2026-10-23', '2026-10-25', '2026-10-26'])
+      await prisma.dsaAttempt.create({
+        data: {
+          userId: user.id,
+          problemId: p1.id,
+          requestId: randomUUID(),
+          attemptedAt: at(d, '19:00'),
+          confidenceAfter: 'RED',
+          solvedIndependently: 'NO',
+        },
+      });
+    const cards = await noticedFor(user, now);
+    const stuck = cards.find((c) => c.kind === 'stuck')!;
+    expect(stuck.title).toBe(`4 days on ${topic.name}; 1 problem still shaky`);
+    expect(stuck.action).toMatchObject({ label: 'Next topic' });
+    await answerNoticed(
+      user,
+      { key: stuck.key, kind: 'stuck', acted: true },
+      now,
+    );
+    const answer = await prisma.noticedAnswer.findFirst({
+      where: { userId: user.id, key: stuck.key },
+    });
+    expect(answer?.hiddenUntil.toISOString().slice(0, 10)).toBe('2026-10-30');
+  });
+
   it('reads the owner’s study and interviews, skips test records, and hides answered cards', async () => {
     await session('2026-10-26', 'DSA');
     await session('2026-10-20', 'Technical');

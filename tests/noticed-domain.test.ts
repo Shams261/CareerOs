@@ -313,3 +313,107 @@ describe('Rumi noticed', () => {
     expect(all.every(cleanCopy)).toBe(true);
   });
 });
+
+describe('the pattern coach (WI-106)', () => {
+  const attempt = (
+    d: string,
+    confidence: 'RED' | 'YELLOW' | 'GREEN',
+    problemId = 'p1',
+    topicId = 't1',
+    topic = 'Sliding Window',
+  ) => ({ problemId, topicId, topic, day: d, confidence });
+  it('names a topic on four of the last seven days whose confidence has not risen', () => {
+    const cards = noticed(
+      base({
+        attempts: [
+          attempt('2026-10-21', 'RED'),
+          attempt('2026-10-23', 'RED', 'p2'),
+          attempt('2026-10-24', 'YELLOW', 'p2'),
+          attempt('2026-10-25', 'RED'),
+          attempt('2026-10-26', 'RED', 'p3'),
+          attempt('2026-10-10', 'GREEN', 'p9', 't2', 'Graphs'),
+        ],
+        nextOutside: { t1: { id: 'p9', title: 'Number of Islands' } },
+      }),
+    );
+    expect(cards[0]).toMatchObject({
+      kind: 'stuck',
+      title: '5 days on Sliding Window; 2 problems still shaky',
+      action: { label: 'Next topic', href: '/dsa/p9' },
+      alt: { label: 'Mixed set', href: '/dsa/drill?topics=t1,t2' },
+      keepGoing: true,
+    });
+    expect(cleanCopy(cards[0])).toBe(true);
+  });
+  it('stays silent when confidence rose, on fewer days, or once hidden', () => {
+    const rising = [
+      attempt('2026-10-22', 'RED'),
+      attempt('2026-10-23', 'RED'),
+      attempt('2026-10-24', 'YELLOW'),
+      attempt('2026-10-26', 'GREEN'),
+    ];
+    expect(
+      noticed(base({ attempts: rising })).map((c) => c.kind),
+    ).not.toContain('stuck');
+    expect(
+      noticed(base({ attempts: rising.slice(0, 3) })).map((c) => c.kind),
+    ).not.toContain('stuck');
+    const flat = rising.map((a) => ({ ...a, confidence: 'RED' as const }));
+    const key = noticed(base({ attempts: flat }))[0].key;
+    expect(
+      noticed(base({ attempts: flat, hidden: [{ key, until: '2026-10-30' }] })),
+    ).toEqual([]);
+  });
+  it('names a roadmap item in progress four days, and a revision due on a cold topic', () => {
+    const cards = noticed(
+      base({
+        items: [
+          {
+            id: 'i1',
+            title: 'Consistent hashing',
+            href: '/roadmap/r1#item-i1',
+            since: '2026-10-22',
+          },
+          {
+            id: 'i2',
+            title: 'Fresh',
+            href: '/roadmap/r1#item-i2',
+            since: '2026-10-25',
+          },
+        ],
+        revisions: [
+          {
+            problemId: 'p5',
+            title: 'Top K Frequent',
+            topicId: 't3',
+            topic: 'Heaps',
+            dueOn: '2026-10-27',
+          },
+        ],
+        attempts: [attempt('2026-10-20', 'YELLOW', 'p5', 't3', 'Heaps')],
+      }),
+    );
+    expect(cards.map((c) => [c.kind, c.title])).toEqual([
+      ['stuck', 'Consistent hashing has been in progress for 5 days'],
+      ['cold', 'Top K Frequent is due for revision today'],
+    ]);
+    expect(cards[1]).toMatchObject({
+      context: 'No Heaps practice for 7 days',
+      action: { label: 'Revise', href: '/dsa/p5' },
+    });
+  });
+  it('asks Rumi why when the owner works one topic only', () => {
+    const cards = noticed(
+      base({
+        attempts: ['2026-10-21', '2026-10-22', '2026-10-24', '2026-10-26'].map(
+          (d) => attempt(d, 'RED'),
+        ),
+      }),
+    );
+    expect(cards[0].alt).toEqual({
+      label: 'Ask Rumi why',
+      ask: 'I have spent 4 days on Sliding Window and it still feels shaky. Why is this pattern hard, and one hint to try next? No full solution.',
+    });
+    expect(cards[0].action).toEqual({ label: 'Open Practice', href: '/dsa' });
+  });
+});
