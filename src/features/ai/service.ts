@@ -1,4 +1,5 @@
 import 'server-only';
+import { streamReader, type StreamEvent } from './stream';
 import { z } from 'zod';
 import { db } from '@/server/db';
 import type { Prisma } from '@/generated/prisma/client';
@@ -262,6 +263,7 @@ export async function callModel({
   fetcher,
   words,
   perFeatureDay,
+  onStream,
 }: {
   user: ScheduleUser;
   cfg: AiConfig;
@@ -279,6 +281,8 @@ export async function callModel({
   words: CallWords;
   /** A daily cap on this feature's own calls (WI-100), checked inside the same lock. */
   perFeatureDay?: number;
+  /** WI-119: stream the answer and hand on its text as it is written. */
+  onStream?: (e: StreamEvent) => void;
 }) {
   const usage = await locked(user.id, async (tx) => {
     if (perFeatureDay) {
@@ -339,11 +343,28 @@ export async function callModel({
         'Content-Type': 'application/json',
         'X-Title': 'Silsila',
       },
-      body: JSON.stringify(body),
+      body: JSON.stringify(
+        onStream ? { ...(body as object), stream: true } : body,
+      ),
       signal: AbortSignal.timeout(TIMEOUT_MS),
     });
     if (!res.ok) throw new AiUnavailable(`HTTP ${res.status}`);
-    answer = await res.json();
+    if (onStream && res.body) {
+      const reader = streamReader(PROVIDER_NAME, onStream);
+      const decoder = new TextDecoder();
+      const stream = res.body.getReader();
+      let buffer = '';
+      for (;;) {
+        const { value, done } = await stream.read();
+        if (value) buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop() ?? '';
+        for (const l of lines) reader.line(l);
+        if (done) break;
+      }
+      if (buffer) reader.line(buffer);
+      answer = reader.answer() as ModelAnswer;
+    } else answer = await res.json();
   } catch (error) {
     await settle(usage.id, {
       outcome: 'FAILED',
