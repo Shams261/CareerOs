@@ -4,6 +4,7 @@
  * with a persistent Undo. Covered by tests/agent-writes-domain.test.ts.
  */
 import { z } from 'zod';
+import { REQUEST_ID_ARGS, type RequestKind } from './request-domain';
 
 /** At most this many writes in one answer, and in the owner's day across answers. */
 export const WRITES_PER_ANSWER = 2;
@@ -79,11 +80,15 @@ export function withoutIds(value: unknown): unknown {
  * name records it saw in this conversation's reads; anything else is refused unread.
  */
 export function unseenId(
-  tool: WriteTool,
+  tool: WriteTool | RequestKind,
   args: Record<string, unknown>,
   seen: ReadonlySet<string>,
 ) {
-  for (const key of WRITE_ID_ARGS[tool]) {
+  const keys =
+    (WRITE_ID_ARGS as Record<string, string[]>)[tool] ??
+    REQUEST_ID_ARGS[tool as RequestKind] ??
+    [];
+  for (const key of keys) {
     const v = args[key];
     if (typeof v !== 'string' || !seen.has(v)) return key;
   }

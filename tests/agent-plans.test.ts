@@ -126,12 +126,14 @@ describe('what Rumi may plan (pure)', () => {
       suggestions: [],
       kept: [],
       actions: [],
+      requests: [],
     });
     expect(readMetadata({ proposals: [{ id: 1 }], suggestions: 'x' })).toEqual({
       proposals: [],
       suggestions: [],
       kept: [],
       actions: [],
+      requests: [],
     });
   });
   it('finds the best hours and the recorded share of planned time', () => {

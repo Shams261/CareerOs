@@ -12,6 +12,8 @@ import { randomUUID } from 'node:crypto';
 import { setRestDay } from '@/features/nudges/service';
 import { cardInput, keepCard } from '@/features/ai/service';
 import { reopenProposal } from '@/features/agent/plans';
+import { undoRequest } from '@/features/agent/requests';
+import { saveBlock } from '@/features/schedule/editing';
 import { removeMemory } from '@/features/agent/service';
 import { keepLineIn } from '@/features/agent/memory-service';
 import { followPractice } from '@/features/roadmap/follow';
@@ -130,6 +132,23 @@ const kinds = {
   'clear-rest-day': z.object({ day: z.string().regex(/^\d{4}-\d{2}-\d{2}$/) }),
   /** A kept card just removed (WI-031): undo keeps it again. */
   'restore-card': cardInput,
+  // Rumi's cards (WI-103): a moved block goes back to its slot, a day's review is unsaved,
+  // and a card's Undo runs the undo stored on the owner's own answer.
+  'restore-block-slot': z.object({
+    id: z.string().min(1),
+    day: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+    start: z.string().regex(/^\d{2}:\d{2}$/),
+    end: z.string().regex(/^\d{2}:\d{2}$/),
+    version: z.string().min(1),
+  }),
+  'unreview-day': z.object({
+    day: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+    checkInId: z.string().min(1),
+  }),
+  'undo-request': z.object({
+    messageId: z.string().min(1),
+    requestId: z.string().min(1),
+  }),
   /** A Rumi plan just added (WI-041): undo cancels its blocks and reopens the card. */
   'cancel-blocks': z.object({
     ids: z.array(z.string().min(1)).min(1).max(6),
@@ -188,7 +207,7 @@ export async function restore(
   user: ScheduleUser,
   kind: string,
   payload: unknown,
-) {
+): Promise<string> {
   if (!(kind in kinds)) throw new Error('Nothing to undo.');
   const k = kind as UndoKind;
   switch (k) {
@@ -437,6 +456,53 @@ export async function restore(
     case 'restore-card': {
       await keepCard(user, kinds[k].parse(payload));
       return 'Card kept again.';
+    }
+    case 'restore-block-slot': {
+      const p = kinds[k].parse(payload);
+      const b = await db().timeBlock.findFirst({
+        where: { id: p.id, dailyPlan: { userId: user.id } },
+      });
+      if (!b) throw new Error('This block is no longer on your plan.');
+      if (b.updatedAt.toISOString() !== p.version)
+        throw new Error('This block changed since; nothing was moved back.');
+      await saveBlock(
+        user,
+        {
+          id: b.id,
+          title: b.title,
+          category: b.category,
+          description: b.description ?? '',
+          goalId: b.goalId ?? '',
+          priority: b.priority,
+          day: p.day,
+          endDay: p.day,
+          startLocal: p.start,
+          endLocal: p.end,
+        },
+        false,
+        p.version,
+      );
+      return 'Block back in its slot.';
+    }
+    case 'unreview-day': {
+      const p = kinds[k].parse(payload);
+      await locked(user.id, async (tx) => {
+        const { count } = await tx.dailyCheckIn.deleteMany({
+          where: { id: p.checkInId, userId: user.id },
+        });
+        if (!count) throw new Error('This review is already gone.');
+        await tx.dailyPlan.updateMany({
+          where: { userId: user.id, date: new Date(p.day) },
+          data: { reviewedAt: null },
+        });
+      });
+      return 'Review removed.';
+    }
+    case 'undo-request': {
+      const p = kinds[k].parse(payload);
+      return undoRequest(user, p.messageId, p.requestId, (kind, inner) =>
+        restore(user, kind, inner),
+      );
     }
     case 'cancel-blocks': {
       const p = kinds[k].parse(payload);

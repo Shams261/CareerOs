@@ -123,6 +123,8 @@ function pickTool(question: string, system: string) {
       },
     ] as const;
   }
+  // WI-103: "move …" reads today first; the move card follows once the read is back.
+  if (/\bmove\b|shift/.test(q)) return ['get_today', {}] as const;
   // WI-102: "note …" or "yaad rakh …" becomes a note in the owner's words.
   if (/note|yaad rakh/.test(q))
     return [
@@ -188,6 +190,57 @@ function lineFrom(content: string) {
 function agentAnswer(messages: ChatIn[], final: boolean) {
   const lastUser = messages.map((m) => m.role).lastIndexOf('user');
   const results = messages.slice(lastUser + 1).filter((m) => m.role === 'tool');
+  // WI-103: after reading today, a move card for the first block with an id, to tomorrow
+  // morning (on a Sunday, late tonight, as the plan stops at Sunday).
+  const question = (messages[lastUser]?.content ?? '').toLowerCase();
+  if (results.length === 1 && !final && /\bmove\b|shift/.test(question)) {
+    let first: string | undefined;
+    try {
+      const blocks = JSON.parse(results[0].content ?? '{}').blocks as {
+        id?: string;
+        title?: string;
+      }[];
+      // The block the question names by its first word, else the first one with an id.
+      first = (
+        blocks.find(
+          (b) =>
+            b.id &&
+            b.title &&
+            question.includes(b.title.split(/[:\s]/)[0].toLowerCase()),
+        ) ?? blocks.find((b) => b.id)
+      )?.id;
+    } catch {
+      first = undefined;
+    }
+    const system = messages[0]?.content ?? '';
+    const today = /Today is \w+ (\d{4}-\d{2}-\d{2})/.exec(system)?.[1];
+    if (first && today) {
+      const sunday = /Today is Sunday/.test(system);
+      const next = new Date(`${today}T12:00:00Z`);
+      next.setUTCDate(next.getUTCDate() + 1);
+      const args = sunday
+        ? { blockId: first, day: today, start: '23:40', end: '23:55' }
+        : {
+            blockId: first,
+            day: next.toISOString().slice(0, 10),
+            start: '06:00',
+            end: '06:30',
+          };
+      return {
+        message: {
+          content: null,
+          tool_calls: [
+            {
+              id: `call_${chats}`,
+              type: 'function',
+              function: { name: 'move_block', arguments: JSON.stringify(args) },
+            },
+          ],
+        },
+        finish_reason: 'tool_calls',
+      };
+    }
+  }
   if (!results.length && !final) {
     const [name, args] = pickTool(
       messages[lastUser]?.content ?? '',

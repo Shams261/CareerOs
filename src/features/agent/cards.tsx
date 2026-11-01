@@ -11,7 +11,10 @@ import {
   applyProposalAction,
   dismissProposalAction,
   undoWriteAction,
+  applyRequestAction,
+  dismissRequestAction,
 } from './actions';
+import { REQUEST_WORDS, type CardView } from './request-domain';
 import { useRouter } from 'next/navigation';
 import type { WriteAction } from './write-domain';
 import { AGENT_NAME } from './domain';
@@ -207,6 +210,139 @@ export function SuggestionCard({
             'Dismissed.'
           )}
         </p>
+      )}
+    </div>
+  );
+}
+
+/**
+ * A card for a bigger change (WI-103): what will change, then one press to apply it, with
+ * Undo where the change has one. A review card is a draft the owner edits before Save.
+ */
+export function RequestCard({
+  messageId,
+  card,
+}: {
+  messageId: string;
+  card: CardView;
+}) {
+  const [status, setStatus] = useState(card.status);
+  // Just applied here: the answer above the card carries the Undo; after a reload, the card does.
+  const [fresh, setFresh] = useState(false);
+  const words = REQUEST_WORDS[card.kind];
+  const channel = `rumi-card-${card.id}`;
+  const review =
+    card.kind === 'write_review'
+      ? (card.args as {
+          notes: string;
+          blocker?: string;
+          carryForward?: string;
+          rating?: number;
+        })
+      : null;
+  return (
+    <div
+      className="rumi-card"
+      role="group"
+      aria-label={`${words.eyebrow} card`}
+    >
+      <p className="rumi-card-head">
+        <span className="eyebrow">{words.eyebrow}</span>
+      </p>
+      <ul className="plain-list rumi-card-lines">
+        {card.summary.map((line, i) => (
+          <li key={i} className={i ? 'rumi-plan-reason' : 'rumi-card-title'}>
+            {line}
+          </li>
+        ))}
+      </ul>
+      <FeedbackOutlet channel={channel} />
+      {status === 'applied' ? (
+        // Just pressed here, the result and its Undo show above in the card's outlet.
+        fresh ? null : (
+          <p className="rumi-card-done">
+            {words.done}{' '}
+            {card.canUndo && (
+              <UndoButton
+                undo={{
+                  kind: 'undo-request',
+                  payload: { messageId, requestId: card.id },
+                }}
+                onDone={() => setStatus('shown')}
+              />
+            )}
+          </p>
+        )
+      ) : status === 'dismissed' ? (
+        <p className="rumi-card-done">Dismissed.</p>
+      ) : (
+        <div className="rumi-card-actions">
+          <ActionForm
+            action={applyRequestAction}
+            label={words.apply}
+            broadcast={channel}
+            onSuccess={() => {
+              setFresh(true);
+              setStatus('applied');
+            }}
+            className={review ? 'rumi-review-form' : undefined}
+          >
+            <Ids messageId={messageId} cardId={card.id} />
+            {review && (
+              <>
+                <label>
+                  What happened
+                  <textarea
+                    name="notes"
+                    rows={3}
+                    maxLength={2000}
+                    required
+                    defaultValue={review.notes}
+                  />
+                </label>
+                <label>
+                  What got in the way
+                  <input
+                    name="blocker"
+                    maxLength={500}
+                    defaultValue={review.blocker ?? ''}
+                  />
+                </label>
+                <label>
+                  Carry to tomorrow
+                  <input
+                    name="carryForward"
+                    maxLength={500}
+                    defaultValue={review.carryForward ?? ''}
+                  />
+                </label>
+                <label>
+                  How did it go (1–5)
+                  <select
+                    name="rating"
+                    defaultValue={review.rating ? String(review.rating) : ''}
+                  >
+                    <option value="">No rating</option>
+                    {[1, 2, 3, 4, 5].map((n) => (
+                      <option key={n} value={n}>
+                        {n}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              </>
+            )}
+            <Button className="small">{words.apply}</Button>
+          </ActionForm>
+          <ActionForm
+            action={dismissRequestAction}
+            label={`Dismiss this ${words.eyebrow.toLowerCase()} card`}
+            onSuccess={() => setStatus('dismissed')}
+          >
+            <Ids messageId={messageId} cardId={card.id} />
+            <Button className="secondary small">Dismiss</Button>
+          </ActionForm>
+        </div>
       )}
     </div>
   );

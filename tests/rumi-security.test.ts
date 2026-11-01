@@ -15,6 +15,7 @@ vi.mock('server-only', () => ({}));
 const { client } = vi.hoisted(() => ({ client: { value: null as unknown } }));
 vi.mock('@/server/db', () => ({ db: () => client.value }));
 import { undoWrite } from '../src/features/agent/writes';
+import { applyRequest, undoRequest } from '../src/features/agent/requests';
 import { runTool } from '../src/features/agent/tools';
 import { collectIds } from '../src/features/agent/write-domain';
 import { restore } from '../src/features/undo/service';
@@ -131,6 +132,79 @@ describe.skipIf(!url)('Rumi writes are owner-scoped (PostgreSQL)', () => {
     expect(
       await prisma.quickNote.count({ where: { id: theirs.note.id } }),
     ).toBe(1);
+  });
+
+  it('refuses a card press or its Undo on another owner’s answer', async () => {
+    const theirs = await seed(other.id, 'THEIRS');
+    const conv = await prisma.agentConversation.create({
+      data: { userId: other.id, title: 'T' },
+    });
+    const cardId = randomUUID();
+    const msg = await prisma.agentMessage.create({
+      data: {
+        conversationId: conv.id,
+        userId: other.id,
+        role: 'ASSISTANT',
+        content: 'Card.',
+        metadata: {
+          requests: [
+            {
+              id: cardId,
+              kind: 'delete_block',
+              args: { blockId: theirs.block.id },
+              summary: ['x'],
+              snapshot: { version: theirs.block.updatedAt.toISOString() },
+              status: 'shown',
+            },
+          ],
+        } as object,
+      },
+    });
+    await expect(applyRequest(owner, msg.id, cardId, now)).rejects.toThrow(
+      /no longer exists/,
+    );
+    await expect(
+      undoRequest(owner, msg.id, cardId, async () => 'ran'),
+    ).rejects.toThrow(/Nothing to undo/);
+    const block = await prisma.timeBlock.findUnique({
+      where: { id: theirs.block.id },
+    });
+    expect(block?.status).toBe('PLANNED');
+  });
+
+  it('never lets a card on the owner’s answer reach another owner’s block', async () => {
+    const theirs = await seed(other.id, 'THEIRS');
+    const conv = await prisma.agentConversation.create({
+      data: { userId: owner.id, title: 'T' },
+    });
+    const cardId = randomUUID();
+    const msg = await prisma.agentMessage.create({
+      data: {
+        conversationId: conv.id,
+        userId: owner.id,
+        role: 'ASSISTANT',
+        content: 'Card.',
+        metadata: {
+          requests: [
+            {
+              id: cardId,
+              kind: 'delete_block',
+              args: { blockId: theirs.block.id },
+              summary: ['x'],
+              snapshot: { version: theirs.block.updatedAt.toISOString() },
+              status: 'shown',
+            },
+          ],
+        } as object,
+      },
+    });
+    await expect(applyRequest(owner, msg.id, cardId, now)).rejects.toThrow(
+      /records changed/,
+    );
+    const block = await prisma.timeBlock.findUnique({
+      where: { id: theirs.block.id },
+    });
+    expect(block?.status).toBe('PLANNED');
   });
 
   it('never lets a tampered action touch another owner’s rows', async () => {

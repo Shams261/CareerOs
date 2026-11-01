@@ -51,27 +51,33 @@ async function dropBlocks(
  * row stays as "Deleted", so generation never brings it back and the routine is untouched).
  */
 export async function deleteBlock(user: ScheduleUser, id: string) {
-  return locked(user.id, async (tx) => {
-    const block = await tx.timeBlock.findFirst({
-      where: { id, dailyPlan: { userId: user.id } },
-      include: { sessions: { orderBy: { startedAt: 'asc' } } },
-    });
-    if (!block) throw new Error('This block is no longer on your plan.');
-    // Its recorded time goes with it in the same step (WI-070); Undo brings both back.
-    if (block.sessions.some((s) => !s.endedAt))
-      throw new Error('Pause the running session before deleting its block.');
-    const sessions = await takeSessions(tx, user.id, block.sessions);
-    await tx.timeBlock.update({
-      where: { id },
-      data: { status: 'CANCELLED', skipReason: DELETED, completedAt: null },
-    });
-    await clearBlockReminders(tx, user.id, id);
-    return {
-      title: block.title,
-      completedAt: block.status === 'COMPLETED' ? block.completedAt : null,
-      sessions,
-    };
+  return locked(user.id, (tx) => deleteBlockIn(tx, user, id));
+}
+/** `deleteBlock` inside a transaction that holds the owner lock (Rumi's cards, WI-103). */
+export async function deleteBlockIn(
+  tx: Prisma.TransactionClient,
+  user: ScheduleUser,
+  id: string,
+) {
+  const block = await tx.timeBlock.findFirst({
+    where: { id, dailyPlan: { userId: user.id } },
+    include: { sessions: { orderBy: { startedAt: 'asc' } } },
   });
+  if (!block) throw new Error('This block is no longer on your plan.');
+  // Its recorded time goes with it in the same step (WI-070); Undo brings both back.
+  if (block.sessions.some((s) => !s.endedAt))
+    throw new Error('Pause the running session before deleting its block.');
+  const sessions = await takeSessions(tx, user.id, block.sessions);
+  await tx.timeBlock.update({
+    where: { id },
+    data: { status: 'CANCELLED', skipReason: DELETED, completedAt: null },
+  });
+  await clearBlockReminders(tx, user.id, id);
+  return {
+    title: block.title,
+    completedAt: block.status === 'COMPLETED' ? block.completedAt : null,
+    sessions,
+  };
 }
 
 /** A session as Undo needs it back: its times, note and the records linked to it. */
