@@ -160,9 +160,20 @@ const suggestionSchema = z.object({
   status: z.enum(['shown', 'kept', 'dismissed']),
 });
 /** What an answer carries besides its text; anything unreadable reads as nothing. */
+/** A line Rumi kept after this answer (WI-100), shown under it with Undo. */
+export const keptSchema = z
+  .object({
+    id: z.string().min(1),
+    text: z.string().min(1).max(200),
+    kind: z.enum(['GOAL', 'HABIT', 'PREFERENCE', 'SITUATION']),
+  })
+  .strict();
+export type Kept = z.infer<typeof keptSchema>;
+
 export function readMetadata(raw: unknown): {
   proposals: Proposal[];
   suggestions: Suggestion[];
+  kept: Kept[];
 } {
   const o =
     raw && typeof raw === 'object' ? (raw as Record<string, unknown>) : {};
@@ -174,6 +185,7 @@ export function readMetadata(raw: unknown): {
   return {
     proposals: list(o.proposals, proposalSchema),
     suggestions: list(o.suggestions, suggestionSchema),
+    kept: list(o.kept, keptSchema),
   };
 }
 

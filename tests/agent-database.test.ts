@@ -472,7 +472,7 @@ describe.skipIf(!url)('Ask Rumi (PostgreSQL)', () => {
       content: string;
     }[];
     expect(last).toHaveLength(13);
-    expect(last[0].content).toMatch(/- Rest day is Saturday/);
+    expect(last[0].content).toMatch(/- Preference: Rest day is Saturday/);
     expect(last[1]).toEqual({ role: 'assistant', content: 'Done.' });
     expect(last[2]).toEqual({ role: 'user', content: 'q2' });
     expect(last.at(-1)).toEqual({ role: 'user', content: 'q7' });

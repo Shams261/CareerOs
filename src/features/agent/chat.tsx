@@ -6,8 +6,8 @@ import { ActionForm } from '@/components/action-form';
 import { Button } from '@/components/ui/button';
 import { deleteConversationAction, type AskResult } from './actions';
 import { ASK_EVENT, ASK_KEY } from './events';
-import { ProposalCard, SuggestionCard } from './cards';
-import type { Proposal, Suggestion } from './plan-domain';
+import { KeptRows, ProposalCard, SuggestionCard } from './cards';
+import type { Kept, Proposal, Suggestion } from './plan-domain';
 import {
   AGENT_NAME,
   MESSAGE_MAX,
@@ -23,52 +23,69 @@ type Message = {
   content: string;
   proposals?: Proposal[];
   suggestions?: Suggestion[];
+  /** Lines Rumi kept after this answer (WI-100). */
+  kept?: Kept[];
   /** The reads behind an answer, for its "Read:" line (WI-055). */
   tools?: string[];
 };
 
 /**
  * Sends one question to the streaming route and calls `onRead` as each read starts; resolves
- * with the same result the server action gives (WI-055).
+ * with the same result the server action gives (WI-055) as soon as it arrives, and keeps
+ * reading for the lines Rumi kept after it (WI-100), handed to `onKept`.
  */
-async function askStreaming(
+function askStreaming(
   conversationId: string | null,
   text: string,
   onRead: (tool: string) => void,
+  onKept: (messageId: string, items: Kept[]) => void,
 ): Promise<AskResult> {
   const failed: AskResult = {
     ok: false,
     message: `${AGENT_NAME} couldn’t answer right now. Try again.`,
   };
-  const response = await fetch('/api/rumi/ask', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ conversationId, text }),
-  }).catch(() => null);
-  if (!response?.ok || !response.body) return failed;
-  const reader = response.body.getReader();
-  const decoder = new TextDecoder();
-  let buffer = '';
-  for (;;) {
-    const { value, done } = await reader.read();
-    if (value) buffer += decoder.decode(value, { stream: true });
-    let cut: number;
-    while ((cut = buffer.indexOf('\n')) >= 0) {
-      const raw = buffer.slice(0, cut);
-      buffer = buffer.slice(cut + 1);
-      try {
-        const event = JSON.parse(raw) as {
-          read?: string;
-          done?: AskResult;
-        };
-        if (event.read) onRead(event.read);
-        if (event.done) return event.done;
-      } catch {
-        /* a broken line is skipped */
+  return new Promise((resolve) => {
+    (async () => {
+      const response = await fetch('/api/rumi/ask', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ conversationId, text }),
+      }).catch(() => null);
+      if (!response?.ok || !response.body) return resolve(failed);
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+      let answered = false;
+      for (;;) {
+        const { value, done } = await reader.read();
+        if (value) buffer += decoder.decode(value, { stream: true });
+        let cut: number;
+        while ((cut = buffer.indexOf('\n')) >= 0) {
+          const raw = buffer.slice(0, cut);
+          buffer = buffer.slice(cut + 1);
+          try {
+            const event = JSON.parse(raw) as {
+              read?: string;
+              done?: AskResult;
+              kept?: { messageId: string; items: Kept[] };
+            };
+            if (event.read) onRead(event.read);
+            if (event.done) {
+              answered = true;
+              resolve(event.done);
+            }
+            if (event.kept) onKept(event.kept.messageId, event.kept.items);
+          } catch {
+            /* a broken line is skipped */
+          }
+        }
+        if (done) {
+          if (!answered) resolve(failed);
+          return;
+        }
       }
-    }
-    if (done) return failed;
-  }
+    })().catch(() => resolve(failed));
+  });
 }
 
 /** The model's text as paragraphs, lists and bold, rendered as text only (`renderText`). */
@@ -151,8 +168,17 @@ export function RumiChat({
     setMessages((m) => [...m, local]);
     setReads([]);
     start(async () => {
-      const result = await askStreaming(current, question, (tool) =>
-        setReads((r) => [...r, tool]),
+      const result = await askStreaming(
+        current,
+        question,
+        (tool) => setReads((r) => [...r, tool]),
+        (messageId, items) => {
+          setMessages((m) =>
+            m.map((x) => (x.id === messageId ? { ...x, kept: items } : x)),
+          );
+          // The stored answer carries them too; a refresh in flight must not drop them.
+          router.refresh();
+        },
       );
       if (result.budget) setBudget(result.budget);
       if (result.nearCap !== undefined) setNear(result.nearCap);
@@ -298,6 +324,7 @@ export function RumiChat({
                 {m.suggestions?.map((x) => (
                   <SuggestionCard key={x.id} messageId={m.id} suggestion={x} />
                 ))}
+                {m.kept && m.kept.length > 0 && <KeptRows kept={m.kept} />}
               </div>
             )}
           </article>

@@ -1,7 +1,7 @@
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { owner } from '@/server/db';
-import { askRumi } from '@/features/agent/service';
+import { askRumi, noteMemories } from '@/features/agent/service';
 export const runtime = 'nodejs';
 
 /**
@@ -36,6 +36,14 @@ export async function POST(request: Request) {
       );
       if (result.ok) revalidatePath('/rumi');
       line({ done: result });
+      // The notes Rumi keeps after the answer (WI-100) follow it, never delaying it.
+      if (result.ok) {
+        const items = await noteMemories(user, result);
+        if (items.length) {
+          revalidatePath('/rumi');
+          line({ kept: { messageId: result.reply.id, items } });
+        }
+      }
       controller.close();
     },
   });

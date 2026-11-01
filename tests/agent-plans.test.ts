@@ -121,10 +121,15 @@ describe('what Rumi may plan (pure)', () => {
     expect(later[0].conflict).toBe('Overlaps 07:00–08:00 busy');
   });
   it('reads stored cards safely', () => {
-    expect(readMetadata(null)).toEqual({ proposals: [], suggestions: [] });
+    expect(readMetadata(null)).toEqual({
+      proposals: [],
+      suggestions: [],
+      kept: [],
+    });
     expect(readMetadata({ proposals: [{ id: 1 }], suggestions: 'x' })).toEqual({
       proposals: [],
       suggestions: [],
+      kept: [],
     });
   });
   it('finds the best hours and the recorded share of planned time', () => {

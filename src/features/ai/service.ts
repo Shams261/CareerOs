@@ -238,17 +238,33 @@ export async function callModel({
   now,
   fetcher,
   words,
+  perFeatureDay,
 }: {
   user: ScheduleUser;
   cfg: AiConfig;
-  feature: 'GRILL_ITEM' | 'LISTEN_ITEM' | 'AGENT_CHAT' | 'PREP_RESEARCH';
+  feature:
+    | 'GRILL_ITEM'
+    | 'LISTEN_ITEM'
+    | 'AGENT_CHAT'
+    | 'PREP_RESEARCH'
+    | 'AGENT_MEMORY';
   body: unknown;
   reserve: number;
   now: Date;
   fetcher: Fetcher;
   words: CallWords;
+  /** A daily cap on this feature's own calls (WI-100), checked inside the same lock. */
+  perFeatureDay?: number;
 }) {
   const usage = await locked(user.id, async (tx) => {
+    if (perFeatureDay) {
+      const day = new Date(+now - 24 * 3600_000);
+      const made = await tx.aiUsage.count({
+        where: { userId: user.id, feature, createdAt: { gte: day } },
+      });
+      if (made >= perFeatureDay)
+        throw new AiRefusal(words.tooMany ?? 'Enough for today.');
+    }
     if (words.tooMany) {
       // Ask Rumi counts owner messages and prep docs count docs instead, so their calls
       // never use up these limits.
@@ -256,7 +272,13 @@ export async function callModel({
         day = new Date(+now - 24 * 3600_000);
       const scope = {
         userId: user.id,
-        feature: { notIn: ['AGENT_CHAT' as const, 'PREP_RESEARCH' as const] },
+        feature: {
+          notIn: [
+            'AGENT_CHAT' as const,
+            'PREP_RESEARCH' as const,
+            'AGENT_MEMORY' as const,
+          ],
+        },
       };
       const [lastHour, lastDay] = await Promise.all([
         tx.aiUsage.count({ where: { ...scope, createdAt: { gte: hour } } }),
@@ -349,10 +371,11 @@ export async function ask<T>({
   fetcher,
   failure = 'Couldn’t build a useful ladder for this item. Try again later.',
   words = GRILL_WORDS,
+  perFeatureDay,
 }: {
   user: ScheduleUser;
   cfg: AiConfig;
-  feature: 'GRILL_ITEM' | 'LISTEN_ITEM' | 'PREP_RESEARCH';
+  feature: 'GRILL_ITEM' | 'LISTEN_ITEM' | 'PREP_RESEARCH' | 'AGENT_MEMORY';
   messages: Message[];
   format: OutputFormat;
   read: (
@@ -364,6 +387,7 @@ export async function ask<T>({
   failure?: string;
   /** Refusals and log lines: Grill Me's unless a feature brings its own (WI-042). */
   words?: CallWords;
+  perFeatureDay?: number;
 }): Promise<T> {
   for (let attempt = 0; attempt < 2; attempt++) {
     const { usageId, answer, cost, durationMs } = await callModel({
@@ -375,6 +399,7 @@ export async function ask<T>({
       now,
       fetcher,
       words,
+      perFeatureDay,
     });
     const content = answer.choices?.[0]?.message?.content;
     const result = read(content);

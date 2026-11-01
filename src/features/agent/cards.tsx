@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { X } from 'lucide-react';
-import { ActionForm } from '@/components/action-form';
+import { ActionForm, UndoButton } from '@/components/action-form';
 import { Button } from '@/components/ui/button';
 import { FeedbackOutlet } from '@/components/feedback-outlet';
 import { weekdayDate } from '@/lib/time';
@@ -12,7 +12,12 @@ import {
   dismissProposalAction,
 } from './actions';
 import { AGENT_NAME } from './domain';
-import { addable, type Proposal, type Suggestion } from './plan-domain';
+import {
+  addable,
+  type Kept,
+  type Proposal,
+  type Suggestion,
+} from './plan-domain';
 
 const Ids = ({ messageId, cardId }: { messageId: string; cardId: string }) => (
   <>
@@ -201,5 +206,29 @@ export function SuggestionCard({
         </p>
       )}
     </div>
+  );
+}
+
+/**
+ * The lines Rumi kept after an answer (WI-100): "Noted in Rumi knows: …" with Undo, which
+ * removes the line; the Settings panel shows them all.
+ */
+export function KeptRows({ kept }: { kept: Kept[] }) {
+  return (
+    <ul
+      className="plain-list rumi-kept"
+      aria-label={`Noted in ${AGENT_NAME} knows`}
+    >
+      {kept.map((k) => (
+        <li key={k.id}>
+          <span className="muted">Noted in {AGENT_NAME} knows:</span>{' '}
+          <q>{k.text}</q>{' '}
+          <UndoButton
+            undo={{ kind: 'remove-memory', payload: { id: k.id } }}
+            onDone={() => {}}
+          />
+        </li>
+      ))}
+    </ul>
   );
 }

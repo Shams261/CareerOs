@@ -173,6 +173,7 @@ model User {
   agentConversations AgentConversation[]
   agentMessages      AgentMessage[]
   agentMemories      AgentMemory[]
+  agentSetting       AgentSetting?
   prepDocs           InterviewPrepDoc[]
   noticedAnswers     NoticedAnswer[]
 }
@@ -1001,6 +1002,8 @@ enum AiFeature {
   LISTEN_ITEM
   /// WI-040: one model call of an Ask Rumi message (a message can take several).
   AGENT_CHAT
+  /// WI-100: the extraction call that keeps "Rumi knows" lines from the owner's own messages.
+  AGENT_MEMORY
   /// WI-042: one search or the writing call of an interview prep doc.
   PREP_RESEARCH
 }
@@ -1021,6 +1024,8 @@ model AiSetting {
   checkedAt     DateTime? @db.Timestamptz(3)
   blockedAt     DateTime? @db.Timestamptz(3)
   blockedReason String?
+  /// WI-100: Rumi's style, one of firm | warm | brief.
+  rumiStyle     String    @default("firm")
   updatedAt     DateTime  @updatedAt @db.Timestamptz(3)
 }
 
@@ -1089,20 +1094,54 @@ model AgentMessage {
   content        String            @db.Text
   metadata       Json?
   createdAt      DateTime          @default(now()) @db.Timestamptz(3)
+  memories       AgentMemory[]
 
   @@index([conversationId, createdAt])
   @@index([userId, role, createdAt])
 }
 
 /// WI-040: "Rumi knows", lines the owner wrote for Rumi to keep in mind. Sent with every message.
+/// WI-100 (ADR-030): what a line is about, and who wrote it (the owner, or Rumi from the owner's own messages).
+enum AgentMemoryKind {
+  GOAL
+  HABIT
+  PREFERENCE
+  SITUATION
+}
+
+enum AgentMemorySource {
+  OWNER
+  RUMI
+}
+
 model AgentMemory {
-  id        String   @id @default(cuid())
-  userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  text      String
-  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  id         String            @id @default(cuid())
+  userId     String
+  user       User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  text       String
+  /// WI-100: the kind, the source, when it was last sent with a message, and the day it lapses (a DATE label; null = never).
+  kind       AgentMemoryKind   @default(PREFERENCE)
+  source     AgentMemorySource @default(OWNER)
+  lastUsedAt DateTime?         @db.Timestamptz(3)
+  expiresAt  DateTime?         @db.Date
+  /// The answer Rumi kept it after, when it did; the line outlives the message.
+  messageId  String?
+  message    AgentMessage?     @relation(fields: [messageId], references: [id], onDelete: SetNull)
+  createdAt  DateTime          @default(now()) @db.Timestamptz(3)
 
   @@index([userId, createdAt])
+}
+
+/// WI-100 (ADR-030): Rumi's own settings per owner: whether it keeps notes from conversations, the line's language, and the voice consent and choices used from WI-104.
+model AgentSetting {
+  userId         String    @id
+  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  memoryEnabled  Boolean   @default(true)
+  lineLanguage   String    @default("en")
+  voiceConsentAt DateTime? @db.Timestamptz(3)
+  voiceLang      String    @default("en-IN")
+  speakReplies   Boolean   @default(false)
+  updatedAt      DateTime  @updatedAt @db.Timestamptz(3)
 }
 
 /// WI-042 (ADR-024): an interview prep doc Rumi wrote from web research. Owner material: deletable and in the export.

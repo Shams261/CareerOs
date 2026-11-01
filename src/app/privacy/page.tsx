@@ -102,9 +102,12 @@ export default async function Privacy() {
         </li>
         <li>
           Ask Rumi conversations (the owner&rsquo;s questions and Rumi&rsquo;s
-          answers) and the &ldquo;Rumi knows&rdquo; lines the owner writes. They
-          can be deleted at any time and are in the export. What the assistant
-          read to answer is not stored.
+          answers) and the &ldquo;Rumi knows&rdquo; lines: the ones the owner
+          writes, and the ones Rumi keeps after an answer from the owner&rsquo;s
+          own messages (never from notes or reflections), each with its kind and
+          the day it lapses. They can be deleted one by one or all at once, the
+          notes can be switched off, and they are in the export. What the
+          assistant read to answer is not stored.
         </li>
         <li>
           Interview prep docs Rumi writes for an application, with the web

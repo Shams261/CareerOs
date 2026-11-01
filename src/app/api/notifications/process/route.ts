@@ -2,6 +2,7 @@ import { processNotifications } from '@/features/notifications/service';
 import { deliverPending } from '@/features/push/service';
 import { recordRun } from '@/server/jobs';
 import { dailyProviderCheck } from '@/features/ai/service';
+import { pruneMemories } from '@/features/agent/memory-service';
 export const runtime = 'nodejs';
 
 /** Scheduler entry point (Bearer CRON_SECRET via proxy): eligibility → NotificationLog → push. */
@@ -23,6 +24,8 @@ export async function POST() {
     // Grill Me's provider check (ADR-022) runs at most once a day and never affects reminders.
     try {
       await dailyProviderCheck();
+      // Lines past their day go with the daily check (WI-100).
+      await pruneMemories();
     } catch (error) {
       console.error(
         '[study] provider check failed',

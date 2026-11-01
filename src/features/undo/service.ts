@@ -12,6 +12,8 @@ import { randomUUID } from 'node:crypto';
 import { setRestDay } from '@/features/nudges/service';
 import { cardInput, keepCard } from '@/features/ai/service';
 import { reopenProposal } from '@/features/agent/plans';
+import { removeMemory } from '@/features/agent/service';
+import { keepLineIn } from '@/features/agent/memory-service';
 import { followPractice } from '@/features/roadmap/follow';
 import { unhideProblem } from '@/features/deletes/service';
 
@@ -67,6 +69,14 @@ const kinds = {
   }),
   'problem-unhide': z.object({ id: z.string().min(1) }),
   'restore-note': z.object({ body: z.string().min(1).max(500) }),
+  // "Rumi knows" (WI-100): a line removed comes back; a line Rumi kept goes.
+  'remove-memory': z.object({ id: z.string().min(1) }),
+  'restore-memory': z.object({
+    text: z.string().min(1).max(200),
+    kind: z.enum(['GOAL', 'HABIT', 'PREFERENCE', 'SITUATION']),
+    source: z.enum(['OWNER', 'RUMI']),
+    expiresAt: z.string().nullable().optional(),
+  }),
   'reopen-note': z.object({ id: z.string().min(1) }),
   'restore-priority': z.object({
     weekStart: z.string(),
@@ -272,6 +282,27 @@ export async function restore(
     case 'restore-note': {
       await addNote(user, kinds[k].parse(payload));
       return 'Note restored.';
+    }
+    case 'remove-memory': {
+      await removeMemory(user, kinds[k].parse(payload).id);
+      return 'Line removed.';
+    }
+    case 'restore-memory': {
+      const p = kinds[k].parse(payload);
+      await locked(user.id, (tx) =>
+        keepLineIn(
+          tx,
+          user,
+          {
+            text: p.text,
+            kind: p.kind,
+            source: p.source,
+            expiresAt: p.expiresAt ?? null,
+          },
+          new Date(),
+        ),
+      );
+      return 'Line kept again.';
     }
     case 'reopen-note': {
       const { id } = kinds[k].parse(payload);
