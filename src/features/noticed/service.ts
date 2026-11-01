@@ -12,6 +12,8 @@ import { shiftDay } from '@/features/schedule/domain';
 import type { ScheduleUser } from '@/features/schedule/service';
 import { isStudyCategory } from '@/features/nudges/domain';
 import { studyKinds } from '@/features/agent/tools';
+import { dsaSnapshot } from '@/features/dsa/service';
+import { curriculumOrder, nextProblemFor } from '@/features/dsa/domain';
 import {
   cleanCopy,
   hiddenUntil,
@@ -29,7 +31,17 @@ async function loadNoticed(user: ScheduleUser, now: Date) {
   const start = dayBounds(first, user.timezone).start;
   const kinds = ['DSA', 'Technical', ...(await studyKinds(user.id))];
   const study = (category: string) => isStudyCategory(category, kinds);
-  const [sessions, blocks, routines, rounds, hidden] = await Promise.all([
+  const [
+    sessions,
+    blocks,
+    routines,
+    rounds,
+    hidden,
+    attempts,
+    revisions,
+    items,
+    dsa,
+  ] = await Promise.all([
     db().actualSession.findMany({
       where: { userId: user.id, startedAt: { gte: start, lte: now } },
       select: { category: true, startedAt: true, endedAt: true },
@@ -78,7 +90,73 @@ async function loadNoticed(user: ScheduleUser, now: Date) {
       where: { userId: user.id, hiddenUntil: { gte: new Date(today) } },
       select: { key: true, hiddenUntil: true },
     }),
+    // The pattern coach (WI-106): attempts, revision steps due soon, items in progress.
+    db().dsaAttempt.findMany({
+      where: { userId: user.id, attemptedAt: { gte: start, lte: now } },
+      select: {
+        attemptedAt: true,
+        confidenceAfter: true,
+        problem: {
+          select: {
+            id: true,
+            title: true,
+            hiddenAt: true,
+            topicId: true,
+            topic: { select: { name: true } },
+          },
+        },
+      },
+    }),
+    db().dsaProblem.findMany({
+      where: {
+        userId: user.id,
+        hiddenAt: null,
+        attemptsCount: { gt: 0 },
+        nextRevisionAt: {
+          gte: new Date(today),
+          lte: new Date(shiftDay(today, 1)),
+        },
+      },
+      select: {
+        id: true,
+        title: true,
+        topicId: true,
+        nextRevisionAt: true,
+        topic: { select: { name: true } },
+      },
+    }),
+    db().roadmapItem.findMany({
+      where: {
+        userId: user.id,
+        status: 'IN_PROGRESS',
+        roadmap: { archivedAt: null },
+      },
+      select: {
+        id: true,
+        title: true,
+        section: true,
+        roadmapId: true,
+        updatedAt: true,
+        roadmap: { select: { title: true } },
+      },
+    }),
+    dsaSnapshot(user, now),
   ]);
+  const mine = attempts.filter(
+    (a) => !a.problem.hiddenAt && !isTestNamed(a.problem.title),
+  );
+  const ordered = curriculumOrder(dsa.problems, dsa.topics);
+  // For each topic practised lately, the next problem outside it, as Practice would pick.
+  const nextOutside = Object.fromEntries(
+    [...new Set(mine.map((a) => a.problem.topicId))].map((topicId) => {
+      const p = nextProblemFor(
+        ordered.filter((x) => x.topicId !== topicId),
+        dsa.topics.filter((t) => t.id !== topicId),
+        null,
+      );
+      return [topicId, p ? { id: p.id, title: p.title } : null];
+    }),
+  );
   return noticed({
     now,
     zone: user.timezone,
@@ -111,6 +189,31 @@ async function loadNoticed(user: ScheduleUser, now: Date) {
         openPrep: r._count.prepItems,
       })),
     hidden: hidden.map((h) => ({ key: h.key, until: label(h.hiddenUntil) })),
+    attempts: mine.map((a) => ({
+      problemId: a.problem.id,
+      topicId: a.problem.topicId,
+      topic: a.problem.topic.name,
+      day: dayKey(a.attemptedAt, user.timezone),
+      confidence: a.confidenceAfter,
+    })),
+    revisions: revisions
+      .filter((p) => !isTestNamed(p.title))
+      .map((p) => ({
+        problemId: p.id,
+        title: p.title,
+        topicId: p.topicId,
+        topic: p.topic.name,
+        dueOn: label(p.nextRevisionAt!),
+      })),
+    items: items
+      .filter((i) => !isTestNamed(i.title, i.roadmap.title))
+      .map((i) => ({
+        id: i.id,
+        title: i.title,
+        href: `/roadmap/${i.roadmapId}?section=${encodeURIComponent(i.section)}#item-${i.id}`,
+        since: dayKey(i.updatedAt, user.timezone),
+      })),
+    nextOutside,
   }).filter(cleanCopy);
 }
 /** Today's "Rumi noticed" cards, at most two. */

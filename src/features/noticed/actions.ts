@@ -7,7 +7,7 @@ import { answerNoticed } from './service';
 
 const input = z.object({
   key: z.string().min(3).max(200),
-  kind: z.enum(['interview', 'idle', 'routine', 'heavy']),
+  kind: z.enum(['interview', 'idle', 'routine', 'heavy', 'stuck', 'cold']),
   acted: z.boolean(),
 });
 

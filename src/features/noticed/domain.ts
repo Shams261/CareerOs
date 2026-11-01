@@ -19,16 +19,42 @@ export const ROUTINE_WEEKS = 3;
 /** Days a card stays away after Dismiss, and after its action. */
 export const SNOOZE = { dismissed: 7, acted: 3 } as const;
 
-export type NoticedKind = 'interview' | 'idle' | 'routine' | 'heavy';
+export type NoticedKind =
+  | 'interview'
+  | 'idle'
+  | 'routine'
+  | 'heavy'
+  // WI-106, the pattern coach.
+  | 'stuck'
+  | 'cold';
+export const NOTICED_KINDS: NoticedKind[] = [
+  'interview',
+  'idle',
+  'routine',
+  'heavy',
+  'stuck',
+  'cold',
+];
+type Action =
+  | { label: string; href: string; panel?: string }
+  | { label: string; ask: string };
 export type NoticedCard = {
   key: string;
   kind: NoticedKind;
   title: string;
   context: string;
-  action:
-    | { label: string; href: string; panel?: string }
-    | { label: string; ask: string };
+  action: Action;
+  /** A second way on (WI-106: Mixed set, Ask Rumi why). */
+  alt?: Action;
+  /** "Keep going" in place of Dismiss: the card rests for the acted snooze. */
+  keepGoing?: boolean;
 };
+/** WI-106: days on one topic, or since a topic was practised, before the coach speaks. */
+export const STUCK_DAYS = 4;
+/** The window the stuck rule reads (days, today included). */
+export const STUCK_WINDOW = 7;
+const RANK = { RED: 0, YELLOW: 1, GREEN: 2 } as const;
+export type Confidence = keyof typeof RANK;
 
 export type NoticedInput = {
   now: Date;
@@ -58,6 +84,26 @@ export type NoticedInput = {
   }[];
   /** Keys hidden until a day (after Dismiss or an action). */
   hidden: { key: string; until: string }[];
+  /** WI-106: attempts in the last 28 days, with their topic and confidence after. */
+  attempts?: {
+    problemId: string;
+    topicId: string;
+    topic: string;
+    day: string;
+    confidence: Confidence;
+  }[];
+  /** WI-106: open revision steps due today or tomorrow. */
+  revisions?: {
+    problemId: string;
+    title: string;
+    topicId: string;
+    topic: string;
+    dueOn: string;
+  }[];
+  /** WI-106: roadmap items in progress, with the day they last changed. */
+  items?: { id: string; title: string; href: string; since: string }[];
+  /** WI-106: for a topic, the next problem outside it (`nextProblemFor`), if any. */
+  nextOutside?: Record<string, { id: string; title: string } | null>;
 };
 
 const mins = (a: Date, b: Date) => Math.max(0, Math.round((+b - +a) / 60_000));
@@ -240,8 +286,108 @@ function heavyCards(i: NoticedInput, today: string): NoticedCard[] {
 }
 
 /**
- * Today's noticed cards: interviews first, then a silent kind, a left routine and a heavy
- * day; hidden keys skipped; at most two.
+ * The pattern coach (WI-106): a topic practised on four or more of the last seven days whose
+ * confidence has not risen, and a roadmap item in progress for four days or more.
+ */
+function stuckCards(i: NoticedInput, today: string): NoticedCard[] {
+  const from = shiftDay(today, -(STUCK_WINDOW - 1));
+  const recent = (i.attempts ?? []).filter(
+    (a) => a.day >= from && a.day <= today,
+  );
+  const topics = [...new Set(recent.map((a) => a.topicId))];
+  const lastTopics = [
+    ...new Set(
+      [...(i.attempts ?? [])]
+        .sort((a, b) => b.day.localeCompare(a.day))
+        .map((a) => a.topicId),
+    ),
+  ].slice(0, 4);
+  const cards: NoticedCard[] = topics.flatMap((topicId) => {
+    const list = recent
+      .filter((a) => a.topicId === topicId)
+      .sort((a, b) => a.day.localeCompare(b.day));
+    const days = new Set(list.map((a) => a.day)).size;
+    if (days < STUCK_DAYS) return [];
+    const first = RANK[list[0].confidence],
+      last = RANK[list.at(-1)!.confidence];
+    if (last > first || list.at(-1)!.confidence === 'GREEN') return [];
+    // A problem's latest confidence decides whether it is still shaky.
+    const latest = new Map<string, Confidence>();
+    for (const a of list) latest.set(a.problemId, a.confidence);
+    const shaky = [...latest.values()].filter((c) => c === 'RED').length;
+    const topic = list[0].topic;
+    const next = i.nextOutside?.[topicId] ?? null;
+    return [
+      {
+        key: `stuck:${topicId}:${from}`,
+        kind: 'stuck' as const,
+        title: shaky
+          ? `${days} days on ${topic}; ${shaky} ${shaky === 1 ? 'problem' : 'problems'} still shaky`
+          : `${days} days on ${topic}; confidence has not moved`,
+        context: 'A different topic for a day often helps a pattern settle',
+        action: next
+          ? { label: 'Next topic', href: `/dsa/${next.id}` }
+          : { label: 'Open Practice', href: '/dsa' },
+        alt:
+          lastTopics.length > 1
+            ? {
+                label: 'Mixed set',
+                href: `/dsa/drill?topics=${lastTopics.join(',')}`,
+              }
+            : {
+                label: 'Ask Rumi why',
+                ask: `I have spent ${days} days on ${topic} and it still feels shaky. Why is this pattern hard, and one hint to try next? No full solution.`,
+              },
+        keepGoing: true,
+      },
+    ];
+  });
+  for (const item of i.items ?? []) {
+    const gap = daysBetween(item.since, today);
+    if (gap < STUCK_DAYS) continue;
+    cards.push({
+      key: `stuck:item:${item.id}`,
+      kind: 'stuck',
+      title: `${item.title} has been in progress for ${gap} days`,
+      context: 'Mark it done, or split it into a smaller step',
+      action: { label: 'Open item', href: item.href },
+      keepGoing: true,
+    });
+  }
+  return cards;
+}
+
+/** A revision step due today or tomorrow on a topic not practised for four days or more. */
+function coldCards(i: NoticedInput, today: string): NoticedCard[] {
+  const lastByTopic = new Map<string, string>();
+  for (const a of i.attempts ?? [])
+    if (!lastByTopic.has(a.topicId) || lastByTopic.get(a.topicId)! < a.day)
+      lastByTopic.set(a.topicId, a.day);
+  const tomorrow = shiftDay(today, 1);
+  const seen = new Set<string>();
+  return (i.revisions ?? []).flatMap((r) => {
+    if (r.dueOn < today || r.dueOn > tomorrow || seen.has(r.topicId)) return [];
+    const last = lastByTopic.get(r.topicId);
+    const gap = last ? daysBetween(last, today) : LOOK_BACK;
+    if (gap < STUCK_DAYS) return [];
+    seen.add(r.topicId);
+    return [
+      {
+        key: `cold:${r.problemId}:${r.dueOn}`,
+        kind: 'cold' as const,
+        title: `${r.title} is due for revision ${r.dueOn === today ? 'today' : 'tomorrow'}`,
+        context: last
+          ? `No ${r.topic} practice for ${gap} days`
+          : `No ${r.topic} practice in the last ${LOOK_BACK} days`,
+        action: { label: 'Revise', href: `/dsa/${r.problemId}` },
+      },
+    ];
+  });
+}
+
+/**
+ * Today's noticed cards: interviews first, then the pattern coach (WI-106), a silent kind, a
+ * left routine and a heavy day; hidden keys skipped; at most two.
  */
 export function noticed(i: NoticedInput): NoticedCard[] {
   const today = dayKey(i.now, i.zone);
@@ -250,6 +396,8 @@ export function noticed(i: NoticedInput): NoticedCard[] {
   );
   return [
     ...interviewCards(i, today),
+    ...stuckCards(i, today),
+    ...coldCards(i, today),
     ...idleCards(i, today),
     ...routineCards(i, i.now),
     ...heavyCards(i, today),
@@ -265,5 +413,7 @@ export const hiddenUntil = (today: string, acted: boolean) =>
 /** Every template stays factual: no banned word in any card. */
 export const cleanCopy = (c: NoticedCard) =>
   !BANNED_WORDS.some((w) =>
-    `${c.title} ${c.context} ${c.action.label}`.toLowerCase().includes(w),
+    `${c.title} ${c.context} ${c.action.label} ${c.alt?.label ?? ''}`
+      .toLowerCase()
+      .includes(w),
   );
