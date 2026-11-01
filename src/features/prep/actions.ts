@@ -16,6 +16,8 @@ import {
   writePrepDoc,
 } from './service';
 import { planFromDoc } from './plan';
+import { debriefRound, mockFeedback } from './mock';
+import { MOCK_ANSWER_MAX } from './mock-domain';
 import { INVITE_MAX, inviteTopics, type Invite } from './invite';
 import { aiPolicies, interviewTypes } from '@/features/jobs/domain';
 
@@ -112,6 +114,57 @@ export async function tickFormatsAction(
     return { ok: false, message: failed(error) };
   }
 }
+/** The debrief (WI-108): the owner's three answers on a completed round. */
+export async function debriefAction(
+  roundId: string,
+  answers: { topicsAsked: string; wentWell: string; toImprove: string },
+): Promise<{ ok: boolean; message: string }> {
+  try {
+    const a = z
+      .object({
+        topicsAsked: z.string().max(2000),
+        wentWell: z.string().max(2000),
+        toImprove: z.string().max(2000),
+      })
+      .parse(answers);
+    const round = await debriefRound(
+      await owner(),
+      z.string().min(1).parse(roundId),
+      a,
+    );
+    forgetAll();
+    revalidatePath(`/jobs/${round.applicationId}`);
+    return { ok: true, message: 'Debrief saved on the interview.' };
+  } catch (error) {
+    return { ok: false, message: failed(error) };
+  }
+}
+/** The mock interview (WI-108): feedback on one answer, never a score. */
+export async function mockFeedbackAction(input: {
+  docId: string;
+  index: number;
+  answer: string;
+  conversationId: string | null;
+}): Promise<
+  | { ok: true; feedback: string; conversationId: string }
+  | { ok: false; message: string }
+> {
+  try {
+    const v = z
+      .object({
+        docId: z.string().min(1).max(40),
+        index: z.number().int().min(0).max(9),
+        answer: z.string().max(MOCK_ANSWER_MAX * 2),
+        conversationId: z.string().min(1).max(40).nullable(),
+      })
+      .parse(input);
+    const r = await mockFeedback(await owner(), v);
+    return { ok: true, ...r };
+  } catch (error) {
+    return { ok: false, message: failed(error) };
+  }
+}
+
 /** "Plan until the date": plan cards in a new conversation with Rumi. */
 export async function planFromDocAction(
   docId: string,

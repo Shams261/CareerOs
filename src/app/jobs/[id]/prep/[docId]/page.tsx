@@ -114,6 +114,14 @@ export default async function PrepDocPage({
           {row.company} · {row.role}
         </h1>
       </div>
+      {/* WI-108: practise the doc's questions with Rumi's feedback. */}
+      <Link
+        className="button secondary small mt-2"
+        href={`/jobs/${id}/prep/${row.id}/mock`}
+        prefetch={false}
+      >
+        Mock interview
+      </Link>
       <p className="today-summary">
         Written {written} from {cited.length} web{' '}
         {cited.length === 1 ? 'source' : 'sources'} ·{' '}
