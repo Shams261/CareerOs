@@ -5,7 +5,14 @@ import { forgetAll } from '@/server/memo';
 import { db, owner } from '@/server/db';
 import { issueMessages } from '@/lib/validation';
 import type { ActionState } from '@/features/schedule/actions';
-import { budgetLine, tickInput, type Ladder, type Ticks } from './domain';
+import {
+  budgetLine,
+  dollars,
+  limitInput,
+  tickInput,
+  type Ladder,
+  type Ticks,
+} from './domain';
 import {
   aiState,
   AiRefusal,
@@ -14,6 +21,7 @@ import {
   grill,
   keepCard,
   removeCard,
+  setMonthlyLimit,
 } from './service';
 
 const refresh = () => {
@@ -58,10 +66,10 @@ export async function grillAction(
       tickInput.parse(ticks),
     );
     const state = await aiState(user);
-    return { ok: true, ladder, budget: budgetLine(state.spent) };
+    return { ok: true, ladder, budget: budgetLine(state.spent, state.limit) };
   } catch (error) {
     const state = await aiState(user).catch(() => null);
-    const budget = state ? budgetLine(state.spent) : undefined;
+    const budget = state ? budgetLine(state.spent, state.limit) : undefined;
     if (error instanceof AiRefusal || error instanceof AiUnavailable)
       return { ok: false, message: error.message, budget };
     console.error(
@@ -114,6 +122,20 @@ export async function aiEnabledAction(_s: ActionState, f: FormData) {
       update: { enabled },
     });
     return enabled ? 'Grill Me is on.' : 'Grill Me is off.';
+  });
+}
+/** Settings (WI-114): the owner's monthly AI limit, or none. */
+export async function aiLimitAction(_s: ActionState, f: FormData) {
+  return perform(async () => {
+    const user = await owner();
+    const choice = String(f.get('limit') ?? '');
+    const limit = limitInput.parse(
+      choice === 'other' ? String(f.get('amount') ?? '') : choice,
+    );
+    await setMonthlyLimit(user, limit);
+    return limit === null
+      ? 'No monthly limit in Silsila. Your OpenRouter key’s own limit still applies.'
+      : `Monthly limit set to ${dollars(limit).replace('.00', '')}.`;
   });
 }
 /** Settings: repeat the provider check now; a pass lifts a block. */

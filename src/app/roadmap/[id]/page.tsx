@@ -100,7 +100,7 @@ export default async function RoadmapDetail({
   // check holds, and this roadmap allows Study AI.
   const grill =
     ai && ai.configured && ai.enabled && !ai.blocked
-      ? { budget: budgetLine(ai.spent) }
+      ? { budget: budgetLine(ai.spent, ai.limit) }
       : null;
   const sectionNames = [...roadmap.sections.keys()];
   const due = revisionQueue(roadmap.items, today).length;

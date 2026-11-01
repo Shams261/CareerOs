@@ -1036,15 +1036,18 @@ enum AiOutcome {
 /// The owner's AI switch and the provider check (ADR-022). A failed daily check blocks AI
 /// until the owner checks again and it passes.
 model AiSetting {
-  userId        String    @id
-  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  enabled       Boolean   @default(true)
-  checkedAt     DateTime? @db.Timestamptz(3)
-  blockedAt     DateTime? @db.Timestamptz(3)
-  blockedReason String?
+  userId             String    @id
+  user               User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  enabled            Boolean   @default(true)
+  checkedAt          DateTime? @db.Timestamptz(3)
+  blockedAt          DateTime? @db.Timestamptz(3)
+  blockedReason      String?
   /// WI-100: Rumi's style, one of firm | warm | brief.
-  rumiStyle     String    @default("firm")
-  updatedAt     DateTime  @updatedAt @db.Timestamptz(3)
+  rumiStyle          String    @default("firm")
+  /// WI-114: the owner's monthly AI limit in millionths of a US dollar; null = no Silsila
+  /// limit (the OpenRouter key's own limit still applies). Checked between US$0.10 and US$1000.
+  monthlyLimitMicros Int?
+  updatedAt          DateTime  @updatedAt @db.Timestamptz(3)
 }
 
 /// One row per AI request: model, endpoint, tokens and cost in millionths of a US dollar. No

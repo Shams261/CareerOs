@@ -36,7 +36,7 @@ import {
 const WORDS: CallWords = {
   unavailable: `${AGENT_NAME} couldn’t give feedback right now.`,
   budgetUsed: (day) =>
-    `This month’s AI budget is used. ${AGENT_NAME} returns on ${shortDate(day)}.`,
+    `Your monthly AI limit is reached. ${AGENT_NAME} returns on ${shortDate(day)}, or raise the limit in Settings.`,
   log: '[prep] mock',
 };
 

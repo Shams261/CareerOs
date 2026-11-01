@@ -54,7 +54,7 @@ export const UNAVAILABLE = `${AGENT_NAME} couldn’t prepare this right now.`;
 const WORDS: CallWords = {
   unavailable: UNAVAILABLE,
   budgetUsed: (day) =>
-    `This month’s AI budget is used. ${AGENT_NAME} returns on ${shortDate(day)}.`,
+    `Your monthly AI limit is reached. ${AGENT_NAME} returns on ${shortDate(day)}, or raise the limit in Settings.`,
   log: '[prep] doc',
 };
 

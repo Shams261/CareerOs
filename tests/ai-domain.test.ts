@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
   budgetLine,
-  CAP_MICROS,
   costMicros,
   DEFAULT_TICKS,
   ENDPOINT,
@@ -18,7 +17,9 @@ import {
   SENT_PARAMETERS,
   sentRows,
   studyInput,
-  withinCap,
+  withinLimit,
+  limitInput,
+  underShare,
 } from '../src/features/ai/domain';
 
 /** A seeded generator, so a failing case can be replayed. */
@@ -227,8 +228,11 @@ describe('the budget', () => {
       firstMessages({ topic: 'Caching', scope: 'TTL' }),
     );
     expect(r).toBeGreaterThanOrEqual(MAX_TOKENS * 0.5);
-    expect(withinCap(CAP_MICROS - r, r)).toBe(true);
-    expect(withinCap(CAP_MICROS - r + 1, r)).toBe(false);
+    // WI-114: the owner's limit, when they set one, is the only stop on spend.
+    const limit = 10_000_000;
+    expect(withinLimit(limit - r, r, limit)).toBe(true);
+    expect(withinLimit(limit - r + 1, r, limit)).toBe(false);
+    expect(withinLimit(999_000_000, r, null)).toBe(true);
   });
   it('follows the owner’s calendar month, across DST and the year end', () => {
     const nov = monthWindow('2026-11-15', 'America/Toronto');
@@ -239,9 +243,27 @@ describe('the budget', () => {
     );
   });
   it('reads as a plain line', () => {
-    expect(budgetLine(0)).toBe('US$0.00 of US$3 used this month');
-    expect(budgetLine(347)).toBe('under US$0.01 of US$3 used this month');
-    expect(budgetLine(1_250_000)).toBe('US$1.25 of US$3 used this month');
+    expect(budgetLine(0, null)).toBe('US$0.00 used this month');
+    expect(budgetLine(347, null)).toBe('under US$0.01 used this month');
+    expect(budgetLine(1_250_000, 10_000_000)).toBe(
+      'US$1.25 of US$10 used this month',
+    );
+    expect(budgetLine(1_250_000, 7_500_000)).toBe(
+      'US$1.25 of US$7.50 used this month',
+    );
+  });
+  it('takes the owner’s limit as No limit or any amount in range (WI-114)', () => {
+    expect(limitInput.parse('none')).toBeNull();
+    expect(limitInput.parse('5')).toBe(5_000_000);
+    expect(limitInput.parse(' 12.5 ')).toBe(12_500_000);
+    expect(limitInput.parse('0.1')).toBe(100_000);
+    for (const bad of ['', '0', '0.05', '1001', 'abc', '-5'])
+      expect(limitInput.safeParse(bad).success, bad).toBe(false);
+  });
+  it('keeps background calls to a share of a set limit, and never stops them without one', () => {
+    expect(underShare(8_900_000, 10_000_000, 0.9)).toBe(true);
+    expect(underShare(9_000_000, 10_000_000, 0.9)).toBe(false);
+    expect(underShare(500_000_000, null, 0.9)).toBe(true);
   });
 });
 

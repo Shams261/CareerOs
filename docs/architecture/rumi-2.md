@@ -22,7 +22,7 @@ flowchart TB
   end
   subgraph Policy["Policy (ADR-021, 022, 024, 030)"]
     P1["Allowlist reads; never-read list (notes, check-in notes, reflections, compensation, contacts); non-study blocks as busy; test records and Study-AI-off roadmaps out"]
-    P2["Two write classes; owner lock; Undo; caps (US$3, 30/h, 100/d, 3 lines/d); banned words and invented-number check; provider must be Google or AI is off"]
+    P2["Two write classes; owner lock; Undo; caps (the owner's monthly limit since WI-114, 30/h, 100/d, 3 lines/d); banned words and invented-number check; provider must be Google or AI is off"]
   end
   subgraph Tools["Tools (the only way to data)"]
     T1["Reads: get_today, get_schedule, get_activity, get_roadmaps, get_practice, get_jobs, get_patterns, get_prep_docs, find_problems (with ids)"]

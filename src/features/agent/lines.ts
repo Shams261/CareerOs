@@ -14,7 +14,7 @@ import {
   type CallWords,
   type Fetcher,
 } from '@/features/ai/service';
-import { CAP_MICROS } from '@/features/ai/domain';
+import { underShare } from '@/features/ai/domain';
 import { AGENT_NAME, PERSONA, readStyle, type ToolName } from './domain';
 import {
   LINE_CAP_SHARE,
@@ -35,7 +35,7 @@ import { readLineLanguage } from '@/features/nudges/domain';
 
 const WORDS: CallWords = {
   unavailable: `${AGENT_NAME} could not write the line.`,
-  budgetUsed: () => 'This month’s AI budget is used.',
+  budgetUsed: () => 'Your monthly AI limit is reached.',
   log: '[agent] line',
 };
 /** The part of the day a row is, from its type. */
@@ -112,7 +112,7 @@ export async function writeRumiLines(
   }
 }
 
-/** One line for one owner and part, or null when AI is off, blocked or near the cap. */
+/** One line for one owner and part, or null when AI is off, blocked or near the owner's limit. */
 async function writeLine(
   user: ScheduleUser & { name: string | null },
   part: LinePart,
@@ -122,7 +122,7 @@ async function writeLine(
   const cfg = aiConfig();
   if (!cfg) return null;
   const state = await aiState(user, now);
-  if (state.spent >= CAP_MICROS * LINE_CAP_SHARE) return null;
+  if (!underShare(state.spent, state.limit, LINE_CAP_SHARE)) return null;
   await ready(user, cfg, now, fetcher, { requireEnabled: false });
   const today = dayKey(now, user.timezone);
   const reads: Record<string, string> = {};
