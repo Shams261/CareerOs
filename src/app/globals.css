@@ -6054,6 +6054,14 @@ button.attention-link {
   border-radius: var(--radius-md);
   overflow-wrap: anywhere;
 }
+/* The Remove form keeps its one word; the text beside it wraps (WI-100). */
+.rumi-memory-list li > form {
+  flex-shrink: 0;
+  overflow-wrap: normal;
+}
+.rumi-memory-list li > span {
+  min-width: 0;
+}
 @media (max-width: 900px) {
   .rumi-layout {
     grid-template-columns: minmax(0, 1fr);
@@ -9557,4 +9565,59 @@ html {
 }
 .rail-card.setup-steps .setup-hide {
   min-height: 24px;
+}
+
+/* WI-100: Rumi knows grouped by kind, the style and notes switches, the kept lines. */
+.rumi-setting-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border-subtle);
+  font-size: 14px;
+}
+.rumi-toggle {
+  margin: 0;
+}
+.rumi-toggle-note {
+  font-size: 13px;
+}
+.rumi-memory-group {
+  margin-top: 14px;
+}
+.rumi-memory-kind {
+  margin: 0 0 4px;
+  font-size: 13px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-2);
+}
+.rumi-memory-facts {
+  font-size: 13px;
+}
+.rumi-memory-add {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 140px auto;
+  gap: 8px;
+  align-items: end;
+  margin-top: 16px;
+}
+.rumi-memory-add label {
+  margin: 0;
+}
+.rumi-kept {
+  margin: 10px 0 0;
+  display: grid;
+  gap: 4px;
+  font-size: 14px;
+}
+.rumi-kept q {
+  quotes: '\201C' '\201D';
+}
+@media (max-width: 700px) {
+  .rumi-memory-add {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }

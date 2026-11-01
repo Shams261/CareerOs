@@ -26,7 +26,6 @@ import {
   HISTORY,
   historyWindow,
   MAX_ROUNDS,
-  MEMORY,
   memoryInput,
   messageInput,
   readToolCall,
@@ -37,6 +36,19 @@ import {
   type ToolCall,
 } from './domain';
 import { runTool } from './tools';
+import {
+  extractMemories,
+  keepLineIn,
+  memoryRows,
+  rumiStyle,
+  type Kept,
+} from './memory-service';
+import {
+  expiryFor,
+  isActive,
+  memoryLines,
+  type MemoryKind,
+} from './memory-domain';
 import { newSuggestion, proposeBlocks } from './plans';
 import {
   planWindow,
@@ -93,29 +105,43 @@ export async function deleteConversation(user: ScheduleUser, id: string) {
   if (!found.count) throw new Error('This conversation was already deleted.');
 }
 
-/** "Rumi knows": the owner's own lines, oldest first. */
-export const memories = (user: ScheduleUser) =>
-  db().agentMemory.findMany({
-    where: { userId: user.id },
-    orderBy: { createdAt: 'asc' },
-    select: { id: true, text: true },
-  });
-export async function addMemory(user: ScheduleUser, raw: unknown) {
+/** "Rumi knows": every line, oldest first (WI-100: with its kind, source and days). */
+export const memories = memoryRows;
+/** A line the owner writes (WI-100: with a kind; the rules of keepLineIn apply). */
+export async function addMemory(
+  user: ScheduleUser,
+  raw: unknown,
+  kind: MemoryKind = 'PREFERENCE',
+  now = new Date(),
+) {
   const text = memoryInput.parse(raw);
+  const today = dayKey(now, user.timezone);
   return locked(user.id, async (tx) => {
-    const count = await tx.agentMemory.count({ where: { userId: user.id } });
-    if (count >= MEMORY.items)
-      throw new Error(
-        `${AGENT_NAME} keeps up to ${MEMORY.items} lines. Remove one first.`,
-      );
-    return tx.agentMemory.create({ data: { userId: user.id, text } });
+    const row = await keepLineIn(
+      tx,
+      user,
+      {
+        text,
+        kind,
+        source: 'OWNER',
+        expiresAt: expiryFor(kind, today),
+      },
+      now,
+    );
+    if (!row) throw new Error(`${AGENT_NAME} already has that line.`);
+    return row;
   });
 }
+/** Removes one line and returns it, so Undo can put it back (WI-100). */
 export async function removeMemory(user: ScheduleUser, id: string) {
-  const found = await db().agentMemory.deleteMany({
-    where: { id, userId: user.id },
+  return locked(user.id, async (tx) => {
+    const row = await tx.agentMemory.findFirst({
+      where: { id, userId: user.id },
+    });
+    if (!row) throw new Error('This line was already removed.');
+    await tx.agentMemory.delete({ where: { id: row.id } });
+    return row;
   });
-  if (!found.count) throw new Error('This line was already removed.');
 }
 
 /** Whether Ask Rumi can run on this server (the AI key is set). */
@@ -192,15 +218,30 @@ export async function sendMessage(
     });
     return { conversationId: id, history: history.reverse() };
   });
-  const [memory, goal] = await Promise.all([
-    memories(user).then((list) => list.map((m) => m.text)),
+  const today = dayKey(now, user.timezone);
+  const [rows, goal, style] = await Promise.all([
+    memoryRows(user),
     // The nearest active goal with a date, else any active goal (WI-060).
     db().goal.findFirst({
       where: { userId: user.id, status: 'ACTIVE' },
       orderBy: [{ targetDate: { sort: 'asc', nulls: 'last' } }],
       select: { title: true, targetDate: true, targetRole: true },
     }),
+    rumiStyle(user),
   ]);
+  // The lines sent today are stamped once a day (WI-100), so expiry and eviction follow use.
+  const dayStart = new Date(`${today}T00:00:00Z`);
+  const active = rows.filter((r) => isActive(r, today));
+  if (active.some((r) => !r.lastUsedAt || r.lastUsedAt < dayStart))
+    await db().agentMemory.updateMany({
+      where: {
+        userId: user.id,
+        id: { in: active.map((r) => r.id) },
+        OR: [{ lastUsedAt: null }, { lastUsedAt: { lt: dayStart } }],
+      },
+      data: { lastUsedAt: now },
+    });
+  const memory = memoryLines(rows, today);
   const messages: ChatMessage[] = [
     {
       role: 'system',
@@ -210,6 +251,7 @@ export async function sendMessage(
         time: hhmm(now, user.timezone),
         zone: user.timezone,
         memory,
+        style,
         planUntil: planWindow(dayKey(now, user.timezone)).last,
         goal: goal
           ? {
@@ -346,6 +388,8 @@ export type AskResult =
         content: string;
         proposals: Proposal[];
         suggestions: Suggestion[];
+        /** Lines Rumi kept after this answer (WI-100). */
+        kept: Kept[];
         tools: string[];
       };
       budget: string;
@@ -417,4 +461,23 @@ export async function askRumi(
     );
     return { ok: false, message: UNAVAILABLE, budget, nearCap: near };
   }
+}
+
+/**
+ * After an answer (WI-100): Rumi's notes from the owner's own words. The server action waits
+ * for them; the streaming route sends the answer first and these after it.
+ */
+export async function noteMemories(
+  user: ScheduleUser,
+  result: AskResult,
+  fetcher: Fetcher = fetch,
+): Promise<Kept[]> {
+  if (!result.ok) return [];
+  return extractMemories(
+    user,
+    result.conversationId,
+    result.reply.id,
+    new Date(),
+    fetcher,
+  );
 }

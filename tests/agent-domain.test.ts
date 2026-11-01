@@ -59,7 +59,10 @@ describe('the chat request (ADR-024)', () => {
     expect('temperature' in body).toBe(false);
     expect(body.tool_choice).toBe('auto');
     expect(chatBody([], true).tool_choice).toBe('none');
-    expect(TOOLS.map((t) => t.function.name)).toEqual(TOOL_NAMES);
+    // suggest_memory stays readable for stored history but is no longer offered (WI-100).
+    expect(TOOLS.map((t) => t.function.name)).toEqual(
+      TOOL_NAMES.filter((n) => n !== 'suggest_memory'),
+    );
   });
   it('reserves at least the full output ceiling', () => {
     expect(chatReservation([])).toBeGreaterThanOrEqual(body.max_tokens * 0.5);
@@ -177,6 +180,21 @@ describe('what is sent', () => {
     expect(prompt).toMatch(/never visible to you: the owner’s notes/);
     for (const w of BANNED_WORDS) expect(prompt).toContain(w);
     expect(prompt).toMatch(/- I focus best before 09:00/);
+    expect(prompt).toMatch(
+      /keeps notes of what the owner states|keep notes of what the owner states/,
+    );
+    expect(prompt).not.toMatch(/suggest_memory/);
+    expect(
+      systemPrompt({
+        today: '2026-10-27',
+        weekday: 'Tuesday',
+        time: '18:20',
+        zone: 'UTC',
+        memory: [],
+        planUntil: '2026-11-01',
+        style: 'brief',
+      }),
+    ).toMatch(/one or two sentences/i);
     expect(
       systemPrompt({
         today: '2026-10-27',

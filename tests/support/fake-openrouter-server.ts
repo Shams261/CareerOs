@@ -123,16 +123,38 @@ function pickTool(question: string, system: string) {
       },
     ] as const;
   }
-  if (/remember|yaad|rest day/.test(q))
-    return [
-      'suggest_memory',
-      { text: 'Rest day is Saturday', reason: 'You said so in this chat' },
-    ] as const;
   if (/today|aaj|now|start/.test(q)) return ['get_today', {}] as const;
   if (/roadmap|revision|revise/.test(q)) return ['get_roadmaps', {}] as const;
   if (/job|interview|prep|company/.test(q)) return ['get_jobs', {}] as const;
   if (/practice|problem|dsa/.test(q)) return ['get_practice', {}] as const;
   return ['get_activity', { days: 7 }] as const;
+}
+/** Rumi's notes (WI-100): one line when the owner states a habit or a rest day, else none. */
+function memoriesFrom(content: string) {
+  let texts: string[] = [];
+  try {
+    texts = (JSON.parse(content).ownerMessages ?? []) as string[];
+  } catch {
+    texts = [];
+  }
+  const last = (texts.at(-1) ?? '').toLowerCase();
+  if (/rest day/.test(last))
+    return {
+      memories: [
+        { kind: 'HABIT', text: 'Rest day is Saturday', expiresInDays: null },
+      ],
+    };
+  if (/usually|prefer|best/.test(last))
+    return {
+      memories: [
+        {
+          kind: 'PREFERENCE',
+          text: 'Studies best before 09:00',
+          expiresInDays: null,
+        },
+      ],
+    };
+  return { memories: [] };
 }
 /** Ask Rumi: a tool call first; once a tool answered, a short reply naming its fields. */
 function agentAnswer(messages: ChatIn[], final: boolean) {
@@ -327,7 +349,9 @@ createServer(async (req, res) => {
                       ? listenScript(body.messages[1]?.content ?? '{}')
                       : format === 'prep_doc'
                         ? prepDoc(body.messages[1]?.content ?? '{}')
-                        : ladder(topic),
+                        : format === 'memories'
+                          ? memoriesFrom(body.messages[1]?.content ?? '{}')
+                          : ladder(topic),
                   ),
           },
         },

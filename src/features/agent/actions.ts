@@ -7,12 +7,19 @@ import { weekdayDate } from '@/lib/time';
 import { syncSoon } from '@/features/calendar/background';
 import { issueMessages } from '@/lib/validation';
 import type { ActionState } from '@/features/schedule/actions';
-import { AGENT_NAME } from './domain';
+import { AGENT_NAME, readStyle } from './domain';
+import { MEMORY_KINDS } from './memory-domain';
+import {
+  forgetRumiMemories,
+  setMemoryEnabled,
+  setRumiStyle,
+} from './memory-service';
 import { answerSuggestion, applyProposal, dismissProposal } from './plans';
 import {
   addMemory,
   askRumi,
   deleteConversation,
+  noteMemories,
   removeMemory,
   type AskResult,
 } from './service';
@@ -24,8 +31,13 @@ export async function askAction(
   conversationId: string | null,
   text: string,
 ): Promise<AskResult> {
-  const result = await askRumi(await owner(), conversationId, text);
-  if (result.ok) revalidatePath('/rumi');
+  const user = await owner();
+  const result = await askRumi(user, conversationId, text);
+  if (result.ok) {
+    // The notes Rumi keeps after the answer (WI-100), with the answer for the action path.
+    result.reply.kept = await noteMemories(user, result);
+    revalidatePath('/rumi');
+  }
   return result;
 }
 
@@ -59,15 +71,69 @@ export async function deleteConversationAction(_s: ActionState, f: FormData) {
 /** Settings → "Rumi knows": a line the owner writes for Rumi to keep in mind. */
 export async function addMemoryAction(_s: ActionState, f: FormData) {
   return perform(async () => {
-    await addMemory(await owner(), f.get('text'));
+    const kind = z.enum(MEMORY_KINDS).catch('PREFERENCE').parse(f.get('kind'));
+    await addMemory(await owner(), f.get('text'), kind);
     return `${AGENT_NAME} will keep that in mind.`;
   });
 }
-export async function removeMemoryAction(_s: ActionState, f: FormData) {
+/** Removes a line, with Undo (WI-100). */
+export async function removeMemoryAction(
+  _s: ActionState,
+  f: FormData,
+): Promise<ActionState> {
+  try {
+    const row = await removeMemory(
+      await owner(),
+      z.string().min(1).parse(f.get('id')),
+    );
+    revalidatePath('/settings');
+    revalidatePath('/rumi');
+    return {
+      ok: true,
+      message: 'Removed.',
+      undo: {
+        kind: 'restore-memory',
+        payload: {
+          text: row.text,
+          kind: row.kind,
+          source: row.source,
+          expiresAt: row.expiresAt?.toISOString().slice(0, 10) ?? null,
+        },
+      },
+    };
+  } catch (error) {
+    return {
+      message:
+        error instanceof Error && !('code' in error)
+          ? error.message
+          : 'Unable to save. Reload and try again.',
+    };
+  }
+}
+/** "Forget everything Rumi noted": the owner's own lines stay. */
+export async function forgetRumiAction(_s: ActionState, f: FormData) {
   return perform(async () => {
-    await removeMemory(await owner(), z.string().min(1).parse(f.get('id')));
-    return 'Removed.';
+    if (f.get('id') !== 'rumi') throw new Error('Nothing to forget.');
+    const n = await forgetRumiMemories(await owner());
+    return n
+      ? `Forgot ${n} ${n === 1 ? 'line' : 'lines'} ${AGENT_NAME} noted.`
+      : `${AGENT_NAME} had noted nothing.`;
   });
+}
+/** The switch "Rumi keeps notes from conversations". */
+export async function memoryEnabledAction(_s: ActionState, f: FormData) {
+  return perform(async () => {
+    const on = f.get('enabled') === 'on';
+    await setMemoryEnabled(await owner(), on);
+    return on
+      ? `${AGENT_NAME} keeps notes from conversations.`
+      : `${AGENT_NAME} keeps no new notes.`;
+  });
+}
+/** The style chip, saved on choice like the theme (WI-100). */
+export async function rumiStyleAction(f: FormData) {
+  await setRumiStyle(await owner(), readStyle(f.get('style')));
+  revalidatePath('/settings');
 }
 
 const cardIds = (f: FormData) =>

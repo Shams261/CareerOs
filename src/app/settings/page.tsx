@@ -53,6 +53,7 @@ import { aiState } from '@/features/ai/service';
 import { dayPrintAction } from '@/features/day-print/actions';
 import { AiSettings, aiContext } from '@/features/ai/settings';
 import { memories } from '@/features/agent/service';
+import { agentSetting, rumiStyle } from '@/features/agent/memory-service';
 import { MemorySettings, memoryContext } from '@/features/agent/memory';
 import { AGENT_NAME } from '@/features/agent/domain';
 import { ThemeSwitch } from '@/features/settings/theme-switch';
@@ -95,6 +96,8 @@ export default async function Settings({
     routineCategories,
     ai,
     memoryLines,
+    agent,
+    style,
     sessions,
     sentRows,
     curriculum,
@@ -125,6 +128,8 @@ export default async function Settings({
     }),
     aiState(user, now),
     memories(user),
+    agentSetting(user),
+    rumiStyle(user),
     // Signed-in devices (WI-057); this request's session is marked.
     currentSession().then((c) => activeSessions(user.id, c?.id ?? null, now)),
     // When each kind of reminder last came out, so the owner can see it really goes (WI-060).
@@ -572,7 +577,7 @@ export default async function Settings({
                   icon={<MessageCircle size={22} />}
                   label={AGENT_NAME}
                   title={`${AGENT_NAME} knows`}
-                  context={memoryContext(memoryLines.length)}
+                  context={memoryContext(memoryLines)}
                   panel="rumi-memory"
                 />
               )}
@@ -623,7 +628,12 @@ export default async function Settings({
               </ActionForm>
             </SidePanel>
             <SidePanel id="rumi-memory" title={`${AGENT_NAME} knows`}>
-              <MemorySettings lines={memoryLines} />
+              <MemorySettings
+                lines={memoryLines}
+                today={dayKey(now, user.timezone)}
+                memoryEnabled={agent.memoryEnabled}
+                style={style}
+              />
             </SidePanel>
           </section>
         </div>

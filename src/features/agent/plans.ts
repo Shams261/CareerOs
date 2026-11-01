@@ -17,7 +17,8 @@ import {
   type ScheduleUser,
 } from '@/features/schedule/service';
 import { saveBlockIn } from '@/features/schedule/editing';
-import { AGENT_NAME, MEMORY, titleVisible } from './domain';
+import { AGENT_NAME, titleVisible } from './domain';
+import { keepLineIn } from './memory-service';
 import {
   addable,
   checkBlocks,
@@ -261,23 +262,20 @@ export async function answerSuggestion(
     const s = meta.suggestions.find((x) => x.id === suggestionId);
     if (!s || s.status !== 'shown')
       throw new Error('This suggestion is not open.');
-    const lines = keep
-      ? await tx.agentMemory.findMany({
-          where: { userId: user.id },
-          select: { text: true },
-        })
-      : [];
-    const already = lines.some(
-      (l) => l.text.trim().toLowerCase() === s.text.trim().toLowerCase(),
-    );
-    if (keep && !already) {
-      const count = lines.length;
-      if (count >= MEMORY.items)
-        throw new Error(
-          `${AGENT_NAME} keeps up to ${MEMORY.items} lines. Remove one in Settings first.`,
-        );
-      await tx.agentMemory.create({ data: { userId: user.id, text: s.text } });
-    }
+    // A kept suggestion is a Rumi line like any other since WI-100 (dedupe, caps).
+    if (keep)
+      await keepLineIn(
+        tx,
+        user,
+        {
+          text: s.text,
+          kind: 'PREFERENCE',
+          source: 'RUMI',
+          expiresAt: null,
+          messageId,
+        },
+        new Date(),
+      );
     s.status = keep ? 'kept' : 'dismissed';
     await save();
   });
