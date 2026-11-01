@@ -15,6 +15,9 @@ import {
   setRumiStyle,
 } from './memory-service';
 import { answerSuggestion, applyProposal, dismissProposal } from './plans';
+import { restore } from '@/features/undo/service';
+import { undoWrite } from './writes';
+import { afterWrites } from './after-writes';
 import {
   addMemory,
   askRumi,
@@ -34,6 +37,7 @@ export async function askAction(
   const user = await owner();
   const result = await askRumi(user, conversationId, text);
   if (result.ok) {
+    afterWrites(user, result.reply.actions);
     // The notes Rumi keeps after the answer (WI-100), with the answer for the action path.
     result.reply.kept = await noteMemories(user, result);
     revalidatePath('/rumi');
@@ -134,6 +138,34 @@ export async function memoryEnabledAction(_s: ActionState, f: FormData) {
 export async function rumiStyleAction(f: FormData) {
   await setRumiStyle(await owner(), readStyle(f.get('style')));
   revalidatePath('/settings');
+}
+
+/** Undo on one of Rumi's changes (WI-102): the stored undo of the owner's own answer. */
+export async function undoWriteAction(
+  messageId: string,
+  actionId: string,
+): Promise<{ ok: boolean; message: string }> {
+  try {
+    const user = await owner();
+    const message = await undoWrite(
+      user,
+      z.string().min(1).max(40).parse(messageId),
+      z.string().min(1).max(60).parse(actionId),
+      (kind, payload) => restore(user, kind, payload),
+    );
+    forgetAll();
+    for (const path of ['/rumi', '/today', '/calendar']) revalidatePath(path);
+    syncSoon(user);
+    return { ok: true, message };
+  } catch (error) {
+    return {
+      ok: false,
+      message:
+        error instanceof Error && !('code' in error)
+          ? error.message
+          : 'Unable to undo. Reload and try again.',
+    };
+  }
 }
 
 const cardIds = (f: FormData) =>

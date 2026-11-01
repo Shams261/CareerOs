@@ -69,6 +69,8 @@ const kinds = {
   }),
   'problem-unhide': z.object({ id: z.string().min(1) }),
   'restore-note': z.object({ body: z.string().min(1).max(500) }),
+  // A note Rumi added (WI-102): undo removes it.
+  'remove-note': z.object({ id: z.string().min(1) }),
   // "Rumi knows" (WI-100): a line removed comes back; a line Rumi kept goes.
   'remove-memory': z.object({ id: z.string().min(1) }),
   'restore-memory': z.object({
@@ -303,6 +305,14 @@ export async function restore(
         ),
       );
       return 'Line kept again.';
+    }
+    case 'remove-note': {
+      const { id } = kinds[k].parse(payload);
+      const { count } = await db().quickNote.deleteMany({
+        where: { id, userId: user.id },
+      });
+      if (!count) throw new Error('This note is already gone.');
+      return 'Note removed.';
     }
     case 'reopen-note': {
       const { id } = kinds[k].parse(payload);

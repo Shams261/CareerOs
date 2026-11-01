@@ -6,7 +6,8 @@ import { ActionForm } from '@/components/action-form';
 import { Button } from '@/components/ui/button';
 import { deleteConversationAction, type AskResult } from './actions';
 import { ASK_EVENT, ASK_KEY, PREFILL_EVENT, PREFILL_KEY } from './events';
-import { KeptRows, ProposalCard, SuggestionCard } from './cards';
+import { ActionRows, KeptRows, ProposalCard, SuggestionCard } from './cards';
+import { WRITE_WORDS, isWrite, type WriteAction } from './write-domain';
 import type { Kept, Proposal, Suggestion } from './plan-domain';
 import {
   AGENT_NAME,
@@ -25,6 +26,8 @@ type Message = {
   suggestions?: Suggestion[];
   /** Lines Rumi kept after this answer (WI-100). */
   kept?: Kept[];
+  /** Changes Rumi made in this answer (WI-102). */
+  actions?: WriteAction[];
   /** The reads behind an answer, for its "Read:" line (WI-055). */
   tools?: string[];
 };
@@ -337,6 +340,9 @@ export function RumiChat({
                 {m.tools && readLine(m.tools) && (
                   <p className="rumi-read">{readLine(m.tools)}</p>
                 )}
+                {m.actions && m.actions.length > 0 && (
+                  <ActionRows messageId={m.id} actions={m.actions} />
+                )}
                 {m.proposals?.map((p) => (
                   <ProposalCard
                     key={p.id}
@@ -355,7 +361,13 @@ export function RumiChat({
         ))}
         {pending && (
           <p className="rumi-reading" role="status">
-            {readingLine(reads)}
+            {(() => {
+              // A change in progress names itself (WI-102); otherwise the reads so far.
+              const writing = reads.filter(isWrite).at(-1);
+              return writing
+                ? `${AGENT_NAME} is ${WRITE_WORDS[writing]}…`
+                : readingLine(reads);
+            })()}
           </p>
         )}
         {error && (

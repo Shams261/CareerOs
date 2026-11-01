@@ -34,7 +34,7 @@ import { studyKinds } from './tools';
 type Tx = Prisma.TransactionClient;
 
 /** The day's blocks as conflicts, named only as far as Rumi may see them. */
-async function takenOn(
+export async function takenOn(
   client: Pick<Tx, 'timeBlock'>,
   userId: string,
   day: string,
@@ -68,7 +68,7 @@ async function takenOn(
 }
 
 /** The kinds the owner already uses, so a proposal keeps their spelling. */
-async function knownKinds(userId: string, study: string[]) {
+export async function knownKinds(userId: string, study: string[]) {
   const rows = await db().routineBlock.findMany({
     where: { userId },
     select: { category: true },

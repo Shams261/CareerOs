@@ -60,9 +60,13 @@ const ARGS: Record<ToolName, Record<string, unknown>> = {
   get_jobs: {},
   get_patterns: {},
   get_prep_docs: {},
-  // Cards, handled by the message loop; through runTool they only refuse.
+  find_problems: { text: 'two sum' },
+  // Cards and writes, handled by the message loop; through runTool they only refuse.
   propose_blocks: {},
   suggest_memory: {},
+  add_note: {},
+  add_block: {},
+  rest_today: {},
 };
 
 type Answer = {
@@ -319,6 +323,8 @@ describe.skipIf(!url)('Ask Rumi (PostgreSQL)', () => {
       { time: '07:00–08:00', busy: true },
       { time: '09:00–17:00', busy: true },
       {
+        // Visible blocks carry their id (WI-102); "busy" ones never do.
+        id: expect.any(String),
         time: '18:00–19:30',
         kind: 'DSA',
         title: 'Two pointers',

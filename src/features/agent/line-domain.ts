@@ -2,6 +2,7 @@ import { z } from 'zod';
 import type { OutputFormat } from '@/features/ai/domain';
 import { BANNED_WORDS, type LineLanguage } from '@/features/nudges/domain';
 import { STYLE_LINES, type RumiStyle } from './domain';
+import { withoutIds } from './write-domain';
 
 /**
  * Rumi's line (WI-101, ADR-030): pure rules. Code decides when a line is due and what Rumi may
@@ -140,9 +141,12 @@ const ISSUE_WORDS: Record<string, string> = {
   number: 'every number must appear in the data; do not invent counts or times',
 };
 
-/** One read's JSON, cut so a long schedule never crowds the prompt. */
+/**
+ * One read's JSON without its ids (WI-102: reads carry ids for the chat; a line never needs
+ * them, and their digits must never count as numbers the line may use), cut to its budget.
+ */
 export const readText = (value: unknown) => {
-  const text = JSON.stringify(value) ?? 'null';
+  const text = JSON.stringify(withoutIds(value)) ?? 'null';
   return text.length > READ_MAX ? `${text.slice(0, READ_MAX)}…` : text;
 };
 

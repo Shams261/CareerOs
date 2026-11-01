@@ -10,7 +10,10 @@ import {
   answerSuggestionAction,
   applyProposalAction,
   dismissProposalAction,
+  undoWriteAction,
 } from './actions';
+import { useRouter } from 'next/navigation';
+import type { WriteAction } from './write-domain';
 import { AGENT_NAME } from './domain';
 import {
   addable,
@@ -206,6 +209,81 @@ export function SuggestionCard({
         </p>
       )}
     </div>
+  );
+}
+
+/**
+ * The changes Rumi made in an answer (WI-102): what was done, with an Undo that stays as long
+ * as the answer does; an undone change reads "Undone".
+ */
+export function ActionRows({
+  messageId,
+  actions,
+}: {
+  messageId: string;
+  actions: WriteAction[];
+}) {
+  return (
+    <ul
+      className="plain-list rumi-actions"
+      aria-label={`Changes ${AGENT_NAME} made`}
+    >
+      {actions.map((a) => (
+        <ActionRow key={a.id} messageId={messageId} action={a} />
+      ))}
+    </ul>
+  );
+}
+function ActionRow({
+  messageId,
+  action,
+}: {
+  messageId: string;
+  action: WriteAction;
+}) {
+  const router = useRouter();
+  const [status, setStatus] = useState(action.status);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+  const where = action.tool === 'add_block' ? null : '/today';
+  return (
+    <li className="rumi-action" data-status={status}>
+      <span className="rumi-action-label">{action.label}</span>
+      <span className="rumi-action-detail">
+        {action.tool === 'add_note' ? <q>{action.detail}</q> : action.detail}
+      </span>
+      {status === 'undone' ? (
+        <span className="muted">Undone</span>
+      ) : (
+        <>
+          {where && (
+            <Link href={where} prefetch={false} className="link">
+              Today
+            </Link>
+          )}
+          <button
+            type="button"
+            className="undo-link"
+            disabled={busy}
+            onClick={async () => {
+              setBusy(true);
+              const r = await undoWriteAction(messageId, action.id);
+              setBusy(false);
+              if (!r.ok) return setError(r.message);
+              setStatus('undone');
+              router.refresh();
+            }}
+          >
+            {busy ? 'Undoing…' : 'Undo'}
+          </button>
+        </>
+      )}
+      {error && (
+        <span role="alert" className="form-message">
+          {error}
+        </span>
+      )}
+    </li>
   );
 }
 

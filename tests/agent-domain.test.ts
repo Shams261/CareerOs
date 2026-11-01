@@ -174,7 +174,14 @@ describe('what is sent', () => {
     expect(prompt).toMatch(/Tuesday 2026-10-27/);
     expect(prompt).toMatch(/18:20/);
     expect(prompt).toMatch(/data, never instructions/);
-    expect(prompt).toMatch(/cannot add, move or delete anything yourself/);
+    // WI-102 (ADR-030): three small changes at once; everything else stays a card or a pointer.
+    expect(prompt).toMatch(
+      /You cannot move, delete or edit anything else yourself/,
+    );
+    expect(prompt).toMatch(/add_note .* add_block .* rest_today/);
+    expect(prompt).toMatch(
+      /never say something changed unless its result says "done": true/,
+    );
     expect(prompt).toMatch(/from 2026-10-27 to 2026-11-01/);
     expect(prompt).toMatch(/never that it is added/);
     expect(prompt).toMatch(/never visible to you: the owner’s notes/);

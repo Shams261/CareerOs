@@ -8,6 +8,7 @@ import { z } from 'zod';
 import { hhmm, localInstant } from '@/lib/time';
 import { weekDays } from '@/features/schedule/domain';
 import { categoryGroup } from '@/features/review/domain';
+import { readActions, type WriteAction } from './write-domain';
 
 /** At most this many blocks in one proposal, and proposals in one answer. */
 export const PROPOSAL_BLOCKS = 6;
@@ -174,6 +175,8 @@ export function readMetadata(raw: unknown): {
   proposals: Proposal[];
   suggestions: Suggestion[];
   kept: Kept[];
+  /** The changes Rumi made in this answer (WI-102), each with its Undo. */
+  actions: WriteAction[];
 } {
   const o =
     raw && typeof raw === 'object' ? (raw as Record<string, unknown>) : {};
@@ -186,7 +189,18 @@ export function readMetadata(raw: unknown): {
     proposals: list(o.proposals, proposalSchema),
     suggestions: list(o.suggestions, suggestionSchema),
     kept: list(o.kept, keptSchema),
+    actions: readActions(o),
   };
+}
+/** The ids an answer's reads returned (WI-102), for the answers after it. */
+export function readSeen(raw: unknown): string[] {
+  const seen =
+    raw && typeof raw === 'object'
+      ? (raw as Record<string, unknown>).seen
+      : undefined;
+  return (Array.isArray(seen) ? seen : []).filter(
+    (t): t is string => typeof t === 'string' && t.length <= 60,
+  );
 }
 
 /** The tool names an answer used, from its stored metadata, for its "Read:" line (WI-055). */
