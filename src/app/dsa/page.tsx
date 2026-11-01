@@ -1,6 +1,6 @@
+import { RumiPose } from '@/features/agent/pose';
 import Link from 'next/link';
 import { ArrowRight } from 'lucide-react';
-import { BrandMark } from '@/components/brand';
 import { db, owner } from '@/server/db';
 import { dsaSnapshot } from '@/features/dsa/service';
 import {
@@ -235,7 +235,7 @@ export default async function Dsa({
       )}
       {!topics.length ? (
         <section className="card setup-card" aria-labelledby="setup-heading">
-          <BrandMark className="setup-mark" />
+          <RumiPose pose="thinking" size={104} className="setup-pose" />
           <p className="eyebrow">Start here</p>
           <h2 id="setup-heading">Practice is organised by topic.</h2>
           <p>
@@ -247,55 +247,62 @@ export default async function Dsa({
       ) : (
         <>
           {/* One facts line (WI-093): the count, the due link, the week, the current topic. */}
-          <p className="status-line practice-facts mb-7">
-            <span>
-              {problems.length} problem{problems.length === 1 ? '' : 's'}
-            </span>
-            {queue.length > 0 && (
+          <div className="practice-facts-row mb-7">
+            <p className="status-line practice-facts">
               <span>
-                <PanelButton
-                  panel="revision-queue"
-                  className="link-button practice-due"
-                >
-                  {queue.length} due for revision{' '}
-                  <ArrowRight size={14} aria-hidden="true" />
-                </PanelButton>
+                {problems.length} problem{problems.length === 1 ? '' : 's'}
               </span>
-            )}
-            <span>
-              {weekCount} attempt{weekCount === 1 ? '' : 's'} this week
-              {lastAttempt && (
-                <>
-                  {' · last '}
-                  <Link
-                    prefetch={false}
-                    className="link"
-                    href={`/dsa/${lastAttempt.problem.id}`}
+              {queue.length > 0 && (
+                <span>
+                  <PanelButton
+                    panel="revision-queue"
+                    className="link-button practice-due"
                   >
-                    {lastAttempt.problem.title}
-                  </Link>
-                  {`, ${formatInTimeZone(lastAttempt.attemptedAt, user.timezone, 'MMM d')}`}
-                </>
+                    {queue.length} due for revision{' '}
+                    <ArrowRight size={14} aria-hidden="true" />
+                  </PanelButton>
+                </span>
               )}
-            </span>
-            {workingTopic && (
               <span>
-                Working on {workingTopic.name}
-                {nextProblem && (
+                {weekCount} attempt{weekCount === 1 ? '' : 's'} this week
+                {lastAttempt && (
                   <>
-                    {' · next '}
+                    {' · last '}
                     <Link
                       prefetch={false}
                       className="link"
-                      href={`/dsa/${nextProblem.id}`}
+                      href={`/dsa/${lastAttempt.problem.id}`}
                     >
-                      {nextProblem.title}
+                      {lastAttempt.problem.title}
                     </Link>
+                    {`, ${formatInTimeZone(lastAttempt.attemptedAt, user.timezone, 'MMM d')}`}
                   </>
                 )}
               </span>
-            )}
-          </p>
+              {workingTopic && (
+                <span>
+                  Working on {workingTopic.name}
+                  {nextProblem && (
+                    <>
+                      {' · next '}
+                      <Link
+                        prefetch={false}
+                        className="link"
+                        href={`/dsa/${nextProblem.id}`}
+                      >
+                        {nextProblem.title}
+                      </Link>
+                    </>
+                  )}
+                </span>
+              )}
+            </p>
+            <RumiPose
+              pose={queue.length ? 'revision-cards' : 'working'}
+              size={72}
+              className="practice-pose"
+            />
+          </div>
           <SidePanel
             id="revision-queue"
             title={`Due for revision · ${queue.length}`}

@@ -1,5 +1,5 @@
+import { RumiPose } from '@/features/agent/pose';
 import Link from 'next/link';
-import { ApplicationIllustration } from '@/components/illustrations';
 import { owner } from '@/server/db';
 import { dayKey, hhmm, shortDate, weekdayDate } from '@/lib/time';
 import { funnelSnapshot, jobSnapshot } from '@/features/jobs/service';
@@ -176,7 +176,7 @@ export default async function Jobs({
       )}
       {!apps.length ? (
         <section className="card setup-card" aria-labelledby="setup-heading">
-          <ApplicationIllustration className="setup-illustration" />
+          <RumiPose pose="heading-out" size={104} className="setup-pose" />
           <p className="eyebrow">Start here</p>
           <h2 id="setup-heading">Track your first application.</h2>
           <p>
@@ -362,9 +362,14 @@ export default async function Jobs({
           </section>
           <aside className="today-rail">
             <section
-              className="card rail-card"
+              className="card rail-card has-corner-pose"
               aria-labelledby="next-interviews-heading"
             >
+              <RumiPose
+                pose="interview-ready"
+                size={64}
+                className="corner-pose"
+              />
               <div className="attention-head">
                 <h2 id="next-interviews-heading">Interviews next</h2>
               </div>
