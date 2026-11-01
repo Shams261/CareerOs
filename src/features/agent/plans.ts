@@ -17,12 +17,14 @@ import {
   type ScheduleUser,
 } from '@/features/schedule/service';
 import { saveBlockIn } from '@/features/schedule/editing';
+import { routineOccurrence, weekDays } from '@/features/schedule/domain';
 import { AGENT_NAME, titleVisible } from './domain';
 import { keepLineIn } from './memory-service';
 import {
   addable,
   checkBlocks,
-  planWindow,
+  planAhead,
+  preparesWeek,
   readMetadata,
   takenLabel,
   type ProposeArgs,
@@ -67,6 +69,48 @@ export async function takenOn(
   }));
 }
 
+/**
+ * The routines' blocks a day would get once its week is prepared (WI-116), as conflicts: a
+ * card for next week is checked against them before the press prepares the week.
+ */
+async function routinesOn(
+  userId: string,
+  day: string,
+  zone: string,
+  study: string[],
+) {
+  const routines = await db().routineBlock.findMany({
+    where: { userId, enabled: true },
+    select: {
+      title: true,
+      category: true,
+      weekdays: true,
+      startLocal: true,
+      endLocal: true,
+      enabled: true,
+    },
+  });
+  return routines.flatMap((r) => {
+    const at = routineOccurrence(r, day, zone);
+    if (!at) return [];
+    return [
+      {
+        start: at.plannedStart,
+        end: at.plannedEnd,
+        label: takenLabel(
+          {
+            title: r.title,
+            plannedStart: at.plannedStart,
+            plannedEnd: at.plannedEnd,
+          },
+          titleVisible(r.category, study) && !isTestNamed(r.title),
+          zone,
+        ),
+      },
+    ];
+  });
+}
+
 /** The kinds the owner already uses, so a proposal keeps their spelling. */
 export async function knownKinds(userId: string, study: string[]) {
   const rows = await db().routineBlock.findMany({
@@ -90,19 +134,34 @@ export async function proposeBlocks(
   opts: { window?: { first: string; last: string } } = {},
 ): Promise<{ result: unknown; proposal?: Proposal }> {
   const today = dayKey(now, user.timezone);
-  const window = opts.window ?? planWindow(today);
+  const window = opts.window ?? planAhead(today);
   if (args.day < window.first || args.day > window.last)
     return {
       result: {
-        error: `${AGENT_NAME} plans only ${window.first} to ${window.last}. Next week starts with Prepare next week in Weekly review.`,
+        error: `${AGENT_NAME} plans only ${window.first} to ${window.last}.`,
       },
     };
   await generateThroughSunday(user, today);
   const study = await studyKinds(user.id);
-  const [taken, known] = await Promise.all([
+  // A day in next week that is not planned yet: its routines count, and the card says the
+  // press prepares the week first (ADR-031).
+  const planned = !!(await db().dailyPlan.findFirst({
+    where: {
+      userId: user.id,
+      date: new Date(args.day),
+      generatedAt: { not: null },
+    },
+    select: { id: true },
+  }));
+  const prepares = preparesWeek(today, args.day, planned);
+  const [taken, known, routines] = await Promise.all([
     takenOn(db(), user.id, args.day, user.timezone, study),
     knownKinds(user.id, study),
+    prepares
+      ? routinesOn(user.id, args.day, user.timezone, study)
+      : Promise.resolve([]),
   ]);
+  taken.push(...routines);
   const blocks = checkBlocks(
     args.day,
     args.blocks,
@@ -116,12 +175,18 @@ export async function proposeBlocks(
     day: args.day,
     blocks,
     status: 'shown',
+    ...(prepares ? { prepares } : {}),
   };
   return {
     proposal,
     result: {
       shown: true,
       day: args.day,
+      ...(prepares
+        ? {
+            preparesWeek: `${prepares}: Add to plan prepares this week from the routines first`,
+          }
+        : {}),
       blocks: blocks.map((b) => ({
         title: b.title,
         time: `${b.start}–${b.end}`,
@@ -200,7 +265,12 @@ export async function applyProposal(
     if (!blocks.length) throw new Error('Nothing in this plan can be added.');
     if (p.day < dayKey(now, user.timezone))
       throw new Error('This plan is for a day that has passed.');
-    await generateInTransaction(tx, user, p.day);
+    // A card for next week prepares that whole week from the routines first, as Prepare next
+    // week would (ADR-031); every day of it is idempotent, so a prepared week is untouched.
+    if (p.prepares)
+      for (const day of weekDays(p.day))
+        await generateInTransaction(tx, user, day);
+    else await generateInTransaction(tx, user, p.day);
     const taken = await takenOn(tx, user.id, p.day, user.timezone, study);
     const again = checkBlocks(p.day, blocks, taken, now, user.timezone, []);
     const changed = again.find((b) => b.conflict);

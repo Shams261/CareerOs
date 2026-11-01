@@ -20,7 +20,9 @@ import {
   kindFor,
   patternLine,
   patterns,
+  planAhead,
   planWindow,
+  preparesWeek,
   proposeArgs,
   readMetadata,
 } from '../src/features/agent/plan-domain';
@@ -55,6 +57,17 @@ describe('what Rumi may plan (pure)', () => {
       first: '2026-11-01',
       last: '2026-11-01',
     });
+  });
+  it('lets a plan card reach six days ahead, preparing next week first when needed (WI-116)', () => {
+    expect(planAhead(day)).toEqual({ first: day, last: '2026-11-02' });
+    // On a Sunday, the card can still plan Monday to Saturday.
+    expect(planAhead('2026-11-01')).toEqual({
+      first: '2026-11-01',
+      last: '2026-11-07',
+    });
+    expect(preparesWeek('2026-11-01', '2026-11-02', false)).toBe('2026-11-02');
+    expect(preparesWeek('2026-11-01', '2026-11-02', true)).toBeUndefined();
+    expect(preparesWeek(day, '2026-10-30', false)).toBeUndefined();
   });
   it('keeps the owner’s spelling of a kind', () => {
     const known = ['DSA', 'System design', 'Backend'];
@@ -407,16 +420,70 @@ describe.skipIf(!url)('Rumi plans (PostgreSQL)', () => {
     ]);
   });
 
-  it('refuses days beyond Sunday and dismisses on request', async () => {
-    const { meta, r } = await propose({
+  it('plans a day in next week on a card that prepares the week first (WI-116, ADR-031)', async () => {
+    // A Monday routine next week is not planned yet; the card still sees it.
+    await prisma.routineBlock.create({
+      data: {
+        userId: user.id,
+        title: 'PRIVATE-RUN',
+        category: 'GYM',
+        weekdays: [1],
+        startLocal: '18:00',
+        endLocal: '19:00',
+        priority: 2,
+        enabled: true,
+      },
+    });
+    const { meta, message, r } = await propose({
       day: '2026-11-02',
+      blocks: [
+        block('07:00', '08:00', 'Graphs: BFS practice'),
+        block('18:30', '19:30'),
+      ],
+    });
+    const [p] = meta.proposals;
+    expect(p.prepares).toBe('2026-11-02');
+    expect(p.blocks.map((b) => b.conflict ?? 'ok')).toEqual([
+      'ok',
+      'Overlaps 18:00–19:00 busy',
+    ]);
+    const told = (
+      r.chats[1].messages as { role: string; content: string }[]
+    ).find((m) => m.role === 'tool')!.content;
+    expect(told).toMatch(/prepares this week from the routines first/);
+    expect(told).not.toMatch(/PRIVATE/);
+    // Nothing is planned for next week until the press.
+    expect(
+      await prisma.dailyPlan.count({
+        where: { userId: user.id, date: { gte: new Date('2026-11-02') } },
+      }),
+    ).toBe(0);
+    await applyProposal(user, message.id, p.id, now);
+    expect(
+      await prisma.dailyPlan.count({
+        where: {
+          userId: user.id,
+          date: { gte: new Date('2026-11-02'), lte: new Date('2026-11-08') },
+          generatedAt: { not: null },
+        },
+      }),
+    ).toBe(7);
+    expect((await blocksOn('2026-11-02')).map((b) => b.title)).toEqual([
+      'Graphs: BFS practice',
+      'PRIVATE-RUN',
+    ]);
+  });
+
+  it('refuses days more than six ahead and dismisses on request', async () => {
+    const { meta, r } = await propose({
+      day: '2026-11-03',
       blocks: [block('18:00', '19:00')],
     });
     expect(meta.proposals).toEqual([]);
     const told = (
       r.chats[1].messages as { role: string; content: string }[]
     ).find((m) => m.role === 'tool')!.content;
-    expect(told).toMatch(/Prepare next week/);
+    expect(told).toMatch(/plans only 2026-10-27 to 2026-11-02/);
     const second = await propose();
     await dismissProposal(user, second.message.id, second.meta.proposals[0].id);
     await expect(

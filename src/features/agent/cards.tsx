@@ -80,6 +80,12 @@ export function ProposalCard({
           {proposal.day === today ? 'Today' : weekdayDate(proposal.day)}
         </span>
       </p>
+      {proposal.prepares && proposal.status === 'shown' && (
+        <p className="rumi-plan-prepares">
+          Next week is not prepared yet: this first adds your routines for the
+          week of {weekdayDate(proposal.prepares)}, then these blocks.
+        </p>
+      )}
       {kept.length > 0 && (
         <ul className="plain-list rumi-plan">
           {kept.map(({ b, i }) => (
@@ -288,7 +294,9 @@ export function ProposalCard({
               />
               <input type="hidden" name="extra" value={JSON.stringify(extra)} />
               <Button className="small">
-                Add {can === 1 ? 'block' : `${can} blocks`} to plan
+                {proposal.prepares ? 'Prepare the week and add ' : 'Add '}
+                {can === 1 ? 'block' : `${can} blocks`}
+                {proposal.prepares ? '' : ' to plan'}
               </Button>
             </ActionForm>
           )}

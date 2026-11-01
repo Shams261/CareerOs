@@ -69,6 +69,7 @@ import {
 } from './write-domain';
 import { newSuggestion, proposeBlocks } from './plans';
 import {
+  planAhead,
   planWindow,
   PROPOSALS_PER_ANSWER,
   readMetadata,
@@ -284,6 +285,7 @@ export async function sendMessage(
         style,
         linesToday: written,
         planUntil: planWindow(dayKey(now, user.timezone)).last,
+        planAhead: planAhead(dayKey(now, user.timezone)).last,
         goal: goal
           ? {
               title: goal.title,

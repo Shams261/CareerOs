@@ -6,7 +6,7 @@
  */
 import { z } from 'zod';
 import { hhmm, localInstant } from '@/lib/time';
-import { weekDays } from '@/features/schedule/domain';
+import { shiftDay, weekDays } from '@/features/schedule/domain';
 import { categoryGroup } from '@/features/review/domain';
 import { readActions, type WriteAction } from './write-domain';
 import { cardViews, type CardView } from './request-domain';
@@ -48,9 +48,24 @@ export const suggestArgs = z
   })
   .strict();
 
-/** Rumi plans only today to this week's Sunday; next week starts with Prepare next week. */
+/**
+ * What Rumi changes itself or by a move card stays in today to this week's Sunday, the days
+ * already planned; a day after it is only ever in a plan card (`planAhead`).
+ */
 export function planWindow(today: string) {
   return { first: today, last: weekDays(today)[6] };
+}
+/** Days a plan card may cover (WI-116, ADR-031): today and the six days after it. */
+export const PLAN_AHEAD_DAYS = 7;
+export function planAhead(today: string) {
+  return { first: today, last: shiftDay(today, PLAN_AHEAD_DAYS - 1) };
+}
+/**
+ * The Monday of the week a plan card prepares when its day is after this Sunday and that week
+ * is not planned yet; the owner's press prepares it from the routines first (ADR-031).
+ */
+export function preparesWeek(today: string, day: string, planned: boolean) {
+  return day > weekDays(today)[6] && !planned ? weekDays(day)[0] : undefined;
 }
 
 /** The owner's own spelling of a kind ("system design" → "System design" when they use it). */
@@ -84,6 +99,8 @@ export type Proposal = {
   blocks: ProposalBlock[];
   status: 'shown' | 'applied' | 'dismissed';
   blockIds?: string[];
+  /** WI-116: the Monday of next week, when Add to plan prepares that week first. */
+  prepares?: string;
 };
 export type Suggestion = {
   id: string;
@@ -154,6 +171,7 @@ const proposalSchema = z.object({
   ),
   status: z.enum(['shown', 'applied', 'dismissed']),
   blockIds: z.array(z.string()).optional(),
+  prepares: z.string().optional(),
 });
 const suggestionSchema = z.object({
   id: z.string(),

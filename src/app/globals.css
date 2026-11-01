@@ -10338,3 +10338,10 @@ html {
   height: 34px;
   padding: 4px 8px;
 }
+
+/* WI-116: a plan card for next week says the press prepares that week first. */
+.rumi-plan-prepares {
+  margin: 4px 0 8px;
+  font-size: 13px;
+  color: var(--ink-2);
+}
