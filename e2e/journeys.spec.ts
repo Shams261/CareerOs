@@ -481,6 +481,27 @@ test('Rumi writes the morning line and Reply prefills the drawer', async ({
   await page.keyboard.press('Escape');
 });
 
+test('the Rumi button shows on every page and the key opens the drawer', async ({
+  page,
+}) => {
+  // WI-111: the round button carries Rumi's mark on a desktop too; ⌘/ or Ctrl+/ toggles it.
+  for (const path of ['/jobs', '/dsa']) {
+    await page.goto(path);
+    const button = page.locator('button.rumi-fab');
+    await expect(button).toBeVisible();
+    await expect(button.locator('.rumi-mark img').first()).toBeVisible();
+  }
+  await page.keyboard.press('ControlOrMeta+/');
+  const drawer = page.getByRole('dialog', { name: 'Ask Rumi' });
+  await expect(drawer).toBeVisible();
+  await expect(drawer.getByRole('textbox', { name: 'Ask Rumi' })).toBeFocused();
+  await accessible(page);
+  // The key works while typing, and closes the drawer again.
+  await page.keyboard.press('ControlOrMeta+/');
+  await expect(drawer).toBeHidden();
+  await expect(page.locator('button.rumi-fab')).toBeFocused();
+});
+
 test('the week draft adds a day and Undo takes it back', async ({ page }) => {
   // WI-107: next week is prepared from the routines first, then Rumi drafts around them.
   await page.goto('/review?step=plan');

@@ -1,4 +1,5 @@
 'use client';
+import { RumiPose } from './pose';
 import { useEffect, useRef, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowUp } from 'lucide-react';
@@ -34,6 +35,7 @@ import {
   renderText,
   SUGGESTED_PROMPTS,
 } from './domain';
+import { RumiMark } from './mark';
 
 type Message = {
   id: string;
@@ -341,6 +343,7 @@ export function RumiChat({
       <div className="rumi-log" aria-live="polite">
         {messages.length === 0 && (
           <div className="rumi-empty">
+            <RumiPose pose="hello" size={104} className="rumi-empty-mark" />
             <p className="rumi-empty-lead">
               {AGENT_NAME} reads your schedule, study, practice and jobs, and
               answers from them. It never sees your notes.
@@ -367,7 +370,16 @@ export function RumiChat({
             className="rumi-message"
             data-role={m.role === 'USER' ? 'owner' : 'rumi'}
           >
-            <p className="rumi-who">{m.role === 'USER' ? 'You' : AGENT_NAME}</p>
+            <p className="rumi-who">
+              {m.role === 'USER' ? (
+                'You'
+              ) : (
+                <>
+                  <RumiMark size={18} />
+                  {AGENT_NAME}
+                </>
+              )}
+            </p>
             {m.role === 'USER' ? (
               <p className="rumi-own">{m.content}</p>
             ) : (
@@ -400,6 +412,7 @@ export function RumiChat({
         ))}
         {pending && (
           <p className="rumi-reading" role="status">
+            <RumiMark size={22} state="busy" />
             {(() => {
               // A change in progress names itself (WI-102); otherwise the reads so far.
               const writing = reads.filter(isWrite).at(-1);

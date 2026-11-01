@@ -1,3 +1,4 @@
+import { RumiPose } from '@/features/agent/pose';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { ArrowLeft } from 'lucide-react';
@@ -109,7 +110,8 @@ export default async function PrepDocPage({
         <ArrowLeft size={14} aria-hidden="true" /> {row.company}
       </Link>
       <p className="eyebrow mt-4">Prepared with {AGENT_NAME}</p>
-      <div className="page-head">
+      <div className="page-head has-pose">
+        <RumiPose pose="interview-ready" size={56} className="head-pose" />
         <h1>
           {row.company} · {row.role}
         </h1>

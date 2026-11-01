@@ -1,3 +1,4 @@
+import { RumiPose } from '@/features/agent/pose';
 import Link from 'next/link';
 import { cookies } from 'next/headers';
 import { ArrowRight, CalendarClock, Check, Circle, Plus } from 'lucide-react';
@@ -79,7 +80,11 @@ export async function FirstRunToday({
       </header>
       <div className="home-grid">
         <div className="home-main">
-          <section className="welcome-hero" aria-labelledby="welcome-heading">
+          <section
+            className="welcome-hero has-pose"
+            aria-labelledby="welcome-heading"
+          >
+            <RumiPose pose="checklist" size={112} className="welcome-pose" />
             <p className="eyebrow welcome-eyebrow">A good place to start</p>
             <h2 id="welcome-heading">Start small. Build your rhythm.</h2>
             <p>

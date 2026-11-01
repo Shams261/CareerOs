@@ -6712,17 +6712,17 @@ button.attention-link {
   z-index: 30;
   display: inline-grid;
   place-items: center;
-  width: 52px;
-  height: 52px;
+  width: 60px;
+  height: 60px;
+  padding: 0;
   border: 0;
   border-radius: 50%;
-  background: var(--primary);
-  color: var(--on-primary);
-  box-shadow: var(--shadow-md);
+  /* Since WI-111 the button is Rumi's mascot itself (`RumiMark`). */
+  background: transparent;
   cursor: pointer;
 }
-.rumi-fab:hover {
-  background: var(--primary-hover);
+.rumi-fab .rumi-mark {
+  filter: drop-shadow(0 6px 12px rgb(27 26 22 / 0.26));
 }
 .rumi-fab:focus-visible {
   outline: 2px solid var(--focus-ring);
@@ -6782,14 +6782,278 @@ button.attention-link {
 .shell:has(.rumi-fab) .content {
   padding-bottom: 104px;
 }
-/* On a desktop the sidebar's Ask Rumi and ⌘K open Rumi; the round button covered the end of
-   every list row it scrolled over (WI-093). The drawer still opens from a handed-over question. */
-@media (min-width: 701px) {
-  .rumi-fab {
+/* Since WI-111 the round button shows on a desktop again, by the owner's choice: Rumi from
+   anywhere. The page keeps room under its last row so nothing ends under the button (WI-093's
+   worry), and a side panel or modal hides it while open. */
+html[data-panel-open] .rumi-fab {
+  display: none;
+}
+/* WI-111: Rumi, from the owner's renders. The icon is the small head; a pose is a moment. */
+.rumi-mark {
+  position: relative;
+  display: inline-block;
+  flex-shrink: 0;
+  vertical-align: middle;
+}
+.rumi-mark img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  object-position: 50% 100%;
+}
+.rumi-mark-happy {
+  opacity: 0;
+}
+.rumi-fab:is(:hover, :focus-visible) .rumi-mark-happy {
+  opacity: 1;
+}
+.rumi-fab:is(:hover, :focus-visible) .rumi-mark-open,
+.rumi-fab:is(:hover, :focus-visible) .rumi-mark .rumi-lid {
+  opacity: 0;
+}
+.rumi-mark-badge {
+  position: absolute;
+  top: -3px;
+  right: -6px;
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border: 2px solid #fff;
+  border-radius: 50%;
+  background: #1b1a16;
+  color: #fff;
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1;
+}
+.rumi-pose {
+  position: relative;
+  display: inline-block;
+  flex-shrink: 0;
+  line-height: 0;
+  transform-origin: 50% 100%;
+}
+.rumi-pose img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+/* An eyelid in the visor's own colour; closed, it shows a thin glowing line like a blink. */
+.rumi-lid {
+  position: absolute;
+  border-radius: 50%;
+  transform: scaleY(0);
+  pointer-events: none;
+}
+.rumi-lid::after {
+  content: '';
+  position: absolute;
+  left: 12%;
+  right: 12%;
+  top: 44%;
+  height: 12%;
+  min-height: 1px;
+  border-radius: 999px;
+  background: #c4f7e8;
+  box-shadow: 0 0 3px #7ff5de;
+}
+.rumi-zzz {
+  position: absolute;
+  top: 2%;
+  right: 4%;
+  display: flex;
+  align-items: flex-end;
+  gap: 1px;
+  color: var(--primary);
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1;
+}
+.rumi-zzz i {
+  font-style: normal;
+  opacity: 0.75;
+}
+.rumi-zzz i:nth-child(2) {
+  font-size: 1.2em;
+}
+.rumi-zzz i:nth-child(3) {
+  font-size: 1.45em;
+}
+.rumi-drawer-head h2,
+.rumi-title,
+.nudge h2:has(.rumi-mark) {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.rumi-who:has(.rumi-mark) {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.rumi-reading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.rumi-empty-mark {
+  display: block;
+}
+/* Rumi's line card keeps its pose in the top corner. */
+.nudge.has-pose {
+  position: relative;
+}
+.nudge-pose {
+  position: absolute;
+  top: 10px;
+  right: 12px;
+}
+.nudge.has-pose > h2,
+.nudge.has-pose > .nudge-line {
+  padding-right: 84px;
+}
+.welcome-hero.has-pose {
+  position: relative;
+  padding-right: 150px;
+}
+.welcome-pose {
+  position: absolute;
+  right: 22px;
+  bottom: 14px;
+}
+.week-summary.has-pose {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.week-summary:has(.week-summary-pose) {
+  position: relative;
+}
+.week-summary-pose {
+  position: absolute;
+  top: -10px;
+  right: 0;
+}
+.goal-pose {
+  margin-bottom: -2px;
+}
+.page-head.has-pose {
+  align-items: center;
+}
+.head-pose {
+  margin-right: -4px;
+}
+@media (max-width: 700px) {
+  .welcome-hero.has-pose {
+    padding-right: 110px;
+  }
+  .welcome-pose {
+    width: 84px !important;
+    right: 12px;
+  }
+  .launcher-pose {
     display: none;
   }
-  .shell:has(.rumi-fab) .content {
-    padding-bottom: 0;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .rumi-lid {
+    animation: rumi-lid 5.2s ease-in-out infinite;
+  }
+  .rumi-mark[data-state='busy'] .rumi-lid {
+    animation-duration: 2.4s;
+  }
+  .rumi-mark[data-state='busy'] {
+    animation: rumi-bob 0.9s ease-in-out infinite alternate;
+  }
+  .rumi-pose[data-motion='breathe'] {
+    animation: rumi-breathe 3.6s ease-in-out infinite alternate;
+  }
+  .rumi-pose[data-motion='sleep'] {
+    animation: rumi-breathe 5s ease-in-out infinite alternate;
+  }
+  .rumi-pose[data-motion='sway'] {
+    animation: rumi-pose-sway 2.6s ease-in-out infinite alternate;
+  }
+  .rumi-pose[data-motion='bob'] {
+    animation: rumi-bob 1.4s ease-in-out infinite alternate;
+  }
+  .rumi-pose[data-motion='float'] {
+    animation: rumi-float 3.2s ease-in-out infinite alternate;
+  }
+  .rumi-zzz i {
+    opacity: 0;
+    animation: rumi-zzz 3s ease-out infinite;
+  }
+  .rumi-zzz i:nth-child(2) {
+    animation-delay: 1s;
+  }
+  .rumi-zzz i:nth-child(3) {
+    animation-delay: 2s;
+  }
+  .rumi-fab .rumi-mark {
+    transition: transform 180ms ease;
+  }
+  .rumi-fab:hover .rumi-mark {
+    transform: translateY(-2px) rotate(-4deg);
+  }
+}
+@keyframes rumi-lid {
+  0%,
+  93%,
+  100% {
+    transform: scaleY(0);
+  }
+  95%,
+  97% {
+    transform: scaleY(1);
+  }
+}
+@keyframes rumi-breathe {
+  from {
+    transform: scale(1);
+  }
+  to {
+    transform: scale(1.025, 1.015);
+  }
+}
+@keyframes rumi-pose-sway {
+  from {
+    transform: rotate(-2.5deg);
+  }
+  to {
+    transform: rotate(2.5deg);
+  }
+}
+@keyframes rumi-bob {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(-3px);
+  }
+}
+@keyframes rumi-float {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(-7px);
+  }
+}
+@keyframes rumi-zzz {
+  0% {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  30% {
+    opacity: 0.9;
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-12px);
   }
 }
 @media (max-width: 700px) {

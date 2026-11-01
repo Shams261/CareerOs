@@ -8,6 +8,7 @@ import { agentSetting } from '@/features/agent/memory-service';
 import { readVoiceLang } from '@/features/agent/voice-domain';
 import { budgetLine, nearCap } from '@/features/ai/domain';
 import { AGENT_NAME } from '@/features/agent/domain';
+import { RumiMark } from '@/features/agent/mark';
 import { readMetadata, readTools } from '@/features/agent/plan-domain';
 import { conversation, conversations } from '@/features/agent/service';
 import { RumiChat } from '@/features/agent/chat';
@@ -72,7 +73,10 @@ export default async function Rumi({
     return (
       <>
         <div className="page-head">
-          <h1>Ask {AGENT_NAME}</h1>
+          <h1 className="rumi-title">
+            <RumiMark size={36} />
+            Ask {AGENT_NAME}
+          </h1>
         </div>
         <section className="card" aria-labelledby="rumi-off">
           <h2 id="rumi-off">{AGENT_NAME} is not set up on this server</h2>
@@ -94,7 +98,10 @@ export default async function Rumi({
       <header className="today-head">
         <div className="today-head-row">
           <div className="today-title">
-            <h1>Ask {AGENT_NAME}</h1>
+            <h1 className="rumi-title">
+              <RumiMark size={36} />
+              Ask {AGENT_NAME}
+            </h1>
           </div>
           <PanelButton
             panel="rumi-conversations"
