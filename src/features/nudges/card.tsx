@@ -1,4 +1,5 @@
 'use client';
+import { isSunday } from '@/features/agent/page-domain';
 import { RumiPose } from '@/features/agent/pose';
 import { RumiMark } from '@/features/agent/mark';
 import { useState } from 'react';
@@ -220,6 +221,18 @@ export function NudgeCard({ nudge, block, day }: NudgeCardProps) {
             >
               Open the plan
             </Link>
+          )}
+          {evening && isSunday(day) && (
+            // WI-117: Sunday evening, the week ahead is one press away.
+            <Button
+              type="button"
+              className="secondary"
+              onClick={() =>
+                askRumi('Plan next week for me, starting Monday', go)
+              }
+            >
+              Plan next week with {AGENT_NAME}
+            </Button>
           )}
           {rumi && (
             <>

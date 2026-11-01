@@ -1,4 +1,5 @@
 'use client';
+import { pageRef, promptsFor } from './page-domain';
 import { RumiPose } from './pose';
 import { useEffect, useRef, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
@@ -33,7 +34,6 @@ import {
   readingLine,
   readLine,
   renderText,
-  SUGGESTED_PROMPTS,
 } from './domain';
 import { RumiMark } from './mark';
 
@@ -64,6 +64,8 @@ function askStreaming(
   onRead: (tool: string) => void,
   onKept: (messageId: string, items: Kept[]) => void,
   voice: VoiceMeta | null = null,
+  /** WI-117: the page Rumi was opened on; the server reads its record. */
+  page: string | null = null,
 ): Promise<AskResult> {
   const failed: AskResult = {
     ok: false,
@@ -74,7 +76,7 @@ function askStreaming(
       const response = await fetch('/api/rumi/ask', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ conversationId, text, voice }),
+        body: JSON.stringify({ conversationId, text, voice, page }),
       }).catch(() => null);
       if (!response?.ok || !response.body) return resolve(failed);
       const reader = response.body.getReader();
@@ -150,6 +152,7 @@ export function RumiChat({
   today,
   drawer = false,
   voice: voiceInitial,
+  page = null,
 }: {
   conversationId: string | null;
   title: string | null;
@@ -163,6 +166,8 @@ export function RumiChat({
   drawer?: boolean;
   /** Voice (WI-104): from the page; the drawer reads it once (undefined). */
   voice?: VoiceState | null;
+  /** WI-117: the page the drawer is open on, for its record and its questions. */
+  page?: string | null;
 }) {
   const router = useRouter();
   const [messages, setMessages] = useState(initial);
@@ -219,6 +224,7 @@ export function RumiChat({
           router.refresh();
         },
         spoken,
+        page,
       );
       if (result.budget) setBudget(result.budget);
       if (result.nearCap !== undefined) setNear(result.nearCap);
@@ -349,7 +355,7 @@ export function RumiChat({
               answers from them. It never sees your notes.
             </p>
             <ul className="rumi-prompts" aria-label="Suggested questions">
-              {SUGGESTED_PROMPTS.map((p) => (
+              {promptsFor(pageRef(page)).map((p) => (
                 <li key={p}>
                   <button
                     type="button"

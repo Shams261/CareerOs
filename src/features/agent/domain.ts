@@ -63,13 +63,6 @@ export const TOOL_RESULT_MAX = 8000;
 export const SCHEDULE_SPAN = 14;
 export const ACTIVITY_DAYS = 28;
 
-export const SUGGESTED_PROMPTS = [
-  'What did I study least in the last 7 days?',
-  'What is on today, and what should I start with?',
-  'Which roadmap items are due for revision?',
-  'How is my interview prep going?',
-] as const;
-
 /**
  * Study and job blocks keep their titles; work, gym, personal and the rest are only "busy".
  * Study is what the owner ticked under Study nudges → Study categories (such as Backend),

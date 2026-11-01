@@ -1,4 +1,5 @@
 import { revalidatePath } from 'next/cache';
+import { pageInput } from '@/features/agent/page-domain';
 import { z } from 'zod';
 import { owner } from '@/server/db';
 import { askRumi, noteMemories } from '@/features/agent/service';
@@ -24,6 +25,8 @@ export async function POST(request: Request) {
       text: z.string().max(4000),
       // WI-104: only that it came by voice and whether it was edited; never audio.
       voice: voiceInput.nullable().optional(),
+      // WI-117: the page's path only; the server reads its record for the owner.
+      page: pageInput,
     })
     .safeParse(await request.json().catch(() => null));
   if (!parsed.success) return new Response(null, { status: 400 });
@@ -40,6 +43,7 @@ export async function POST(request: Request) {
         fetch,
         (write) => line({ write }),
         parsed.data.voice ?? null,
+        parsed.data.page ?? null,
       );
       if (result.ok) {
         revalidatePath('/rumi');

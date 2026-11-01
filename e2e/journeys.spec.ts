@@ -500,6 +500,10 @@ test('the Rumi button shows on every page and the key opens the drawer', async (
   const drawer = page.getByRole('dialog', { name: 'Ask Rumi' });
   await expect(drawer).toBeVisible();
   await expect(drawer.getByRole('textbox', { name: 'Ask Rumi' })).toBeFocused();
+  // WI-117: the questions follow the page the drawer is open on (Practice here).
+  await expect(
+    drawer.getByRole('button', { name: 'Which problem should I do next?' }),
+  ).toBeVisible();
   await accessible(page);
   // The key works while typing, and closes the drawer again.
   await page.keyboard.press('ControlOrMeta+/');

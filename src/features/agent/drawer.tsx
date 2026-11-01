@@ -174,6 +174,7 @@ export function RumiDrawer({ button: initialButton }: { button: ButtonPref }) {
             initial={NONE}
             budget=""
             today={localToday()}
+            page={path}
             drawer
           />
         </div>
