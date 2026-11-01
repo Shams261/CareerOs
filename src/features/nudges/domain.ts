@@ -31,6 +31,10 @@ export type NudgeSetting = {
   middayTime: string;
   /** "Too many" on a line pauses the afternoon one through this day ("yyyy-MM-dd"), or null. */
   middayPausedUntil: string | null;
+  /** WI-109: the times follow when study starts; parts turned off by feedback; the last change. */
+  learnTimes?: boolean;
+  pausedByFeedback?: string[];
+  learnedNote?: string | null;
 };
 export const DEFAULT_NUDGES: NudgeSetting = {
   morningEnabled: false,
@@ -428,6 +432,8 @@ export const nudgeInput = z
     rumiLines: z.boolean().default(false),
     middayEnabled: z.boolean().default(false),
     middayTime: time.default('13:00'),
+    // WI-109: on unless the form says otherwise.
+    learnTimes: z.boolean().default(true),
   })
   .refine(
     (v) =>
@@ -446,7 +452,9 @@ export type NudgeInput = z.infer<typeof nudgeInput>;
 /** "Mornings 08:00 · Block start +15 min · Check-in from 19:30 · Weekdays" for the Settings row. */
 export function nudgeContext(s: NudgeSetting | null) {
   if (!s || (!s.morningEnabled && !s.eveningEnabled && !s.blockStartEnabled))
-    return 'Off';
+    return s?.pausedByFeedback?.length
+      ? `Paused by your feedback (${s.pausedByFeedback.join(', ')})`
+      : 'Off';
   const parts = s.rumiLines ? ['Rumi writes'] : ([] as string[]);
   if (s.morningEnabled) parts.push(`Mornings ${s.morningTime}`);
   if (s.blockStartEnabled)

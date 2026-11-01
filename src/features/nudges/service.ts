@@ -45,6 +45,9 @@ type Row = {
   middayEnabled: boolean;
   middayTime: string;
   middayPausedUntil: Date | null;
+  learnTimes?: boolean;
+  pausedByFeedback?: string[];
+  learnedNote?: string | null;
 };
 /** The stored row as pure settings (the pause date is a DATE label). */
 export const nudgeSetting = (row: Row | null | undefined): NudgeSetting =>
@@ -430,10 +433,21 @@ export async function closeNudges(
 /** Saves the Settings form. The pauses are kept; only `pauseNudges` and "Too many" change them. */
 export async function saveNudgeSetting(user: ScheduleUser, raw: unknown) {
   const input = nudgeInput.parse(raw);
+  // A part the owner turns on again is no longer "paused by your feedback" (WI-109).
+  const row = await db().studyNudgeSetting.findUnique({
+    where: { userId: user.id },
+    select: { pausedByFeedback: true },
+  });
+  const on = {
+    morning: input.morningEnabled,
+    midday: input.middayEnabled,
+    evening: input.eveningEnabled,
+  } as Record<string, boolean>;
+  const pausedByFeedback = (row?.pausedByFeedback ?? []).filter((p) => !on[p]);
   await db().studyNudgeSetting.upsert({
     where: { userId: user.id },
     create: { userId: user.id, ...input },
-    update: input,
+    update: { ...input, pausedByFeedback },
   });
 }
 /** The language of Rumi's lines (WI-101), on the agent setting row. */

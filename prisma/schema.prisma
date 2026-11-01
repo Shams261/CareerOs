@@ -999,6 +999,13 @@ model StudyNudgeSetting {
   middayTime        String    @default("13:00")
   /// WI-101: "Too many" on a line pauses the afternoon one through this day (DATE label).
   middayPausedUntil DateTime? @db.Date
+  /// WI-109: once a week the line times follow when study actually starts.
+  learnTimes        Boolean   @default(true)
+  learnedAt         DateTime? @db.Timestamptz(3)
+  /// The last change the learning made, in words ("Morning 08:00 → 08:15").
+  learnedNote       String?
+  /// Parts turned off by three "Too many" in a row: morning, midday, evening.
+  pausedByFeedback  String[]  @default([])
   updatedAt         DateTime  @updatedAt @db.Timestamptz(3)
 }
 
