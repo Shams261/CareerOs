@@ -9619,6 +9619,58 @@ html {
 .rumi-kept q {
   quotes: '\201C' '\201D';
 }
+/* WI-108: the debrief's one question at a time, and the mock interview. */
+.debrief {
+  display: grid;
+  gap: 10px;
+}
+.debrief-question {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+}
+.debrief-question span {
+  font-size: 17px;
+  font-weight: 600;
+}
+.mock {
+  display: grid;
+  gap: 12px;
+  max-width: 760px;
+}
+.mock h2 {
+  font-size: 20px;
+  margin: 0;
+}
+.mock-answer {
+  display: grid;
+  gap: 8px;
+}
+.mock-compose {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-auto-flow: column;
+  grid-auto-columns: auto;
+  gap: 8px;
+  align-items: end;
+}
+.mock-answer .button {
+  justify-self: start;
+}
+.mock-feedback {
+  display: grid;
+  gap: 8px;
+  padding: 12px 14px;
+  border-radius: var(--radius-md);
+  background: var(--primary-soft);
+}
+.mock-feedback p {
+  margin: 0;
+}
+/* The eyebrow on the tint reads in secondary ink (meta ink is 4.4:1 there). */
+.mock-feedback .eyebrow {
+  color: var(--ink-2);
+}
 /* WI-107: a plan card's times can change and blocks can be added before Add to plan. */
 .rumi-plan-edit {
   display: flex;

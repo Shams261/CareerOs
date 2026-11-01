@@ -56,6 +56,7 @@ import { AGENT_NAME } from '@/features/agent/domain';
 import { prepDocs } from '@/features/prep/service';
 import { estimateMicros, searchQueries } from '@/features/prep/domain';
 import { PreparePanel } from '@/features/prep/panel';
+import { DebriefPanel } from '@/features/prep/debrief';
 /** The tab names the company; an id that is not the owner's answers 404 (WI-090). */
 export async function generateMetadata({
   params,
@@ -493,6 +494,30 @@ export default async function Application({
                             </div>
                           ))}
                       </dl>
+                    )}
+                    {/* WI-108: three questions after a completed interview. */}
+                    {r.status === 'COMPLETED' && (
+                      <>
+                        <PanelButton
+                          panel={`debrief-${r.id}`}
+                          className="button secondary small mt-2"
+                        >
+                          Debrief with {AGENT_NAME}
+                        </PanelButton>
+                        <SidePanel
+                          id={`debrief-${r.id}`}
+                          title={`Debrief · ${r.title}`}
+                        >
+                          <DebriefPanel
+                            roundId={r.id}
+                            initial={{
+                              topicsAsked: r.topicsAsked ?? '',
+                              wentWell: r.wentWell ?? '',
+                              toImprove: r.toImprove ?? '',
+                            }}
+                          />
+                        </SidePanel>
+                      </>
                     )}
                     {(prep.length > 0 || gaps.length > 0) && (
                       <div className="round-lists">

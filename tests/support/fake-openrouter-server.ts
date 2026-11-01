@@ -494,6 +494,22 @@ createServer(async (req, res) => {
         choices: [agentAnswer(body.messages, body.tool_choice === 'none')],
       });
     }
+    // WI-108: feedback on a mock interview answer, one paragraph, never a score.
+    if (/running a mock interview/.test(body.messages[0]?.content ?? '')) {
+      return json(200, {
+        provider: 'Google',
+        usage: { prompt_tokens: 1200, completion_tokens: 120, cost: 0.0002 },
+        choices: [
+          {
+            message: {
+              content:
+                'You named the right pattern and kept it short. Say the time and space cost out loud, and how you would test it. A likely follow-up: what changes if the input does not fit in memory?',
+            },
+            finish_reason: 'stop',
+          },
+        ],
+      });
+    }
     const format = body.response_format?.json_schema?.name;
     let topic = '';
     try {
