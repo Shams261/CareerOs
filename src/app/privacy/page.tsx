@@ -156,14 +156,17 @@ export default async function Privacy() {
         interviewer names and job descriptions are never sent. When the owner
         asks for it, Rumi makes three small changes itself (a note in the
         owner&rsquo;s words, one block in free time this week, a rest day), two
-        in one answer at most, each with an Undo under the answer; anything else
-        it proposes as a card that only the owner&rsquo;s press applies. When
-        the owner turns on &ldquo;Rumi writes the lines&rdquo; under Study
-        nudges, the same endpoint writes one short line for the morning, the
-        afternoon and the evening from those same summaries, once each; the line
-        is shown on Today and in the inbox, the lock screen only ever carries a
-        general sentence, and a line that fails Silsila&rsquo;s checks is
-        replaced by the fixed text.
+        in one answer at most, each with an Undo under the answer. Bigger
+        changes (moving or deleting a study block, an application&rsquo;s stage,
+        a practice attempt, a draft of a day&rsquo;s review the owner edits)
+        come as cards that only the owner&rsquo;s press applies, after Silsila
+        checks the record has not changed since. When the owner turns on
+        &ldquo;Rumi writes the lines&rdquo; under Study nudges, the same
+        endpoint writes one short line for the morning, the afternoon and the
+        evening from those same summaries, once each; the line is shown on Today
+        and in the inbox, the lock screen only ever carries a general sentence,
+        and a line that fails Silsila&rsquo;s checks is replaced by the fixed
+        text.
       </p>
       <p>
         Prepare with Rumi (optional) researches an application&rsquo;s interview

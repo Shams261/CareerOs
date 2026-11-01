@@ -252,21 +252,28 @@ export async function changeStage(
   raw: unknown,
   now = new Date(),
 ) {
+  return locked(user.id, (tx) => changeStageIn(tx, user, raw, now));
+}
+/** `changeStage` inside a transaction that holds the owner lock (Rumi's cards, WI-103). */
+export async function changeStageIn(
+  tx: Tx,
+  user: ScheduleUser,
+  raw: unknown,
+  now = new Date(),
+) {
   const input = stageInput.parse(raw);
-  return locked(user.id, async (tx) => {
-    const app = await ownedApplication(tx, user.id, input.id);
-    const prior = await replayed(tx, user.id, input.requestId, app.id);
-    if (prior) return prior;
-    return moveStage(
-      tx,
-      user,
-      app,
-      input.stage,
-      now,
-      input.note,
-      input.requestId,
-    );
-  });
+  const app = await ownedApplication(tx, user.id, input.id);
+  const prior = await replayed(tx, user.id, input.requestId, app.id);
+  if (prior) return prior;
+  return moveStage(
+    tx,
+    user,
+    app,
+    input.stage,
+    now,
+    input.note,
+    input.requestId,
+  );
 }
 
 export async function setFollowUp(

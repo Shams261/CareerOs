@@ -558,12 +558,8 @@ export function runTool(
       return latestPrepDocs(user);
     case 'find_problems':
       return findProblems(user, args as { text: string });
-    case 'propose_blocks':
-    case 'suggest_memory':
-    case 'add_note':
-    case 'add_block':
-    case 'rest_today':
-      // Cards and writes, not reads: the message loop handles them (WI-041, WI-102).
+    default:
+      // Cards and writes, not reads: the message loop handles them (WI-041, WI-102, WI-103).
       return Promise.resolve({ error: 'Not a read tool.' });
   }
 }

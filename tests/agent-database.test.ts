@@ -67,6 +67,11 @@ const ARGS: Record<ToolName, Record<string, unknown>> = {
   add_note: {},
   add_block: {},
   rest_today: {},
+  move_block: {},
+  delete_block: {},
+  change_stage: {},
+  log_attempt: {},
+  write_review: {},
 };
 
 type Answer = {

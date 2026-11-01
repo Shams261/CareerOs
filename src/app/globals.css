@@ -9616,6 +9616,38 @@ html {
 .rumi-kept q {
   quotes: '\201C' '\201D';
 }
+/* WI-103: a card for a bigger change; a review card is a short form. */
+.rumi-reply .rumi-card-lines {
+  padding-left: 0;
+  list-style: none;
+}
+.rumi-card-lines {
+  display: grid;
+  gap: 2px;
+  margin: 4px 0 10px;
+}
+.rumi-card-title {
+  font-weight: 600;
+}
+.rumi-review-form {
+  display: grid;
+  gap: 8px;
+  width: 100%;
+}
+.rumi-review-form label {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  font-size: 14px;
+}
+.rumi-review-form textarea,
+.rumi-review-form input,
+.rumi-review-form select {
+  width: 100%;
+}
+.rumi-review-form .button {
+  justify-self: start;
+}
 /* WI-102: the changes Rumi made in an answer, each with its Undo. */
 .rumi-reply .rumi-actions {
   padding-left: 0;

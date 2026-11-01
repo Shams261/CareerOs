@@ -126,64 +126,71 @@ export async function recordAttempt(
   raw: unknown,
   now = new Date(),
 ) {
+  return locked(user.id, (tx) => recordAttemptIn(tx, user, raw, now));
+}
+/** `recordAttempt` inside a transaction that holds the owner lock (Rumi's cards, WI-103). */
+export async function recordAttemptIn(
+  tx: Prisma.TransactionClient,
+  user: ScheduleUser,
+  raw: unknown,
+  now = new Date(),
+) {
   const input = attemptInput.parse(raw);
-  return locked(user.id, async (tx) => {
-    const problem = await ownedProblem(tx, user.id, input.problemId);
-    const prior = await tx.dsaAttempt.findUnique({
-      where: {
-        userId_requestId: { userId: user.id, requestId: input.requestId },
-      },
-    });
-    if (prior) {
-      if (
-        prior.problemId !== input.problemId ||
-        prior.confidenceAfter !== input.confidenceAfter ||
-        prior.solvedIndependently !== input.solvedIndependently ||
-        prior.durationMinutes !== (input.durationMinutes ?? null) ||
-        prior.notes !== input.notes ||
-        prior.mistake !== input.mistake
-      )
-        throw new Error(
-          'This submission was already saved. Reload before recording another attempt.',
-        );
-      return prior;
-    }
-    const session = await tx.actualSession.findFirst({
-      where: { userId: user.id, endedAt: null, startedAt: { lte: now } },
-    });
-    const attempt = await tx.dsaAttempt.create({
-      data: {
-        ...input,
-        userId: user.id,
-        attemptedAt: now,
-        confidenceBefore: problem.attemptsCount ? problem.confidence : null,
-        actualSessionId: session && isDsa(session.category) ? session.id : null,
-      },
-    });
-    // The ladder (WI-094, WI-095): an attempt on a step's day counts as that revision; before
-    // the day it is only an attempt and the ladder keeps its days; with no ladder, or a
-    // finished one, it starts one from today. The confidence sets no date.
-    const today = dayKey(now, user.timezone);
-    const ladder = ladderState(
-      { ...problem, attemptsCount: problem.attemptsCount + 1 },
-      today,
-    );
-    await tx.dsaProblem.update({
-      where: { id: problem.id },
-      data: {
-        confidence: input.confidenceAfter,
-        lastAttemptedAt: now,
-        attemptsCount: { increment: 1 },
-        ...(ladder.state === 'due'
-          ? revisedData(problem)
-          : ladder.state === 'upcoming'
-            ? {}
-            : startLadder(today)),
-      },
-    });
-    await followPractice(tx, user.id, { problemId: problem.id }, now);
-    return attempt;
+  const problem = await ownedProblem(tx, user.id, input.problemId);
+  const prior = await tx.dsaAttempt.findUnique({
+    where: {
+      userId_requestId: { userId: user.id, requestId: input.requestId },
+    },
   });
+  if (prior) {
+    if (
+      prior.problemId !== input.problemId ||
+      prior.confidenceAfter !== input.confidenceAfter ||
+      prior.solvedIndependently !== input.solvedIndependently ||
+      prior.durationMinutes !== (input.durationMinutes ?? null) ||
+      prior.notes !== input.notes ||
+      prior.mistake !== input.mistake
+    )
+      throw new Error(
+        'This submission was already saved. Reload before recording another attempt.',
+      );
+    return prior;
+  }
+  const session = await tx.actualSession.findFirst({
+    where: { userId: user.id, endedAt: null, startedAt: { lte: now } },
+  });
+  const attempt = await tx.dsaAttempt.create({
+    data: {
+      ...input,
+      userId: user.id,
+      attemptedAt: now,
+      confidenceBefore: problem.attemptsCount ? problem.confidence : null,
+      actualSessionId: session && isDsa(session.category) ? session.id : null,
+    },
+  });
+  // The ladder (WI-094, WI-095): an attempt on a step's day counts as that revision; before
+  // the day it is only an attempt and the ladder keeps its days; with no ladder, or a
+  // finished one, it starts one from today. The confidence sets no date.
+  const today = dayKey(now, user.timezone);
+  const ladder = ladderState(
+    { ...problem, attemptsCount: problem.attemptsCount + 1 },
+    today,
+  );
+  await tx.dsaProblem.update({
+    where: { id: problem.id },
+    data: {
+      confidence: input.confidenceAfter,
+      lastAttemptedAt: now,
+      attemptsCount: { increment: 1 },
+      ...(ladder.state === 'due'
+        ? revisedData(problem)
+        : ladder.state === 'upcoming'
+          ? {}
+          : startLadder(today)),
+    },
+  });
+  await followPractice(tx, user.id, { problemId: problem.id }, now);
+  return attempt;
 }
 /** Moves the open step to another day by hand (the later steps keep their own days). */
 export async function scheduleRevision(

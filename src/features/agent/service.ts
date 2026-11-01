@@ -1,6 +1,7 @@
 import 'server-only';
 import { formatInTimeZone } from 'date-fns-tz';
 import { db } from '@/server/db';
+import type { Prisma } from '@/generated/prisma/client';
 import { aiConfig } from '@/lib/env';
 import { dayKey, hhmm, shortDate } from '@/lib/time';
 import { locked, type ScheduleUser } from '@/features/schedule/service';
@@ -51,6 +52,13 @@ import {
 } from './memory-domain';
 import { linesToday } from './lines';
 import { runWrite } from './writes';
+import { prepareRequest } from './requests';
+import {
+  isRequest,
+  REQUESTS_PER_ANSWER,
+  type ActionCard,
+  type CardView,
+} from './request-domain';
 import {
   collectIds,
   isWrite,
@@ -294,6 +302,7 @@ export async function sendMessage(
       .flatMap((m) => readSeen(m.metadata)),
   );
   const actions: WriteAction[] = [];
+  const requests: ActionCard[] = [];
   const proposals: Proposal[] = [];
   const suggestions: Suggestion[] = [];
   let spent = 0;
@@ -361,6 +370,28 @@ export async function sendMessage(
                 note: 'Shown to the owner as a card; they keep or dismiss it.',
               };
             }
+          } else if (isRequest(read.name)) {
+            const missing = unseenId(read.name, read.args, seen);
+            if (missing)
+              result = {
+                shown: false,
+                error: `Read it first: ${missing} must come from a read in this conversation.`,
+              };
+            else if (requests.length >= REQUESTS_PER_ANSWER)
+              result = {
+                shown: false,
+                error: `At most ${REQUESTS_PER_ANSWER} cards in one answer.`,
+              };
+            else {
+              const made = await prepareRequest(
+                user,
+                read.name,
+                read.args,
+                now,
+              );
+              if (made.card) requests.push(made.card);
+              result = made.result;
+            }
           } else if (isWrite(read.name)) {
             const missing = unseenId(read.name, read.args, seen);
             if (missing)
@@ -415,6 +446,9 @@ export async function sendMessage(
         ...(proposals.length ? { proposals } : {}),
         ...(suggestions.length ? { suggestions } : {}),
         ...(actions.length ? { actions } : {}),
+        ...(requests.length
+          ? { requests: requests as Prisma.InputJsonValue[] }
+          : {}),
         ...(seen.size ? { seen: [...seen].slice(-SEEN_MAX) } : {}),
       },
       createdAt: later(),
@@ -440,6 +474,8 @@ export type AskResult =
         kept: Kept[];
         /** Changes Rumi made in this answer (WI-102), each with its Undo. */
         actions: WriteAction[];
+        /** Cards Rumi made (WI-103) for the owner to apply. */
+        requests: CardView[];
         tools: string[];
       };
       budget: string;

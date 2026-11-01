@@ -15,6 +15,7 @@ import {
   setRumiStyle,
 } from './memory-service';
 import { answerSuggestion, applyProposal, dismissProposal } from './plans';
+import { applyRequest, appliedWords, dismissRequest } from './requests';
 import { restore } from '@/features/undo/service';
 import { undoWrite } from './writes';
 import { afterWrites } from './after-writes';
@@ -214,6 +215,65 @@ export async function applyProposalAction(
     };
   }
 }
+/**
+ * The owner's press on one of Rumi's cards (WI-103): applied under the lock against its
+ * snapshot; a review card sends the owner's edited fields.
+ */
+export async function applyRequestAction(
+  _s: ActionState,
+  f: FormData,
+): Promise<ActionState> {
+  try {
+    const user = await owner();
+    const { messageId, cardId } = cardIds(f);
+    const done = await applyRequest(user, messageId, cardId, new Date(), {
+      notes: f.get('notes') ?? undefined,
+      blocker: f.get('blocker') ?? undefined,
+      carryForward: f.get('carryForward') ?? undefined,
+      rating: f.get('rating') ?? undefined,
+    });
+    forgetAll();
+    syncSoon(user);
+    for (const path of [
+      '/rumi',
+      '/today',
+      '/calendar',
+      '/jobs',
+      '/dsa',
+      '/review',
+    ])
+      revalidatePath(path);
+    return {
+      ok: true,
+      message: appliedWords(done.kind),
+      ...(done.undo
+        ? {
+            undo: {
+              kind: 'undo-request' as const,
+              payload: { messageId, requestId: cardId },
+            },
+          }
+        : {}),
+    };
+  } catch (error) {
+    if (error instanceof z.ZodError)
+      return { message: issueMessages(error.issues) };
+    return {
+      message:
+        error instanceof Error && !('code' in error)
+          ? error.message
+          : 'Unable to save. Reload and try again.',
+    };
+  }
+}
+export async function dismissRequestAction(_s: ActionState, f: FormData) {
+  return perform(async () => {
+    const { messageId, cardId } = cardIds(f);
+    await dismissRequest(await owner(), messageId, cardId);
+    return 'Dismissed.';
+  });
+}
+
 export async function dismissProposalAction(_s: ActionState, f: FormData) {
   return perform(async () => {
     const { messageId, cardId } = cardIds(f);

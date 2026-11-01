@@ -292,6 +292,38 @@ test('Rumi adds a note at once and Undo takes it back', async ({ page }) => {
   expect(await onToday()).toBe(false);
 });
 
+test('a move card is applied and undone', async ({ page }) => {
+  // A block for today, then Rumi's card moves it; nothing moves before the press.
+  await page.goto('/today');
+  await page.getByRole('button', { name: 'Add a block' }).first().click();
+  const form = page.getByRole('form', { name: 'Add a block' });
+  await form.getByLabel('Title').fill('Heaps: top-k practice');
+  await form.getByLabel('Start time').fill('00:40');
+  await form.getByRole('button', { name: 'change' }).click();
+  await form.getByLabel('End time').fill('01:00');
+  await form.getByRole('button', { name: 'Add block' }).click();
+  await expect(
+    page.locator('li.agenda-row', { hasText: 'Heaps: top-k practice' }),
+  ).toBeVisible();
+  await page.goto('/rumi');
+  await page
+    .getByPlaceholder('Ask Rumi about your week, roadmap or interviews')
+    .fill('move my heaps block to the morning');
+  await page.getByRole('button', { name: 'Send' }).click();
+  const card = page.getByRole('group', { name: 'Move card' });
+  await expect(card).toBeVisible({ timeout: 20_000 });
+  await expect(card).toContainText('From Today · 00:40–01:00');
+  await accessible(page);
+  await card.getByRole('button', { name: 'Move block' }).click();
+  await expect(card).toContainText('Moved.');
+  await page.getByRole('button', { name: 'Undo' }).click();
+  await expect(page.getByText('Block back in its slot.')).toBeVisible();
+  await page.goto('/today');
+  await expect(
+    page.locator('li.agenda-row', { hasText: 'Heaps: top-k practice' }),
+  ).toContainText('00:40');
+});
+
 test('the weekly review walks its three steps and closes the week', async ({
   page,
 }) => {
