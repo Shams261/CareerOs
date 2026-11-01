@@ -49,6 +49,7 @@ import {
   memoryLines,
   type MemoryKind,
 } from './memory-domain';
+import { linesToday } from './lines';
 import { newSuggestion, proposeBlocks } from './plans';
 import {
   planWindow,
@@ -219,7 +220,7 @@ export async function sendMessage(
     return { conversationId: id, history: history.reverse() };
   });
   const today = dayKey(now, user.timezone);
-  const [rows, goal, style] = await Promise.all([
+  const [rows, goal, style, nudges] = await Promise.all([
     memoryRows(user),
     // The nearest active goal with a date, else any active goal (WI-060).
     db().goal.findFirst({
@@ -228,7 +229,13 @@ export async function sendMessage(
       select: { title: true, targetDate: true, targetRole: true },
     }),
     rumiStyle(user),
+    db().studyNudgeSetting.findUnique({
+      where: { userId: user.id },
+      select: { rumiLines: true },
+    }),
   ]);
+  // The lines Rumi wrote today (WI-101) travel as data while Rumi writes them.
+  const written = nudges?.rumiLines ? await linesToday(user, today) : [];
   // The lines sent today are stamped once a day (WI-100), so expiry and eviction follow use.
   const dayStart = new Date(`${today}T00:00:00Z`);
   const active = rows.filter((r) => isActive(r, today));
@@ -252,6 +259,7 @@ export async function sendMessage(
         zone: user.timezone,
         memory,
         style,
+        linesToday: written,
         planUntil: planWindow(dayKey(now, user.timezone)).last,
         goal: goal
           ? {

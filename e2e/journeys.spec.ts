@@ -1,5 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
+import { appEnv } from './env';
 
 /**
  * The core journeys of a fresh workspace (WI-052), in order, as the owner signed in through the
@@ -315,6 +316,57 @@ test('the weekly review walks its three steps and closes the week', async ({
   ).toBeVisible();
   await accessible(page);
   await fitsPhone(page, '/review?step=plan');
+});
+
+test('Rumi writes the morning line and Reply prefills the drawer', async ({
+  page,
+}) => {
+  // The owner's clock (America/Toronto): the morning line goes out within three hours of
+  // its time, so the time is set a few minutes back, with no quiet hours and every day on.
+  const [h, m] = new Intl.DateTimeFormat('en-GB', {
+    timeZone: 'America/Toronto',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  })
+    .format(new Date())
+    .split(':')
+    .map(Number);
+  const minutes = Math.max(0, (h % 24) * 60 + m - 5);
+  const time = `${String(Math.floor(minutes / 60)).padStart(2, '0')}:${String(minutes % 60).padStart(2, '0')}`;
+  await page.goto('/settings');
+  const row = page.locator('button[data-panel="reminder-study"]');
+  await row.click();
+  const panel = page.getByRole('dialog', { name: 'Study nudges' });
+  await panel.getByLabel('Send a morning line on study days').check();
+  await panel.getByLabel('Time', { exact: true }).fill(time);
+  await panel.getByLabel(/^One line from today/).check();
+  await panel.getByLabel('Mornings only on days with a study block').uncheck();
+  for (const d of ['Sat', 'Sun'])
+    await panel.getByLabel(d, { exact: true }).check();
+  await panel.getByLabel('Quiet from').fill('00:00');
+  await panel.getByLabel('until').fill('00:00');
+  await panel.getByRole('button', { name: 'Save' }).click();
+  // The panel closes on success; the row's context shows the saved setting.
+  await expect(row).toContainText('Rumi writes');
+  // The scheduler's run queues the row and Rumi writes the line in the same request.
+  const run = await page.request.post('/api/notifications/process', {
+    headers: { Authorization: `Bearer ${appEnv.CRON_SECRET}` },
+  });
+  expect(run.ok()).toBe(true);
+  expect(await run.json()).toMatchObject({ lines: 1 });
+  await page.goto('/today');
+  const card = page.getByRole('region', { name: 'Rumi · Morning' });
+  await expect(card).toBeVisible();
+  await expect(card).toContainText('Your plan for today is set');
+  await accessible(page);
+  await card.getByRole('button', { name: 'Reply' }).click();
+  const drawer = page.getByRole('dialog', { name: 'Ask Rumi' });
+  await expect(drawer).toBeVisible();
+  await expect(drawer.getByRole('textbox', { name: 'Ask Rumi' })).toHaveValue(
+    /^Re “Your plan for today is set/,
+  );
+  await page.keyboard.press('Escape');
 });
 
 test('Settings saves the dark theme and stays accessible', async ({ page }) => {

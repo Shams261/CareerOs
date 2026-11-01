@@ -247,7 +247,8 @@ export async function callModel({
     | 'LISTEN_ITEM'
     | 'AGENT_CHAT'
     | 'PREP_RESEARCH'
-    | 'AGENT_MEMORY';
+    | 'AGENT_MEMORY'
+    | 'AGENT_LINE';
   body: unknown;
   reserve: number;
   now: Date;
@@ -277,6 +278,7 @@ export async function callModel({
             'AGENT_CHAT' as const,
             'PREP_RESEARCH' as const,
             'AGENT_MEMORY' as const,
+            'AGENT_LINE' as const,
           ],
         },
       };
@@ -375,7 +377,12 @@ export async function ask<T>({
 }: {
   user: ScheduleUser;
   cfg: AiConfig;
-  feature: 'GRILL_ITEM' | 'LISTEN_ITEM' | 'PREP_RESEARCH' | 'AGENT_MEMORY';
+  feature:
+    | 'GRILL_ITEM'
+    | 'LISTEN_ITEM'
+    | 'PREP_RESEARCH'
+    | 'AGENT_MEMORY'
+    | 'AGENT_LINE';
   messages: Message[];
   format: OutputFormat;
   read: (

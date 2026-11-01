@@ -2,12 +2,15 @@ import { ActionForm } from '@/components/action-form';
 import { Button } from '@/components/ui/button';
 import { categoryGroup } from '@/features/review/domain';
 import { nudgePauseAction, nudgeSettingsAction } from './actions';
+import { AGENT_NAME } from '@/features/agent/domain';
 import {
   BLOCK_START_OFFSETS,
   EVENING_LINES,
+  LINE_LANGUAGES,
   MORNING_LINES,
   PAUSED_FOREVER,
   WEEKDAYS,
+  type LineLanguage,
   type NudgeSetting,
 } from './domain';
 
@@ -19,11 +22,17 @@ export function NudgeSettingsForm({
   setting,
   categories,
   today,
+  rumi = null,
 }: {
   setting: NudgeSetting;
   /** Category groups the owner plans with, plus the defaults. */
   categories: string[];
   today: string;
+  /** WI-101: shown only where AI is configured; the lines' language and the last days' count. */
+  rumi?: {
+    language: LineLanguage;
+    stats: { written: number; total: number };
+  } | null;
 }) {
   const groups = [
     ...new Set([
@@ -112,6 +121,51 @@ export function NudgeSettingsForm({
           </label>
           <p className="nudge-copy">“{EVENING_LINES[0]}”</p>
         </fieldset>
+        {rumi && (
+          <fieldset className="nudge-mode">
+            <legend>{AGENT_NAME} writes the lines</legend>
+            <label className="check">
+              <input
+                type="checkbox"
+                name="rumiLines"
+                defaultChecked={setting.rumiLines}
+              />
+              One line from today’s records in the morning, the afternoon and
+              the evening; the fixed lines stay as the fallback
+            </label>
+            <label>
+              Language
+              <select name="lineLanguage" defaultValue={rumi.language}>
+                {LINE_LANGUAGES.map(([value, label]) => (
+                  <option key={value} value={value}>
+                    {label}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="check">
+              <input
+                type="checkbox"
+                name="middayEnabled"
+                defaultChecked={setting.middayEnabled}
+              />
+              An afternoon line while a study block is still ahead
+            </label>
+            <label>
+              Afternoon time
+              <input
+                type="time"
+                name="middayTime"
+                defaultValue={setting.middayTime}
+              />
+            </label>
+            <p className="nudge-copy">
+              {rumi.stats.total
+                ? `${AGENT_NAME} wrote ${rumi.stats.written} of ${rumi.stats.total} ${rumi.stats.total === 1 ? 'line' : 'lines'} in the last 14 days; the rest were the fixed lines.`
+                : `Numbers in a line come only from your records; a line that fails the checks is replaced by the fixed line.`}
+            </p>
+          </fieldset>
+        )}
         <fieldset className="nudge-days">
           <legend>Days</legend>
           {WEEKDAYS.map(([name, bit]) => (

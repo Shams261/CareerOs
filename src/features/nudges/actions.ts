@@ -17,6 +17,7 @@ import {
   nudgeFeedback,
   pauseNudges,
   saveNudgeSetting,
+  setLineLanguage,
   setRestDay,
   thisSunday,
 } from './service';
@@ -62,7 +63,13 @@ export async function nudgeSettingsAction(_s: ActionState, form: FormData) {
       studyCategories: form.getAll('studyCategories').map(String),
       blockStartEnabled: form.get('blockStartEnabled') === 'on',
       blockStartMinutes: Number(form.get('blockStartMinutes') ?? 15),
+      rumiLines: form.get('rumiLines') === 'on',
+      middayEnabled: form.get('middayEnabled') === 'on',
+      middayTime: String(form.get('middayTime') || '13:00'),
     });
+    // The lines' language (WI-101) lives on Rumi's own setting row.
+    if (form.has('lineLanguage'))
+      await setLineLanguage(await owner(), String(form.get('lineLanguage')));
     return 'Study nudges saved.';
   });
 }
@@ -104,7 +111,8 @@ export async function nudgeFeedbackAction(_s: ActionState, form: FormData) {
     );
     return value === 'TOO_MANY'
       ? {
-          message: 'Noted. You can keep mornings only, pause or turn them off.',
+          message:
+            'Noted: the afternoon line rests for a week. You can keep mornings only, pause or turn them off.',
           link: { href: '/settings#reminders', label: 'Study nudges' },
         }
       : 'Thanks, noted.';

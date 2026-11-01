@@ -3,6 +3,7 @@ import { deliverPending } from '@/features/push/service';
 import { recordRun } from '@/server/jobs';
 import { dailyProviderCheck } from '@/features/ai/service';
 import { pruneMemories } from '@/features/agent/memory-service';
+import { writeRumiLines } from '@/features/agent/lines';
 export const runtime = 'nodejs';
 
 /** Scheduler entry point (Bearer CRON_SECRET via proxy): eligibility → NotificationLog → push. */
@@ -12,12 +13,14 @@ export async function POST() {
       'notifications',
       async () => {
         const { candidates } = await processNotifications();
+        // Rumi's line on one queued row (WI-101): outside every owner lock, before push.
+        const lines = await writeRumiLines();
         // Push is a delivery channel only; its failures never remove inbox records.
         const push = await deliverPending();
         console.info(
           `[notifications] processed ${JSON.stringify({ candidates, ...push })}`,
         );
-        return { candidates, ...push };
+        return { candidates, ...push, lines: lines.written };
       },
       { clearsSnapshots: false },
     );

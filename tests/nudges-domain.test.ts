@@ -8,10 +8,12 @@ import {
   inAppOnly,
   inQuietHours,
   isStudyCategory,
+  middayDue,
   morningDue,
   morningLine,
   nudgeContext,
   nudgeInput,
+  recapDue,
   weekdayBit,
   type NudgeDay,
   type NudgeSetting,
@@ -239,5 +241,121 @@ describe('copy and settings', () => {
     expect(nudgeContext({ ...on, eveningEnabled: false, days: 1 | 4 })).toBe(
       'Mornings 08:00 · Mon Wed',
     );
+  });
+});
+
+describe('Rumi’s afternoon line and evening recap (WI-101)', () => {
+  const rumi: NudgeSetting = { ...on, rumiLines: true, middayEnabled: true };
+  const ahead = facts({ morningAt: at(day, '08:00') });
+  it('comes inside its window while a study block is still ahead, four hours after the morning', () => {
+    expect(middayDue(rumi, ahead, at(day, '12:59'), zone)).toBeNull();
+    expect(middayDue(rumi, ahead, at(day, '13:00'), zone)?.id).toBe('b1');
+    expect(middayDue(rumi, ahead, at(day, '14:59'), zone)?.id).toBe('b1');
+    expect(middayDue(rumi, ahead, at(day, '15:00'), zone)).toBeNull();
+    expect(
+      middayDue(
+        rumi,
+        facts({ morningAt: at(day, '09:30') }),
+        at(day, '13:10'),
+        zone,
+      ),
+    ).toBeNull();
+    // Picks the first block still ahead, never one begun, recorded or already past.
+    expect(
+      middayDue(
+        rumi,
+        facts({
+          studyBlocks: [
+            block('11:00', '12:00'),
+            block('19:00', '20:00', { id: 'b2', recorded: true }),
+            block('20:00', '21:00', { id: 'b3' }),
+          ],
+        }),
+        at(day, '13:10'),
+        zone,
+      )?.id,
+    ).toBe('b3');
+  });
+  it('stays silent when off, without Rumi, sent, rested by "Too many", rested, closed, running or quiet', () => {
+    const now = at(day, '13:10');
+    expect(
+      middayDue({ ...rumi, middayEnabled: false }, ahead, now, zone),
+    ).toBeNull();
+    expect(
+      middayDue({ ...rumi, rumiLines: false }, ahead, now, zone),
+    ).toBeNull();
+    expect(middayDue(rumi, { ...ahead, middayAt: now }, now, zone)).toBeNull();
+    expect(
+      middayDue({ ...rumi, middayPausedUntil: '2026-11-03' }, ahead, now, zone),
+    ).toBeNull();
+    expect(
+      middayDue({ ...rumi, middayPausedUntil: '2026-10-26' }, ahead, now, zone)
+        ?.id,
+    ).toBe('b1');
+    expect(middayDue(rumi, { ...ahead, rested: true }, now, zone)).toBeNull();
+    expect(middayDue(rumi, { ...ahead, closed: true }, now, zone)).toBeNull();
+    expect(middayDue(rumi, { ...ahead, running: true }, now, zone)).toBeNull();
+    expect(
+      middayDue(
+        { ...rumi, quietStart: '13:00', quietEnd: '14:00' },
+        ahead,
+        now,
+        zone,
+      ),
+    ).toBeNull();
+    expect(middayDue(rumi, facts({ studyBlocks: [] }), now, zone)).toBeNull();
+  });
+  it('recaps every active evening, with the block left when there is one', () => {
+    const now = at(day, '19:45');
+    expect(recapDue(rumi, facts(), now, zone)).toEqual({
+      left: expect.objectContaining({ id: 'b1' }),
+    });
+    // Unlike the check-in, a recorded day still gets its recap.
+    expect(
+      recapDue(
+        rumi,
+        facts({ studySessionToday: true, studyBlocks: [] }),
+        now,
+        zone,
+      ),
+    ).toEqual({ left: null });
+    expect(recapDue(rumi, facts(), at(day, '19:00'), zone)).toBeNull();
+    expect(
+      recapDue({ ...rumi, rumiLines: false }, facts(), now, zone),
+    ).toBeNull();
+    expect(
+      recapDue({ ...rumi, eveningEnabled: false }, facts(), now, zone),
+    ).toBeNull();
+    expect(recapDue(rumi, facts({ eveningAt: now }), now, zone)).toBeNull();
+    expect(recapDue(rumi, facts({ rested: true }), now, zone)).toBeNull();
+    expect(recapDue(rumi, facts({ closed: true }), now, zone)).toBeNull();
+    expect(recapDue(rumi, facts({ running: true }), now, zone)).toBeNull();
+    expect(
+      recapDue(rumi, facts({ morningAt: at(day, '16:00') }), now, zone),
+    ).toBeNull();
+  });
+  it('reads the settings row and parses the form with the lines off by default', () => {
+    expect(nudgeContext(rumi)).toBe(
+      'Rumi writes · Mornings 08:00 · Afternoon 13:00 · Evening from 19:30 · Weekdays',
+    );
+    const parsed = nudgeInput.parse({
+      morningEnabled: true,
+      morningTime: '08:00',
+      eveningEnabled: false,
+      eveningTime: '19:30',
+      days: 31,
+      onlyStudyDays: true,
+      quietStart: '22:00',
+      quietEnd: '07:30',
+      studyCategories: ['DSA'],
+    });
+    expect(parsed).toMatchObject({
+      rumiLines: false,
+      middayEnabled: false,
+      middayTime: '13:00',
+    });
+    expect(() =>
+      nudgeInput.parse({ ...parsed, middayTime: '25:00' }),
+    ).toThrow();
   });
 });

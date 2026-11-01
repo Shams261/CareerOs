@@ -1,4 +1,5 @@
 import 'server-only';
+import { PENDING_MAX_MS, rumiStateOf } from '@/features/agent/line-domain';
 import webpush from 'web-push';
 import { db } from '@/server/db';
 import { pushConfig, type PushConfig } from '@/lib/env';
@@ -142,6 +143,12 @@ export async function deliverPending(
     take: 100,
   });
   for (const n of pending) {
+    // A line Rumi is still writing waits a little (WI-101), never longer than PENDING_MAX_MS.
+    if (
+      rumiStateOf(n.metadata) === 'pending' &&
+      +n.scheduledFor > +now - PENDING_MAX_MS
+    )
+      continue;
     const subs = await db().pushSubscription.findMany({
       where: { userId: n.userId, revokedAt: null },
     });
