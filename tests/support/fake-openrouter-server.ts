@@ -432,6 +432,59 @@ createServer(async (req, res) => {
         ],
       });
     }
+    // WI-107: the week draft, two days of next week in the evening.
+    if (
+      body.tools &&
+      /Draft the owner's study blocks for next week/.test(
+        body.messages[0]?.content ?? '',
+      )
+    ) {
+      let days: string[] = [];
+      try {
+        days = (
+          JSON.parse(body.messages[1]?.content ?? '{}').days as {
+            day: string;
+          }[]
+        ).map((d) => d.day);
+      } catch {
+        days = [];
+      }
+      const call = (day: string, title: string, i: number) => ({
+        id: `call_draft_${i}`,
+        type: 'function',
+        function: {
+          name: 'propose_blocks',
+          arguments: JSON.stringify({
+            day,
+            blocks: [
+              {
+                title,
+                kind: 'DSA',
+                start: '21:00',
+                end: '21:45',
+                reason: 'Weekly mix: DSA problems',
+              },
+            ],
+          }),
+        },
+      });
+      return json(200, {
+        provider: 'Google',
+        usage: { prompt_tokens: 2500, completion_tokens: 300, cost: 0.0004 },
+        choices: [
+          {
+            message: {
+              content: 'A steady week: short DSA blocks in the evening.',
+              tool_calls: [
+                call(days[0], 'Graphs: BFS', 0),
+                call(days[2], 'Heaps: top k', 1),
+              ],
+            },
+            finish_reason: 'tool_calls',
+          },
+        ],
+      });
+    }
     if (body.tools) {
       console.info(`[fake-openrouter] chat ${chats}`);
       await new Promise((r) => setTimeout(r, 400));

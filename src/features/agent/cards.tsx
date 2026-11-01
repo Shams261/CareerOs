@@ -48,7 +48,16 @@ export function ProposalCard({
   const [status, setStatus] = useState(proposal.status);
   // Blocks the owner took out before adding; they stay listed under Left out (WI-058).
   const [skip, setSkip] = useState<number[]>([]);
-  const can = addable(proposal, skip).length;
+  // Times the owner changed, and blocks they added, before Add to plan (WI-107).
+  const [edits, setEdits] = useState<
+    Record<number, { start: string; end: string }>
+  >({});
+  const [editing, setEditing] = useState<number | null>(null);
+  const [extra, setExtra] = useState<
+    { title: string; kind: string; start: string; end: string }[]
+  >([]);
+  const [adding, setAdding] = useState(false);
+  const can = addable(proposal, skip).length + extra.length;
   const open = status !== 'applied' && status !== 'dismissed';
   const kept = proposal.blocks
     .map((b, i) => ({ b, i }))
@@ -76,14 +85,61 @@ export function ProposalCard({
           {kept.map(({ b, i }) => (
             <li key={i}>
               <span className="rumi-plan-time">
-                {b.start}–{b.end}
+                {edits[i]?.start ?? b.start}–{edits[i]?.end ?? b.end}
               </span>
               <span className="rumi-plan-main">
                 <span className="rumi-plan-title">
                   {b.title} <span className="rumi-plan-kind">· {b.kind}</span>
                 </span>
                 <span className="rumi-plan-reason">{b.reason}</span>
+                {open && (
+                  <button
+                    type="button"
+                    className="link-button rumi-plan-change"
+                    aria-expanded={editing === i}
+                    onClick={() => setEditing(editing === i ? null : i)}
+                  >
+                    {editing === i ? 'Done' : 'Change time'}
+                  </button>
+                )}
+                {open && editing === i && (
+                  <span className="rumi-plan-edit">
+                    <label>
+                      Start
+                      <input
+                        type="time"
+                        defaultValue={edits[i]?.start ?? b.start}
+                        onChange={(e) =>
+                          setEdits((x) => ({
+                            ...x,
+                            [i]: {
+                              start: e.target.value,
+                              end: x[i]?.end ?? b.end,
+                            },
+                          }))
+                        }
+                      />
+                    </label>
+                    <label>
+                      End
+                      <input
+                        type="time"
+                        defaultValue={edits[i]?.end ?? b.end}
+                        onChange={(e) =>
+                          setEdits((x) => ({
+                            ...x,
+                            [i]: {
+                              start: x[i]?.start ?? b.start,
+                              end: e.target.value,
+                            },
+                          }))
+                        }
+                      />
+                    </label>
+                  </span>
+                )}
               </span>
+
               {open && (
                 <button
                   type="button"
@@ -122,6 +178,81 @@ export function ProposalCard({
           </ul>
         </div>
       )}
+      {extra.length > 0 && (
+        <ul className="plain-list rumi-plan">
+          {extra.map((x, j) => (
+            <li key={`extra-${j}`}>
+              <span className="rumi-plan-time">
+                {x.start}–{x.end}
+              </span>
+              <span className="rumi-plan-main">
+                <span className="rumi-plan-title">
+                  {x.title} <span className="rumi-plan-kind">· {x.kind}</span>
+                </span>
+                <span className="rumi-plan-reason">Added by you</span>
+              </span>
+              {open && (
+                <button
+                  type="button"
+                  className="rumi-plan-remove"
+                  aria-label={`Take out ${x.title} ${x.start}–${x.end}`}
+                  onClick={() => setExtra((e) => e.filter((_, k) => k !== j))}
+                >
+                  <X size={16} aria-hidden="true" />
+                </button>
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
+      {open &&
+        extra.length < 4 &&
+        (adding ? (
+          <form
+            className="rumi-plan-add"
+            aria-label="Add a block to this plan"
+            onSubmit={(e) => {
+              e.preventDefault();
+              const f = new FormData(e.currentTarget);
+              setExtra((x) => [
+                ...x,
+                {
+                  title: String(f.get('title') ?? '').trim(),
+                  kind: String(f.get('kind') ?? '').trim() || 'Technical',
+                  start: String(f.get('start')),
+                  end: String(f.get('end')),
+                },
+              ]);
+              setAdding(false);
+            }}
+          >
+            <label>
+              Title
+              <input name="title" required maxLength={80} />
+            </label>
+            <label>
+              Kind
+              <input name="kind" maxLength={40} placeholder="DSA" />
+            </label>
+            <label>
+              Start
+              <input name="start" type="time" required />
+            </label>
+            <label>
+              End
+              <input name="end" type="time" required />
+            </label>
+            <Button className="secondary small">Add to this card</Button>
+          </form>
+        ) : (
+          <button
+            type="button"
+            className="link-button rumi-plan-add-link"
+            onClick={() => setAdding(true)}
+          >
+            + Add a block
+          </button>
+        ))}
       <FeedbackOutlet channel={channel} />
       {status === 'applied' ? (
         <p className="rumi-card-done">
@@ -145,6 +276,17 @@ export function ProposalCard({
               {skip.map((i) => (
                 <input key={i} type="hidden" name="skip" value={i} />
               ))}
+              <input
+                type="hidden"
+                name="edits"
+                value={JSON.stringify(
+                  Object.entries(edits).map(([i, t]) => ({
+                    i: Number(i),
+                    ...t,
+                  })),
+                )}
+              />
+              <input type="hidden" name="extra" value={JSON.stringify(extra)} />
               <Button className="small">
                 Add {can === 1 ? 'block' : `${can} blocks`} to plan
               </Button>

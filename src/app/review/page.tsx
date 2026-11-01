@@ -48,6 +48,10 @@ import {
   PriorityList,
   ReviewForm,
 } from '@/features/review/forms';
+import { aiConfig } from '@/lib/env';
+import { DraftWeekButton } from '@/features/agent/draft-button';
+import { nextWeek } from '@/features/agent/draft';
+import { AGENT_NAME } from '@/features/agent/domain';
 export const metadata = { title: 'Weekly review' };
 
 const label = (day: string, pattern: string) =>
@@ -647,6 +651,18 @@ export default async function Review({
                   />
                 </dl>
                 <PrepareNextWeekForm monday={next.bounds.monday} />
+                {/* WI-107: once the routines are on next week, Rumi drafts around them. */}
+                {aiConfig() &&
+                  // Only the real next week: the draft plans from today.
+                  nextMonday === nextWeek(today)[0] &&
+                  (next.generatedDays === 7 ? (
+                    <DraftWeekButton />
+                  ) : (
+                    <p className="prep-note">
+                      Prepare next week first; then {AGENT_NAME} can draft the
+                      study blocks around your routines.
+                    </p>
+                  ))}
               </section>
             )}
           </div>

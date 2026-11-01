@@ -86,9 +86,11 @@ export async function proposeBlocks(
   user: ScheduleUser,
   args: ProposeArgs,
   now: Date,
+  /** The week draft (WI-107) plans next week, already prepared from the routines. */
+  opts: { window?: { first: string; last: string } } = {},
 ): Promise<{ result: unknown; proposal?: Proposal }> {
   const today = dayKey(now, user.timezone);
-  const window = planWindow(today);
+  const window = opts.window ?? planWindow(today);
   if (args.day < window.first || args.day > window.last)
     return {
       result: {
@@ -174,6 +176,11 @@ export async function applyProposal(
   now = new Date(),
   /** Positions in the card the owner removed before adding (WI-058). */
   skip: readonly number[] = [],
+  /** Times the owner changed on the card, and blocks they added to it (WI-107). */
+  changes: {
+    edits?: { i: number; start: string; end: string }[];
+    extra?: { title: string; kind: string; start: string; end: string }[];
+  } = {},
 ) {
   const study = await studyKinds(user.id);
   return locked(user.id, async (tx) => {
@@ -182,7 +189,14 @@ export async function applyProposal(
     if (!p) throw new Error('This plan no longer exists.');
     if (p.status === 'applied') throw new Error('This plan is already added.');
     if (p.status === 'dismissed') throw new Error('This plan was dismissed.');
-    const blocks = addable(p, skip);
+    const edited = p.blocks.map((b, i) => {
+      const e = changes.edits?.find((x) => x.i === i);
+      return e ? { ...b, start: e.start, end: e.end } : b;
+    });
+    const blocks = [
+      ...addable({ ...p, blocks: edited }, skip),
+      ...(changes.extra ?? []).map((x) => ({ ...x, reason: 'Added by you' })),
+    ];
     if (!blocks.length) throw new Error('Nothing in this plan can be added.');
     if (p.day < dayKey(now, user.timezone))
       throw new Error('This plan is for a day that has passed.');
