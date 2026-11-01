@@ -258,7 +258,10 @@ test('Rumi proposes tomorrow, the plan is added and undone', async ({
   await page.getByRole('button', { name: 'Send' }).click();
   const card = page.getByRole('group', { name: /^Plan for / });
   await expect(card).toBeVisible({ timeout: 20_000 });
-  await card.getByRole('button', { name: /to plan$/ }).click();
+  // WI-116: on a Sunday tomorrow is in next week, and the card prepares that week first.
+  await card
+    .getByRole('button', { name: /to plan$|^Prepare the week and add/ })
+    .click();
   await page.getByRole('button', { name: 'Undo' }).click();
   await expect(
     page.getByText(/cancelled|undone|removed/i).first(),
