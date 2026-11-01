@@ -188,7 +188,12 @@ export default async function Privacy() {
         then written on the zero-retention endpoint from what the searches
         found, the upcoming rounds, and the titles of roadmap items (Study AI
         on) and practice problems; the job description is sent only when the
-        owner ticks it. Nothing is shared with anyone else, and nothing is sold.
+        owner ticks it. When the owner pastes an interview invite and ticks
+        &ldquo;Send the invite text&rdquo;, one call on the zero-retention
+        endpoint reads it for the rounds and topics it names; the invite is not
+        stored, the topics come only from a fixed list of interview words, and
+        then up to eight searches run with those words. Nothing is shared with
+        anyone else, and nothing is sold.
       </p>
 
       <h2>Keeping and removing data</h2>

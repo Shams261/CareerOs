@@ -38,7 +38,17 @@ import {
   type PrepInput,
   type Source,
 } from './domain';
-import { aiPolicyLabel, typeText } from '@/features/jobs/formats';
+import { aiPolicyLabel, isFormat, typeText } from '@/features/jobs/formats';
+import { randomUUID } from 'node:crypto';
+import { saveFormats, scheduleRound } from '@/features/jobs/service';
+import {
+  INVITE_FORMAT,
+  inviteMessages,
+  readInvite,
+  roundEnd,
+  type Invite,
+  type InviteRound,
+} from './invite';
 
 export const UNAVAILABLE = `${AGENT_NAME} couldn’t prepare this right now.`;
 const WORDS: CallWords = {
@@ -170,7 +180,12 @@ const hostOf = (url: string | null) => {
  */
 export async function writePrepDoc(
   user: ScheduleUser,
-  input: { applicationId: string; jobDescription: boolean },
+  input: {
+    applicationId: string;
+    jobDescription: boolean;
+    /** From an invite the owner pasted (WI-105): topics from the fixed list, and its rounds. */
+    invite?: Invite;
+  },
   now = new Date(),
   fetcher: Fetcher = fetch,
 ) {
@@ -191,7 +206,12 @@ export async function writePrepDoc(
   const queries = searchQueries({
     company: m.app.company,
     role: m.app.role,
-    roundTypes: [...m.rounds.map((r) => r.type), ...m.app.formats],
+    roundTypes: [
+      ...m.rounds.map((r) => r.type),
+      ...m.app.formats,
+      ...(input.invite?.rounds.map((r) => r.type) ?? []),
+    ],
+    topics: input.invite?.topics,
   });
   const started = Date.now();
   const results = await Promise.allSettled(
@@ -265,6 +285,7 @@ export async function writePrepDoc(
     roadmap: m.roadmap,
     problems: m.problems,
     jobDescription: input.jobDescription ? m.app.jobDescription : null,
+    inviteTopics: input.invite?.topics,
   };
   const doc = await ask<PrepDoc>({
     user,
@@ -291,7 +312,19 @@ export async function writePrepDoc(
       role: m.app.role,
       queries,
       usedJobDescription: !!prep.jobDescription,
-      content: doc as unknown as Prisma.InputJsonValue,
+      // The invite's rounds and topics travel with the doc; the invite text never does.
+      content: (input.invite
+        ? {
+            ...doc,
+            invite: {
+              topics: input.invite.topics,
+              rounds: input.invite.rounds.map((r) => ({
+                type: r.type,
+                date: r.date,
+              })),
+            },
+          }
+        : doc) as unknown as Prisma.InputJsonValue,
       sources: cited as unknown as Prisma.InputJsonValue,
       costMicros: cost._sum.costMicros ?? 0,
       createdAt: now,
@@ -301,6 +334,84 @@ export async function writePrepDoc(
     `[prep] doc made ${JSON.stringify({ searches: found.length, sources: cited.length, official: cited.filter((s) => s.official).length, ms: Date.now() - started })}`,
   );
   return saved;
+}
+
+/**
+ * "I have the invite" (WI-105): one strict call reads only the pasted invite and returns the
+ * rounds and topics it names. Nothing is stored; the page offers each round to add.
+ */
+export async function parseInvite(
+  user: ScheduleUser,
+  applicationId: string,
+  text: string,
+  now = new Date(),
+  fetcher: Fetcher = fetch,
+): Promise<Invite> {
+  const cfg = aiConfig();
+  if (!cfg) throw new AiRefusal(UNAVAILABLE);
+  const app = await db().jobApplication.findFirst({
+    where: { id: applicationId, userId: user.id },
+    select: { id: true },
+  });
+  if (!app) throw new AiRefusal('This application no longer exists.');
+  const invite = text.trim();
+  if (invite.length < 20)
+    throw new AiRefusal('Paste the invite email or message first.');
+  await ready(user, cfg, now, fetcher, { requireEnabled: false });
+  const today = dayKey(now, user.timezone);
+  return ask<Invite>({
+    user,
+    cfg,
+    feature: 'PREP_RESEARCH',
+    messages: inviteMessages(invite, today),
+    format: INVITE_FORMAT,
+    read: (c) => readInvite(c, today),
+    now,
+    fetcher,
+    failure: `${AGENT_NAME} couldn’t read this invite. Add the rounds by hand.`,
+    words: WORDS,
+  });
+}
+
+/** One round the invite named, added on the owner's press through the Jobs writer. */
+export async function addInviteRound(
+  user: ScheduleUser,
+  applicationId: string,
+  round: InviteRound,
+  now = new Date(),
+) {
+  if (!round.date || !round.start)
+    throw new Error('This round has no date and time; add it from Jobs.');
+  return scheduleRound(
+    user,
+    {
+      requestId: randomUUID(),
+      applicationId,
+      type: round.type,
+      aiPolicy: round.aiPolicy,
+      date: round.date,
+      start: round.start,
+      end: roundEnd(round.start, round.minutes),
+      timezone: user.timezone,
+    },
+    now,
+  );
+}
+
+/** The invite's practice formats ticked on the application, beside the ones already there. */
+export async function tickInviteFormats(
+  user: ScheduleUser,
+  applicationId: string,
+  types: string[],
+) {
+  const app = await db().jobApplication.findFirst({
+    where: { id: applicationId, userId: user.id },
+    select: { formats: true },
+  });
+  if (!app) throw new Error('This application no longer exists.');
+  const formats = [...new Set([...app.formats, ...types.filter(isFormat)])];
+  await saveFormats(user, { id: applicationId, formats });
+  return formats.length - app.formats.length;
 }
 
 /** The docs for one application, newest first. */

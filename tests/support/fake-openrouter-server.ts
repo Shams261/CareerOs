@@ -340,6 +340,40 @@ function prepDoc(content: string) {
       'How is the team’s on-call shared?',
       'What does a strong first year look like?',
     ],
+    // WI-105: what the round asks, and the study order.
+    asks: [
+      { text: 'Graph traversal under time pressure.', sources: s.slice(0, 1) },
+    ],
+    order: [
+      {
+        name: 'Graphs',
+        why: 'Asked in the coding round.',
+        sources: s.slice(0, 1),
+        links: p.slice(0, 1),
+      },
+      {
+        name: 'Caching',
+        why: 'The design round leans on it.',
+        sources: s.slice(1, 2),
+        links: r.slice(0, 1),
+      },
+    ],
+  };
+}
+/** An invite (WI-105): one coding round on a fixed future day, and graphs as its topic. */
+function inviteFrom() {
+  const d = new Date(Date.now() + 2 * 86_400_000).toISOString().slice(0, 10);
+  return {
+    rounds: [
+      {
+        type: 'CODING',
+        date: d,
+        start: '10:00',
+        minutes: 60,
+        aiPolicy: 'NOT_ALLOWED',
+      },
+    ],
+    topics: ['graphs'],
   };
 }
 
@@ -434,7 +468,9 @@ createServer(async (req, res) => {
                           ? memoriesFrom(body.messages[1]?.content ?? '{}')
                           : format === 'line'
                             ? lineFrom(body.messages[1]?.content ?? '{}')
-                            : ladder(topic),
+                            : format === 'invite'
+                              ? inviteFrom()
+                              : ladder(topic),
                   ),
           },
         },

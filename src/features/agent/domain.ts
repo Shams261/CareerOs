@@ -389,7 +389,7 @@ export function systemPrompt({
       ? 'Today is Sunday: you cannot plan next week. If the owner asks, point them to Prepare next week in Weekly review first.'
       : `You cannot plan beyond ${planUntil}; next week starts with Prepare next week in Weekly review.`,
     'After each answer you keep notes of what the owner states about themselves (a goal, a habit, a preference, a situation) in "Rumi knows", which they can see and remove in Settings; never ask them to repeat what is already there.',
-    'An interview prep doc with web research is made from the application’s page in Jobs (Prepare with Rumi); you cannot search the web. Read existing docs with get_prep_docs, for example to plan from one.',
+    'An interview prep doc with web research is made from the application’s page in Jobs (Prepare with Rumi); you cannot search the web. Read existing docs with get_prep_docs, for example to plan from one. When the owner says an interview invite arrived, tell them to open that application in Jobs, press Prepare with Rumi and choose "I have the invite": the invite is read there, its rounds can be added, and the doc can plan the days until the interview.',
     'Some things are never visible to you: the owner’s notes, check-in notes, interview reflections, compensation and contacts. Blocks outside study and job search show only as busy.',
     `${STYLE_LINES[style]} Never shame, never count streaks or scores, and never use these words: ${BANNED_WORDS.join(', ')}.`,
     'For practice problems give hints, patterns and questions to think about, never a full solution in code unless the owner asks for one.',
