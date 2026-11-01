@@ -1,8 +1,12 @@
 'use client';
 import { useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { ActionForm } from '@/components/action-form';
 import { Button } from '@/components/ui/button';
+import { AGENT_NAME } from '@/features/agent/domain';
+import { askRumi, prefillRumi } from '@/features/agent/events';
+import { lineHeading, PART_WORDS } from '@/features/agent/line-domain';
 import {
   letGoAction,
   moveToTomorrowAction,
@@ -11,7 +15,13 @@ import {
 } from './actions';
 
 export type NudgeCardProps = {
-  nudge: { id: string; kind: 'morning' | 'evening' | 'block'; body: string };
+  nudge: {
+    id: string;
+    kind: 'morning' | 'midday' | 'evening' | 'block';
+    body: string;
+    /** Rumi wrote this line (WI-101). */
+    rumi?: boolean;
+  };
   /** The study block the nudge is about, when it is still on today's plan. */
   block: {
     id: string;
@@ -30,16 +40,24 @@ export type NudgeCardProps = {
  * show what will change and wait for Confirm.
  */
 export function NudgeCard({ nudge, block, day }: NudgeCardProps) {
+  const router = useRouter();
   const [confirm, setConfirm] = useState<'move' | 'rest' | 'letgo' | null>(
     null,
   );
   const evening = nudge.kind === 'evening';
   const started = nudge.kind === 'block';
-  const heading = evening
-    ? 'Study check-in'
-    : started
-      ? 'Block started'
-      : 'Good morning';
+  const midday = nudge.kind === 'midday';
+  const rumi = !!nudge.rumi && !started;
+  const heading = rumi
+    ? lineHeading(nudge.kind as 'morning' | 'midday' | 'evening', AGENT_NAME)
+    : evening
+      ? 'Study check-in'
+      : started
+        ? 'Block started'
+        : midday
+          ? 'This afternoon'
+          : 'Good morning';
+  const go = (href: string) => router.push(href);
   return (
     <section
       id="study-nudge"
@@ -55,7 +73,13 @@ export function NudgeCard({ nudge, block, day }: NudgeCardProps) {
             <b>{block.window}</b> · {block.title}
           </span>
           <span className="muted">
-            {evening ? 'Not recorded' : started ? 'Not started' : 'Planned'}
+            {evening
+              ? 'Not recorded'
+              : started
+                ? 'Not started'
+                : midday
+                  ? 'Next'
+                  : 'Planned'}
           </span>
         </p>
       )}
@@ -183,6 +207,29 @@ export function NudgeCard({ nudge, block, day }: NudgeCardProps) {
             >
               Open the plan
             </Link>
+          )}
+          {rumi && (
+            <>
+              <Button
+                type="button"
+                className="secondary"
+                onClick={() =>
+                  askRumi(
+                    `About your ${PART_WORDS[nudge.kind as 'morning' | 'midday' | 'evening'].toLowerCase()} line: “${nudge.body}”`,
+                    go,
+                  )
+                }
+              >
+                Ask {AGENT_NAME} about this
+              </Button>
+              <Button
+                type="button"
+                className="secondary"
+                onClick={() => prefillRumi(`Re “${nudge.body}”: `, go)}
+              >
+                Reply
+              </Button>
+            </>
           )}
         </div>
       )}

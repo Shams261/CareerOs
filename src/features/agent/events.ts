@@ -9,7 +9,27 @@ export const ASK_EVENT = 'silsila:ask-rumi';
 export const OPEN_RUMI_EVENT = 'silsila:open-rumi';
 /** Set on <body> while the drawer is available on this page. */
 export const DRAWER_FLAG = 'rumiDrawer';
+/** Words put in the composer without sending (WI-101: Reply on one of Rumi's lines). */
+export const PREFILL_KEY = 'silsila-rumi-prefill';
+export const PREFILL_EVENT = 'silsila:prefill-rumi';
 
+/**
+ * Puts `text` in Rumi's composer without sending it (WI-101): the drawer when this page has it,
+ * else the Rumi page. The owner finishes the message and presses Send.
+ */
+export function prefillRumi(text: string, go: (href: string) => void) {
+  try {
+    sessionStorage.setItem(PREFILL_KEY, text);
+  } catch {
+    return false;
+  }
+  if (location.pathname === '/rumi')
+    window.dispatchEvent(new Event(PREFILL_EVENT));
+  else if (document.body.dataset[DRAWER_FLAG] === 'on')
+    window.dispatchEvent(new Event(OPEN_RUMI_EVENT));
+  else go('/rumi');
+  return true;
+}
 /**
  * Asks Rumi `text` from anywhere: the drawer when this page has it, the open Rumi page, or
  * the Rumi page after navigating there. Returns false when storage is unavailable.

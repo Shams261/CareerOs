@@ -24,6 +24,13 @@ export type NudgeSetting = {
   /** WI-039: nudge once a study block's start has passed by `blockStartMinutes`. */
   blockStartEnabled: boolean;
   blockStartMinutes: number;
+  /** WI-101: Rumi writes the lines; the templates stay as the fallback. */
+  rumiLines: boolean;
+  /** WI-101: the afternoon line, only while Rumi writes the lines. */
+  middayEnabled: boolean;
+  middayTime: string;
+  /** "Too many" on a line pauses the afternoon one through this day ("yyyy-MM-dd"), or null. */
+  middayPausedUntil: string | null;
 };
 export const DEFAULT_NUDGES: NudgeSetting = {
   morningEnabled: false,
@@ -38,6 +45,10 @@ export const DEFAULT_NUDGES: NudgeSetting = {
   studyCategories: ['DSA', 'Technical'],
   blockStartEnabled: false,
   blockStartMinutes: 15,
+  rumiLines: false,
+  middayEnabled: false,
+  middayTime: '13:00',
+  middayPausedUntil: null,
 };
 /** At most this many block-start nudges in one day, so the coach never nags (WI-039). */
 export const BLOCK_NUDGES_PER_DAY = 1;
@@ -47,6 +58,18 @@ export const BLOCK_START_OFFSETS = [5, 10, 15, 20, 30] as const;
 export const MORNING_WINDOW_MIN = 180;
 /** At least this long between the morning and the evening nudge. */
 export const NUDGE_SPACING_MIN = 240;
+/** The afternoon line is skipped once this window after its time has passed (WI-101). */
+export const MIDDAY_WINDOW_MIN = 120;
+/** "Too many" on any line rests the afternoon line for this many days (WI-101). */
+export const MIDDAY_PAUSE_DAYS = 7;
+/** The languages Rumi's lines come in (WI-101; `AgentSetting.lineLanguage`). */
+export const LINE_LANGUAGES = [
+  ['en', 'English'],
+  ['hinglish', 'Hinglish'],
+] as const;
+export type LineLanguage = (typeof LINE_LANGUAGES)[number][0];
+export const readLineLanguage = (value: unknown): LineLanguage =>
+  value === 'hinglish' ? 'hinglish' : 'en';
 /** A page seen this recently means Silsila is open: the nudge goes in-app, not to the lock screen. */
 export const ACTIVE_WINDOW_MS = 5 * 60_000;
 
@@ -105,6 +128,8 @@ export type NudgeDay = {
   running: boolean;
   morningAt: Date | null;
   eveningAt: Date | null;
+  /** When the afternoon line went out today (WI-101). */
+  middayAt?: Date | null;
   /** Blocks already nudged at their start today (WI-039). */
   blockNudged?: string[];
 };
@@ -154,6 +179,67 @@ export function eveningDue(
       )
       .sort((a, b) => +a.plannedStart - +b.plannedStart)[0] ?? null
   );
+}
+
+/**
+ * The block the afternoon line is about (WI-101), or null: while Rumi writes the lines and the
+ * afternoon line is on and not rested by "Too many", inside its window on an active day, not
+ * rested or closed, outside quiet hours, no session running, at least the spacing after the
+ * morning line, and only while a study block is still ahead (planned, unrecorded, not begun).
+ */
+export function middayDue(
+  s: NudgeSetting,
+  d: NudgeDay,
+  now: Date,
+  zone: string,
+) {
+  const day = dayKey(now, zone);
+  if (!s.rumiLines || !s.middayEnabled || !active(s, day) || d.middayAt)
+    return null;
+  if (s.middayPausedUntil && s.middayPausedUntil >= day) return null;
+  const start = localInstant(day, s.middayTime, zone);
+  if (now < start || +now >= +start + MIDDAY_WINDOW_MIN * 60_000) return null;
+  if (inQuietHours(hhmm(now, zone), s.quietStart, s.quietEnd)) return null;
+  if (d.morningAt && +now < +d.morningAt + NUDGE_SPACING_MIN * 60_000)
+    return null;
+  if (d.rested || d.closed || d.running) return null;
+  return (
+    d.studyBlocks
+      .filter(
+        (b) => b.plannedStart > now && b.status === 'PLANNED' && !b.recorded,
+      )
+      .sort((a, b) => +a.plannedStart - +b.plannedStart)[0] ?? null
+  );
+}
+
+/**
+ * The evening recap (WI-101) is due on every active evening while Rumi writes the lines: the
+ * same gates as the check-in (time, quiet hours, spacing, rest, close, a running session) but
+ * it also comes when the day's study was recorded. It carries the first study block left
+ * (ended, planned, unrecorded) for Move and Let go, or null when nothing is left.
+ */
+export function recapDue(
+  s: NudgeSetting,
+  d: NudgeDay,
+  now: Date,
+  zone: string,
+): { left: NudgeDay['studyBlocks'][number] | null } | null {
+  const day = dayKey(now, zone);
+  if (!s.rumiLines || !s.eveningEnabled || !active(s, day) || d.eveningAt)
+    return null;
+  if (now < localInstant(day, s.eveningTime, zone)) return null;
+  if (inQuietHours(hhmm(now, zone), s.quietStart, s.quietEnd)) return null;
+  if (d.morningAt && +now < +d.morningAt + NUDGE_SPACING_MIN * 60_000)
+    return null;
+  if (d.rested || d.closed || d.running) return null;
+  return {
+    left:
+      d.studyBlocks
+        .filter(
+          (b) => b.plannedEnd <= now && b.status === 'PLANNED' && !b.recorded,
+        )
+        .sort((a, b) => +a.plannedStart - +b.plannedStart)[0] ?? null,
+  };
 }
 
 /**
@@ -228,6 +314,37 @@ export function eveningBody(
   return `${eveningLine(day)} Left today: ${sentence(block, zone)}.${next}`;
 }
 
+/** The afternoon line's fallback (WI-101): the next study block, and how far off it is. */
+export function middayBody(block: Slot, now: Date, day: string, zone: string) {
+  const inMin = Math.max(1, Math.round((+block.plannedStart - +now) / 60_000));
+  const wait =
+    inMin >= 60
+      ? `${Math.floor(inMin / 60)} h${inMin % 60 ? ` ${inMin % 60} min` : ''}`
+      : `${inMin} min`;
+  return `${middayLine(day)} Next: ${sentence(block, zone)}, in ${wait}.`;
+}
+
+/**
+ * The evening recap's fallback (WI-101): what was recorded, what is left, and how tomorrow
+ * starts. With a block left it reads as the check-in does.
+ */
+export function recapBody(
+  recordedMinutes: number,
+  left: Slot | null,
+  tomorrowFirst: Slot | null,
+  day: string,
+  zone: string,
+) {
+  if (left) return eveningBody(left, tomorrowFirst, day, zone);
+  const next = tomorrowFirst
+    ? ` Tomorrow starts with ${sentence(tomorrowFirst, zone)}.`
+    : '';
+  const done = recordedMinutes
+    ? `${recordedMinutes} min of study recorded today.`
+    : 'No study block was planned today.';
+  return `${done}${next}`;
+}
+
 /** The block-start nudge (WI-039): what started, and how much of it is left. */
 export function blockBody(block: Slot, now: Date, zone: string) {
   const ago = Math.max(1, Math.round((+now - +block.plannedStart) / 60_000));
@@ -248,6 +365,11 @@ export const MORNING_LINES = [
   'One block is enough to begin. Your plan is ready when you are.',
   'Start small today. Your plan is here.',
 ];
+/** The afternoon line's fallback copy (WI-101), rotated by day. */
+export const MIDDAY_LINES = [
+  'The afternoon is still open.',
+  'Half the day is still ahead.',
+];
 export const EVENING_LINES = [
   'I don’t see a study session recorded for today yet. Would a short session still help, or would you rather move it?',
   'No study session is recorded yet today. A short one, a move, or rest are all fine.',
@@ -258,6 +380,8 @@ export const morningLine = (day: string) =>
   MORNING_LINES[dayNumber(day) % MORNING_LINES.length];
 export const eveningLine = (day: string) =>
   EVENING_LINES[dayNumber(day) % EVENING_LINES.length];
+export const middayLine = (day: string) =>
+  MIDDAY_LINES[dayNumber(day) % MIDDAY_LINES.length];
 /** Words that never appear in nudge copy (tested). */
 export const BANNED_WORDS = [
   'missed',
@@ -300,6 +424,10 @@ export const nudgeInput = z
         'Choose 5, 10, 15, 20 or 30 minutes.',
       )
       .default(15),
+    // WI-101: Rumi's lines and the afternoon one, off unless the form carries them.
+    rumiLines: z.boolean().default(false),
+    middayEnabled: z.boolean().default(false),
+    middayTime: time.default('13:00'),
   })
   .refine(
     (v) =>
@@ -319,11 +447,17 @@ export type NudgeInput = z.infer<typeof nudgeInput>;
 export function nudgeContext(s: NudgeSetting | null) {
   if (!s || (!s.morningEnabled && !s.eveningEnabled && !s.blockStartEnabled))
     return 'Off';
-  const parts = [] as string[];
+  const parts = s.rumiLines ? ['Rumi writes'] : ([] as string[]);
   if (s.morningEnabled) parts.push(`Mornings ${s.morningTime}`);
   if (s.blockStartEnabled)
     parts.push(`Block start +${s.blockStartMinutes} min`);
-  if (s.eveningEnabled) parts.push(`Check-in from ${s.eveningTime}`);
+  if (s.rumiLines && s.middayEnabled) parts.push(`Afternoon ${s.middayTime}`);
+  if (s.eveningEnabled)
+    parts.push(
+      s.rumiLines
+        ? `Evening from ${s.eveningTime}`
+        : `Check-in from ${s.eveningTime}`,
+    );
   const days =
     s.days === 127
       ? 'Every day'

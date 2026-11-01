@@ -20,7 +20,61 @@ import {
   todaysNudge,
 } from '../src/features/nudges/service';
 import { pushPayload } from '../src/features/push/domain';
+import { deliverPending } from '../src/features/push/service';
+import {
+  linesToday,
+  lineStats,
+  writeRumiLines,
+} from '../src/features/agent/lines';
+import { nudgeFeedback } from '../src/features/nudges/service';
+import { ENDPOINT, MODEL } from '../src/features/ai/domain';
 import { localInstant } from '../src/lib/time';
+
+const zdrList = { data: [{ model_id: MODEL, tag: ENDPOINT }] };
+const endpointList = {
+  data: {
+    endpoints: [
+      {
+        tag: ENDPOINT,
+        supported_parameters: [
+          'max_tokens',
+          'response_format',
+          'structured_outputs',
+          'tools',
+          'tool_choice',
+        ],
+        pricing: { prompt: '0.0000001', completion: '0.0000005' },
+      },
+    ],
+  },
+};
+/** A fake OpenRouter answering the line format with the given lines in order (WI-101). */
+function lineRouter(lines: (string | Error)[]) {
+  const calls: {
+    messages: { content: string }[];
+    response_format: { json_schema: { name: string } };
+  }[] = [];
+  const fetcher = (async (input: RequestInfo | URL, init?: RequestInit) => {
+    const u = String(input);
+    if (u.endsWith('/endpoints/zdr')) return Response.json(zdrList);
+    if (u.includes('/models/')) return Response.json(endpointList);
+    const body = JSON.parse(String(init?.body));
+    calls.push(body);
+    const next = lines.shift() ?? 'Done.';
+    if (next instanceof Error) throw next;
+    return Response.json({
+      provider: 'Google',
+      usage: { prompt_tokens: 700, completion_tokens: 40, cost: 0.0001 },
+      choices: [
+        {
+          message: { content: JSON.stringify({ line: next }) },
+          finish_reason: 'stop',
+        },
+      ],
+    });
+  }) as typeof fetch;
+  return { fetcher, calls };
+}
 
 const url = process.env.TEST_DATABASE_URL;
 const zone = 'America/Toronto';
@@ -41,8 +95,14 @@ const off = {
 describe.skipIf(!url)('coach notifications (PostgreSQL)', () => {
   const prisma = new PrismaClient({ adapter: createPgAdapter(url!) });
   client.value = prisma;
+  const saved = { ...process.env };
+  afterAll(() => {
+    process.env = saved;
+  });
   let user: { id: string; timezone: string };
   beforeEach(async () => {
+    process.env.OPENROUTER_API_KEY = `sk-or-v1-${'a'.repeat(40)}`;
+    process.env.OPENROUTER_API_URL = 'http://127.0.0.1:9/api/v1';
     const id = `coach-${randomUUID()}`;
     user = await prisma.user.create({
       data: { id, email: `${id}@example.com`, name: 'Coach', timezone: zone },
@@ -75,7 +135,9 @@ describe.skipIf(!url)('coach notifications (PostgreSQL)', () => {
       },
     });
   }
-  const rows = (type: 'STUDY_MORNING' | 'STUDY_EVENING' | 'STUDY_BLOCK') =>
+  const rows = (
+    type: 'STUDY_MORNING' | 'STUDY_MIDDAY' | 'STUDY_EVENING' | 'STUDY_BLOCK',
+  ) =>
     prisma.notificationLog.findMany({
       where: { userId: user.id, type },
       orderBy: { createdAt: 'asc' },
@@ -187,5 +249,227 @@ describe.skipIf(!url)('coach notifications (PostgreSQL)', () => {
       /Left today: 18:00–19:00 Two pointers practice\. Tomorrow starts with 07:30–08:15 DSA warm-up\.$/,
     );
     expect(pushPayload(evening)).not.toContain('Two pointers');
+  });
+
+  describe('Rumi writes the lines (WI-101)', () => {
+    const rumiOn = {
+      ...off,
+      morningEnabled: true,
+      eveningEnabled: true,
+      rumiLines: true,
+      middayEnabled: true,
+    };
+    const sender = async () => 201;
+    const cfg = {
+      publicKey: 'pk',
+      privateKey: 'sk',
+      subject: 'mailto:x@example.com',
+    };
+    const subscribe = () =>
+      prisma.pushSubscription.create({
+        data: {
+          userId: user.id,
+          endpoint: `https://push.example.com/${user.id}`,
+          p256dh: 'p',
+          auth: 'a',
+        },
+      });
+
+    it('queues the morning row pending, writes Rumi’s line from the reads once, and holds push meanwhile', async () => {
+      await block('Two pointers practice', '18:00', '19:00');
+      await saveNudgeSetting(user, rumiOn);
+      await subscribe();
+      const t = at('08:05');
+      await processNotifications(t);
+      let [morning] = await rows('STUDY_MORNING');
+      expect(morning.metadata).toMatchObject({ rumi: 'pending' });
+      expect(morning.body).toMatch(
+        /^Today: 18:00–19:00 Two pointers practice\./,
+      );
+      // Push waits while the line is pending and fresh.
+      expect((await deliverPending(t, sender, cfg)).notifications).toBe(0);
+      const r = lineRouter([
+        'Two pointers practice is at 18:00 today. Begin with the first problem.',
+      ]);
+      expect(await writeRumiLines(t, r.fetcher)).toEqual({
+        written: 1,
+        fallback: 0,
+      });
+      [morning] = await rows('STUDY_MORNING');
+      expect(morning.body).toBe(
+        'Two pointers practice is at 18:00 today. Begin with the first problem.',
+      );
+      expect(morning.metadata).toMatchObject({ rumi: 'written', rumiTries: 1 });
+      // One strict call with the persona, the part and the reads as data; nothing else was sent.
+      expect(r.calls).toHaveLength(1);
+      const sent = JSON.parse(r.calls[0].messages[1].content);
+      expect(sent.part).toBe('morning');
+      expect(Object.keys(sent.data)).toEqual([
+        'get_today',
+        'get_activity',
+        'get_jobs',
+        'get_patterns',
+      ]);
+      expect(r.calls[0].response_format.json_schema.name).toBe('line');
+      // The ledger holds the call under its own feature; the push now goes with the general text.
+      expect(
+        await prisma.aiUsage.count({
+          where: { userId: user.id, feature: 'AGENT_LINE' },
+        }),
+      ).toBe(1);
+      expect((await deliverPending(t, sender, cfg)).delivered).toBe(1);
+      expect(JSON.parse(pushPayload(morning)).body).not.toContain(
+        'Two pointers',
+      );
+      // Today reads it as Rumi's; repeated runs write nothing more and queue nothing twice.
+      expect(await todaysNudge(user, day)).toMatchObject({
+        kind: 'morning',
+        rumi: true,
+      });
+      await processNotifications(at('08:30'));
+      expect(await writeRumiLines(at('08:30'), r.fetcher)).toEqual({
+        written: 0,
+        fallback: 0,
+      });
+      expect(await rows('STUDY_MORNING')).toHaveLength(1);
+      expect(await linesToday(user, day)).toEqual([
+        'morning: Two pointers practice is at 18:00 today. Begin with the first problem.',
+      ]);
+      expect(await lineStats(user, at('09:00'))).toEqual({
+        written: 1,
+        total: 1,
+      });
+    });
+
+    it('keeps the template after two failed runs, and pushes a stale pending row anyway', async () => {
+      await block('Two pointers practice', '18:00', '19:00');
+      await saveNudgeSetting(user, rumiOn);
+      await subscribe();
+      const t = at('08:05');
+      await processNotifications(t);
+      const r = lineRouter([
+        new Error('ECONNREFUSED'),
+        new Error('ECONNREFUSED'),
+      ]);
+      expect(await writeRumiLines(t, r.fetcher)).toEqual({
+        written: 0,
+        fallback: 0,
+      });
+      let [morning] = await rows('STUDY_MORNING');
+      expect(morning.metadata).toMatchObject({ rumi: 'pending', rumiTries: 1 });
+      // Older than two minutes: push stops waiting even while still pending.
+      expect((await deliverPending(at('08:08'), sender, cfg)).delivered).toBe(
+        1,
+      );
+      expect(await writeRumiLines(at('08:06'), r.fetcher)).toEqual({
+        written: 0,
+        fallback: 1,
+      });
+      [morning] = await rows('STUDY_MORNING');
+      expect(morning.metadata).toMatchObject({
+        rumi: 'fallback',
+        rumiTries: 2,
+      });
+      expect(morning.body).toMatch(
+        /^Today: 18:00–19:00 Two pointers practice\./,
+      );
+      expect(await todaysNudge(user, day)).toMatchObject({
+        kind: 'morning',
+        rumi: false,
+      });
+      expect(await lineStats(user, at('09:00'))).toEqual({
+        written: 0,
+        total: 1,
+      });
+    });
+
+    it('rejects an invented number once, keeps the retry’s line, and never counts the line against Grill Me', async () => {
+      await block('Two pointers practice', '18:00', '19:00');
+      await saveNudgeSetting(user, rumiOn);
+      const t = at('08:05');
+      await processNotifications(t);
+      const r = lineRouter([
+        'You have 7 blocks today, so begin now.',
+        'Two pointers practice waits at 18:00. One problem is a fine start.',
+      ]);
+      expect(await writeRumiLines(t, r.fetcher)).toEqual({
+        written: 1,
+        fallback: 0,
+      });
+      expect(r.calls).toHaveLength(2);
+      expect(r.calls[1].messages.at(-1)?.content).toMatch(
+        /every number must appear in the data/,
+      );
+      const [morning] = await rows('STUDY_MORNING');
+      expect(morning.body).toBe(
+        'Two pointers practice waits at 18:00. One problem is a fine start.',
+      );
+    });
+
+    it('writes the afternoon line while a block is ahead and the recap in the evening, and "Too many" rests the afternoon', async () => {
+      await block('Two pointers practice', '18:00', '19:00');
+      await block('DSA warm-up', '07:30', '08:15', '2026-10-28');
+      await saveNudgeSetting(user, rumiOn);
+      await processNotifications(at('13:10'));
+      const [midday] = await rows('STUDY_MIDDAY');
+      expect(midday.body).toMatch(
+        /Next: 18:00–19:00 Two pointers practice, in 4 h 50 min\.$/,
+      );
+      expect(midday.metadata).toMatchObject({ rumi: 'pending' });
+      expect(JSON.parse(pushPayload(midday))).toMatchObject({
+        body: 'Rumi has a line for the afternoon.',
+        url: '/today#study-nudge',
+      });
+      const r = lineRouter([
+        'Two pointers practice is at 18:00. The afternoon is open until then.',
+      ]);
+      await writeRumiLines(at('13:10'), r.fetcher);
+      expect(JSON.parse(r.calls[0].messages[1].content).part).toBe('midday');
+      expect(await todaysNudge(user, day)).toMatchObject({
+        kind: 'midday',
+        rumi: true,
+      });
+      // "Too many" on the afternoon line rests it for a week.
+      await nudgeFeedback(user, midday.id, 'TOO_MANY', at('13:20'));
+      const setting = await prisma.studyNudgeSetting.findUnique({
+        where: { userId: user.id },
+      });
+      expect(setting?.middayPausedUntil?.toISOString().slice(0, 10)).toBe(
+        '2026-11-03',
+      );
+      // The evening recap comes on a recorded day too (the check-in would not).
+      const dsa = (await rows('STUDY_MIDDAY'))[0].metadata as {
+        blockId: string;
+      };
+      await prisma.actualSession.create({
+        data: {
+          userId: user.id,
+          taskId: dsa.blockId,
+          category: 'DSA',
+          startedAt: at('18:00'),
+          endedAt: at('18:40'),
+        },
+      });
+      await processNotifications(at('19:45'));
+      const [evening] = await rows('STUDY_EVENING');
+      expect(evening.title).toBe('This evening');
+      expect(evening.body).toBe(
+        '40 min of study recorded today. Tomorrow starts with 07:30–08:15 DSA warm-up.',
+      );
+      expect(evening.metadata).toMatchObject({ rumi: 'pending' });
+    });
+
+    it('leaves the rows as templates when AI is not configured', async () => {
+      delete process.env.OPENROUTER_API_KEY;
+      await block('Two pointers practice', '18:00', '19:00');
+      await saveNudgeSetting(user, rumiOn);
+      await processNotifications(at('08:05'));
+      const [morning] = await rows('STUDY_MORNING');
+      expect(morning.metadata).not.toHaveProperty('rumi');
+      expect(await writeRumiLines(at('08:05'))).toEqual({
+        written: 0,
+        fallback: 0,
+      });
+    });
   });
 });

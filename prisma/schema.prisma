@@ -123,6 +123,8 @@ enum NotificationType {
   STUDY_EVENING
   /// WI-039: a study block's start passed with no session or decision.
   STUDY_BLOCK
+  /// WI-101: Rumi's afternoon line while a study block is still ahead.
+  STUDY_MIDDAY
 }
 
 model User {
@@ -990,6 +992,13 @@ model StudyNudgeSetting {
   /// WI-039: a nudge when a study block's start has passed by this many minutes with nothing begun.
   blockStartEnabled Boolean   @default(false)
   blockStartMinutes Int       @default(15)
+  /// WI-101: Rumi writes the morning, afternoon and evening lines (the templates stay as the fallback).
+  rumiLines         Boolean   @default(false)
+  /// WI-101: the afternoon line, only while Rumi writes the lines.
+  middayEnabled     Boolean   @default(false)
+  middayTime        String    @default("13:00")
+  /// WI-101: "Too many" on a line pauses the afternoon one through this day (DATE label).
+  middayPausedUntil DateTime? @db.Date
   updatedAt         DateTime  @updatedAt @db.Timestamptz(3)
 }
 
@@ -1004,6 +1013,8 @@ enum AiFeature {
   AGENT_CHAT
   /// WI-100: the extraction call that keeps "Rumi knows" lines from the owner's own messages.
   AGENT_MEMORY
+  /// WI-101: one of Rumi's lines (morning, afternoon, evening) written from the day's reads.
+  AGENT_LINE
   /// WI-042: one search or the writing call of an interview prep doc.
   PREP_RESEARCH
 }

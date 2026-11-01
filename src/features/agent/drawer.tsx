@@ -4,7 +4,14 @@ import { usePathname } from 'next/navigation';
 import { MessageCircle, X } from 'lucide-react';
 import { RumiChat } from './chat';
 import { AGENT_NAME } from './domain';
-import { ASK_EVENT, ASK_KEY, DRAWER_FLAG, OPEN_RUMI_EVENT } from './events';
+import {
+  ASK_EVENT,
+  ASK_KEY,
+  DRAWER_FLAG,
+  OPEN_RUMI_EVENT,
+  PREFILL_EVENT,
+  PREFILL_KEY,
+} from './events';
 
 /** Pages where the round button would repeat or interrupt: Rumi's own page and Focus. */
 const HIDDEN = ['/rumi', '/focus', '/login', '/privacy'];
@@ -39,6 +46,8 @@ export function RumiDrawer() {
         try {
           if (sessionStorage.getItem(ASK_KEY))
             window.dispatchEvent(new Event(ASK_EVENT));
+          if (sessionStorage.getItem(PREFILL_KEY))
+            window.dispatchEvent(new Event(PREFILL_EVENT));
         } catch {
           /* storage unavailable: nothing to take */
         }

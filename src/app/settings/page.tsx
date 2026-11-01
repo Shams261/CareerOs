@@ -54,6 +54,8 @@ import { dayPrintAction } from '@/features/day-print/actions';
 import { AiSettings, aiContext } from '@/features/ai/settings';
 import { memories } from '@/features/agent/service';
 import { agentSetting, rumiStyle } from '@/features/agent/memory-service';
+import { lineStats } from '@/features/agent/lines';
+import { readLineLanguage } from '@/features/nudges/domain';
 import { MemorySettings, memoryContext } from '@/features/agent/memory';
 import { AGENT_NAME } from '@/features/agent/domain';
 import { ThemeSwitch } from '@/features/settings/theme-switch';
@@ -101,6 +103,7 @@ export default async function Settings({
     sessions,
     sentRows,
     curriculum,
+    lines,
   ] = await Promise.all([
     db().notificationPreference.findMany({
       where: {
@@ -139,6 +142,7 @@ export default async function Settings({
       _max: { scheduledFor: true },
     }),
     curriculumSummary(),
+    lineStats(user, now),
   ]);
   const nudges = nudgeSetting(nudgeRow);
   const today = dayKey(now, user.timezone);
@@ -278,7 +282,7 @@ export default async function Settings({
                 icon={<Bell size={22} />}
                 label="Study nudges"
                 title="A morning plan, a block-start nudge and an evening check-in"
-                context={`${nudgeContext(nudges)}${nudgesPaused ? ' · Paused' : ''}${sent(['STUDY_MORNING', 'STUDY_EVENING', 'STUDY_BLOCK'])}`}
+                context={`${nudgeContext(nudges)}${nudgesPaused ? ' · Paused' : ''}${sent(['STUDY_MORNING', 'STUDY_MIDDAY', 'STUDY_EVENING', 'STUDY_BLOCK'])}`}
                 panel="reminder-study"
               />
               <SettingRow
@@ -328,6 +332,14 @@ export default async function Settings({
                 setting={nudges}
                 categories={routineCategories.map((r) => r.category)}
                 today={today}
+                rumi={
+                  ai.configured
+                    ? {
+                        language: readLineLanguage(agent.lineLanguage),
+                        stats: lines,
+                      }
+                    : null
+                }
               />
               <div className="panel-section">
                 <h3>This device</h3>

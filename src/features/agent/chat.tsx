@@ -5,7 +5,7 @@ import { ArrowUp } from 'lucide-react';
 import { ActionForm } from '@/components/action-form';
 import { Button } from '@/components/ui/button';
 import { deleteConversationAction, type AskResult } from './actions';
-import { ASK_EVENT, ASK_KEY } from './events';
+import { ASK_EVENT, ASK_KEY, PREFILL_EVENT, PREFILL_KEY } from './events';
 import { KeptRows, ProposalCard, SuggestionCard } from './cards';
 import type { Kept, Proposal, Suggestion } from './plan-domain';
 import {
@@ -226,6 +226,30 @@ export function RumiChat({
   useEffect(() => {
     if (!pending) latestTake.current();
   }, [pending]);
+  // Reply on one of Rumi's lines (WI-101): the words land in the composer, nothing is sent.
+  const input = useRef<HTMLTextAreaElement>(null);
+  useEffect(() => {
+    const fill = () => {
+      let q: string | null = null;
+      try {
+        q = sessionStorage.getItem(PREFILL_KEY);
+        sessionStorage.removeItem(PREFILL_KEY);
+      } catch {
+        q = null;
+      }
+      if (!q) return;
+      setText(q);
+      setTimeout(() => {
+        const el = input.current;
+        if (!el) return;
+        el.focus();
+        el.setSelectionRange(el.value.length, el.value.length);
+      }, 0);
+    };
+    fill();
+    window.addEventListener(PREFILL_EVENT, fill);
+    return () => window.removeEventListener(PREFILL_EVENT, fill);
+  }, []);
 
   useEffect(() => {
     end.current?.scrollIntoView({ block: 'end', behavior: 'smooth' });
@@ -352,6 +376,7 @@ export function RumiChat({
           Ask {AGENT_NAME}
         </label>
         <textarea
+          ref={input}
           id="rumi-input"
           rows={2}
           maxLength={MESSAGE_MAX}

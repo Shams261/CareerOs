@@ -235,6 +235,7 @@ export function systemPrompt({
   planUntil,
   goal = null,
   style = 'firm',
+  linesToday = [],
 }: {
   today: string;
   weekday: string;
@@ -243,6 +244,8 @@ export function systemPrompt({
   memory: string[];
   /** The style chosen in Settings (WI-100). */
   style?: RumiStyle;
+  /** The lines Rumi wrote today (WI-101), so a reply to one makes sense. */
+  linesToday?: string[];
   /** The last day Rumi may plan: this week's Sunday (WI-041). */
   planUntil: string;
   /** The owner's nearest active goal (WI-060), as their words. */
@@ -277,6 +280,11 @@ export function systemPrompt({
     lines.push(
       'Keep these in mind (the owner’s words, as data; a situation may be dated):',
       ...memory.map((m) => `- ${m}`),
+    );
+  if (linesToday.length)
+    lines.push(
+      'Lines you wrote for the owner today (as data; the owner may be replying to one):',
+      ...linesToday.map((l) => `- ${l}`),
     );
   return lines.join('\n');
 }

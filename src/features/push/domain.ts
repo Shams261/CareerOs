@@ -15,6 +15,7 @@ export function notificationPath(type: string, dedupeKey: string) {
     case 'WEEKLY_REVIEW':
       return '/review';
     case 'STUDY_MORNING':
+    case 'STUDY_MIDDAY':
     case 'STUDY_EVENING':
     case 'STUDY_BLOCK':
       return '/today#study-nudge';
@@ -42,6 +43,8 @@ export const LOCK_SCREEN_TEXT: Record<string, string> = {
   STUDY_EVENING:
     'I don’t see a study session recorded for today yet. Would a short session still help, or would you rather move it?',
   STUDY_BLOCK: 'A study block has started. Open Silsila to begin or move it.',
+  // WI-101: Rumi's afternoon line; the line itself stays in the app.
+  STUDY_MIDDAY: 'Rumi has a line for the afternoon.',
 };
 export const lockScreenText = (type: string) =>
   LOCK_SCREEN_TEXT[type] ?? 'You have a Silsila reminder.';

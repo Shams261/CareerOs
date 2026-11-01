@@ -156,6 +156,23 @@ function memoriesFrom(content: string) {
     };
   return { memories: [] };
 }
+/** Rumi's line (WI-101): one plain sentence per part, with no number the checks could reject. */
+function lineFrom(content: string) {
+  let part = 'morning';
+  try {
+    part = JSON.parse(content).part ?? 'morning';
+  } catch {
+    part = 'morning';
+  }
+  return {
+    line:
+      part === 'midday'
+        ? 'A study block is still ahead this afternoon; the first ten minutes are the whole start.'
+        : part === 'evening'
+          ? 'Today is recorded as it was; tomorrow starts with the first block on your plan.'
+          : 'Your plan for today is set; begin with the first block when you are ready.',
+  };
+}
 /** Ask Rumi: a tool call first; once a tool answered, a short reply naming its fields. */
 function agentAnswer(messages: ChatIn[], final: boolean) {
   const lastUser = messages.map((m) => m.role).lastIndexOf('user');
@@ -351,7 +368,9 @@ createServer(async (req, res) => {
                         ? prepDoc(body.messages[1]?.content ?? '{}')
                         : format === 'memories'
                           ? memoriesFrom(body.messages[1]?.content ?? '{}')
-                          : ladder(topic),
+                          : format === 'line'
+                            ? lineFrom(body.messages[1]?.content ?? '{}')
+                            : ladder(topic),
                   ),
           },
         },

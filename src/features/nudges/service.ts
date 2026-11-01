@@ -1,11 +1,13 @@
 import 'server-only';
 import { db } from '@/server/db';
+import { aiConfig } from '@/lib/env';
 import type { Prisma } from '@/generated/prisma/client';
 import { dayBounds, dayKey } from '@/lib/time';
 import { isTestNamed } from '@/lib/test-data';
 import { reminderKey } from '@/features/notifications/domain';
 import { locked, type ScheduleUser } from '@/features/schedule/service';
 import { shiftDay } from '@/features/schedule/domain';
+import { rumiStateOf } from '@/features/agent/line-domain';
 import {
   blockBody,
   blockStartDue,
@@ -14,9 +16,15 @@ import {
   eveningDue,
   inAppOnly,
   isStudyCategory,
+  MIDDAY_PAUSE_DAYS,
+  middayBody,
+  middayDue,
   morningBody,
   morningDue,
   nudgeInput,
+  readLineLanguage,
+  recapBody,
+  recapDue,
   type NudgeSetting,
 } from './domain';
 
@@ -33,6 +41,10 @@ type Row = {
   studyCategories: string[];
   blockStartEnabled: boolean;
   blockStartMinutes: number;
+  rumiLines: boolean;
+  middayEnabled: boolean;
+  middayTime: string;
+  middayPausedUntil: Date | null;
 };
 /** The stored row as pure settings (the pause date is a DATE label). */
 export const nudgeSetting = (row: Row | null | undefined): NudgeSetting =>
@@ -42,17 +54,26 @@ export const nudgeSetting = (row: Row | null | undefined): NudgeSetting =>
         pausedUntil: row.pausedUntil
           ? row.pausedUntil.toISOString().slice(0, 10)
           : null,
+        middayPausedUntil: row.middayPausedUntil
+          ? row.middayPausedUntil.toISOString().slice(0, 10)
+          : null,
         studyCategories: row.studyCategories.length
           ? row.studyCategories
           : DEFAULT_NUDGES.studyCategories,
       }
     : DEFAULT_NUDGES;
 
-export const nudgeKey = (
-  userId: string,
-  type: 'STUDY_MORNING' | 'STUDY_EVENING',
-  day: string,
-) => reminderKey(userId, type, 'study', day);
+/** The three lines of a day (WI-101 adds the afternoon one). */
+export type LineType = 'STUDY_MORNING' | 'STUDY_MIDDAY' | 'STUDY_EVENING';
+export const LINE_TYPES: LineType[] = [
+  'STUDY_MORNING',
+  'STUDY_MIDDAY',
+  'STUDY_EVENING',
+];
+export const nudgeKey = (userId: string, type: LineType, day: string) =>
+  reminderKey(userId, type, 'study', day);
+const lineKeys = (userId: string, day: string) =>
+  LINE_TYPES.map((t) => nudgeKey(userId, t, day));
 /** One block-start nudge per block and day (WI-039). */
 export const blockNudgeKey = (userId: string, blockId: string, day: string) =>
   reminderKey(userId, 'STUDY_BLOCK', blockId, day);
@@ -117,14 +138,7 @@ export async function processStudyNudges(
       select: { id: true },
     }),
     tx.notificationLog.findMany({
-      where: {
-        dedupeKey: {
-          in: [
-            nudgeKey(user.id, 'STUDY_MORNING', day),
-            nudgeKey(user.id, 'STUDY_EVENING', day),
-          ],
-        },
-      },
+      where: { dedupeKey: { in: lineKeys(user.id, day) } },
       // The time each was due (the run's `now`), not the row's database clock.
       select: { type: true, scheduledFor: true },
     }),
@@ -159,6 +173,8 @@ export async function processStudyNudges(
       logged.find((l) => l.type === 'STUDY_MORNING')?.scheduledFor ?? null,
     eveningAt:
       logged.find((l) => l.type === 'STUDY_EVENING')?.scheduledFor ?? null,
+    middayAt:
+      logged.find((l) => l.type === 'STUDY_MIDDAY')?.scheduledFor ?? null,
     blockNudged: blockLogs.map((l) => blockIdOf(l.metadata) ?? ''),
   };
   /** Another day's study blocks, read only when a nudge that names them is due. */
@@ -175,14 +191,21 @@ export async function processStudyNudges(
       s.studyCategories,
     );
   const quiet = inAppOnly(user.lastActiveAt, now);
+  // Rumi writes the three lines after the lock (WI-101): the row is queued with its template
+  // and marked pending; without AI configured the template is the line.
+  const rumi = s.rumiLines && !!aiConfig();
   let queued = 0;
   const queue = async (
-    type: 'STUDY_MORNING' | 'STUDY_EVENING' | 'STUDY_BLOCK',
+    type: LineType | 'STUDY_BLOCK',
     dedupeKey: string,
     title: string,
     body: string,
     blockId: string | null,
   ) => {
+    const metadata = {
+      ...(blockId ? { blockId } : {}),
+      ...(rumi && type !== 'STUDY_BLOCK' ? { rumi: 'pending' } : {}),
+    };
     await tx.notificationLog.upsert({
       where: { dedupeKey },
       update: {},
@@ -194,7 +217,7 @@ export async function processStudyNudges(
         scheduledFor: now,
         dedupeKey,
         inAppOnly: quiet,
-        metadata: blockId ? { blockId } : undefined,
+        metadata: Object.keys(metadata).length ? metadata : undefined,
       },
     });
     queued++;
@@ -228,18 +251,58 @@ export async function processStudyNudges(
       blockBody(started, now, zone),
       started.id,
     );
-  const block = eveningDue(s, facts, now, zone);
-  if (block) {
-    const tomorrow = (await studyOn(shiftDay(day, 1))).find(
-      (b) => b.status === 'PLANNED',
-    );
+  const ahead = middayDue(s, facts, now, zone);
+  if (ahead)
     await queue(
-      'STUDY_EVENING',
-      nudgeKey(user.id, 'STUDY_EVENING', day),
-      'Study check-in',
-      eveningBody(block, tomorrow ?? null, day, zone),
-      block.id,
+      'STUDY_MIDDAY',
+      nudgeKey(user.id, 'STUDY_MIDDAY', day),
+      'This afternoon',
+      middayBody(ahead, now, day, zone),
+      ahead.id,
     );
+  if (s.rumiLines) {
+    // The evening recap (WI-101) comes on every active evening, with the block left if any.
+    const recap = recapDue(s, facts, now, zone);
+    if (recap) {
+      const tomorrow = (await studyOn(shiftDay(day, 1))).find(
+        (b) => b.status === 'PLANNED',
+      );
+      const recorded = await tx.actualSession.findMany({
+        where: {
+          userId: user.id,
+          startedAt: { gte: bounds.start, lt: bounds.end },
+          endedAt: { not: null },
+        },
+        select: { category: true, startedAt: true, endedAt: true },
+      });
+      const minutes = recorded
+        .filter((x) => isStudyCategory(x.category, s.studyCategories))
+        .reduce(
+          (sum, x) => sum + Math.round((+x.endedAt! - +x.startedAt) / 60_000),
+          0,
+        );
+      await queue(
+        'STUDY_EVENING',
+        nudgeKey(user.id, 'STUDY_EVENING', day),
+        'This evening',
+        recapBody(minutes, recap.left, tomorrow ?? null, day, zone),
+        recap.left?.id ?? null,
+      );
+    }
+  } else {
+    const block = eveningDue(s, facts, now, zone);
+    if (block) {
+      const tomorrow = (await studyOn(shiftDay(day, 1))).find(
+        (b) => b.status === 'PLANNED',
+      );
+      await queue(
+        'STUDY_EVENING',
+        nudgeKey(user.id, 'STUDY_EVENING', day),
+        'Study check-in',
+        eveningBody(block, tomorrow ?? null, day, zone),
+        block.id,
+      );
+    }
   }
   return queued;
 }
@@ -257,13 +320,8 @@ export async function todaysNudge(user: ScheduleUser, day: string) {
       readAt: null,
       OR: [
         {
-          type: { in: ['STUDY_MORNING', 'STUDY_EVENING'] },
-          dedupeKey: {
-            in: [
-              nudgeKey(user.id, 'STUDY_MORNING', day),
-              nudgeKey(user.id, 'STUDY_EVENING', day),
-            ],
-          },
+          type: { in: LINE_TYPES },
+          dedupeKey: { in: lineKeys(user.id, day) },
         },
         { type: 'STUDY_BLOCK', dedupeKey: blockNudgesOf(user.id, day) },
       ],
@@ -277,15 +335,22 @@ export async function todaysNudge(user: ScheduleUser, day: string) {
     kind:
       n.type === 'STUDY_MORNING'
         ? ('morning' as const)
-        : n.type === 'STUDY_BLOCK'
-          ? ('block' as const)
-          : ('evening' as const),
+        : n.type === 'STUDY_MIDDAY'
+          ? ('midday' as const)
+          : n.type === 'STUDY_BLOCK'
+            ? ('block' as const)
+            : ('evening' as const),
     body: n.body,
     blockId: blockIdOf(n.metadata),
+    // Rumi wrote this line (WI-101); a pending or fallback row reads as the template.
+    rumi: rumiStateOf(n.metadata) === 'written',
   };
 }
 
-/** "Useful?" on a nudge. Answering also closes the card (the reminder is read). */
+/**
+ * "Useful?" on a nudge. Answering also closes the card (the reminder is read). "Too many" on
+ * one of Rumi's lines rests the afternoon line for a week (WI-101).
+ */
 export async function nudgeFeedback(
   user: ScheduleUser,
   id: string,
@@ -296,11 +361,18 @@ export async function nudgeFeedback(
     where: {
       id,
       userId: user.id,
-      type: { in: ['STUDY_MORNING', 'STUDY_EVENING', 'STUDY_BLOCK'] },
+      type: { in: [...LINE_TYPES, 'STUDY_BLOCK'] },
     },
     data: { feedback: value, readAt: now },
   });
   if (!count) throw new Error('This check-in is no longer open.');
+  if (value === 'TOO_MANY') {
+    const until = shiftDay(dayKey(now, user.timezone), MIDDAY_PAUSE_DAYS);
+    await db().studyNudgeSetting.updateMany({
+      where: { userId: user.id, rumiLines: true },
+      data: { middayPausedUntil: new Date(until) },
+    });
+  }
 }
 
 /** Marks or clears a rest day. Resting reads today's open study nudges (they are answered). */
@@ -339,14 +411,7 @@ export async function closeNudges(
       userId,
       readAt: null,
       OR: [
-        {
-          dedupeKey: {
-            in: [
-              nudgeKey(userId, 'STUDY_MORNING', day),
-              nudgeKey(userId, 'STUDY_EVENING', day),
-            ],
-          },
-        },
+        { dedupeKey: { in: lineKeys(userId, day) } },
         { dedupeKey: blockNudgesOf(userId, day) },
       ],
     },
@@ -354,13 +419,22 @@ export async function closeNudges(
   });
 }
 
-/** Saves the Settings form. The pause is kept; only `pauseNudges` changes it. */
+/** Saves the Settings form. The pauses are kept; only `pauseNudges` and "Too many" change them. */
 export async function saveNudgeSetting(user: ScheduleUser, raw: unknown) {
   const input = nudgeInput.parse(raw);
   await db().studyNudgeSetting.upsert({
     where: { userId: user.id },
     create: { userId: user.id, ...input },
     update: input,
+  });
+}
+/** The language of Rumi's lines (WI-101), on the agent setting row. */
+export async function setLineLanguage(user: ScheduleUser, language: string) {
+  const lineLanguage = readLineLanguage(language);
+  await db().agentSetting.upsert({
+    where: { userId: user.id },
+    create: { userId: user.id, lineLanguage },
+    update: { lineLanguage },
   });
 }
 
