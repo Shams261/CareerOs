@@ -2,6 +2,7 @@ import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { owner } from '@/server/db';
 import { askRumi, noteMemories } from '@/features/agent/service';
+import { afterWrites } from '@/features/agent/after-writes';
 export const runtime = 'nodejs';
 
 /**
@@ -33,8 +34,13 @@ export async function POST(request: Request) {
         parsed.data.conversationId,
         parsed.data.text,
         (read) => line({ read }),
+        fetch,
+        (write) => line({ write }),
       );
-      if (result.ok) revalidatePath('/rumi');
+      if (result.ok) {
+        revalidatePath('/rumi');
+        afterWrites(user, result.reply.actions);
+      }
       line({ done: result });
       // The notes Rumi keeps after the answer (WI-100) follow it, never delaying it.
       if (result.ok) {

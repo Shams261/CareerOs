@@ -123,6 +123,17 @@ function pickTool(question: string, system: string) {
       },
     ] as const;
   }
+  // WI-102: "note …" or "yaad rakh …" becomes a note in the owner's words.
+  if (/note|yaad rakh/.test(q))
+    return [
+      'add_note',
+      {
+        body: (q.match(/(?:note|yaad rakh)\s*:?\s*(.+)/)?.[1] ?? q).slice(
+          0,
+          200,
+        ),
+      },
+    ] as const;
   if (/today|aaj|now|start/.test(q)) return ['get_today', {}] as const;
   if (/roadmap|revision|revise/.test(q)) return ['get_roadmaps', {}] as const;
   if (/job|interview|prep|company/.test(q)) return ['get_jobs', {}] as const;

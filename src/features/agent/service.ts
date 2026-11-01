@@ -50,6 +50,14 @@ import {
   type MemoryKind,
 } from './memory-domain';
 import { linesToday } from './lines';
+import { runWrite } from './writes';
+import {
+  collectIds,
+  isWrite,
+  SEEN_MAX,
+  unseenId,
+  type WriteAction,
+} from './write-domain';
 import { newSuggestion, proposeBlocks } from './plans';
 import {
   planWindow,
@@ -60,6 +68,7 @@ import {
   type ProposeArgs,
   type Proposal,
   type Suggestion,
+  readSeen,
 } from './plan-domain';
 
 export const UNAVAILABLE = `${AGENT_NAME} is unavailable right now.`;
@@ -162,6 +171,8 @@ export async function sendMessage(
     text: unknown;
     /** Each read as it starts, for the live "reading" line (WI-055). Never the result. */
     onRead?: (tool: string) => void;
+    /** Each change as it starts (WI-102), for the same line. Never its arguments. */
+    onWrite?: (tool: string) => void;
   },
   now = new Date(),
   fetcher: Fetcher = fetch,
@@ -215,7 +226,7 @@ export async function sendMessage(
       where: { conversationId: id },
       orderBy: { createdAt: 'desc' },
       take: HISTORY,
-      select: { role: true, content: true },
+      select: { role: true, content: true, metadata: true },
     });
     return { conversationId: id, history: history.reverse() };
   });
@@ -276,6 +287,13 @@ export async function sendMessage(
   // Stored after the question even when the test clock (`now`) is ahead of the real one.
   const later = () => new Date(+now + Math.max(1, Date.now() - started));
   const used: string[] = [];
+  // The ids this conversation's reads returned (WI-102): a write may name only these.
+  const seen = new Set(
+    history
+      .filter((m) => m.role === 'ASSISTANT')
+      .flatMap((m) => readSeen(m.metadata)),
+  );
+  const actions: WriteAction[] = [];
   const proposals: Proposal[] = [];
   const suggestions: Suggestion[] = [];
   let spent = 0;
@@ -343,7 +361,27 @@ export async function sendMessage(
                 note: 'Shown to the owner as a card; they keep or dismiss it.',
               };
             }
-          } else result = await runTool(user, read.name, read.args, now);
+          } else if (isWrite(read.name)) {
+            const missing = unseenId(read.name, read.args, seen);
+            if (missing)
+              result = {
+                done: false,
+                error: `Read it first: ${missing} must come from a read in this conversation.`,
+              };
+            else {
+              input.onWrite?.(read.name);
+              const made = await runWrite(user, read.name, read.args, now, {
+                round,
+                maxRounds: MAX_ROUNDS,
+                inAnswer: actions.length,
+              });
+              if (made.action) actions.push(made.action);
+              result = made.result;
+            }
+          } else {
+            result = await runTool(user, read.name, read.args, now);
+            collectIds(result, seen);
+          }
         }
         messages.push({
           role: 'tool',
@@ -376,6 +414,8 @@ export async function sendMessage(
         costMicros: spent,
         ...(proposals.length ? { proposals } : {}),
         ...(suggestions.length ? { suggestions } : {}),
+        ...(actions.length ? { actions } : {}),
+        ...(seen.size ? { seen: [...seen].slice(-SEEN_MAX) } : {}),
       },
       createdAt: later(),
     },
@@ -398,6 +438,8 @@ export type AskResult =
         suggestions: Suggestion[];
         /** Lines Rumi kept after this answer (WI-100). */
         kept: Kept[];
+        /** Changes Rumi made in this answer (WI-102), each with its Undo. */
+        actions: WriteAction[];
         tools: string[];
       };
       budget: string;
@@ -423,6 +465,8 @@ export async function askRumi(
   text: string,
   onRead?: (tool: string) => void,
   fetcher: Fetcher = fetch,
+  /** Each change as it starts (WI-102). */
+  onWrite?: (tool: string) => void,
 ): Promise<AskResult> {
   try {
     const result = await sendMessage(
@@ -433,6 +477,7 @@ export async function askRumi(
           : null,
         text,
         onRead,
+        onWrite,
       },
       new Date(),
       fetcher,

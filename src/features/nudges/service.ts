@@ -382,18 +382,26 @@ export async function setRestDay(
   rest: boolean,
   now = new Date(),
 ) {
-  await locked(user.id, async (tx) => {
-    await tx.dailyPlan.upsert({
-      where: { userId_date: { userId: user.id, date: new Date(day) } },
-      create: {
-        userId: user.id,
-        date: new Date(day),
-        restAt: rest ? now : null,
-      },
-      update: { restAt: rest ? now : null },
-    });
-    if (rest) await closeNudges(tx, user.id, day, now);
+  await locked(user.id, (tx) => setRestDayIn(tx, user, day, rest, now));
+}
+/** `setRestDay` inside a transaction that holds the owner lock (Rumi's rest_today, WI-102). */
+export async function setRestDayIn(
+  tx: Prisma.TransactionClient,
+  user: ScheduleUser,
+  day: string,
+  rest: boolean,
+  now = new Date(),
+) {
+  await tx.dailyPlan.upsert({
+    where: { userId_date: { userId: user.id, date: new Date(day) } },
+    create: {
+      userId: user.id,
+      date: new Date(day),
+      restAt: rest ? now : null,
+    },
+    update: { restAt: rest ? now : null },
   });
+  if (rest) await closeNudges(tx, user.id, day, now);
 }
 
 /**

@@ -9616,6 +9616,49 @@ html {
 .rumi-kept q {
   quotes: '\201C' '\201D';
 }
+/* WI-102: the changes Rumi made in an answer, each with its Undo. */
+.rumi-reply .rumi-actions {
+  padding-left: 0;
+  list-style: none;
+}
+.rumi-actions {
+  margin: 10px 0 0;
+  display: grid;
+  gap: 6px;
+}
+.rumi-action {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 10px;
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--primary);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  font-size: 14px;
+}
+.rumi-action[data-status='undone'] {
+  border-left-color: var(--border);
+}
+.rumi-action[data-status='undone'] .rumi-action-detail {
+  color: var(--muted);
+  text-decoration: line-through;
+}
+.rumi-action-label {
+  font-weight: 600;
+}
+.rumi-action-detail {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.rumi-action-detail q {
+  quotes: '\201C' '\201D';
+}
+.rumi-action .undo-link,
+.rumi-action .link {
+  min-height: 24px;
+}
 @media (max-width: 700px) {
   .rumi-memory-add {
     grid-template-columns: minmax(0, 1fr);

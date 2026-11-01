@@ -266,6 +266,32 @@ test('Rumi proposes tomorrow, the plan is added and undone', async ({
   await accessible(page);
 });
 
+test('Rumi adds a note at once and Undo takes it back', async ({ page }) => {
+  const onToday = () =>
+    page.request
+      .get('/today')
+      .then((r) => r.text())
+      .then((t) => t.includes('call the recruiter on friday'));
+  await page.goto('/rumi');
+  await page
+    .getByPlaceholder('Ask Rumi about your week, roadmap or interviews')
+    .fill('note: call the recruiter on Friday');
+  await page.getByRole('button', { name: 'Send' }).click();
+  const changes = page.getByRole('list', { name: 'Changes Rumi made' });
+  await expect(changes).toContainText('Note added', { timeout: 20_000 });
+  await expect(changes).toContainText('call the recruiter on friday');
+  await accessible(page);
+  // The note is in Today's notes at once.
+  expect(await onToday()).toBe(true);
+  // Undo stays on the stored answer: after a reload it removes the note.
+  await expect(page).toHaveURL(/\/rumi\?c=/);
+  await page.reload();
+  const again = page.getByRole('list', { name: 'Changes Rumi made' });
+  await again.getByRole('button', { name: 'Undo' }).click();
+  await expect(again).toContainText('Undone');
+  expect(await onToday()).toBe(false);
+});
+
 test('the weekly review walks its three steps and closes the week', async ({
   page,
 }) => {

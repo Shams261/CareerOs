@@ -24,6 +24,7 @@ import {
   titleVisible,
   type ToolName,
 } from './domain';
+import { FIND_LIMIT } from './write-domain';
 
 const label = (d: Date) => d.toISOString().slice(0, 10);
 const span = (s: Date, e: Date, zone: string) =>
@@ -72,6 +73,8 @@ function blockOut(b: Block, now: Date, zone: string, study: string[]) {
     0,
   );
   return {
+    // Visible blocks carry their id (WI-102), so a later card can name one it read.
+    id: b.id,
     time,
     kind: categoryGroup(b.category),
     title: b.title,
@@ -335,6 +338,7 @@ async function getPractice(user: ScheduleUser, now: Date) {
         durationMinutes: true,
         problem: {
           select: {
+            id: true,
             title: true,
             difficulty: true,
             topic: { select: { name: true } },
@@ -360,6 +364,7 @@ async function getPractice(user: ScheduleUser, now: Date) {
       .slice(0, 10)
       .map((a) => ({
         on: dayKey(a.attemptedAt, user.timezone),
+        problemId: a.problem.id,
         problem: a.problem.title,
         difficulty: a.problem.difficulty.toLowerCase(),
         topic: a.problem.topic.name,
@@ -376,6 +381,7 @@ async function getJobs(user: ScheduleUser, now: Date) {
     orderBy: [{ priority: 'asc' }, { updatedAt: 'desc' }],
     take: 20,
     select: {
+      id: true,
       company: true,
       role: true,
       stage: true,
@@ -387,6 +393,7 @@ async function getJobs(user: ScheduleUser, now: Date) {
         where: { status: 'SCHEDULED', scheduledStart: { gte: now } },
         orderBy: { scheduledStart: 'asc' },
         select: {
+          id: true,
           title: true,
           type: true,
           aiPolicy: true,
@@ -403,6 +410,7 @@ async function getJobs(user: ScheduleUser, now: Date) {
     applications: apps
       .filter((a) => !isTestNamed(a.company, a.role))
       .map((a) => ({
+        applicationId: a.id,
         company: a.company,
         role: a.role,
         stage: a.stage.toLowerCase().replace(/_/g, ' '),
@@ -418,6 +426,7 @@ async function getJobs(user: ScheduleUser, now: Date) {
           ? { formats: a.formats.map((f) => typeText(f).toLowerCase()) }
           : {}),
         upcomingRounds: a.rounds.map((r) => ({
+          roundId: r.id,
           title: r.title,
           type: r.type.toLowerCase().replace(/_/g, ' '),
           ...(r.aiPolicy !== 'UNKNOWN'
@@ -477,6 +486,52 @@ export async function getPatterns(user: ScheduleUser, now: Date) {
   );
 }
 
+/**
+ * `find_problems` (WI-102): up to eight of the owner's visible problems whose title holds
+ * every word, with their id, so a later card can name one it read.
+ */
+async function findProblems(user: ScheduleUser, { text }: { text: string }) {
+  const words = text.toLowerCase().split(/\s+/).filter(Boolean).slice(0, 5);
+  const rows = await db().dsaProblem.findMany({
+    where: {
+      userId: user.id,
+      hiddenAt: null,
+      AND: words.map((w) => ({
+        title: { contains: w, mode: 'insensitive' as const },
+      })),
+    },
+    orderBy: { title: 'asc' },
+    take: FIND_LIMIT * 2,
+    select: {
+      id: true,
+      title: true,
+      difficulty: true,
+      confidence: true,
+      attemptsCount: true,
+      nextRevisionAt: true,
+      topic: { select: { name: true } },
+    },
+  });
+  return {
+    problems: rows
+      .filter((p) => !isTestNamed(p.title))
+      .slice(0, FIND_LIMIT)
+      .map((p) => ({
+        problemId: p.id,
+        title: p.title,
+        topic: p.topic.name,
+        difficulty: p.difficulty.toLowerCase(),
+        ...(p.attemptsCount
+          ? {
+              confidence: p.confidence.toLowerCase(),
+              attempts: p.attemptsCount,
+            }
+          : { attempts: 0 }),
+        ...(p.nextRevisionAt ? { revisionOn: label(p.nextRevisionAt) } : {}),
+      })),
+  };
+}
+
 /** Runs one validated tool for the signed-in owner. */
 export function runTool(
   user: ScheduleUser,
@@ -501,9 +556,14 @@ export function runTool(
       return getPatterns(user, now);
     case 'get_prep_docs':
       return latestPrepDocs(user);
+    case 'find_problems':
+      return findProblems(user, args as { text: string });
     case 'propose_blocks':
     case 'suggest_memory':
-      // Cards, not reads: the message loop handles them (WI-041).
+    case 'add_note':
+    case 'add_block':
+    case 'rest_today':
+      // Cards and writes, not reads: the message loop handles them (WI-041, WI-102).
       return Promise.resolve({ error: 'Not a read tool.' });
   }
 }
