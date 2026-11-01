@@ -14,6 +14,16 @@ import {
   SuggestionCard,
 } from './cards';
 import type { CardView } from './request-domain';
+import {
+  MicButton,
+  StopReading,
+  useCanDictate,
+  useComposerVoice,
+  useReplyVoice,
+  useVoiceState,
+  type VoiceState,
+} from './voice';
+import { voiceMeta, type VoiceMeta } from './voice-domain';
 import { WRITE_WORDS, isWrite, type WriteAction } from './write-domain';
 import type { Kept, Proposal, Suggestion } from './plan-domain';
 import {
@@ -51,6 +61,7 @@ function askStreaming(
   text: string,
   onRead: (tool: string) => void,
   onKept: (messageId: string, items: Kept[]) => void,
+  voice: VoiceMeta | null = null,
 ): Promise<AskResult> {
   const failed: AskResult = {
     ok: false,
@@ -61,7 +72,7 @@ function askStreaming(
       const response = await fetch('/api/rumi/ask', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ conversationId, text }),
+        body: JSON.stringify({ conversationId, text, voice }),
       }).catch(() => null);
       if (!response?.ok || !response.body) return resolve(failed);
       const reader = response.body.getReader();
@@ -136,6 +147,7 @@ export function RumiChat({
   nearCap: initialNear = false,
   today,
   drawer = false,
+  voice: voiceInitial,
 }: {
   conversationId: string | null;
   title: string | null;
@@ -147,6 +159,8 @@ export function RumiChat({
   today: string;
   /** In the drawer (WI-060) the page and its address stay as they are. */
   drawer?: boolean;
+  /** Voice (WI-104): from the page; the drawer reads it once (undefined). */
+  voice?: VoiceState | null;
 }) {
   const router = useRouter();
   const [messages, setMessages] = useState(initial);
@@ -166,12 +180,23 @@ export function RumiChat({
     setMessages(initial);
   }
   const end = useRef<HTMLDivElement>(null);
+  const voice = useVoiceState(voiceInitial);
+  const canDictate = useCanDictate();
+  const mic = useComposerVoice({
+    lang: voice?.lang ?? 'en-IN',
+    text,
+    setText,
+  });
+  const reader = useReplyVoice(voice);
 
   const send = (raw: string) => {
     const question = raw.trim();
     if (!question || pending) return;
     setError(null);
     setText('');
+    if (mic.listening) mic.cancel();
+    reader.stop();
+    const spoken = voiceMeta(mic.take(), question);
     const local: Message = {
       id: `local-${Date.now()}`,
       role: 'USER',
@@ -191,6 +216,7 @@ export function RumiChat({
           // The stored answer carries them too; a refresh in flight must not drop them.
           router.refresh();
         },
+        spoken,
       );
       if (result.budget) setBudget(result.budget);
       if (result.nearCap !== undefined) setNear(result.nearCap);
@@ -199,6 +225,7 @@ export function RumiChat({
         return;
       }
       setMessages((m) => [...m, { ...result.reply, role: 'ASSISTANT' }]);
+      reader.read(result.reply.content);
       if (result.conversationId !== current) {
         setCurrent(result.conversationId);
         if (!drawer)
@@ -408,6 +435,13 @@ export function RumiChat({
           value={text}
           onChange={(e) => setText(e.target.value)}
           onKeyDown={(e) => {
+            // Escape drops what the microphone heard and puts the typed text back (WI-104).
+            if (e.key === 'Escape' && mic.listening) {
+              e.preventDefault();
+              e.stopPropagation();
+              mic.cancel();
+              return;
+            }
             if (
               e.key === 'Enter' &&
               !e.shiftKey &&
@@ -418,6 +452,9 @@ export function RumiChat({
             }
           }}
         />
+        {voice?.consented && canDictate && (
+          <MicButton listening={mic.listening} onClick={mic.toggle} />
+        )}
         <button
           type="submit"
           className="button rumi-send"
@@ -427,6 +464,17 @@ export function RumiChat({
           <ArrowUp size={18} aria-hidden="true" />
         </button>
       </form>
+      {(mic.listening || mic.interim || mic.error || reader.speaking) && (
+        <p className="rumi-voice-line" aria-live="polite">
+          {mic.error ||
+            (mic.listening
+              ? mic.interim
+                ? `Hearing: ${mic.interim}`
+                : 'Listening… tap the microphone to stop, Escape to drop it.'
+              : '')}
+          {reader.speaking && <StopReading onClick={reader.stop} />}
+        </p>
+      )}
       {/* The spend lives in Settings; here only when the month is near its cap (WI-060). */}
       {near && <p className="rumi-budget">{budget}</p>}
     </section>

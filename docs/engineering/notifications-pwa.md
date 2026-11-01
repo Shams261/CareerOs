@@ -64,6 +64,10 @@ Push is best-effort everywhere: focus modes, Do Not Disturb, low-power modes and
 
 There is **no offline mode**. The service worker handles push and notification clicks only and deliberately caches nothing: every page is private and must be fresh. Opening the app offline shows the browser's offline page.
 
+## Voice (WI-104)
+
+Rumi's microphone uses the browser's recognition (`webkitSpeechRecognition` / `SpeechRecognition`, `continuous = false`, interim results, a stop after two seconds of silence) and the reading aloud uses `speechSynthesis`, both feature-detected in `src/lib/speech.ts`; where a browser has no recognition (Firefox, and any standalone mode that lacks it) the microphone button never renders. The R6 spike lives on as Settings → Voice → **Check this device**: it says whether this browser has speech to text and reading aloud, and tries each on a press, so the owner can check the iPhone tab and the Home Screen app themselves. On iOS, reading aloud starts only after a tap; a reply read aloud stops when the drawer closes or a new question is sent. The `Permissions-Policy` header allows the microphone for Silsila's own pages only.
+
 ## Operations
 
 - Generate VAPID keys once (`pnpm exec web-push generate-vapid-keys`) and keep them stable. Rotating them invalidates every subscription.

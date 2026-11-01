@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { owner } from '@/server/db';
 import { askRumi, noteMemories } from '@/features/agent/service';
 import { afterWrites } from '@/features/agent/after-writes';
+import { voiceInput } from '@/features/agent/voice-domain';
 export const runtime = 'nodejs';
 
 /**
@@ -21,6 +22,8 @@ export async function POST(request: Request) {
     .object({
       conversationId: z.string().min(1).max(40).nullable(),
       text: z.string().max(4000),
+      // WI-104: only that it came by voice and whether it was edited; never audio.
+      voice: voiceInput.nullable().optional(),
     })
     .safeParse(await request.json().catch(() => null));
   if (!parsed.success) return new Response(null, { status: 400 });
@@ -36,6 +39,7 @@ export async function POST(request: Request) {
         (read) => line({ read }),
         fetch,
         (write) => line({ write }),
+        parsed.data.voice ?? null,
       );
       if (result.ok) {
         revalidatePath('/rumi');

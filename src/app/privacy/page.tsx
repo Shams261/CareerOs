@@ -169,6 +169,16 @@ export default async function Privacy() {
         text.
       </p>
       <p>
+        Voice (optional, off until the owner consents in Settings → Voice) uses
+        the browser&rsquo;s own speech recognition to turn speech into text in
+        Rumi&rsquo;s composer: Chrome sends the audio to Google and Safari to
+        Apple, outside Silsila&rsquo;s zero-retention AI rule. Nothing is sent
+        to Rumi until the owner presses Send, and then only the text. Silsila
+        keeps no audio and no transcript, only that a message came by voice and
+        whether it was edited. Replies and Rumi&rsquo;s line are read aloud by
+        the device&rsquo;s own voice when the owner asks.
+      </p>
+      <p>
         Prepare with Rumi (optional) researches an application&rsquo;s interview
         on the web when the owner presses it. Up to six searches go through the
         same endpoint&rsquo;s web search, run by Exa, a third party without a

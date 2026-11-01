@@ -324,6 +324,60 @@ test('a move card is applied and undone', async ({ page }) => {
   ).toContainText('00:40');
 });
 
+test('the microphone shows only after consent and fills the composer', async ({
+  page,
+}) => {
+  // The browser's recognition, stubbed: it "hears" one sentence and stops.
+  await page.addInitScript(() => {
+    class FakeRecognition {
+      lang = 'en-IN';
+      continuous = false;
+      interimResults = true;
+      onresult: ((e: unknown) => void) | null = null;
+      onerror: ((e: unknown) => void) | null = null;
+      onend: (() => void) | null = null;
+      start() {
+        setTimeout(() => {
+          this.onresult?.({
+            resultIndex: 0,
+            results: [{ isFinal: true, 0: { transcript: 'what is on today' } }],
+          });
+          this.onend?.();
+        }, 50);
+      }
+      stop() {
+        this.onend?.();
+      }
+      abort() {
+        this.onend?.();
+      }
+    }
+    // Chromium has its own under both names; the stub takes both.
+    const w = window as unknown as Record<string, unknown>;
+    w.SpeechRecognition = FakeRecognition;
+    w.webkitSpeechRecognition = FakeRecognition;
+  });
+  await page.goto('/rumi');
+  await expect(page.locator('#rumi-input')).toBeVisible();
+  await expect(
+    page.getByRole('button', { name: 'Speak your question' }),
+  ).toHaveCount(0);
+  // Consent in Settings → Voice.
+  await page.goto('/settings');
+  await page.locator('button[data-panel="rumi-voice"]').click();
+  const panel = page.getByRole('dialog', { name: 'Voice' });
+  await expect(panel).toContainText('Chrome sends the audio to Google');
+  await expect(panel).toContainText('Speech to text');
+  await panel.getByLabel('I understand; show the microphone button').check();
+  await panel.getByRole('button', { name: 'Save' }).click();
+  await expect(panel).toContainText('The microphone shows in Ask Rumi.');
+  await accessible(page);
+  await page.goto('/rumi');
+  await page.getByRole('button', { name: 'Speak your question' }).click();
+  await expect(page.locator('#rumi-input')).toHaveValue('what is on today');
+  await accessible(page);
+});
+
 test('the weekly review walks its three steps and closes the week', async ({
   page,
 }) => {

@@ -15,8 +15,10 @@ import {
   extractMemories,
   forgetRumiMemories,
   pruneMemories,
+  agentSetting,
   setMemoryEnabled,
   setRumiStyle,
+  setVoiceSettings,
 } from '../src/features/agent/memory-service';
 import { restore } from '../src/features/undo/service';
 import { ENDPOINT, MODEL } from '../src/features/ai/domain';
@@ -285,5 +287,42 @@ describe.skipIf(!url)('Rumi knows (WI-100, PostgreSQL)', () => {
     const left = await memories(user);
     expect(left.every((x) => x.source === 'OWNER')).toBe(true);
     expect(left.some((x) => x.text === 'Answer in Hinglish')).toBe(true);
+  });
+
+  it('keeps the voice consent time, the language and spoken replies; a voice message keeps only its mark (WI-104)', async () => {
+    const first = new Date('2026-11-01T10:00:00Z');
+    await setVoiceSettings(
+      user,
+      { consent: true, lang: 'hi-IN', speakReplies: true },
+      first,
+    );
+    await setVoiceSettings(
+      user,
+      { consent: true, lang: 'en-US', speakReplies: false },
+      new Date('2026-11-02T10:00:00Z'),
+    );
+    expect(await agentSetting(user)).toMatchObject({
+      voiceConsentAt: first,
+      voiceLang: 'en-US',
+      speakReplies: false,
+    });
+    await setVoiceSettings(user, {
+      consent: false,
+      lang: 'en-US',
+      speakReplies: false,
+    });
+    expect((await agentSetting(user)).voiceConsentAt).toBeNull();
+    const r = fakeRouter(['Noted.'], { memories: [] });
+    const sent = await sendMessage(
+      user,
+      { text: 'what is on today', voice: { via: 'voice', edited: true } },
+      now,
+      r.fetcher,
+    );
+    const asked = await prisma.agentMessage.findFirst({
+      where: { conversationId: sent.conversationId, role: 'USER' },
+    });
+    expect(asked?.metadata).toEqual({ via: 'voice', edited: true });
+    expect(asked?.content).toBe('what is on today');
   });
 });

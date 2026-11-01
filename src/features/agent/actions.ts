@@ -10,10 +10,13 @@ import type { ActionState } from '@/features/schedule/actions';
 import { AGENT_NAME, readStyle } from './domain';
 import { MEMORY_KINDS } from './memory-domain';
 import {
+  agentSetting,
   forgetRumiMemories,
   setMemoryEnabled,
   setRumiStyle,
+  setVoiceSettings,
 } from './memory-service';
+import { readVoiceLang, voiceSettingsInput } from './voice-domain';
 import { answerSuggestion, applyProposal, dismissProposal } from './plans';
 import { applyRequest, appliedWords, dismissRequest } from './requests';
 import { restore } from '@/features/undo/service';
@@ -135,6 +138,30 @@ export async function memoryEnabledAction(_s: ActionState, f: FormData) {
       : `${AGENT_NAME} keeps no new notes.`;
   });
 }
+/** Settings → Voice (WI-104): consent, the language and spoken replies. */
+export async function voiceSettingsAction(_s: ActionState, f: FormData) {
+  return perform(async () => {
+    const v = voiceSettingsInput.parse({
+      consent: f.get('consent') === 'on',
+      lang: String(f.get('lang') ?? ''),
+      speakReplies: f.get('speakReplies') === 'on',
+    });
+    await setVoiceSettings(await owner(), v);
+    return v.consent
+      ? 'Voice saved. The microphone shows in Ask Rumi.'
+      : 'Voice saved. The microphone is hidden.';
+  });
+}
+/** What the chat needs to know about voice, read when the drawer first opens (WI-104). */
+export async function voiceStateAction() {
+  const s = await agentSetting(await owner());
+  return {
+    consented: !!s.voiceConsentAt,
+    lang: readVoiceLang(s.voiceLang),
+    speakReplies: s.speakReplies,
+  };
+}
+
 /** The style chip, saved on choice like the theme (WI-100). */
 export async function rumiStyleAction(f: FormData) {
   await setRumiStyle(await owner(), readStyle(f.get('style')));

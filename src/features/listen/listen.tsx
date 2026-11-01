@@ -9,6 +9,8 @@ import {
   useTransition,
 } from 'react';
 import { Button } from '@/components/ui/button';
+// The device's speech now lives in one place for Listen and Rumi's voice (WI-104).
+import { speechSupported, useVoices } from '@/lib/speech';
 import {
   DEFAULT_TICKS,
   MODEL_LABEL,
@@ -22,32 +24,11 @@ import { sourcePlan, TIER_LABEL, type Passage } from './domain';
 import type { ListenScript } from './service';
 
 const noop = () => () => undefined;
-const speechSupported = () =>
-  typeof window !== 'undefined' && 'speechSynthesis' in window;
 const RATES = [
   ['0.9', 'Slower'],
   ['1', 'Normal'],
   ['1.15', 'Faster'],
 ] as const;
-
-/** The device's voices, English first and on-device voices before network ones. */
-function useVoices() {
-  const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
-  useEffect(() => {
-    if (!speechSupported()) return;
-    const load = () =>
-      setVoices(
-        speechSynthesis
-          .getVoices()
-          .filter((v) => v.lang.toLowerCase().startsWith('en'))
-          .sort((a, b) => Number(b.localService) - Number(a.localService)),
-      );
-    load();
-    speechSynthesis.addEventListener('voiceschanged', load);
-    return () => speechSynthesis.removeEventListener('voiceschanged', load);
-  }, []);
-  return voices;
-}
 
 const fetchedLabel = (iso: string) =>
   new Date(iso).toLocaleString(undefined, {

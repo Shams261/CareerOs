@@ -60,11 +60,16 @@ export function RumiDrawer() {
     };
   }, [hidden]);
 
+  // A reply read aloud stops when the drawer closes (WI-104).
+  useEffect(() => {
+    if (!open && typeof window !== 'undefined' && 'speechSynthesis' in window)
+      window.speechSynthesis.cancel();
+  }, [open]);
   useEffect(() => {
     if (!open) return;
     panel.current?.querySelector<HTMLTextAreaElement>('textarea')?.focus();
     const onKey = (e: KeyboardEvent) => {
-      if (e.key !== 'Escape') return;
+      if (e.key !== 'Escape' || e.defaultPrevented) return;
       setOpen(false);
       button.current?.focus();
     };

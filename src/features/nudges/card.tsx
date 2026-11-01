@@ -6,6 +6,7 @@ import { ActionForm } from '@/components/action-form';
 import { Button } from '@/components/ui/button';
 import { AGENT_NAME } from '@/features/agent/domain';
 import { askRumi, prefillRumi } from '@/features/agent/events';
+import { ListenLine } from '@/features/agent/voice';
 import { lineHeading, PART_WORDS } from '@/features/agent/line-domain';
 import {
   letGoAction,
@@ -229,6 +230,8 @@ export function NudgeCard({ nudge, block, day }: NudgeCardProps) {
               >
                 Reply
               </Button>
+              {/* The line only, read by this device's voice (WI-104). */}
+              <ListenLine text={nudge.body} />
             </>
           )}
         </div>

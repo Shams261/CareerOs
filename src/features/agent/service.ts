@@ -53,6 +53,7 @@ import {
 import { linesToday } from './lines';
 import { runWrite } from './writes';
 import { prepareRequest } from './requests';
+import { voiceInput, type VoiceMeta } from './voice-domain';
 import {
   isRequest,
   REQUESTS_PER_ANSWER,
@@ -181,6 +182,8 @@ export async function sendMessage(
     onRead?: (tool: string) => void;
     /** Each change as it starts (WI-102), for the same line. Never its arguments. */
     onWrite?: (tool: string) => void;
+    /** The message came by voice (WI-104): only that, and whether it was edited. */
+    voice?: VoiceMeta | null;
   },
   now = new Date(),
   fetcher: Fetcher = fetch,
@@ -224,6 +227,7 @@ export async function sendMessage(
         role: 'USER',
         content: text,
         createdAt: now,
+        ...(input.voice ? { metadata: voiceInput.parse(input.voice) } : {}),
       },
     });
     await tx.agentConversation.update({
@@ -503,6 +507,8 @@ export async function askRumi(
   fetcher: Fetcher = fetch,
   /** Each change as it starts (WI-102). */
   onWrite?: (tool: string) => void,
+  /** The message came by voice (WI-104). */
+  voice?: VoiceMeta | null,
 ): Promise<AskResult> {
   try {
     const result = await sendMessage(
@@ -514,6 +520,7 @@ export async function askRumi(
         text,
         onRead,
         onWrite,
+        voice,
       },
       new Date(),
       fetcher,
