@@ -1,7 +1,11 @@
 import { ActionForm } from '@/components/action-form';
 import { Button } from '@/components/ui/button';
 import { categoryGroup } from '@/features/review/domain';
-import { nudgePauseAction, nudgeSettingsAction } from './actions';
+import {
+  nudgePauseAction,
+  nudgeSettingsAction,
+  resumePartAction,
+} from './actions';
 import { AGENT_NAME } from '@/features/agent/domain';
 import {
   BLOCK_START_OFFSETS,
@@ -166,6 +170,18 @@ export function NudgeSettingsForm({
             </p>
           </fieldset>
         )}
+        <label className="check">
+          <input
+            type="checkbox"
+            name="learnTimes"
+            defaultChecked={setting.learnTimes ?? true}
+          />
+          Let the times follow when I start (15 minutes at most a week; three
+          “Too many” in a row turns a line off)
+        </label>
+        {setting.learnedNote && (
+          <p className="nudge-copy">Last change: {setting.learnedNote}.</p>
+        )}
         <fieldset className="nudge-days">
           <legend>Days</legend>
           {WEEKDAYS.map(([name, bit]) => (
@@ -224,6 +240,23 @@ export function NudgeSettingsForm({
         </div>
         <Button>Save</Button>
       </ActionForm>
+      {(setting.pausedByFeedback ?? []).map((part) => (
+        <ActionForm
+          key={part}
+          action={resumePartAction}
+          label={`Resume the ${part} line`}
+          className="nudge-pause"
+        >
+          <input type="hidden" name="part" value={part} />
+          <p className="muted">
+            {part === 'midday'
+              ? 'Afternoon'
+              : part[0].toUpperCase() + part.slice(1)}{' '}
+            line paused by your feedback
+          </p>
+          <Button className="secondary small">Resume</Button>
+        </ActionForm>
+      ))}
       <ActionForm
         action={nudgePauseAction}
         label="Pause study nudges"

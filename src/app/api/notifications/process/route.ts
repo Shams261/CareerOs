@@ -4,6 +4,7 @@ import { recordRun } from '@/server/jobs';
 import { dailyProviderCheck } from '@/features/ai/service';
 import { pruneMemories } from '@/features/agent/memory-service';
 import { writeRumiLines } from '@/features/agent/lines';
+import { learnNudgeTimes } from '@/features/nudges/learn-service';
 export const runtime = 'nodejs';
 
 /** Scheduler entry point (Bearer CRON_SECRET via proxy): eligibility → NotificationLog → push. */
@@ -29,6 +30,8 @@ export async function POST() {
       await dailyProviderCheck();
       // Lines past their day go with the daily check (WI-100).
       await pruneMemories();
+      // Once a week per owner, the line times follow when study starts (WI-109).
+      await learnNudgeTimes();
     } catch (error) {
       console.error(
         '[study] provider check failed',

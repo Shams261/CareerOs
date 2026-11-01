@@ -12,6 +12,7 @@ import { execute } from '@/features/execution/service';
 import type { ActionState } from '@/features/schedule/actions';
 import { syncSoon } from '@/features/calendar/background';
 import { NUDGES_CARD_COOKIE, PAUSED_FOREVER } from './domain';
+import { resumePart } from './learn-service';
 import {
   closeNudges,
   nudgeFeedback,
@@ -64,6 +65,7 @@ export async function nudgeSettingsAction(_s: ActionState, form: FormData) {
       blockStartEnabled: form.get('blockStartEnabled') === 'on',
       blockStartMinutes: Number(form.get('blockStartMinutes') ?? 15),
       rumiLines: form.get('rumiLines') === 'on',
+      learnTimes: form.get('learnTimes') === 'on',
       middayEnabled: form.get('middayEnabled') === 'on',
       middayTime: String(form.get('middayTime') || '13:00'),
     });
@@ -71,6 +73,17 @@ export async function nudgeSettingsAction(_s: ActionState, form: FormData) {
     if (form.has('lineLanguage'))
       await setLineLanguage(await owner(), String(form.get('lineLanguage')));
     return 'Study nudges saved.';
+  });
+}
+
+/** WI-109: a part turned off by feedback comes back on. */
+export async function resumePartAction(_s: ActionState, form: FormData) {
+  return perform(async () => {
+    const part = z
+      .enum(['morning', 'midday', 'evening'])
+      .parse(form.get('part'));
+    await resumePart(await owner(), part);
+    return 'On again. Your feedback from now on counts afresh.';
   });
 }
 
