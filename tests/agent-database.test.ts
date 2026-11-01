@@ -23,7 +23,7 @@ import {
   sendMessage,
 } from '../src/features/agent/service';
 import { grill } from '../src/features/ai/service';
-import { CAP_MICROS, ENDPOINT, MODEL } from '../src/features/ai/domain';
+import { ENDPOINT, MODEL } from '../src/features/ai/domain';
 import { TOOL_NAMES, type ToolName } from '../src/features/agent/domain';
 import { localInstant } from '../src/lib/time';
 import { exportOwnerData } from '../src/server/export';
@@ -464,7 +464,9 @@ describe.skipIf(!url)('Ask Rumi (PostgreSQL)', () => {
         suggestions: [],
       },
     });
-    expect(result.ok && result.budget).toMatch(/of US\$3/);
+    expect(result.ok && result.budget).toMatch(
+      /^(under )?US\$[\d.]+ used this month$/,
+    );
   });
 
   it('sends the last twelve messages and the owner’s lines, in the owner’s conversation only', async () => {
@@ -599,14 +601,19 @@ describe.skipIf(!url)('Ask Rumi (PostgreSQL)', () => {
     ).resolves.toHaveProperty('rungs');
   });
 
-  it('shares the monthly cap and blocks AI when another provider answers', async () => {
+  it('shares the owner’s monthly limit and blocks AI when another provider answers', async () => {
+    await prisma.aiSetting.upsert({
+      where: { userId: user.id },
+      update: { monthlyLimitMicros: 3_000_000 },
+      create: { userId: user.id, monthlyLimitMicros: 3_000_000 },
+    });
     await prisma.aiUsage.create({
       data: {
         userId: user.id,
         feature: 'GRILL_ITEM',
         model: MODEL,
         provider: ENDPOINT,
-        costMicros: CAP_MICROS - 100,
+        costMicros: 3_000_000 - 100,
         outcome: 'OK',
         createdAt: at('12:00', '2026-10-05'),
       },
@@ -614,7 +621,7 @@ describe.skipIf(!url)('Ask Rumi (PostgreSQL)', () => {
     const r = fakeRouter([]);
     await expect(
       sendMessage(user, { text: 'Today?' }, now, r.fetcher),
-    ).rejects.toThrow(/budget is used. Rumi returns on Nov 1/);
+    ).rejects.toThrow(/limit is reached. Rumi returns on Nov 1/);
     expect(r.chats()).toHaveLength(0);
     await prisma.aiUsage.deleteMany({ where: { userId: user.id } });
     const wrong = fakeRouter([{ content: 'Hi', provider: 'Somewhere else' }]);

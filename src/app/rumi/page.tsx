@@ -6,7 +6,7 @@ import { PanelButton, SidePanel } from '@/components/side-panel';
 import { aiState } from '@/features/ai/service';
 import { agentSetting } from '@/features/agent/memory-service';
 import { readVoiceLang } from '@/features/agent/voice-domain';
-import { budgetLine, nearCap } from '@/features/ai/domain';
+import { budgetLine, nearLimit } from '@/features/ai/domain';
 import { AGENT_NAME } from '@/features/agent/domain';
 import { RumiMark } from '@/features/agent/mark';
 import { readMetadata, readTools } from '@/features/agent/plan-domain';
@@ -140,8 +140,8 @@ export default async function Rumi({
             ...readMetadata(m.metadata),
             tools: readTools(m.metadata),
           }))}
-          budget={budgetLine(state.spent)}
-          nearCap={nearCap(state.spent)}
+          budget={budgetLine(state.spent, state.limit)}
+          nearCap={nearLimit(state.spent, state.limit)}
           today={dayKey(new Date(), user.timezone)}
           voice={{
             consented: !!setting.voiceConsentAt,

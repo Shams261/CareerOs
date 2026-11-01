@@ -2075,6 +2075,45 @@ a.problem-title:hover {
 .choice input[type='radio'] {
   accent-color: var(--primary);
 }
+/* WI-114: the owner's monthly AI limit as chips, with an amount for Other. */
+.ai-limit {
+  align-items: center;
+}
+.ai-limit .choice {
+  flex: 0 0 auto;
+  width: auto;
+  display: inline-flex;
+  gap: 8px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-size: 14px;
+  white-space: nowrap;
+}
+.ai-limit .choice input {
+  width: 14px;
+  height: 14px;
+  min-height: 0;
+  flex: none;
+}
+.ai-limit .choice:has(input:checked) {
+  border-color: var(--primary);
+  background: var(--tint);
+  color: var(--primary);
+  font-weight: 600;
+}
+.ai-limit-amount {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  color: var(--ink-2);
+}
+.ai-limit .ai-limit-amount input[type='number'] {
+  width: 96px;
+  min-height: 0;
+  height: 34px;
+  padding: 4px 10px;
+}
 .attempt-form .attempt-line {
   display: flex;
   flex-wrap: wrap;

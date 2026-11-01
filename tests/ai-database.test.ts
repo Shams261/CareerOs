@@ -24,7 +24,7 @@ import {
   keepCard,
   removeCard,
 } from '../src/features/ai/service';
-import { CAP_MICROS, ENDPOINT, MODEL } from '../src/features/ai/domain';
+import { ENDPOINT, MODEL } from '../src/features/ai/domain';
 import { restore } from '../src/features/undo/service';
 
 const url = process.env.TEST_DATABASE_URL;
@@ -181,21 +181,44 @@ describe.skipIf(!url)('Grill Me (PostgreSQL)', () => {
     expect((await aiState(user, now)).spent).toBe(460);
   });
 
-  it('sends nothing once the month’s budget is used', async () => {
+  it('sends nothing once the owner’s monthly limit is reached, and has none by default', async () => {
+    const limit = 3_000_000;
+    // WI-114: no limit is set, so the same spend still sends.
     await prisma.aiUsage.create({
       data: {
         userId: user.id,
         feature: 'GRILL_ITEM',
         model: MODEL,
         provider: ENDPOINT,
-        costMicros: CAP_MICROS - 100,
+        costMicros: 50_000_000,
+        outcome: 'OK',
+        createdAt: new Date('2026-10-05T12:00:00Z'),
+      },
+    });
+    const free = fakeRouter([{ content: goodLadder }]);
+    await expect(
+      grill(user, item.id, ticks, now, free.fetcher),
+    ).resolves.toHaveProperty('rungs');
+    await prisma.aiUsage.deleteMany({ where: { userId: user.id } });
+    await prisma.aiSetting.upsert({
+      where: { userId: user.id },
+      update: { monthlyLimitMicros: limit },
+      create: { userId: user.id, monthlyLimitMicros: limit },
+    });
+    await prisma.aiUsage.create({
+      data: {
+        userId: user.id,
+        feature: 'GRILL_ITEM',
+        model: MODEL,
+        provider: ENDPOINT,
+        costMicros: limit - 100,
         outcome: 'OK',
         createdAt: new Date('2026-10-05T12:00:00Z'),
       },
     });
     const r = fakeRouter([{ content: goodLadder }]);
     await expect(grill(user, item.id, ticks, now, r.fetcher)).rejects.toThrow(
-      /budget is used. Grill Me returns on Nov 1/,
+      /limit is reached. Grill Me returns on Nov 1, or raise the limit in Settings/,
     );
     expect(r.chats()).toHaveLength(0);
   });

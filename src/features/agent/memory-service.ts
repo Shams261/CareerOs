@@ -12,7 +12,7 @@ import {
   type CallWords,
   type Fetcher,
 } from '@/features/ai/service';
-import { CAP_MICROS } from '@/features/ai/domain';
+import { underShare } from '@/features/ai/domain';
 import { AGENT_NAME, PERSONA, readStyle, type RumiStyle } from './domain';
 import {
   EXTRACT_CAP_SHARE,
@@ -34,7 +34,7 @@ import {
 
 const WORDS: CallWords = {
   unavailable: `${AGENT_NAME} could not take notes right now.`,
-  budgetUsed: () => 'This month’s AI budget is used.',
+  budgetUsed: () => 'Your monthly AI limit is reached.',
   tooMany: 'Enough notes for today.',
   log: '[agent] memory',
 };
@@ -204,7 +204,7 @@ export async function extractMemories(
     const latest = texts.at(-1);
     if (!latest || !shouldExtract(latest)) return [];
     const state = await aiState(user, now);
-    if (state.spent >= CAP_MICROS * EXTRACT_CAP_SHARE) return [];
+    if (!underShare(state.spent, state.limit, EXTRACT_CAP_SHARE)) return [];
     await ready(user, cfg, now, fetcher, { requireEnabled: false });
     const today = dayKey(now, user.timezone);
     const existing = (await memoryRows(user)).filter((r) => isActive(r, today));

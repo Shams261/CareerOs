@@ -25,7 +25,8 @@ import {
   reservationMicros,
   studyInput,
   TIMEOUT_MS,
-  withinCap,
+  withinLimit,
+  type MonthlyLimit,
   LADDER_FORMAT,
   type Ladder,
   type Message,
@@ -58,6 +59,26 @@ async function monthSpend(
   return { spent: sum._sum.costMicros ?? 0, resetDay: w.resetDay };
 }
 
+/** The owner's monthly limit (WI-114); null when they have set none. */
+async function monthlyLimit(
+  client: Pick<Prisma.TransactionClient, 'aiSetting'>,
+  userId: string,
+): Promise<MonthlyLimit> {
+  const row = await client.aiSetting.findUnique({
+    where: { userId },
+    select: { monthlyLimitMicros: true },
+  });
+  return row?.monthlyLimitMicros ?? null;
+}
+/** Settings → AI: the owner sets or clears the monthly limit. */
+export async function setMonthlyLimit(user: ScheduleUser, limit: MonthlyLimit) {
+  await db().aiSetting.upsert({
+    where: { userId: user.id },
+    update: { monthlyLimitMicros: limit },
+    create: { userId: user.id, monthlyLimitMicros: limit },
+  });
+}
+
 /** What the page needs to know: configured, switched on, blocked, and the month's spend. */
 export async function aiState(user: ScheduleUser, now = new Date()) {
   const configured = !!aiConfig();
@@ -68,6 +89,7 @@ export async function aiState(user: ScheduleUser, now = new Date()) {
       blocked: null,
       checkedAt: null,
       spent: 0,
+      limit: null as MonthlyLimit,
       resetDay: monthWindow(dayKey(now, user.timezone), user.timezone).resetDay,
     };
   const [setting, spend] = await Promise.all([
@@ -79,6 +101,7 @@ export async function aiState(user: ScheduleUser, now = new Date()) {
     enabled: setting?.enabled ?? true,
     blocked: setting?.blockedAt ? (setting.blockedReason ?? UNAVAILABLE) : null,
     checkedAt: setting?.checkedAt ?? null,
+    limit: (setting?.monthlyLimitMicros ?? null) as MonthlyLimit,
     ...spend,
   };
 }
@@ -219,7 +242,7 @@ const GRILL_WORDS: CallWords = {
   unavailable: UNAVAILABLE,
   tooMany: 'That is enough Grill Me for now. Try again in a while.',
   budgetUsed: (day) =>
-    `This month’s AI budget is used. Grill Me returns on ${shortDate(day)}.`,
+    `Your monthly AI limit is reached. Grill Me returns on ${shortDate(day)}, or raise the limit in Settings.`,
   log: '[study] grill',
 };
 
@@ -289,8 +312,11 @@ export async function callModel({
       if (lastHour >= RATE.hour || lastDay >= RATE.day)
         throw new AiRefusal(words.tooMany);
     }
-    const spend = await monthSpend(tx, user, now);
-    if (!withinCap(spend.spent, reserve))
+    const [spend, limit] = await Promise.all([
+      monthSpend(tx, user, now),
+      monthlyLimit(tx, user.id),
+    ]);
+    if (!withinLimit(spend.spent, reserve, limit))
       throw new AiRefusal(words.budgetUsed(spend.resetDay));
     return tx.aiUsage.create({
       data: {

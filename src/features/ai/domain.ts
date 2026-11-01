@@ -20,8 +20,20 @@ export const PRICE = { input: 0.1, output: 0.5 } as const;
  * 900 tokens each, so the JSON never closed); five rungs need about 1,000–1,400.
  */
 export const MAX_TOKENS = 2000;
-/** Silsila's own monthly limit (ADR-022); the OpenRouter key's hard limit is US$5. */
-export const CAP_MICROS = 3_000_000;
+/**
+ * The monthly limit is the owner's own setting (WI-114, amending ADR-022): `null` means
+ * Silsila sets none and the OpenRouter key's limit, which the owner sets there, is the only
+ * ceiling. No feature, prompt or answer depends on the number; it only stops new calls.
+ */
+export type MonthlyLimit = number | null;
+/** The choices Settings offers first; any amount from US$0.10 to US$1000 is accepted. */
+export const LIMIT_CHOICES: readonly MonthlyLimit[] = [
+  null,
+  5_000_000,
+  10_000_000,
+  20_000_000,
+];
+export const LIMIT_RANGE = { min: 100_000, max: 1_000_000_000 } as const;
 export const RATE = { hour: 20, day: 60 } as const;
 /** Per-feature daily caps (WI-100): a feature's own calls in the last 24 hours. */
 export const FEATURE_RATE: Partial<Record<string, { day: number }>> = {
@@ -312,14 +324,43 @@ export const dollars = (micros: number) =>
   micros > 0 && micros < 10_000
     ? 'under US$0.01'
     : `US$${(micros / 1e6).toFixed(2)}`;
-/** "under US$0.01 of US$3 used this month". */
-export const budgetLine = (spent: number) =>
-  `${dollars(spent)} of ${dollars(CAP_MICROS).replace('.00', '')} used this month`;
-/** The month's spend shows beside Rumi only from this share of the cap (WI-060). */
-export const NEAR_CAP = 0.8;
-export const nearCap = (spent: number) => spent >= CAP_MICROS * NEAR_CAP;
-export const withinCap = (spent: number, reserve: number) =>
-  spent + reserve <= CAP_MICROS;
+/** "US$0.12 used this month", or "US$0.12 of US$10 used this month" under a limit. */
+export const budgetLine = (spent: number, limit: MonthlyLimit) =>
+  limit === null
+    ? `${dollars(spent)} used this month`
+    : `${dollars(spent)} of ${dollars(limit).replace('.00', '')} used this month`;
+/** The month's spend shows beside Rumi only from this share of a set limit (WI-060). */
+export const NEAR_LIMIT = 0.8;
+export const nearLimit = (spent: number, limit: MonthlyLimit) =>
+  limit !== null && spent >= limit * NEAR_LIMIT;
+/** Whether a call reserving `reserve` fits; with no limit, it always does. */
+export const withinLimit = (
+  spent: number,
+  reserve: number,
+  limit: MonthlyLimit,
+) => limit === null || spent + reserve <= limit;
+/**
+ * Background calls (Rumi's lines, memory notes) stop at a share of a set limit, so the
+ * owner's own questions keep the rest; with no limit they never stop on spend.
+ */
+export const underShare = (spent: number, limit: MonthlyLimit, share: number) =>
+  limit === null || spent < limit * share;
+/** The owner's choice as sent by Settings: "none", or US dollars. */
+export const limitInput = z
+  .string()
+  .trim()
+  .transform((v, ctx) => {
+    if (v === 'none') return null;
+    const n = Math.round(Number(v) * 1e6);
+    if (!Number.isFinite(n) || n < LIMIT_RANGE.min || n > LIMIT_RANGE.max) {
+      ctx.addIssue({
+        code: 'custom',
+        message: 'Choose No limit, or an amount from US$0.10 to US$1000.',
+      });
+      return z.NEVER;
+    }
+    return n;
+  });
 
 type EndpointRow = {
   model_id?: unknown;

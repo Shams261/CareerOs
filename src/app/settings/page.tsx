@@ -585,7 +585,7 @@ export default async function Settings({
                 source="roadmap"
                 icon={<MessagesSquare size={22} />}
                 label="AI"
-                title="Grill Me"
+                title="AI and Grill Me"
                 context={aiContext(ai)}
                 panel="ai"
               />
@@ -643,7 +643,7 @@ export default async function Settings({
                 />
               )}
             </ul>
-            <SidePanel id="ai" title="Grill Me">
+            <SidePanel id="ai" title="AI and Grill Me">
               <AiSettings state={ai} zone={user.timezone} />
             </SidePanel>
             <SidePanel id="curriculum" title="Default curriculum">

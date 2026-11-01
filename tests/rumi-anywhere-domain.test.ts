@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { curriculumOrder } from '../src/features/dsa/domain';
-import { CAP_MICROS, nearCap } from '../src/features/ai/domain';
+import { nearLimit } from '../src/features/ai/domain';
 import { lastSentText } from '../src/features/settings/domain';
 import { goalLine } from '../src/features/roadmap/domain';
 import { systemPrompt } from '../src/features/agent/domain';
@@ -40,9 +40,11 @@ describe('WI-060 rules', () => {
     ]);
   });
 
-  it('shows the month’s spend beside Rumi only near the cap', () => {
-    expect(nearCap(10_000)).toBe(false);
-    expect(nearCap(CAP_MICROS * 0.8)).toBe(true);
+  it('shows the month’s spend beside Rumi only near a limit the owner set', () => {
+    expect(nearLimit(10_000, 10_000_000)).toBe(false);
+    expect(nearLimit(8_000_000, 10_000_000)).toBe(true);
+    // WI-114: with no limit there is nothing to be near.
+    expect(nearLimit(900_000_000, null)).toBe(false);
   });
 
   it('says when a reminder last went out, or nothing before the first', () => {

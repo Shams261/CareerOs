@@ -363,7 +363,7 @@ Attention is derived, not stored: overdue follow-up, result needed, interview be
   OpenRouter accepts the full slug with its region suffix to pin one endpoint. `allow_fallbacks` defaults to true and `data_collection` to `"allow"`, so both are always set explicitly.
 
 - **Fail closed.** A daily preflight in WI-031 repeats both checks. If the endpoint leaves the ZDR list, loses structured outputs or disappears, AI controls turn off until the owner approves again. A price change updates the ledger rates only after the owner sees it.
-- **Two caps.** Silsila's own ledger stops AI at **US$3** per calendar month in the owner's timezone, checked before each call: the owner's working budget, tighter than ADR-021's US$5. The OpenRouter key gets a hard credit limit of **US$5** with `limit_reset: "monthly"` (it resets at midnight UTC), so even a fault in Silsila cannot spend more. Whichever is reached first stops the feature.
+- **Two caps.** Silsila's own ledger stops AI at the owner's monthly limit per calendar month in the owner's timezone, checked before each call (US$3 fixed in code until WI-114; since then the owner's setting, none by default, see the amendment below). The OpenRouter key gets a hard credit limit of **US$5** with `limit_reset: "monthly"` (it resets at midnight UTC), so even a fault in Silsila cannot spend more. Whichever is reached first stops the feature.
 - **Account settings.** Account-level ZDR is turned on for Anthropic models and prompt logging stays off, so a request without `zdr: true` still cannot reach a retaining endpoint.
 
 **What these controls do and do not establish:**
@@ -392,6 +392,8 @@ Attention is derived, not stored: overdue follow-up, result needed, interview be
 - 2026-10-26: the owner chose Google Vertex ZDR only, and the cheapest established option that meets every rule (`anthropic/claude-haiku-5.5` on `google-vertex/global`), with a working budget of US$2–3 a month and US$5 as the most.
 - 2026-10-26: the owner turned on account-level ZDR for Anthropic models, kept prompt logging off, and set the Silsila key's credit limit to US$5, reset monthly.
 - 2026-10-26: the owner read the Google Vertex and OpenRouter data terms and found them acceptable.
+
+**Amendment (WI-114, 2026-11-01, the owner's decision):** the monthly limit is the owner's own setting, not a number in code. `AiSetting.monthlyLimitMicros` holds it (US$0.10 to US$1000, checked by the database); null, the default, means Silsila sets no limit and the OpenRouter key's own limit, which the owner sets at OpenRouter, is the only ceiling. Settings → AI and Grill Me offers No limit, US$5, US$10, US$20 or any amount. The limit only stops new calls for the rest of the month: no feature, prompt, answer or plan depends on the number. Background calls (Rumi's lines, memory notes) still stop at 90 % of a set limit so the owner's own questions keep the rest. The design keeps using as little as it can: one pinned small model, code-built reads, per-feature daily counts.
 
 ## ADR-023 — Listen: scripts written only from fetched, cross-checked sources
 

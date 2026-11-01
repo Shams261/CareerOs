@@ -15,10 +15,10 @@ export async function listenAction(itemId: string): Promise<ListenResult> {
   try {
     const script = await listen(user, z.string().min(1).parse(itemId));
     const state = await aiState(user);
-    return { ok: true, script, budget: budgetLine(state.spent) };
+    return { ok: true, script, budget: budgetLine(state.spent, state.limit) };
   } catch (error) {
     const state = await aiState(user).catch(() => null);
-    const budget = state ? budgetLine(state.spent) : undefined;
+    const budget = state ? budgetLine(state.spent, state.limit) : undefined;
     if (error instanceof AiRefusal || error instanceof AiUnavailable)
       return { ok: false, message: error.message, budget };
     console.error(

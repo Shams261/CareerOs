@@ -15,7 +15,7 @@ import {
   type CallWords,
   type Fetcher,
 } from '@/features/ai/service';
-import { budgetLine, ENDPOINT, MODEL, nearCap } from '@/features/ai/domain';
+import { budgetLine, ENDPOINT, MODEL, nearLimit } from '@/features/ai/domain';
 import { issueMessages } from '@/lib/validation';
 import { z } from 'zod';
 import {
@@ -84,7 +84,7 @@ export const UNAVAILABLE = `${AGENT_NAME} is unavailable right now.`;
 const WORDS: CallWords = {
   unavailable: UNAVAILABLE,
   budgetUsed: (day) =>
-    `This month’s AI budget is used. ${AGENT_NAME} returns on ${shortDate(day)}.`,
+    `Your monthly AI limit is reached. ${AGENT_NAME} returns on ${shortDate(day)}, or raise the limit in Settings.`,
   log: '[agent] chat',
 };
 
@@ -535,13 +535,13 @@ export async function askRumi(
         ...readMetadata(result.message.metadata),
         tools: readTools(result.message.metadata),
       },
-      budget: budgetLine(state.spent),
-      nearCap: nearCap(state.spent),
+      budget: budgetLine(state.spent, state.limit),
+      nearCap: nearLimit(state.spent, state.limit),
     };
   } catch (error) {
     const state = await aiState(user).catch(() => null);
-    const budget = state ? budgetLine(state.spent) : undefined;
-    const near = state ? nearCap(state.spent) : false;
+    const budget = state ? budgetLine(state.spent, state.limit) : undefined;
+    const near = state ? nearLimit(state.spent, state.limit) : false;
     if (error instanceof z.ZodError)
       return {
         ok: false,
