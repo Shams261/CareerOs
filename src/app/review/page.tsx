@@ -50,6 +50,8 @@ import {
 } from '@/features/review/forms';
 import { aiConfig } from '@/lib/env';
 import { DraftWeekButton } from '@/features/agent/draft-button';
+import { WeekSummary } from '@/features/agent/summary-card';
+import { summaryOn } from '@/features/agent/summary';
 import { nextWeek } from '@/features/agent/draft';
 import { AGENT_NAME } from '@/features/agent/domain';
 export const metadata = { title: 'Weekly review' };
@@ -176,23 +178,34 @@ export default async function Review({
   // Each step loads only what it shows; Details loads everything.
   const details = step === 'details',
     plan = step === 'plan' || details;
-  const [w, carry, next, trend, history, goals, reminders, habits] =
-    await Promise.all([
-      weekReview(user, monday, now),
-      details ? carryForward(user, now) : { dsa: [], learning: [], jobs: [] },
-      plan && planning ? nextWeekContext(user, nextMonday, now) : null,
-      details ? recentTrend(user, monday, now) : [],
-      details ? reviewHistory(user.id) : [],
-      plan
-        ? db().goal.findMany({
-            where: { userId: user.id },
-            select: { id: true, title: true },
-          })
-        : [],
-      plan ? remindersPreview(user, nextMonday) : [],
-      // WI-041: the owner's patterns over the last four weeks, on the first two steps.
-      step === 'week' || step === 'reflect' ? getPatterns(user, now) : null,
-    ]);
+  const [
+    w,
+    carry,
+    next,
+    trend,
+    history,
+    goals,
+    reminders,
+    habits,
+    summaryShown,
+  ] = await Promise.all([
+    weekReview(user, monday, now),
+    details ? carryForward(user, now) : { dsa: [], learning: [], jobs: [] },
+    plan && planning ? nextWeekContext(user, nextMonday, now) : null,
+    details ? recentTrend(user, monday, now) : [],
+    details ? reviewHistory(user.id) : [],
+    plan
+      ? db().goal.findMany({
+          where: { userId: user.id },
+          select: { id: true, title: true },
+        })
+      : [],
+    plan ? remindersPreview(user, nextMonday) : [],
+    // WI-041: the owner's patterns over the last four weeks, on the first two steps.
+    step === 'week' || step === 'reflect' ? getPatterns(user, now) : null,
+    // WI-110: the summary button shows on step one while Rumi writes the lines.
+    step === 'week' ? summaryOn(user) : false,
+  ]);
   const habitLine = habits ? patternLine(habits) : null;
   const summary = weekSummary(w.schedule.days);
   const s = w.schedule;
@@ -387,6 +400,8 @@ export default async function Review({
             {habitLine && <p className="review-patterns">{habitLine}</p>}
             {/* A summary, not the week again (WI-054): what is left to decide, then a
                 way to every day. */}
+            {/* WI-110: Rumi's two sentences above the summary, on a press. */}
+            {summaryShown && <WeekSummary monday={monday} />}
             <section
               className="review-summary"
               aria-labelledby="summary-heading"

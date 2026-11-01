@@ -177,6 +177,11 @@ function lineFrom(content: string) {
   } catch {
     part = 'morning';
   }
+  // WI-110: the week's summary, two sentences without a number.
+  if (part === 'week')
+    return {
+      line: 'A steady week with study on most evenings. Next week, keep the same evening start.',
+    };
   return {
     line:
       part === 'midday'
