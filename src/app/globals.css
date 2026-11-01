@@ -9619,6 +9619,18 @@ html {
 .rumi-kept q {
   quotes: '\201C' '\201D';
 }
+/* WI-110: Rumi's two sentences on the week, editable before Keep. */
+.week-summary {
+  display: grid;
+  gap: 8px;
+  margin: 12px 0;
+}
+.week-summary textarea {
+  width: 100%;
+}
+.week-summary .button {
+  justify-self: start;
+}
 /* WI-108: the debrief's one question at a time, and the mock interview. */
 .debrief {
   display: grid;

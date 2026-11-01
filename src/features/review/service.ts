@@ -504,6 +504,28 @@ export async function saveReview(
     });
   });
 }
+/**
+ * Keep on Rumi's week summary (WI-110): the owner's edited text goes into What went well?, as
+ * a draft; text already there is kept and the summary follows it. Nothing else changes.
+ */
+export async function keepWeekSummary(
+  user: ScheduleUser,
+  weekStart: string,
+  summary: string,
+) {
+  if (!isMonday(weekStart)) throw new Error('A week starts on Monday.');
+  const text = summary.trim();
+  if (!text) throw new Error('Nothing to keep.');
+  return locked(user.id, async (tx) => {
+    const review = await ensureReview(tx, user.id, weekStart);
+    const before = review.biggestWin?.trim();
+    const biggestWin = (before ? `${before}\n\n${text}` : text).slice(0, 1000);
+    return tx.weeklyReview.update({
+      where: { id: review.id },
+      data: { biggestWin },
+    });
+  });
+}
 /** Marks the week's review completed without touching the reflection text. */
 export async function completeReview(
   user: ScheduleUser,

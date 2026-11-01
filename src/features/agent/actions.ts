@@ -20,6 +20,8 @@ import { readVoiceLang, voiceSettingsInput } from './voice-domain';
 import { answerSuggestion, applyProposal, dismissProposal } from './plans';
 import { applyRequest, appliedWords, dismissRequest } from './requests';
 import { draftWeek } from './draft';
+import { weekSummary } from './summary';
+import { keepWeekSummary } from '@/features/review/service';
 import { AiRefusal, AiUnavailable } from '@/features/ai/service';
 import { restore } from '@/features/undo/service';
 import { undoWrite } from './writes';
@@ -216,6 +218,57 @@ export async function draftWeekAction(): Promise<
     return {
       ok: false,
       message: `${AGENT_NAME} couldn’t draft next week right now.`,
+    };
+  }
+}
+
+/** The review summary (WI-110): two sentences on the week, on the owner's press. */
+export async function weekSummaryAction(
+  monday: string,
+): Promise<{ ok: true; text: string } | { ok: false; message: string }> {
+  try {
+    const text = await weekSummary(
+      await owner(),
+      z
+        .string()
+        .regex(/^\d{4}-\d{2}-\d{2}$/)
+        .parse(monday),
+    );
+    return { ok: true, text };
+  } catch (error) {
+    if (error instanceof AiRefusal || error instanceof AiUnavailable)
+      return { ok: false, message: error.message };
+    return {
+      ok: false,
+      message: `${AGENT_NAME} couldn’t sum up this week right now.`,
+    };
+  }
+}
+/** Keep: the owner's edited summary into What went well?, as a draft. */
+export async function keepSummaryAction(
+  monday: string,
+  text: string,
+): Promise<{ ok: boolean; message: string }> {
+  try {
+    await keepWeekSummary(
+      await owner(),
+      z
+        .string()
+        .regex(/^\d{4}-\d{2}-\d{2}$/)
+        .parse(monday),
+      z.string().max(1000).parse(text),
+    );
+    // The review reads through a snapshot; the kept words must show at once.
+    forgetAll();
+    revalidatePath('/review');
+    return { ok: true, message: 'Kept in What went well? as a draft.' };
+  } catch (error) {
+    return {
+      ok: false,
+      message:
+        error instanceof Error && !('code' in error)
+          ? error.message
+          : 'Unable to save. Reload and try again.',
     };
   }
 }

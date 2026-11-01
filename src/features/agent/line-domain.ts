@@ -82,10 +82,15 @@ export type LineCheck = { ok: true } | { ok: false; code: string };
  * no banned or shaming word, and every number in it present somewhere in the reads (a model
  * never invents a count or a time).
  */
-export function lineOk(text: string, reads: string): LineCheck {
+export function lineOk(
+  text: string,
+  reads: string,
+  /** The week's summary (WI-110) may be longer. */
+  max = LINE_MAX,
+): LineCheck {
   const t = text.trim();
   if (!t) return { ok: false, code: 'empty' };
-  if (t.length > LINE_MAX) return { ok: false, code: 'too_long' };
+  if (t.length > max) return { ok: false, code: 'too_long' };
   if (MARKUP.test(t)) return { ok: false, code: 'markup' };
   if (URL.test(t)) return { ok: false, code: 'url' };
   if (EMOJI.test(t)) return { ok: false, code: 'emoji' };
@@ -102,7 +107,7 @@ export function lineOk(text: string, reads: string): LineCheck {
 
 /** Reads the model's answer: the strict object, then the line rules against the reads. */
 export const readLine =
-  (reads: string) =>
+  (reads: string, max = LINE_MAX) =>
   (
     content: unknown,
   ):
@@ -121,7 +126,7 @@ export const readLine =
         issues: 'the object must hold "line" only',
         codes: 'shape',
       };
-    const check = lineOk(r.data.line, reads);
+    const check = lineOk(r.data.line, reads, max);
     if (!check.ok)
       return {
         ok: false,
