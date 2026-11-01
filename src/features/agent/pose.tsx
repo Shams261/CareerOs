@@ -24,8 +24,9 @@ export function Lids({ lids, delay }: { lids: readonly Lid[]; delay: number }) {
 
 /**
  * One of Rumi's moments as a picture (WI-111): decoration, so the image has no name for
- * assistive technology; the text beside it says what the moment is. `size` is the width in
- * CSS pixels; the height follows the pose.
+ * assistive technology; the text beside it says what the moment is. Since WI-112 the figure
+ * sits on a warm cream tile with a floor shadow, like the owner's renders (dark in Dark).
+ * `size` is the tile's width in CSS pixels; the height follows the pose.
  */
 export function RumiPose({
   pose,
@@ -41,21 +42,23 @@ export function RumiPose({
     <span
       className={['rumi-pose', className].filter(Boolean).join(' ')}
       data-pose={pose}
-      data-motion={info.motion}
-      style={{ width: size }}
+      style={{ width: size, ['--pose' as string]: `${size}px` }}
       aria-hidden="true"
     >
-      {/* eslint-disable-next-line @next/next/no-img-element -- a small static webp, no loader */}
-      <img
-        src={poseSrc(pose)}
-        width={info.w}
-        height={info.h}
-        alt=""
-        decoding="async"
-        loading="lazy"
-        draggable={false}
-      />
-      <Lids lids={info.lids} delay={blinkDelay(pose)} />
+      {/* The tile stays put; the figure inside it moves, over a floor shadow (WI-112). */}
+      <span className="rumi-pose-figure" data-motion={info.motion}>
+        {/* eslint-disable-next-line @next/next/no-img-element -- a small static webp, no loader */}
+        <img
+          src={poseSrc(pose)}
+          width={info.w}
+          height={info.h}
+          alt=""
+          decoding="async"
+          loading="lazy"
+          draggable={false}
+        />
+        <Lids lids={info.lids} delay={blinkDelay(pose)} />
+      </span>
       {info.motion === 'sleep' && (
         <span className="rumi-zzz">
           <i>z</i>

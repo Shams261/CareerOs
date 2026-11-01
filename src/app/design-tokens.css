@@ -71,6 +71,10 @@
   --success-text: #2e7053;
   --info-text: #496979;
   --warning-text: #8a5a12;
+  /* WI-112: the warm cream tile behind Rumi's poses, and its floor shadow. */
+  --rumi-tile-top: #f8f2e6;
+  --rumi-tile-bottom: #eee4d1;
+  --rumi-floor: rgb(84 64 36 / 30%);
   color-scheme: light;
 }
 .dark {
@@ -104,5 +108,8 @@
   --success-text: var(--success);
   --info-text: var(--info);
   --warning-text: var(--warning);
+  --rumi-tile-top: #3a362e;
+  --rumi-tile-bottom: #2b2822;
+  --rumi-floor: rgb(0 0 0 / 45%);
   color-scheme: dark;
 }

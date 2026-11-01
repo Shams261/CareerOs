@@ -50,8 +50,32 @@ export const lockScreenText = (type: string) =>
   LOCK_SCREEN_TEXT[type] ?? 'You have a Silsila reminder.';
 
 /**
+ * WI-112: a picture of Rumi for the reminder's type, shown large where the browser supports
+ * it (Chrome and Edge on Android and Windows; Safari and the iPhone show the text only). The
+ * pictures are fixed art in `public/notify/`, the same for everyone, so they carry nothing
+ * personal; a type without one sends no image.
+ */
+export const PUSH_IMAGE: Record<string, string> = {
+  STUDY_MORNING: 'morning-desk',
+  STUDY_MIDDAY: 'planning-the-week',
+  STUDY_EVENING: 'one-more-chapter',
+  STUDY_BLOCK: 'calm-focus',
+  UPCOMING_BLOCK: 'rainy-focus',
+  DAILY_PROGRESS: 'night-recap',
+  INTERVIEW: 'interview-day',
+  TECHNICAL_REVIEW: 'revision-ladder',
+  DSA_REVISION: 'revision-ladder',
+  WEEKLY_REVIEW: 'sunday-review',
+};
+/** The only image paths a push may name; the service worker checks the same shape. */
+export const PUSH_IMAGE_PATH = /^\/notify\/[a-z-]+\.jpg$/;
+export const pushImage = (type: string) =>
+  PUSH_IMAGE[type] ? `/notify/${PUSH_IMAGE[type]}.jpg` : undefined;
+
+/**
  * Encrypted by the Web Push protocol end to end. Carries only the general line for the
- * reminder's type, the notification id (tag) and a same-origin path; `title` is unused here
+ * reminder's type, the notification id (tag), a same-origin path and, since WI-112, the
+ * type's fixed picture; `title` is unused here
  * on purpose so the reminder's named text can never reach a lock screen.
  */
 export const pushPayload = (n: {
@@ -65,6 +89,7 @@ export const pushPayload = (n: {
     body: lockScreenText(n.type),
     tag: n.id,
     url: notificationPath(n.type, n.dedupeKey),
+    image: pushImage(n.type),
   });
 
 export type PushOutcome = 'delivered' | 'gone' | 'transient' | 'rejected';

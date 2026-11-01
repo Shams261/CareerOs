@@ -164,11 +164,12 @@ export default async function Privacy() {
         &ldquo;Rumi writes the lines&rdquo; under Study nudges, the same
         endpoint writes one short line for the morning, the afternoon and the
         evening from those same summaries, once each; the line is shown on Today
-        and in the inbox, the lock screen only ever carries a general sentence,
-        and a line that fails Silsila&rsquo;s checks is replaced by the fixed
-        text. On a press in Weekly review, the same endpoint writes two
-        sentences on the week from its schedule and recorded minutes; they are
-        kept only if the owner presses Keep.
+        and in the inbox, the lock screen only ever carries a general sentence
+        and, on some devices, a fixed picture of Rumi, and a line that fails
+        Silsila&rsquo;s checks is replaced by the fixed text. On a press in
+        Weekly review, the same endpoint writes two sentences on the week from
+        its schedule and recorded minutes; they are kept only if the owner
+        presses Keep.
       </p>
       <p>
         Voice (optional, off until the owner consents in Settings → Voice) uses

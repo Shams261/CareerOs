@@ -296,7 +296,7 @@ export function Launcher({
         <p className="launcher-next">{next}</p>
       </div>
       <div className="launcher-side">
-        {pose && <RumiPose pose={pose} size={72} className="launcher-pose" />}
+        {pose && <RumiPose pose={pose} size={84} className="launcher-pose" />}
         {timer}
         <div className="launcher-action">{action}</div>
       </div>

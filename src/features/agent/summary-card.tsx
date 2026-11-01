@@ -18,7 +18,7 @@ export function WeekSummary({ monday }: { monday: string }) {
   if (text === null)
     return (
       <div className="week-summary has-pose">
-        <RumiPose pose="calendar" size={72} />
+        <RumiPose pose="calendar" size={80} />
         <button
           type="button"
           className="button secondary small"
@@ -46,7 +46,7 @@ export function WeekSummary({ monday }: { monday: string }) {
     );
   return (
     <div className="week-summary">
-      <RumiPose pose="calendar" size={56} className="week-summary-pose" />
+      <RumiPose pose="calendar" size={64} className="week-summary-pose" />
       <label htmlFor="week-summary-text" className="eyebrow">
         {AGENT_NAME} on this week
       </label>

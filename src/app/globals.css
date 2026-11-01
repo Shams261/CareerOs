@@ -6833,7 +6833,34 @@ html[data-panel-open] .rumi-fab {
   position: relative;
   display: inline-block;
   flex-shrink: 0;
+  box-sizing: border-box;
+  /* Sized from the tile itself: a percentage would follow the card around it. */
+  padding: calc(var(--pose, 120px) * 0.09) calc(var(--pose, 120px) * 0.1)
+    calc(var(--pose, 120px) * 0.08);
+  border-radius: clamp(10px, calc(var(--pose, 120px) * 0.16), 22px);
+  background: linear-gradient(
+    180deg,
+    var(--rumi-tile-top),
+    var(--rumi-tile-bottom)
+  );
   line-height: 0;
+  isolation: isolate;
+}
+/* The floor shadow under the feet stays on the tile while the figure moves. */
+.rumi-pose::after {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  left: 24%;
+  right: 24%;
+  bottom: 6%;
+  height: 7%;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, var(--rumi-floor), transparent);
+}
+.rumi-pose-figure {
+  position: relative;
+  display: block;
   transform-origin: 50% 100%;
 }
 .rumi-pose img {
@@ -6862,8 +6889,8 @@ html[data-panel-open] .rumi-fab {
 }
 .rumi-zzz {
   position: absolute;
-  top: 2%;
-  right: 4%;
+  top: 6%;
+  right: 8%;
   display: flex;
   align-items: flex-end;
   gap: 1px;
@@ -6913,11 +6940,11 @@ html[data-panel-open] .rumi-fab {
 }
 .nudge.has-pose > h2,
 .nudge.has-pose > .nudge-line {
-  padding-right: 84px;
+  padding-right: 96px;
 }
 .welcome-hero.has-pose {
   position: relative;
-  padding-right: 150px;
+  padding-right: 164px;
 }
 .welcome-pose {
   position: absolute;
@@ -6948,10 +6975,11 @@ html[data-panel-open] .rumi-fab {
 }
 @media (max-width: 700px) {
   .welcome-hero.has-pose {
-    padding-right: 110px;
+    padding-right: 112px;
   }
   .welcome-pose {
-    width: 84px !important;
+    --pose: 92px;
+    width: 92px !important;
     right: 12px;
   }
   .launcher-pose {
@@ -6968,19 +6996,19 @@ html[data-panel-open] .rumi-fab {
   .rumi-mark[data-state='busy'] {
     animation: rumi-bob 0.9s ease-in-out infinite alternate;
   }
-  .rumi-pose[data-motion='breathe'] {
+  .rumi-pose-figure[data-motion='breathe'] {
     animation: rumi-breathe 3.6s ease-in-out infinite alternate;
   }
-  .rumi-pose[data-motion='sleep'] {
+  .rumi-pose-figure[data-motion='sleep'] {
     animation: rumi-breathe 5s ease-in-out infinite alternate;
   }
-  .rumi-pose[data-motion='sway'] {
+  .rumi-pose-figure[data-motion='sway'] {
     animation: rumi-pose-sway 2.6s ease-in-out infinite alternate;
   }
-  .rumi-pose[data-motion='bob'] {
+  .rumi-pose-figure[data-motion='bob'] {
     animation: rumi-bob 1.4s ease-in-out infinite alternate;
   }
-  .rumi-pose[data-motion='float'] {
+  .rumi-pose-figure[data-motion='float'] {
     animation: rumi-float 3.2s ease-in-out infinite alternate;
   }
   .rumi-zzz i {
