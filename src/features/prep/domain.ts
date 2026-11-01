@@ -15,6 +15,8 @@ import {
 
 /** ADR-024: at most 8 searches a doc; Silsila uses six, three results each. */
 export const MAX_SEARCHES = 6;
+/** With an invite's rounds and topics (WI-105), up to ADR-024's eight. */
+export const INVITE_SEARCHES = 8;
 export const RESULTS_PER_SEARCH = 3;
 export const SEARCH_ENGINE = 'exa';
 export const SEARCH_MAX_TOKENS = 700;
@@ -62,6 +64,8 @@ export function searchQueries(input: {
   company: string;
   role: string;
   roundTypes: string[];
+  /** Topics an invite mentioned (WI-105), each from `INVITE_TOPICS` only. */
+  topics?: string[];
 }) {
   const company = clip(input.company, LIMITS.company);
   const role = clip(input.role, LIMITS.role);
@@ -75,7 +79,28 @@ export function searchQueries(input: {
     `${company} hiring values what interviewers look for`,
     `${company} ${role} technical interview topics`,
   ];
-  return [...new Set(queries)].slice(0, MAX_SEARCHES);
+  if (!input.topics?.length)
+    return [...new Set(queries)].slice(0, MAX_SEARCHES);
+  // An invite adds its topics, the company's own system design and careers pages (WI-105).
+  const invite = inviteQueries(company, input.topics);
+  return [
+    ...new Set([
+      queries[0],
+      ...types.map((t) => `${company} ${role} ${t} questions`),
+      ...invite,
+      ...queries.slice(1),
+    ]),
+  ].slice(0, INVITE_SEARCHES);
+}
+
+/** What an invite adds to the searches (WI-105): its topics, then the company's own pages. */
+export function inviteQueries(company: string, topics: readonly string[]) {
+  const c = clip(company, LIMITS.company);
+  return [
+    ...topics.slice(0, 2).map((t) => `${c} ${t} interview`),
+    `${c} system design interview`,
+    `${c} careers interview process`,
+  ];
 }
 
 /** One search: the query alone as the user message, the web plugin on the pinned endpoint. */
@@ -212,6 +237,8 @@ export type PrepInput = {
   roadmap: { id: string; title: string; roadmap: string; done: boolean }[];
   problems: { id: string; title: string; topic: string; confidence: string }[];
   jobDescription?: string | null;
+  /** Topics the invite mentioned (WI-105), from the fixed list. */
+  inviteTopics?: string[];
 };
 
 export const PREP_SYSTEM = [
@@ -221,6 +248,7 @@ export const PREP_SYSTEM = [
   'For topics, link the owner’s own items by id ("R3" for a roadmap item, "P2" for a problem) when they match; never invent ids.',
   'The plan is seven days, day 1 to 7, each with one short focus and the ids of items to work on.',
   'Questions to ask are three to five good questions for the interviewers, from the notes.',
+  'Asks: what the upcoming round itself asks, as points with sources. Order: what to study, first to last, each step with why, its sources and the ids of the owner’s items for it; when the user message has invite topics, put them first.',
   'Plain English, short points under 30 words. No names of people, no salaries, nothing about the candidate personally.',
 ].join(' ');
 
@@ -228,7 +256,15 @@ const cited = { type: 'array', items: { type: 'string' } } as const;
 const PREP_JSON_SCHEMA = {
   type: 'object',
   additionalProperties: false,
-  required: ['process', 'rounds', 'topics', 'plan', 'questions'],
+  required: [
+    'process',
+    'rounds',
+    'topics',
+    'plan',
+    'questions',
+    'asks',
+    'order',
+  ],
   properties: {
     process: {
       type: 'array',
@@ -280,6 +316,30 @@ const PREP_JSON_SCHEMA = {
       },
     },
     questions: { type: 'array', items: { type: 'string' } },
+    // WI-105: what the round asks, and what to study in order.
+    asks: {
+      type: 'array',
+      items: {
+        type: 'object',
+        additionalProperties: false,
+        required: ['text', 'sources'],
+        properties: { text: { type: 'string' }, sources: cited },
+      },
+    },
+    order: {
+      type: 'array',
+      items: {
+        type: 'object',
+        additionalProperties: false,
+        required: ['name', 'why', 'sources', 'links'],
+        properties: {
+          name: { type: 'string' },
+          why: { type: 'string' },
+          sources: cited,
+          links: cited,
+        },
+      },
+    },
   },
 } as const;
 export const PREP_FORMAT: OutputFormat = {
@@ -313,6 +373,9 @@ export function prepMessages(input: PrepInput): Message[] {
         role: clip(input.role, LIMITS.role),
         rounds: input.rounds,
         ...(input.formats?.length ? { formats: input.formats } : {}),
+        ...(input.inviteTopics?.length
+          ? { inviteTopics: input.inviteTopics }
+          : {}),
         sources: input.sources.map((s) => ({
           id: s.id,
           site: s.site,
@@ -357,6 +420,20 @@ const rawDoc = z.object({
     }),
   ),
   questions: z.array(text(300)),
+  // WI-105; a doc written before them reads as none.
+  asks: z
+    .array(z.object({ text: text(300), sources: z.array(z.string()) }))
+    .default([]),
+  order: z
+    .array(
+      z.object({
+        name: text(120),
+        why: text(300),
+        sources: z.array(z.string()),
+        links: z.array(z.string()),
+      }),
+    )
+    .default([]),
 });
 export type Link = { kind: 'roadmap' | 'problem'; id: string; title: string };
 export type PrepDoc = {
@@ -365,6 +442,14 @@ export type PrepDoc = {
   topics: { name: string; why: string; sources: string[]; links: Link[] }[];
   plan: { day: number; focus: string; links: Link[] }[];
   questions: string[];
+  /** What the round asks, and what to study in order (WI-105); older docs have none. */
+  asks?: { text: string; sources: string[] }[];
+  order?: { name: string; why: string; sources: string[]; links: Link[] }[];
+  /** The rounds and topics an invite named (WI-105); never the invite itself. */
+  invite?: {
+    topics: string[];
+    rounds: { type: string; date: string | null }[];
+  };
 };
 export const MIN_SOURCED_POINTS = 3;
 
@@ -456,6 +541,19 @@ export function readPrepDoc(
       .sort((a, b) => a.day - b.day)
       .map((p) => ({ day: p.day, focus: p.focus, links: linked(p.links) })),
     questions: d.questions.slice(0, 5),
+    asks: d.asks
+      .map((p) => ({ text: p.text, sources: real(p.sources) }))
+      .filter((p) => p.sources.length)
+      .slice(0, 8),
+    order: d.order
+      .map((t) => ({
+        name: t.name,
+        why: t.why,
+        sources: real(t.sources),
+        links: linked(t.links),
+      }))
+      .filter((t) => t.sources.length)
+      .slice(0, 10),
   };
   const grounded = doc.process.length + doc.rounds.length + doc.topics.length;
   if (grounded < MIN_SOURCED_POINTS)
@@ -473,6 +571,8 @@ export function citedSources(doc: PrepDoc, sources: Source[]) {
     ...doc.process.flatMap((p) => p.sources),
     ...doc.rounds.flatMap((p) => p.sources),
     ...doc.topics.flatMap((p) => p.sources),
+    ...(doc.asks ?? []).flatMap((p) => p.sources),
+    ...(doc.order ?? []).flatMap((p) => p.sources),
   ]);
   return sources.filter((s) => used.has(s.id));
 }

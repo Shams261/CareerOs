@@ -11,6 +11,8 @@ import { AskRumiButton } from '@/features/agent/ask-button';
 import { prepDoc } from '@/features/prep/service';
 import { deletePrepDocAction } from '@/features/prep/actions';
 import type { Link as ItemLink, Source } from '@/features/prep/domain';
+import { PlanUntilButton } from '@/features/prep/plan-button';
+import { typeText } from '@/features/jobs/formats';
 
 export const metadata = { title: 'Prep doc' };
 
@@ -49,7 +51,15 @@ export default async function PrepDocPage({
   const row = await prepDoc(user, docId);
   if (!row || row.applicationId !== id) notFound();
   const { doc, cited } = row;
-  const linked = [...doc.topics, ...doc.plan].flatMap((x) => x.links);
+  const asks = doc.asks ?? [],
+    order = doc.order ?? [];
+  const linked = [...doc.topics, ...doc.plan, ...order].flatMap((x) => x.links);
+  // "From your own material" (WI-105): every item the doc points at, once, in study order.
+  const material = [
+    ...new Map(
+      [...order, ...doc.topics].flatMap((x) => x.links).map((l) => [l.id, l]),
+    ).values(),
+  ];
   // Links open the item where it lives now; one removed since reads as plain text.
   const [items, problems] = await Promise.all([
     db().roadmapItem.findMany({
@@ -110,7 +120,50 @@ export default async function PrepDocPage({
         {cited.filter((s) => s.official).length} official
         {row.usedJobDescription ? ' · with the job description' : ''}
       </p>
+      {doc.invite && (
+        <p className="prep-note">
+          From the invite:{' '}
+          {doc.invite.rounds.map((r) => typeText(r.type)).join(', ') ||
+            'no rounds named'}
+          {doc.invite.topics.length
+            ? ` · topics: ${doc.invite.topics.join(', ')}`
+            : ''}
+        </p>
+      )}
       <div className="prep-doc">
+        {asks.length > 0 && (
+          <section className="card" aria-labelledby="prep-asks">
+            <h2 id="prep-asks">What this round asks</h2>
+            <ul className="prep-points">
+              {asks.map((p, i) => (
+                <li key={i}>
+                  {p.text} <Cites ids={p.sources} sources={cited} />
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
+        {order.length > 0 && (
+          <section className="card" aria-labelledby="prep-order">
+            <h2 id="prep-order">What to study, in order</h2>
+            <ol className="prep-points">
+              {order.map((t, i) => (
+                <li key={i}>
+                  <strong>{t.name}</strong>: {t.why}{' '}
+                  <Cites ids={t.sources} sources={cited} />
+                  <Links links={t.links} />
+                </li>
+              ))}
+            </ol>
+            <PlanUntilButton docId={row.id} />
+          </section>
+        )}
+        {material.length > 0 && (
+          <section className="card" aria-labelledby="prep-material">
+            <h2 id="prep-material">From your own material</h2>
+            {Links({ links: material })}
+          </section>
+        )}
         {doc.process.length > 0 && (
           <section className="card" aria-labelledby="prep-process">
             <h2 id="prep-process">Process</h2>
