@@ -343,7 +343,7 @@ export function RumiChat({
       <div className="rumi-log" aria-live="polite">
         {messages.length === 0 && (
           <div className="rumi-empty">
-            <RumiPose pose="hello" size={104} className="rumi-empty-mark" />
+            <RumiPose pose="hello" size={124} className="rumi-empty-mark" />
             <p className="rumi-empty-lead">
               {AGENT_NAME} reads your schedule, study, practice and jobs, and
               answers from them. It never sees your notes.

@@ -20,6 +20,8 @@ const PUBLIC = [
   /^\/manifest\.webmanifest$/,
   /^\/sw\.js$/,
   /^\/icons\/[\w.-]+$/,
+  // WI-112: the fixed pictures a push may show; art only, the same for everyone.
+  /^\/notify\/[a-z-]+\.jpg$/,
   /^\/apple-touch-icon\.png$/,
   /^\/favicon\.ico$/,
   // A private app: crawlers are told to stay out (WI-057).

@@ -36,7 +36,7 @@ export default async function MockPage({
       </Link>
       <p className="eyebrow mt-4">With {AGENT_NAME}</p>
       <div className="page-head has-pose">
-        <RumiPose pose="mock-interview" size={56} className="head-pose" />
+        <RumiPose pose="mock-interview" size={64} className="head-pose" />
         <h1>Mock interview · {mock.company}</h1>
       </div>
       <p className="today-summary">

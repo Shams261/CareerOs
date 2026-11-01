@@ -132,6 +132,8 @@ describe.skipIf(!url)('production hardening (PostgreSQL)', () => {
       body: 'Practice problems are due for revision today.',
       tag: log.id,
       url: '/dsa',
+      // WI-112: the type's fixed picture, shared art and nothing personal.
+      image: '/notify/revision-ladder.jpg',
     });
     expect(
       await prisma.pushSubscription.findUniqueOrThrow({ where: { id: b.id } }),

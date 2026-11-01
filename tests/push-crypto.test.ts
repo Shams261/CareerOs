@@ -102,6 +102,8 @@ describe('Web Push encryption and VAPID (RFC 8291 / 8292)', () => {
       body: 'Practice problems are due for revision today.',
       tag: 'n1',
       url: '/dsa',
+      // WI-112: the type's fixed picture, shared art and nothing personal.
+      image: '/notify/revision-ladder.jpg',
     });
     const stranger = createECDH('prime256v1');
     stranger.generateKeys();

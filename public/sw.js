@@ -20,12 +20,19 @@ self.addEventListener('push', (event) => {
     typeof data.url === 'string' && /^\/(?![/\\])/.test(data.url)
       ? data.url
       : '/today';
+  // WI-112: only a picture from Silsila's own /notify/ folder is shown.
+  const image =
+    typeof data.image === 'string' &&
+    /^\/notify\/[a-z-]+\.jpg$/.test(data.image)
+      ? data.image
+      : undefined;
   event.waitUntil(
     self.registration.showNotification(title, {
       body,
       tag: typeof data.tag === 'string' ? data.tag : undefined,
       icon: '/icons/icon-192.png',
       badge: '/icons/icon-192.png',
+      ...(image ? { image } : {}),
       data: { url },
     }),
   );

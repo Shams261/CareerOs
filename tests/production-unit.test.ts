@@ -233,12 +233,24 @@ describe('push payloads and service worker', () => {
         dedupeKey: 'u:INTERVIEW:r1:x',
       }),
     );
+    // WI-112: the type's fixed picture is the only addition.
     expect(Object.keys(payload).sort()).toEqual([
       'body',
+      'image',
       'tag',
       'title',
       'url',
     ]);
+    expect(payload.image).toBe('/notify/interview-day.jpg');
+    const plain = JSON.parse(
+      pushPayload({
+        id: 'n2',
+        type: 'JOB_FOLLOW_UP',
+        title: 'Reply to recruiter',
+        dedupeKey: 'u:JOB_FOLLOW_UP:app123:2026-09-24',
+      }),
+    );
+    expect(Object.keys(plain).sort()).toEqual(['body', 'tag', 'title', 'url']);
     expect(classifyPushStatus(201)).toBe('delivered');
     expect(classifyPushStatus(410)).toBe('gone');
     expect(classifyPushStatus(404)).toBe('gone');

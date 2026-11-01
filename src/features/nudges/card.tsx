@@ -71,7 +71,7 @@ export function NudgeCard({ nudge, block, day }: NudgeCardProps) {
       {rumi && (
         <RumiPose
           pose={evening ? 'writing' : midday ? 'working' : 'morning-coffee'}
-          size={76}
+          size={88}
           className="nudge-pose"
         />
       )}

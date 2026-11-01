@@ -92,6 +92,9 @@ describe("Rumi's poses (WI-111)", () => {
     expect(html).toContain('aria-hidden="true"');
     expect(html).toContain('alt=""');
     expect(html).toContain('src="/mascot/sitting.webp"');
+    // WI-112: the tile is sized from the pose's own width, never from the card around it.
+    expect(html).toContain('--pose:100px');
+    expect(html).toContain('class="rumi-pose-figure" data-motion="breathe"');
     expect(html.match(/class="rumi-lid"/g)).toHaveLength(2);
     expect(
       renderToStaticMarkup(createElement(RumiPose, { pose: 'sleeping' })),
