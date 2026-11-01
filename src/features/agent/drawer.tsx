@@ -1,9 +1,10 @@
 'use client';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { usePathname } from 'next/navigation';
-import { MessageCircle, X } from 'lucide-react';
+import { X } from 'lucide-react';
 import { RumiChat } from './chat';
 import { AGENT_NAME } from './domain';
+import { RumiMark } from './mark';
 import {
   ASK_EVENT,
   ASK_KEY,
@@ -11,20 +12,28 @@ import {
   OPEN_RUMI_EVENT,
   PREFILL_EVENT,
   PREFILL_KEY,
+  RUMI_KEY_LABEL,
+  isRumiKey,
 } from './events';
 
-/** Pages where the round button would repeat or interrupt: Rumi's own page and Focus. */
+/**
+ * Pages where the round button would repeat or interrupt: Rumi's own page, Focus (the one
+ * screen kept free of everything else), and the signed-out pages.
+ */
 const HIDDEN = ['/rumi', '/focus', '/login', '/privacy'];
 const hiddenOn = (path: string) =>
   HIDDEN.some((p) => path === p || path.startsWith(`${p}/`));
 /** The owner's date for the plan cards' "Today"; the device's clock is the owner's. */
 const localToday = () => new Intl.DateTimeFormat('en-CA').format(new Date());
 const NONE: never[] = [];
+const noSubscribe = () => () => {};
 
 /**
  * Rumi from any page (WI-060): a round button at the bottom right opens a chat drawer beside
  * the page, which stays as it is. The chat is the same one as /rumi, kept while the tab lives,
- * so closing and reopening continues the conversation. Esc closes it.
+ * so closing and reopening continues the conversation. Esc closes it. Since WI-111 the button
+ * carries Rumi's mark and shows on a desktop too, and ⌘/ (Ctrl+/) opens or closes the drawer
+ * from any page that has it; on the Rumi page the key goes to the composer.
  */
 export function RumiDrawer() {
   const path = usePathname();
@@ -34,6 +43,36 @@ export function RumiDrawer() {
   const button = useRef<HTMLButtonElement>(null);
   const panel = useRef<HTMLDivElement>(null);
   const hidden = hiddenOn(path);
+  // The device decides the key's name; the server render uses the general one.
+  const keyLabel = useSyncExternalStore(
+    noSubscribe,
+    () =>
+      /Mac|iPhone|iPad/.test(navigator.userAgent)
+        ? RUMI_KEY_LABEL.mac
+        : RUMI_KEY_LABEL.other,
+    () => RUMI_KEY_LABEL.other,
+  );
+
+  // ⌘/ (Ctrl+/) from anywhere: the drawer opens or closes; on the Rumi page, the composer.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (!isRumiKey(e)) return;
+      if (path === '/rumi' || path.startsWith('/rumi/')) {
+        e.preventDefault();
+        document
+          .querySelector<HTMLTextAreaElement>('.rumi-compose textarea')
+          ?.focus();
+        return;
+      }
+      if (hidden) return;
+      e.preventDefault();
+      setStarted(true);
+      setOpen(!open);
+      if (open) button.current?.focus();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [hidden, path, open]);
 
   useEffect(() => {
     if (hidden) return;
@@ -87,16 +126,13 @@ export function RumiDrawer() {
         aria-label={open ? `Close ${AGENT_NAME}` : `Ask ${AGENT_NAME}`}
         aria-expanded={open}
         aria-controls="rumi-drawer"
+        title={open ? `Close ${AGENT_NAME}` : `Ask ${AGENT_NAME} · ${keyLabel}`}
         onClick={() => {
           setStarted(true);
           setOpen((o) => !o);
         }}
       >
-        {open ? (
-          <X size={22} aria-hidden="true" />
-        ) : (
-          <MessageCircle size={22} aria-hidden="true" />
-        )}
+        <RumiMark size={60} closed={open} />
       </button>
       {started && (
         <div
@@ -108,7 +144,10 @@ export function RumiDrawer() {
           hidden={!open}
         >
           <div className="rumi-drawer-head">
-            <h2>{AGENT_NAME}</h2>
+            <h2>
+              <RumiMark size={26} />
+              {AGENT_NAME}
+            </h2>
             <button
               type="button"
               className="button secondary small"

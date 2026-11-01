@@ -1,3 +1,4 @@
+import { RumiPose } from '@/features/agent/pose';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { ArrowLeft } from 'lucide-react';
@@ -34,7 +35,8 @@ export default async function MockPage({
         <ArrowLeft size={14} aria-hidden="true" /> {mock.company} prep doc
       </Link>
       <p className="eyebrow mt-4">With {AGENT_NAME}</p>
-      <div className="page-head">
+      <div className="page-head has-pose">
+        <RumiPose pose="mock-interview" size={56} className="head-pose" />
         <h1>Mock interview · {mock.company}</h1>
       </div>
       <p className="today-summary">

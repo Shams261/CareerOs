@@ -1,3 +1,5 @@
+import { RumiPose } from '@/features/agent/pose';
+import type { Pose } from '@/features/agent/mascot';
 import Link from 'next/link';
 import { ArrowRight } from 'lucide-react';
 import { ActionForm } from '@/components/action-form';
@@ -84,7 +86,8 @@ export function Launcher({
     context: React.ReactNode = null,
     action: React.ReactNode = null,
     next: React.ReactNode = null,
-    timer: React.ReactNode = null;
+    timer: React.ReactNode = null,
+    pose: Pose | null = null;
   const prepLink = (round: RoundLike) => (
     <Link
       className="link"
@@ -261,6 +264,7 @@ export function Launcher({
     // The day is reviewed: its facts, the review one link away, and room for a late block.
     eyebrow = 'Day closed';
     title = 'The day is closed';
+    pose = 'stretch-break';
     context = closedLine || 'Every block has a decision.';
     next = (
       <PanelButton panel="review" className="link-button">
@@ -271,6 +275,7 @@ export function Launcher({
   } else {
     eyebrow = 'Nothing more planned';
     title = 'That is the plan for today';
+    pose = 'meditating';
     context = 'Add a block if something comes up; the review is in the header.';
     action = <PressButton press="add-block">Add a block</PressButton>;
     next = letGo;
@@ -291,6 +296,7 @@ export function Launcher({
         <p className="launcher-next">{next}</p>
       </div>
       <div className="launcher-side">
+        {pose && <RumiPose pose={pose} size={72} className="launcher-pose" />}
         {timer}
         <div className="launcher-action">{action}</div>
       </div>

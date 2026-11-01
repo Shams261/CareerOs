@@ -1,4 +1,5 @@
 'use client';
+import { RumiPose } from './pose';
 import { useState, useTransition } from 'react';
 import { AGENT_NAME } from './domain';
 import { keepSummaryAction, weekSummaryAction } from './actions';
@@ -16,7 +17,8 @@ export function WeekSummary({ monday }: { monday: string }) {
   if (gone) return null;
   if (text === null)
     return (
-      <div className="week-summary">
+      <div className="week-summary has-pose">
+        <RumiPose pose="calendar" size={72} />
         <button
           type="button"
           className="button secondary small"
@@ -44,6 +46,7 @@ export function WeekSummary({ monday }: { monday: string }) {
     );
   return (
     <div className="week-summary">
+      <RumiPose pose="calendar" size={56} className="week-summary-pose" />
       <label htmlFor="week-summary-text" className="eyebrow">
         {AGENT_NAME} on this week
       </label>

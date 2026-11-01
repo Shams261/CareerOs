@@ -46,3 +46,16 @@ export function askRumi(text: string, go: (href: string) => void) {
   else go('/rumi');
   return true;
 }
+
+/**
+ * The key that opens and closes Rumi from any page (WI-111): ⌘/ on a Mac, Ctrl+/ elsewhere.
+ * A modifier key, so it works while typing and never meets the page's single-key shortcuts.
+ */
+export const RUMI_KEY_LABEL = { mac: '⌘/', other: 'Ctrl+/' } as const;
+export const isRumiKey = (e: {
+  key: string;
+  metaKey: boolean;
+  ctrlKey: boolean;
+  altKey: boolean;
+  shiftKey: boolean;
+}) => e.key === '/' && (e.metaKey || e.ctrlKey) && !e.altKey && !e.shiftKey;

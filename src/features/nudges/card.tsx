@@ -1,4 +1,6 @@
 'use client';
+import { RumiPose } from '@/features/agent/pose';
+import { RumiMark } from '@/features/agent/mark';
 import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -62,11 +64,21 @@ export function NudgeCard({ nudge, block, day }: NudgeCardProps) {
   return (
     <section
       id="study-nudge"
-      className="nudge"
+      className={rumi ? 'nudge has-pose' : 'nudge'}
       aria-labelledby="study-nudge-heading"
       tabIndex={-1}
     >
-      <h2 id="study-nudge-heading">{heading}</h2>
+      {rumi && (
+        <RumiPose
+          pose={evening ? 'writing' : midday ? 'working' : 'morning-coffee'}
+          size={76}
+          className="nudge-pose"
+        />
+      )}
+      <h2 id="study-nudge-heading">
+        {rumi && <RumiMark size={24} />}
+        {heading}
+      </h2>
       <p className="nudge-line">{nudge.body}</p>
       {block && (
         <p className="nudge-block">
