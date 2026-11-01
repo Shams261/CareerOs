@@ -61,6 +61,7 @@ const ARGS: Record<ToolName, Record<string, unknown>> = {
   get_patterns: {},
   get_prep_docs: {},
   find_problems: { text: 'two sum' },
+  find_items: { text: 'two' },
   // Cards and writes, handled by the message loop; through runTool they only refuse.
   propose_blocks: {},
   suggest_memory: {},
@@ -72,6 +73,10 @@ const ARGS: Record<ToolName, Record<string, unknown>> = {
   change_stage: {},
   log_attempt: {},
   write_review: {},
+  mark_item: {},
+  add_application: {},
+  add_round: {},
+  set_goal: {},
 };
 
 type Answer = {

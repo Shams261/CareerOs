@@ -487,6 +487,46 @@ export async function getPatterns(user: ScheduleUser, now: Date) {
 }
 
 /**
+ * `find_items` (WI-118): up to eight items of the owner's Study AI roadmaps whose title holds
+ * every word, with their id, so a card can mark one. Item notes are never read.
+ */
+async function findItems(user: ScheduleUser, { text }: { text: string }) {
+  const words = text.toLowerCase().split(/\s+/).filter(Boolean).slice(0, 5);
+  const rows = await db().roadmapItem.findMany({
+    where: {
+      userId: user.id,
+      roadmap: { studyAi: true, archivedAt: null },
+      AND: words.map((w) => ({
+        title: { contains: w, mode: 'insensitive' as const },
+      })),
+    },
+    orderBy: [{ section: 'asc' }, { ordering: 'asc' }],
+    take: FIND_LIMIT * 2,
+    select: {
+      id: true,
+      title: true,
+      section: true,
+      status: true,
+      dsaProblemId: true,
+      roadmap: { select: { title: true } },
+    },
+  });
+  return {
+    items: rows
+      .filter((i) => !isTestNamed(i.title) && !isTestNamed(i.roadmap.title))
+      .slice(0, FIND_LIMIT)
+      .map((i) => ({
+        itemId: i.id,
+        title: i.title,
+        roadmap: i.roadmap.title,
+        section: i.section,
+        status: i.status.toLowerCase().replaceAll('_', ' '),
+        ...(i.dsaProblemId ? { followsPractice: true } : {}),
+      })),
+  };
+}
+
+/**
  * `find_problems` (WI-102): up to eight of the owner's visible problems whose title holds
  * every word, with their id, so a later card can name one it read.
  */
@@ -558,6 +598,8 @@ export function runTool(
       return latestPrepDocs(user);
     case 'find_problems':
       return findProblems(user, args as { text: string });
+    case 'find_items':
+      return findItems(user, args as { text: string });
     default:
       // Cards and writes, not reads: the message loop handles them (WI-041, WI-102, WI-103).
       return Promise.resolve({ error: 'Not a read tool.' });

@@ -17,7 +17,12 @@ import { saveBlock } from '@/features/schedule/editing';
 import { removeMemory } from '@/features/agent/service';
 import { keepLineIn } from '@/features/agent/memory-service';
 import { followPractice } from '@/features/roadmap/follow';
-import { unhideProblem } from '@/features/deletes/service';
+import {
+  deleteApplication,
+  deleteGoal,
+  deleteRound,
+  unhideProblem,
+} from '@/features/deletes/service';
 
 /**
  * Undo for destructive one-click actions (WI-011). Nothing is soft-deleted: an undo re-creates
@@ -26,6 +31,10 @@ import { unhideProblem } from '@/features/deletes/service';
  */
 const kinds = {
   'block-reset': z.object({ id: z.string().min(1) }),
+  // WI-118: Rumi's cards that add a record are undone by removing it.
+  'remove-application': z.object({ id: z.string().min(1) }),
+  'remove-round': z.object({ id: z.string().min(1) }),
+  'remove-goal': z.object({ id: z.string().min(1) }),
   // Let go of yesterday's blocks in one step (WI-059).
   'blocks-reset': z.object({
     ids: z.array(z.string().min(1)).min(1).max(50),
@@ -509,6 +518,18 @@ export async function restore(
       for (const id of p.ids) await execute(user, id, 'cancel');
       await reopenProposal(user, p.messageId, p.proposalId);
       return p.ids.length === 1 ? 'Block cancelled.' : 'Blocks cancelled.';
+    }
+    case 'remove-application': {
+      await deleteApplication(user, kinds[k].parse(payload).id);
+      return 'Application removed.';
+    }
+    case 'remove-round': {
+      await deleteRound(user, kinds[k].parse(payload).id);
+      return 'Interview removed.';
+    }
+    case 'remove-goal': {
+      await deleteGoal(user, kinds[k].parse(payload).id);
+      return 'Goal removed.';
     }
   }
 }

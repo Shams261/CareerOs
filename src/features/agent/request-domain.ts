@@ -5,6 +5,7 @@
  * the card was made from. Covered by tests/agent-cards.test.ts.
  */
 import { z } from 'zod';
+import { interviewTypes } from '@/features/jobs/domain';
 
 /** At most this many cards in one answer. */
 export const REQUESTS_PER_ANSWER = 2;
@@ -53,6 +54,33 @@ export const requestArgs = {
       rating: z.number().int().min(1).max(5).optional(),
     })
     .strict(),
+  // WI-118: four more cards.
+  mark_item: z.object({ itemId: ID, mark: z.enum(['start', 'done']) }).strict(),
+  add_application: z
+    .object({
+      company: z.string().trim().min(1).max(120),
+      role: z.string().trim().min(1).max(160),
+      stage: z.enum(['SAVED', 'APPLIED']).optional(),
+      appliedOn: DAY.optional(),
+    })
+    .strict(),
+  add_round: z
+    .object({
+      applicationId: ID,
+      type: z.enum(interviewTypes),
+      day: DAY,
+      start: HHMM,
+      end: HHMM.optional(),
+      title: z.string().trim().min(1).max(120).optional(),
+    })
+    .strict(),
+  set_goal: z
+    .object({
+      title: z.string().trim().min(1).max(160),
+      targetDate: DAY.optional(),
+      targetRole: z.string().trim().min(1).max(120).optional(),
+    })
+    .strict(),
 } as const;
 export type RequestKind = keyof typeof requestArgs;
 export const REQUEST_KINDS = Object.keys(requestArgs) as RequestKind[];
@@ -65,6 +93,10 @@ export const REQUEST_ID_ARGS: Record<RequestKind, string[]> = {
   change_stage: ['applicationId'],
   log_attempt: ['problemId'],
   write_review: [],
+  mark_item: ['itemId'],
+  add_application: [],
+  add_round: ['applicationId'],
+  set_goal: [],
 };
 /** The undo each kind leaves once applied; an attempt has none (attempts are append-only). */
 export const REQUEST_UNDO: Record<RequestKind, string | null> = {
@@ -73,6 +105,10 @@ export const REQUEST_UNDO: Record<RequestKind, string | null> = {
   change_stage: 'restore-stage',
   log_attempt: null,
   write_review: 'unreview-day',
+  mark_item: 'restore-roadmap-state',
+  add_application: 'remove-application',
+  add_round: 'remove-round',
+  set_goal: 'remove-goal',
 };
 /** The words on a card. */
 export const REQUEST_WORDS: Record<
@@ -96,6 +132,18 @@ export const REQUEST_WORDS: Record<
     apply: 'Save review',
     done: 'Review saved.',
   },
+  mark_item: { eyebrow: 'Roadmap', apply: 'Mark item', done: 'Marked.' },
+  add_application: {
+    eyebrow: 'Jobs',
+    apply: 'Add application',
+    done: 'Added to Jobs.',
+  },
+  add_round: {
+    eyebrow: 'Interview',
+    apply: 'Add interview',
+    done: 'Interview added.',
+  },
+  set_goal: { eyebrow: 'Goal', apply: 'Set goal', done: 'Goal set.' },
 };
 
 /** Shaky, Okay, Solid as the stored confidence; yes, partial, no as the stored outcome. */

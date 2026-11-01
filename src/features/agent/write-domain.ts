@@ -52,7 +52,14 @@ export const WRITE_ID_ARGS: Record<WriteTool, string[]> = {
 };
 
 /** The keys under which a read sends a record's id. */
-const ID_KEYS = new Set(['id', 'problemId', 'applicationId', 'roundId']);
+const ID_KEYS = new Set([
+  'id',
+  'problemId',
+  'applicationId',
+  'roundId',
+  // WI-118: roadmap items from find_items.
+  'itemId',
+]);
 /** Every id a read returned, wherever it sits in the result. */
 export function collectIds(value: unknown, into = new Set<string>()) {
   if (Array.isArray(value)) for (const v of value) collectIds(v, into);

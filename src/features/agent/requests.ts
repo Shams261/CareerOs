@@ -21,8 +21,20 @@ import {
 import { saveBlockIn } from '@/features/schedule/editing';
 import { deleteBlockIn } from '@/features/deletes/service';
 import { blockUndo } from '@/features/deletes/domain';
-import { changeStageIn } from '@/features/jobs/service';
-import { label as stageLabel } from '@/features/jobs/domain';
+import {
+  changeStageIn,
+  createApplicationIn,
+  scheduleRoundIn,
+} from '@/features/jobs/service';
+import {
+  isOpen,
+  label as stageLabel,
+  quickAddInput,
+  roundInput,
+} from '@/features/jobs/domain';
+import { typeLabel } from '@/features/jobs/formats';
+import { applyItemOpIn, saveGoalIn } from '@/features/roadmap/service';
+import { goalInput } from '@/features/roadmap/domain';
 import { recordAttemptIn } from '@/features/dsa/service';
 import { categoryGroup } from '@/features/review/domain';
 import { AGENT_NAME, titleVisible } from './domain';
@@ -235,6 +247,131 @@ export async function prepareRequest(
       { requestId: randomUUID() },
     );
   }
+  // WI-118: a roadmap item started or done, an application, a round, a goal.
+  if (kind === 'mark_item') {
+    const a = raw as { itemId: string; mark: 'start' | 'done' };
+    const item = await db().roadmapItem.findFirst({
+      where: {
+        id: a.itemId,
+        userId: user.id,
+        roadmap: { studyAi: true, archivedAt: null },
+      },
+      select: {
+        title: true,
+        section: true,
+        status: true,
+        dsaProblemId: true,
+        updatedAt: true,
+        roadmap: { select: { title: true } },
+      },
+    });
+    if (!item || isTestNamed(item.title))
+      return refused('That item is not on your roadmaps.');
+    if (item.dsaProblemId)
+      return refused(
+        'That item follows Practice: a log_attempt card on its problem marks it.',
+      );
+    if (
+      a.mark === 'done' ? item.status === 'DONE' : item.status !== 'NOT_STARTED'
+    )
+      return refused(
+        item.status === 'DONE'
+          ? 'It is already done.'
+          : 'It is already started.',
+      );
+    return card(
+      [
+        `${item.title} · ${item.roadmap.title}`,
+        item.section,
+        a.mark === 'done'
+          ? 'Mark done: its first revision comes in 7 days. Undo puts it back.'
+          : 'Mark started. Undo puts it back.',
+      ],
+      { version: item.updatedAt.toISOString() },
+    );
+  }
+  if (kind === 'add_application') {
+    const a = raw as {
+      company: string;
+      role: string;
+      stage?: 'SAVED' | 'APPLIED';
+      appliedOn?: string;
+    };
+    if (a.appliedOn && a.appliedOn > today)
+      return refused('An application is applied on a day that has come.');
+    const same = await db().jobApplication.findFirst({
+      where: {
+        userId: user.id,
+        company: { equals: a.company, mode: 'insensitive' },
+        role: { equals: a.role, mode: 'insensitive' },
+      },
+      select: { id: true },
+    });
+    if (same)
+      return refused(
+        `${a.company} · ${a.role} is already in Jobs (application id ${same.id}).`,
+      );
+    return card(
+      [
+        `${a.company} · ${a.role}`,
+        a.stage === 'SAVED'
+          ? 'Saved, not applied yet'
+          : `Applied ${a.appliedOn ? when(a.appliedOn, today) : 'today'}`,
+      ],
+      { requestId: randomUUID() },
+    );
+  }
+  if (kind === 'add_round') {
+    const a = raw as {
+      applicationId: string;
+      type: keyof typeof typeLabel;
+      day: string;
+      start: string;
+      end?: string;
+      title?: string;
+    };
+    const app = await db().jobApplication.findFirst({
+      where: { id: a.applicationId, userId: user.id },
+      select: { company: true, role: true, stage: true },
+    });
+    if (!app || isTestNamed(app.company, app.role))
+      return refused('That application is not in Jobs.');
+    if (!isOpen(app.stage))
+      return refused(
+        'That application is closed; the owner reopens it in Jobs.',
+      );
+    if (localInstant(a.day, a.start, zone) <= now)
+      return refused(
+        'That time has passed; ask the owner for the day and time.',
+      );
+    if (a.end && a.end <= a.start)
+      return refused('The end comes before the start.');
+    return card(
+      [
+        `${app.company} · ${app.role}`,
+        a.title ? `${typeLabel[a.type]} · ${a.title}` : typeLabel[a.type],
+        `${when(a.day, today)} · ${a.start}${a.end ? `–${a.end}` : ''}`,
+      ],
+      { stage: app.stage, requestId: randomUUID() },
+    );
+  }
+  if (kind === 'set_goal') {
+    const a = raw as {
+      title: string;
+      targetDate?: string;
+      targetRole?: string;
+    };
+    if (a.targetDate && a.targetDate < today)
+      return refused('That target date has passed.');
+    return card(
+      [
+        a.title,
+        a.targetDate ? `By ${when(a.targetDate, today)}` : 'No target date',
+        ...(a.targetRole ? [`Role: ${a.targetRole}`] : []),
+      ],
+      { requestId: randomUUID() },
+    );
+  }
   // write_review: a draft the owner edits on the card before Save.
   const a = raw as { day: string };
   if (a.day > today) return refused('A day is reviewed once it has started.');
@@ -308,6 +445,100 @@ async function applyIn(
   const zone = user.timezone,
     today = dayKey(now, zone);
   switch (c.kind) {
+    case 'mark_item': {
+      const a = requestArgs.mark_item.parse(c.args);
+      const item = await tx.roadmapItem.findFirst({
+        where: { id: a.itemId, userId: user.id },
+        select: {
+          id: true,
+          status: true,
+          completedAt: true,
+          nextRevisionAt: true,
+          revisionStage: true,
+          updatedAt: true,
+        },
+      });
+      if (!item || item.updatedAt.toISOString() !== c.snapshot.version)
+        throw new Error(changed);
+      await applyItemOpIn(tx, user, { id: item.id, op: a.mark }, now);
+      return {
+        kind: REQUEST_UNDO.mark_item!,
+        payload: {
+          id: item.id,
+          status: item.status,
+          completedAt: item.completedAt?.toISOString() ?? null,
+          nextRevisionAt:
+            item.nextRevisionAt?.toISOString().slice(0, 10) ?? null,
+          revisionStage: item.revisionStage,
+        },
+      };
+    }
+    case 'add_application': {
+      const a = requestArgs.add_application.parse(c.args);
+      const same = await tx.jobApplication.findFirst({
+        where: {
+          userId: user.id,
+          company: { equals: a.company, mode: 'insensitive' },
+          role: { equals: a.role, mode: 'insensitive' },
+        },
+        select: { id: true },
+      });
+      if (same) throw new Error(changed);
+      const app = await createApplicationIn(
+        tx,
+        user,
+        quickAddInput.parse({
+          requestId: c.snapshot.requestId ?? randomUUID(),
+          company: a.company,
+          role: a.role,
+          stage: a.stage ?? 'APPLIED',
+          appliedAt: a.appliedOn,
+        }),
+        now,
+      );
+      return { kind: REQUEST_UNDO.add_application!, payload: { id: app.id } };
+    }
+    case 'add_round': {
+      const a = requestArgs.add_round.parse(c.args);
+      const app = await tx.jobApplication.findFirst({
+        where: { id: a.applicationId, userId: user.id },
+        select: { id: true, stage: true },
+      });
+      if (!app || app.stage !== c.snapshot.stage) throw new Error(changed);
+      if (localInstant(a.day, a.start, zone) <= now)
+        throw new Error('That time has passed. Ask again for another time.');
+      const round = await scheduleRoundIn(
+        tx,
+        user,
+        roundInput.parse({
+          requestId: c.snapshot.requestId ?? randomUUID(),
+          applicationId: app.id,
+          type: a.type,
+          title: a.title,
+          date: a.day,
+          start: a.start,
+          end: a.end,
+          timezone: zone,
+        }),
+        now,
+      );
+      return { kind: REQUEST_UNDO.add_round!, payload: { id: round.id } };
+    }
+    case 'set_goal': {
+      const a = requestArgs.set_goal.parse(c.args);
+      if (a.targetDate && a.targetDate < today) throw new Error(changed);
+      const goal = await saveGoalIn(
+        tx,
+        user,
+        goalInput.parse({
+          title: a.title,
+          category: 'Career',
+          targetDate: a.targetDate ?? '',
+          targetRole: a.targetRole ?? '',
+        }),
+      );
+      return { kind: REQUEST_UNDO.set_goal!, payload: { id: goal.id } };
+    }
     case 'move_block': {
       const a = requestArgs.move_block.parse(c.args);
       const b = await cardBlock(tx, user, a.blockId);
@@ -497,6 +728,23 @@ export async function undoRequest(
       if (b) again.snapshot.version = b.updatedAt.toISOString();
     }
     if (again.kind === 'change_stage') again.snapshot.requestId = randomUUID();
+    // WI-118: a reopened card runs again as a new request, against the item as it is now.
+    if (
+      again.kind === 'add_application' ||
+      again.kind === 'add_round' ||
+      again.kind === 'set_goal'
+    )
+      again.snapshot.requestId = randomUUID();
+    if (again.kind === 'mark_item') {
+      const item = await tx.roadmapItem.findFirst({
+        where: {
+          id: String((again.args as { itemId: string }).itemId),
+          userId: user.id,
+        },
+        select: { updatedAt: true },
+      });
+      if (item) again.snapshot.version = item.updatedAt.toISOString();
+    }
     await save();
   });
   return words;

@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- WI-118 (four more Rumi cards; no migration). `mark_item` (a roadmap item started or done), `add_application`, `add_round` and `set_goal` are cards the owner presses, re-checked under the owner lock, each with Undo (`restore-roadmap-state`, `remove-application`, `remove-round`, `remove-goal`); `find_items` finds a roadmap item for them. The item, goal, application and round writers gain in-lock versions. Tests in `tests/agent-cards.test.ts` and a new e2e journey.
+
 - WI-117 (Rumi knows the page it is opened on; no migration). The drawer sends its path; the server reads the record it names for the owner only (a problem, an application with its next rounds, a Study AI roadmap), never private fields, and gives it to Rumi as data with its ids kept for cards (`pageRef`, `readPage`). The suggested questions follow the page (`promptsFor`), and the Sunday evening card offers "Plan next week with Rumi". Tests in `tests/agent-page.test.ts` and the e2e Rumi journey.
 
 - WI-116 (Rumi plans the next seven days; ADR-031; no migration). A plan card may cover today and the six days after it (`planAhead`); a card for a day in a week not prepared yet is checked against that week's routines, says so, and its press ("Prepare the week and add N blocks") prepares the week from the routines first, then adds the blocks under the owner lock (`preparesWeek`, `Proposal.prepares`, `routinesOn`). Rumi proposes a card at once with realistic lengths instead of asking how long the owner has. `add_block` and the move card stay in this week. Tests in `tests/agent-plans.test.ts` and the e2e plan journey.

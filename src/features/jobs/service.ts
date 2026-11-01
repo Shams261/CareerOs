@@ -85,57 +85,64 @@ export async function createApplication(
   now = new Date(),
 ) {
   const input = quickAddInput.parse(raw);
-  return locked(user.id, async (tx) => {
-    const prior = await replayed(tx, user.id, input.requestId);
-    if (prior)
-      return tx.jobApplication.findUniqueOrThrow({
-        where: { id: prior.applicationId },
-      });
-    const key = duplicateKey(input);
-    const similar = (
-      await tx.jobApplication.findMany({
-        where: {
-          userId: user.id,
-          company: { equals: input.company, mode: 'insensitive' },
-        },
-      })
-    ).filter((a) => duplicateKey(a) === key);
-    // Legitimate repeat applications are allowed after an explicit confirmation.
-    if (similar.length && input.token !== DUPLICATE_TOKEN)
-      throw new PreviewRequired(
-        DUPLICATE_TOKEN,
-        similar.map(
-          (a) =>
-            `${a.company} — ${a.role} already exists (${a.stage.toLowerCase().replaceAll('_', ' ')}${a.appliedAt ? `, applied ${a.appliedAt.toISOString().slice(0, 10)}` : ''}). Confirm to add another.`,
-        ),
-      );
-    const appliedAt =
-      input.stage === 'SAVED'
-        ? null
-        : new Date(input.appliedAt ?? dayKey(now, user.timezone));
-    const app = await tx.jobApplication.create({
-      data: {
-        userId: user.id,
-        company: input.company,
-        role: input.role,
-        jobUrl: input.jobUrl ?? null,
-        source: input.source,
-        stage: input.stage,
-        appliedAt,
-      },
+  return locked(user.id, (tx) => createApplicationIn(tx, user, input, now));
+}
+/** An application added inside the caller's owner lock (WI-118: Rumi's card). */
+export async function createApplicationIn(
+  tx: Tx,
+  user: ScheduleUser,
+  input: z.infer<typeof quickAddInput>,
+  now = new Date(),
+) {
+  const prior = await replayed(tx, user.id, input.requestId);
+  if (prior)
+    return tx.jobApplication.findUniqueOrThrow({
+      where: { id: prior.applicationId },
     });
-    await tx.jobActivity.create({
-      data: {
+  const key = duplicateKey(input);
+  const similar = (
+    await tx.jobApplication.findMany({
+      where: {
         userId: user.id,
-        applicationId: app.id,
-        type: 'CREATED',
-        occurredAt: now,
-        toStage: input.stage,
-        requestId: input.requestId,
+        company: { equals: input.company, mode: 'insensitive' },
       },
-    });
-    return app;
+    })
+  ).filter((a) => duplicateKey(a) === key);
+  // Legitimate repeat applications are allowed after an explicit confirmation.
+  if (similar.length && input.token !== DUPLICATE_TOKEN)
+    throw new PreviewRequired(
+      DUPLICATE_TOKEN,
+      similar.map(
+        (a) =>
+          `${a.company} — ${a.role} already exists (${a.stage.toLowerCase().replaceAll('_', ' ')}${a.appliedAt ? `, applied ${a.appliedAt.toISOString().slice(0, 10)}` : ''}). Confirm to add another.`,
+      ),
+    );
+  const appliedAt =
+    input.stage === 'SAVED'
+      ? null
+      : new Date(input.appliedAt ?? dayKey(now, user.timezone));
+  const app = await tx.jobApplication.create({
+    data: {
+      userId: user.id,
+      company: input.company,
+      role: input.role,
+      jobUrl: input.jobUrl ?? null,
+      source: input.source,
+      stage: input.stage,
+      appliedAt,
+    },
   });
+  await tx.jobActivity.create({
+    data: {
+      userId: user.id,
+      applicationId: app.id,
+      type: 'CREATED',
+      occurredAt: now,
+      toStage: input.stage,
+      requestId: input.requestId,
+    },
+  });
+  return app;
 }
 
 export async function updateDetails(user: ScheduleUser, raw: unknown) {
@@ -363,46 +370,53 @@ export async function scheduleRound(
   now = new Date(),
 ) {
   const input = roundInput.parse(raw);
+  return locked(user.id, (tx) => scheduleRoundIn(tx, user, input, now));
+}
+/** A round scheduled inside the caller's owner lock (WI-118: Rumi's card). */
+export async function scheduleRoundIn(
+  tx: Tx,
+  user: ScheduleUser,
+  input: z.infer<typeof roundInput>,
+  now = new Date(),
+) {
   const interval = interviewInterval(input);
-  return locked(user.id, async (tx) => {
-    const app = await ownedApplication(tx, user.id, input.applicationId);
-    const prior = await replayed(tx, user.id, input.requestId, app.id);
-    if (prior)
-      return tx.interviewRound.findUniqueOrThrow({
-        where: { id: prior.interviewRoundId! },
-      });
-    if (!isOpen(app.stage))
-      throw new Error('Reopen this application before scheduling interviews.');
-    const round = await tx.interviewRound.create({
-      data: {
-        userId: user.id,
-        applicationId: app.id,
-        // The type is the title unless the owner wrote one ("Coding", "System design").
-        title: input.title || typeText(input.type),
-        type: input.type,
-        aiPolicy: input.aiPolicy,
-        timezone: input.timezone,
-        interviewers: input.interviewers,
-        meetingUrl: input.meetingUrl ?? null,
-        location: input.location,
-        notes: input.notes,
-        ...interval,
-      },
+  const app = await ownedApplication(tx, user.id, input.applicationId);
+  const prior = await replayed(tx, user.id, input.requestId, app.id);
+  if (prior)
+    return tx.interviewRound.findUniqueOrThrow({
+      where: { id: prior.interviewRoundId! },
     });
-    await tx.jobActivity.create({
-      data: {
-        userId: user.id,
-        applicationId: app.id,
-        interviewRoundId: round.id,
-        type: 'INTERVIEW_SCHEDULED',
-        occurredAt: now,
-        newStart: round.scheduledStart,
-        note: round.title,
-        requestId: input.requestId,
-      },
-    });
-    return round;
+  if (!isOpen(app.stage))
+    throw new Error('Reopen this application before scheduling interviews.');
+  const round = await tx.interviewRound.create({
+    data: {
+      userId: user.id,
+      applicationId: app.id,
+      // The type is the title unless the owner wrote one ("Coding", "System design").
+      title: input.title || typeText(input.type),
+      type: input.type,
+      aiPolicy: input.aiPolicy,
+      timezone: input.timezone,
+      interviewers: input.interviewers,
+      meetingUrl: input.meetingUrl ?? null,
+      location: input.location,
+      notes: input.notes,
+      ...interval,
+    },
   });
+  await tx.jobActivity.create({
+    data: {
+      userId: user.id,
+      applicationId: app.id,
+      interviewRoundId: round.id,
+      type: 'INTERVIEW_SCHEDULED',
+      occurredAt: now,
+      newStart: round.scheduledStart,
+      note: round.title,
+      requestId: input.requestId,
+    },
+  });
+  return round;
 }
 export async function updateRoundDetails(user: ScheduleUser, raw: unknown) {
   const { id, meetingUrl, ...data } = roundDetailsInput.parse(raw);

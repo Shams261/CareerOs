@@ -95,6 +95,12 @@ function pickTool(question: string, system: string) {
   const last = /from \d{4}-\d{2}-\d{2} to (\d{4}-\d{2}-\d{2})/.exec(
     system,
   )?.[1];
+  // WI-118: "I applied to Litware as a platform engineer" makes an application card.
+  if (/applied to|add (an )?application/.test(q))
+    return [
+      'add_application',
+      { company: 'Litware', role: 'Platform engineer' },
+    ] as const;
   if (/plan|kal|tomorrow/.test(q) && today) {
     const next = new Date(`${today}T12:00:00Z`);
     next.setUTCDate(next.getUTCDate() + 1);
