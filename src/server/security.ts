@@ -34,7 +34,8 @@ export function staticSecurityHeaders(production: boolean) {
     {
       key: 'Permissions-Policy',
       value:
-        'camera=(), microphone=(), geolocation=(), payment=(), usb=(), interest-cohort=()',
+        // The microphone for Rumi's dictation on Silsila's own pages only (WI-104).
+        'camera=(), microphone=(self), geolocation=(), payment=(), usb=(), interest-cohort=()',
     },
     ...(production
       ? [

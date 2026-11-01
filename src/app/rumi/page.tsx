@@ -4,6 +4,8 @@ import { owner } from '@/server/db';
 import { dayKey, hhmm, shortDate } from '@/lib/time';
 import { PanelButton, SidePanel } from '@/components/side-panel';
 import { aiState } from '@/features/ai/service';
+import { agentSetting } from '@/features/agent/memory-service';
+import { readVoiceLang } from '@/features/agent/voice-domain';
 import { budgetLine, nearCap } from '@/features/ai/domain';
 import { AGENT_NAME } from '@/features/agent/domain';
 import { readMetadata, readTools } from '@/features/agent/plan-domain';
@@ -81,9 +83,10 @@ export default async function Rumi({
         </section>
       </>
     );
-  const [list, open] = await Promise.all([
+  const [list, open, setting] = await Promise.all([
     conversations(user),
     c ? conversation(user, c) : null,
+    agentSetting(user),
   ]);
   const current = open?.id ?? null;
   return (
@@ -133,6 +136,11 @@ export default async function Rumi({
           budget={budgetLine(state.spent)}
           nearCap={nearCap(state.spent)}
           today={dayKey(new Date(), user.timezone)}
+          voice={{
+            consented: !!setting.voiceConsentAt,
+            lang: readVoiceLang(setting.voiceLang),
+            speakReplies: setting.speakReplies,
+          }}
         />
       </div>
       <SidePanel id="rumi-conversations" title="Conversations">

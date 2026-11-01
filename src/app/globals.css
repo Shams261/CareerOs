@@ -6015,7 +6015,10 @@ button.attention-link {
 }
 .rumi-compose {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-columns: minmax(0, 1fr);
+  /* Send, and the microphone when voice is on (WI-104), sit beside the text. */
+  grid-auto-flow: column;
+  grid-auto-columns: auto;
   gap: 8px;
   align-items: end;
 }
@@ -9615,6 +9618,69 @@ html {
 }
 .rumi-kept q {
   quotes: '\201C' '\201D';
+}
+/* WI-104: the microphone beside Send, the words heard, and Settings → Voice. */
+.rumi-mic {
+  display: inline-grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--ink);
+  cursor: pointer;
+}
+.rumi-mic[data-on='true'] {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: #fff;
+}
+.rumi-mic:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .rumi-mic[data-on='true'] {
+    animation: rumi-mic-pulse 1.4s ease-in-out infinite;
+  }
+  @keyframes rumi-mic-pulse {
+    50% {
+      box-shadow: 0 0 0 6px var(--primary-soft);
+    }
+  }
+}
+.rumi-voice-line {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  align-items: center;
+  margin: 6px 0 0;
+  font-size: 13px;
+  color: var(--muted);
+}
+.rumi-stop {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.voice-settings {
+  display: grid;
+  gap: 16px;
+}
+.voice-form {
+  display: grid;
+  gap: 10px;
+}
+.voice-form p {
+  margin: 0;
+}
+.voice-check li {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--border-subtle);
 }
 /* WI-103: a card for a bigger change; a review card is a short form. */
 .rumi-reply .rumi-card-lines {

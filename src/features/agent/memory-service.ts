@@ -77,6 +77,31 @@ export async function setMemoryEnabled(user: ScheduleUser, on: boolean) {
     update: { memoryEnabled: on },
   });
 }
+/**
+ * Voice (WI-104): consent shows the microphone (the time it was given is kept), the language
+ * it listens in, and whether replies are read aloud.
+ */
+export async function setVoiceSettings(
+  user: ScheduleUser,
+  v: { consent: boolean; lang: string; speakReplies: boolean },
+  now = new Date(),
+) {
+  const row = await db().agentSetting.findUnique({
+    where: { userId: user.id },
+    select: { voiceConsentAt: true },
+  });
+  const voiceConsentAt = v.consent ? (row?.voiceConsentAt ?? now) : null;
+  const data = {
+    voiceConsentAt,
+    voiceLang: v.lang,
+    speakReplies: v.speakReplies,
+  };
+  await db().agentSetting.upsert({
+    where: { userId: user.id },
+    create: { userId: user.id, ...data },
+    update: data,
+  });
+}
 /** The style chip (WI-100): one of firm, warm, brief, on the AI setting row. */
 export async function rumiStyle(user: ScheduleUser): Promise<RumiStyle> {
   const row = await db().aiSetting.findUnique({

@@ -14,6 +14,7 @@ import {
   Laptop,
   Library,
   MessageCircle,
+  Mic,
   MessagesSquare,
   Quote,
   Server,
@@ -57,6 +58,11 @@ import { agentSetting, rumiStyle } from '@/features/agent/memory-service';
 import { lineStats } from '@/features/agent/lines';
 import { readLineLanguage } from '@/features/nudges/domain';
 import { MemorySettings, memoryContext } from '@/features/agent/memory';
+import { VoiceSettings } from '@/features/agent/voice-settings';
+import { readVoiceLang, VOICE_LANGS } from '@/features/agent/voice-domain';
+
+const voiceLangName = (code: string) =>
+  VOICE_LANGS.find(([c]) => c === code)?.[1] ?? 'English (India)';
 import { AGENT_NAME } from '@/features/agent/domain';
 import { ThemeSwitch } from '@/features/settings/theme-switch';
 import { TextSizeSwitch } from '@/features/settings/text-size-switch';
@@ -593,6 +599,20 @@ export default async function Settings({
                   panel="rumi-memory"
                 />
               )}
+              {ai.configured && (
+                <SettingRow
+                  source="roadmap"
+                  icon={<Mic size={22} />}
+                  label="Voice"
+                  title={`Speak to ${AGENT_NAME}`}
+                  context={
+                    agent.voiceConsentAt
+                      ? `On · ${voiceLangName(agent.voiceLang)}${agent.speakReplies ? ' · replies read aloud' : ''}`
+                      : 'Off'
+                  }
+                  panel="rumi-voice"
+                />
+              )}
               {curriculum && (
                 <SettingRow
                   source="roadmap"
@@ -638,6 +658,15 @@ export default async function Settings({
               >
                 <Button variant="secondary">Restore default curriculum</Button>
               </ActionForm>
+            </SidePanel>
+            <SidePanel id="rumi-voice" title="Voice">
+              <VoiceSettings
+                state={{
+                  consented: !!agent.voiceConsentAt,
+                  lang: readVoiceLang(agent.voiceLang),
+                  speakReplies: agent.speakReplies,
+                }}
+              />
             </SidePanel>
             <SidePanel id="rumi-memory" title={`${AGENT_NAME} knows`}>
               <MemorySettings
