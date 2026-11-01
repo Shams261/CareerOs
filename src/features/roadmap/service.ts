@@ -53,25 +53,31 @@ const itemInclude = {
 
 export async function saveGoal(user: ScheduleUser, raw: unknown) {
   const input = goalInput.parse(raw);
-  return locked(user.id, async (tx) => {
-    const data = {
-      title: input.title,
-      category: input.category,
-      description: input.description,
-      targetDate: input.targetDate ? new Date(input.targetDate) : null,
-      targetRole: input.targetRole,
-      status: input.status,
-      priority: input.priority,
-    };
-    if (input.id) {
-      const existing = await tx.goal.findFirst({
-        where: { id: input.id, userId: user.id },
-      });
-      if (!existing) throw new Error('Goal no longer exists. Reload the page.');
-      return tx.goal.update({ where: { id: existing.id }, data });
-    }
-    return tx.goal.create({ data: { ...data, userId: user.id } });
-  });
+  return locked(user.id, (tx) => saveGoalIn(tx, user, input));
+}
+/** A goal written inside the caller's owner lock (WI-118: Rumi's goal card). */
+export async function saveGoalIn(
+  tx: Prisma.TransactionClient,
+  user: ScheduleUser,
+  input: z.infer<typeof goalInput>,
+) {
+  const data = {
+    title: input.title,
+    category: input.category,
+    description: input.description,
+    targetDate: input.targetDate ? new Date(input.targetDate) : null,
+    targetRole: input.targetRole,
+    status: input.status,
+    priority: input.priority,
+  };
+  if (input.id) {
+    const existing = await tx.goal.findFirst({
+      where: { id: input.id, userId: user.id },
+    });
+    if (!existing) throw new Error('Goal no longer exists. Reload the page.');
+    return tx.goal.update({ where: { id: existing.id }, data });
+  }
+  return tx.goal.create({ data: { ...data, userId: user.id } });
 }
 
 export async function saveRoadmap(user: ScheduleUser, raw: unknown) {
@@ -241,57 +247,64 @@ export async function applyItemOp(
   raw: unknown,
   now = new Date(),
 ) {
-  const { id, op } = z
+  const input = z
     .object({ id: z.string().min(1), op: z.enum(itemOps) })
     .parse(raw);
+  return locked(user.id, (tx) => applyItemOpIn(tx, user, input, now));
+}
+/** One item mark inside the caller's owner lock (WI-118: Rumi's item card). */
+export async function applyItemOpIn(
+  tx: Prisma.TransactionClient,
+  user: ScheduleUser,
+  { id, op }: { id: string; op: (typeof itemOps)[number] },
+  now = new Date(),
+) {
   const today = dayKey(now, user.timezone);
-  return locked(user.id, async (tx) => {
-    const item = await ownedItem(tx, user.id, id);
-    if (item.dsaProblemId && !practiceItemOps.includes(op))
-      throw new Error(
-        'This item follows Practice. Record an attempt on the problem instead.',
-      );
-    if (op === 'revised') {
-      if (item.status !== 'DONE')
-        throw new Error('Mark the item done before recording a revision.');
-      await tx.roadmapItem.update({
-        where: { id: item.id },
-        data: {
-          ...scheduleRevision(item.revisionStage, today),
-          lastRevisedAt: now,
-        },
-      });
-      return { op, item };
-    }
-    if (op === 'remove') {
-      await tx.roadmapItem.delete({ where: { id: item.id } });
-      return { op, item };
-    }
-    if (op === 'asked' || op === 'unasked') {
-      await tx.roadmapItem.update({
-        where: { id: item.id },
-        data: { askedInInterview: op === 'asked' },
-      });
-      return { op, item };
-    }
-    const status = nextStatus(op as ItemOp, item.status);
-    // Done starts spaced revision (7 days); reopening stops it until the item is done again.
-    const revision =
-      status === 'DONE'
-        ? item.nextRevisionAt
-          ? {}
-          : scheduleRevision(0, today)
-        : { nextRevisionAt: null, revisionStage: 0 };
+  const item = await ownedItem(tx, user.id, id);
+  if (item.dsaProblemId && !practiceItemOps.includes(op))
+    throw new Error(
+      'This item follows Practice. Record an attempt on the problem instead.',
+    );
+  if (op === 'revised') {
+    if (item.status !== 'DONE')
+      throw new Error('Mark the item done before recording a revision.');
     await tx.roadmapItem.update({
       where: { id: item.id },
       data: {
-        status,
-        completedAt: status === 'DONE' ? (item.completedAt ?? now) : null,
-        ...revision,
+        ...scheduleRevision(item.revisionStage, today),
+        lastRevisedAt: now,
       },
     });
     return { op, item };
+  }
+  if (op === 'remove') {
+    await tx.roadmapItem.delete({ where: { id: item.id } });
+    return { op, item };
+  }
+  if (op === 'asked' || op === 'unasked') {
+    await tx.roadmapItem.update({
+      where: { id: item.id },
+      data: { askedInInterview: op === 'asked' },
+    });
+    return { op, item };
+  }
+  const status = nextStatus(op as ItemOp, item.status);
+  // Done starts spaced revision (7 days); reopening stops it until the item is done again.
+  const revision =
+    status === 'DONE'
+      ? item.nextRevisionAt
+        ? {}
+        : scheduleRevision(0, today)
+      : { nextRevisionAt: null, revisionStage: 0 };
+  await tx.roadmapItem.update({
+    where: { id: item.id },
+    data: {
+      status,
+      completedAt: status === 'DONE' ? (item.completedAt ?? now) : null,
+      ...revision,
+    },
   });
+  return { op, item };
 }
 
 /** Planned and recorded minutes toward each goal in the owner's current week. */

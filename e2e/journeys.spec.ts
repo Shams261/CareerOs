@@ -295,6 +295,30 @@ test('Rumi adds a note at once and Undo takes it back', async ({ page }) => {
   expect(await onToday()).toBe(false);
 });
 
+test('Rumi adds an application on a card, and Undo removes it', async ({
+  page,
+}) => {
+  // WI-118: a card the owner presses, then Undo.
+  await page.goto('/rumi');
+  await page
+    .getByPlaceholder('Ask Rumi about your week, roadmap or interviews')
+    .fill('I applied to Litware as a platform engineer, add application');
+  await page.getByRole('button', { name: 'Send' }).click();
+  const apply = page.getByRole('button', { name: 'Add application' });
+  await expect(apply).toBeVisible({ timeout: 20_000 });
+  await accessible(page);
+  await apply.click();
+  await expect(page.getByText('Added to Jobs.')).toBeVisible();
+  await page.goto('/jobs');
+  await expect(page.getByText('Litware').first()).toBeVisible();
+  await page.goBack();
+  await page.getByRole('button', { name: 'Undo' }).last().click();
+  // Undo removes it and opens the card again.
+  await expect(apply).toBeVisible();
+  await page.goto('/jobs');
+  await expect(page.getByText('Litware')).toHaveCount(0);
+});
+
 test('a move card is applied and undone', async ({ page }) => {
   // A block for today, then Rumi's card moves it; nothing moves before the press.
   await page.goto('/today');

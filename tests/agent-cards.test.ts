@@ -15,7 +15,11 @@ vi.mock('server-only', () => ({}));
 const { client } = vi.hoisted(() => ({ client: { value: null as unknown } }));
 vi.mock('@/server/db', () => ({ db: () => client.value }));
 import { sendMessage } from '../src/features/agent/service';
-import { applyRequest, dismissRequest } from '../src/features/agent/requests';
+import {
+  applyRequest,
+  dismissRequest,
+  prepareRequest,
+} from '../src/features/agent/requests';
 import { readMetadata } from '../src/features/agent/plan-domain';
 import {
   attemptFits,
@@ -487,5 +491,240 @@ describe.skipIf(!url)('Rumi’s cards (WI-103, PostgreSQL)', () => {
     await expect(
       applyRequest(user, id, cards[0].id, now, { notes: 'Again' }),
     ).rejects.toThrow(/records changed/);
+  });
+
+  // WI-118: the four new cards.
+  it('marks a roadmap item it found, refuses one that follows Practice, and Undo puts it back', async () => {
+    const roadmap = await prisma.roadmap.create({
+      data: { userId: user.id, title: 'Backend', studyAi: true },
+    });
+    const item = await prisma.roadmapItem.create({
+      data: {
+        userId: user.id,
+        roadmapId: roadmap.id,
+        section: 'Week 1',
+        title: 'Two pointers basics',
+        ordering: 1,
+      },
+    });
+    const { id, cards, results } = await ask([
+      { tools: [{ name: 'find_items', args: { text: 'two pointers' } }] },
+      {
+        tools: [{ name: 'mark_item', args: { itemId: item.id, mark: 'done' } }],
+      },
+      { content: 'Here is a card.' },
+    ]);
+    expect(results[0]).toMatchObject({ items: [{ itemId: item.id }] });
+    expect(cards[0]).toMatchObject({ kind: 'mark_item', status: 'shown' });
+    expect(
+      (await prisma.roadmapItem.findUniqueOrThrow({ where: { id: item.id } }))
+        .status,
+    ).toBe('NOT_STARTED');
+    await applyRequest(user, id, cards[0].id, now);
+    const done = await prisma.roadmapItem.findUniqueOrThrow({
+      where: { id: item.id },
+    });
+    expect(done.status).toBe('DONE');
+    expect(done.nextRevisionAt).not.toBeNull();
+    await undo(id, cards[0].id);
+    const back = await prisma.roadmapItem.findUniqueOrThrow({
+      where: { id: item.id },
+    });
+    expect(back).toMatchObject({ status: 'NOT_STARTED', nextRevisionAt: null });
+    // An item that follows Practice is marked by an attempt instead.
+    const topic = await prisma.dsaTopic.create({
+      data: { name: `Arrays ${randomUUID()}` },
+    });
+    const problem = await prisma.dsaProblem.create({
+      data: {
+        userId: user.id,
+        topicId: topic.id,
+        title: 'Two Sum',
+        platform: 'LeetCode',
+        problemUrl: '',
+        difficulty: 'EASY',
+      },
+    });
+    const linked = await prisma.roadmapItem.create({
+      data: {
+        userId: user.id,
+        roadmapId: roadmap.id,
+        section: 'Week 1',
+        title: 'Two Sum item',
+        ordering: 2,
+        dsaProblemId: problem.id,
+      },
+    });
+    const refused = await ask([
+      { tools: [{ name: 'find_items', args: { text: 'two sum' } }] },
+      {
+        tools: [
+          { name: 'mark_item', args: { itemId: linked.id, mark: 'done' } },
+        ],
+      },
+      { content: 'Record an attempt instead.' },
+    ]);
+    expect(refused.cards).toEqual([]);
+    expect(refused.results[1]).toMatchObject({
+      error: expect.stringMatching(/follows Practice/),
+    });
+  });
+
+  it('adds an application and a round with one press each, and Undo removes them', async () => {
+    const one = await ask([
+      {
+        tools: [
+          {
+            name: 'add_application',
+            args: { company: 'Northwind', role: 'Backend engineer' },
+          },
+        ],
+      },
+      { content: 'Here is a card.' },
+    ]);
+    expect(
+      await prisma.jobApplication.count({ where: { userId: user.id } }),
+    ).toBe(0);
+    await applyRequest(user, one.id, one.cards[0].id, now);
+    const app = await prisma.jobApplication.findFirstOrThrow({
+      where: { userId: user.id },
+    });
+    expect(app).toMatchObject({ company: 'Northwind', stage: 'APPLIED' });
+    // The same company and role again is refused as a duplicate.
+    const dup = await ask([
+      {
+        tools: [
+          {
+            name: 'add_application',
+            args: { company: 'northwind', role: 'backend engineer' },
+          },
+        ],
+      },
+      { content: 'Already there.' },
+    ]);
+    expect(dup.cards).toEqual([]);
+    const two = await ask([
+      { tools: [{ name: 'get_jobs', args: {} }] },
+      {
+        tools: [
+          {
+            name: 'add_round',
+            args: {
+              applicationId: app.id,
+              type: 'CODING',
+              day: '2026-11-05',
+              start: '10:00',
+              end: '11:00',
+            },
+          },
+        ],
+      },
+      { content: 'Here is a card.' },
+    ]);
+    expect(two.cards[0]).toMatchObject({ kind: 'add_round' });
+    await applyRequest(user, two.id, two.cards[0].id, now);
+    const round = await prisma.interviewRound.findFirstOrThrow({
+      where: { applicationId: app.id },
+    });
+    expect(round).toMatchObject({ type: 'CODING', status: 'SCHEDULED' });
+    await undo(two.id, two.cards[0].id);
+    expect(
+      await prisma.interviewRound.count({ where: { applicationId: app.id } }),
+    ).toBe(0);
+    await undo(one.id, one.cards[0].id);
+    expect(
+      await prisma.jobApplication.count({ where: { userId: user.id } }),
+    ).toBe(0);
+  });
+
+  it('refuses a round on a closed application or at a passed time, and an unseen id', async () => {
+    const closed = await prisma.jobApplication.create({
+      data: {
+        userId: user.id,
+        company: 'Contoso',
+        role: 'Engineer',
+        stage: 'REJECTED',
+      },
+    });
+    const args = {
+      applicationId: closed.id,
+      type: 'CODING',
+      day: '2026-11-05',
+      start: '10:00',
+    };
+    expect(
+      (await prepareRequest(user, 'add_round', args, now)).result,
+    ).toMatchObject({ error: expect.stringMatching(/closed/) });
+    const open = await prisma.jobApplication.create({
+      data: { userId: user.id, company: 'Fabrikam', role: 'Engineer' },
+    });
+    expect(
+      (
+        await prepareRequest(
+          user,
+          'add_round',
+          { ...args, applicationId: open.id, day: '2026-11-02' },
+          now,
+        )
+      ).result,
+    ).toMatchObject({ error: expect.stringMatching(/passed/) });
+    // Never read: refused before any card.
+    const unseen = await ask([
+      {
+        tools: [
+          {
+            name: 'add_round',
+            args: {
+              applicationId: closed.id,
+              type: 'CODING',
+              day: '2026-11-05',
+              start: '10:00',
+            },
+          },
+        ],
+      },
+      { content: 'Read it first.' },
+    ]);
+    expect(unseen.cards).toEqual([]);
+  });
+
+  it('sets a goal with its date and role, and Undo removes it', async () => {
+    const { id, cards } = await ask([
+      {
+        tools: [
+          {
+            name: 'set_goal',
+            args: {
+              title: 'Offer from a product company',
+              targetDate: '2026-12-31',
+              targetRole: 'Backend engineer',
+            },
+          },
+        ],
+      },
+      { content: 'Here is a card.' },
+    ]);
+    await applyRequest(user, id, cards[0].id, now);
+    expect(
+      await prisma.goal.findFirstOrThrow({ where: { userId: user.id } }),
+    ).toMatchObject({
+      title: 'Offer from a product company',
+      targetRole: 'Backend engineer',
+      category: 'Career',
+    });
+    await undo(id, cards[0].id);
+    expect(await prisma.goal.count({ where: { userId: user.id } })).toBe(0);
+    const past = await ask([
+      {
+        tools: [
+          {
+            name: 'set_goal',
+            args: { title: 'Old', targetDate: '2026-01-01' },
+          },
+        ],
+      },
+      { content: 'Passed.' },
+    ]);
+    expect(past.cards).toEqual([]);
   });
 });
