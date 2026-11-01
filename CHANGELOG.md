@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- WI-119 (Rumi's answer streams in as it is written; no migration). `callModel` can stream (`onStream`): `streamReader` (`src/features/ai/stream.ts`) reads OpenRouter's events into the same answer the plain call returns, hands text on only once the pinned provider is named, and resets shown text when a round turns to tools. Ask Rumi's route sends `delta` and `reset` lines; the chat shows a draft that the stored answer replaces. Tests in `tests/ai-stream.test.ts`; the fake model streams for the browser journeys.
+
 - WI-118 (four more Rumi cards; no migration). `mark_item` (a roadmap item started or done), `add_application`, `add_round` and `set_goal` are cards the owner presses, re-checked under the owner lock, each with Undo (`restore-roadmap-state`, `remove-application`, `remove-round`, `remove-goal`); `find_items` finds a roadmap item for them. The item, goal, application and round writers gain in-lock versions. Tests in `tests/agent-cards.test.ts` and a new e2e journey.
 
 - WI-117 (Rumi knows the page it is opened on; no migration). The drawer sends its path; the server reads the record it names for the owner only (a problem, an application with its next rounds, a Study AI roadmap), never private fields, and gives it to Rumi as data with its ids kept for cards (`pageRef`, `readPage`). The suggested questions follow the page (`promptsFor`), and the Sunday evening card offers "Plan next week with Rumi". Tests in `tests/agent-page.test.ts` and the e2e Rumi journey.

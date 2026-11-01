@@ -66,6 +66,8 @@ function askStreaming(
   voice: VoiceMeta | null = null,
   /** WI-117: the page Rumi was opened on; the server reads its record. */
   page: string | null = null,
+  /** WI-119: the answer's text as it is written, or a reset when a round turns to tools. */
+  onText: (e: { delta?: string; reset?: boolean }) => void = () => {},
 ): Promise<AskResult> {
   const failed: AskResult = {
     ok: false,
@@ -93,10 +95,14 @@ function askStreaming(
           try {
             const event = JSON.parse(raw) as {
               read?: string;
+              delta?: string;
+              reset?: boolean;
               done?: AskResult;
               kept?: { messageId: string; items: Kept[] };
             };
             if (event.read) onRead(event.read);
+            if (typeof event.delta === 'string') onText({ delta: event.delta });
+            if (event.reset) onText({ reset: true });
             if (event.done) {
               answered = true;
               resolve(event.done);
@@ -177,6 +183,8 @@ export function RumiChat({
   const [budget, setBudget] = useState(initialBudget);
   const [near, setNear] = useState(initialNear);
   const [pending, start] = useTransition();
+  // WI-119: the answer as it is being written, until the stored one replaces it.
+  const [draft, setDraft] = useState('');
   const [reads, setReads] = useState<string[]>([]);
   const [confirmDelete, setConfirmDelete] = useState(false);
   // A refresh (after Add to plan, or Undo) brings the stored cards; keep any question in flight.
@@ -211,6 +219,7 @@ export function RumiChat({
     };
     setMessages((m) => [...m, local]);
     setReads([]);
+    setDraft('');
     start(async () => {
       const result = await askStreaming(
         current,
@@ -225,7 +234,9 @@ export function RumiChat({
         },
         spoken,
         page,
+        (e) => setDraft((d) => (e.reset ? '' : d + (e.delta ?? ''))),
       );
+      setDraft('');
       if (result.budget) setBudget(result.budget);
       if (result.nearCap !== undefined) setNear(result.nearCap);
       if (!result.ok) {
@@ -416,7 +427,18 @@ export function RumiChat({
             )}
           </article>
         ))}
-        {pending && (
+        {pending && draft && (
+          <article className="rumi-message is-draft" data-role="rumi">
+            <p className="rumi-who">
+              <RumiMark size={18} state="busy" />
+              {AGENT_NAME}
+            </p>
+            <div className="rumi-reply">
+              <RumiText text={draft} />
+            </div>
+          </article>
+        )}
+        {pending && !draft && (
           <p className="rumi-reading" role="status">
             <RumiMark size={22} state="busy" />
             {(() => {

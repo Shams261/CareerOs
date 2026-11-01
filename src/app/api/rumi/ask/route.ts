@@ -44,6 +44,8 @@ export async function POST(request: Request) {
         (write) => line({ write }),
         parsed.data.voice ?? null,
         parsed.data.page ?? null,
+        // WI-119: the answer as it is written; the stored answer still follows at the end.
+        (e) => line('text' in e ? { delta: e.text } : { reset: true }),
       );
       if (result.ok) {
         revalidatePath('/rumi');

@@ -499,11 +499,40 @@ createServer(async (req, res) => {
     if (body.tools) {
       console.info(`[fake-openrouter] chat ${chats}`);
       await new Promise((r) => setTimeout(r, 400));
-      return json(200, {
+      const answer = {
         provider: 'Google',
         usage: { prompt_tokens: 900, completion_tokens: 120, cost: 0.00015 },
         choices: [agentAnswer(body.messages, body.tool_choice === 'none')],
+      };
+      if (!(body as { stream?: boolean }).stream) return json(200, answer);
+      // WI-119: the same answer as server-sent events, a few words at a time.
+      res.writeHead(200, { 'content-type': 'text/event-stream' });
+      const send = (chunk: unknown) =>
+        res.write(`data: ${JSON.stringify(chunk)}\n\n`);
+      res.write(': OPENROUTER PROCESSING\n\n');
+      const choice = answer.choices[0] as {
+        message: { content?: string | null; tool_calls?: unknown[] };
+        finish_reason?: string;
+      };
+      const words = (choice.message.content ?? '').split(/(?<= )/);
+      for (const w of words) {
+        send({ provider: 'Google', choices: [{ delta: { content: w } }] });
+        await new Promise((r) => setTimeout(r, 15));
+      }
+      for (const [index, call] of (choice.message.tool_calls ?? []).entries())
+        send({
+          provider: 'Google',
+          choices: [
+            { delta: { tool_calls: [{ index, ...(call as object) }] } },
+          ],
+        });
+      send({
+        provider: 'Google',
+        usage: answer.usage,
+        choices: [{ delta: {}, finish_reason: choice.finish_reason ?? 'stop' }],
       });
+      res.write('data: [DONE]\n\n');
+      return res.end();
     }
     // WI-108: feedback on a mock interview answer, one paragraph, never a score.
     if (/running a mock interview/.test(body.messages[0]?.content ?? '')) {

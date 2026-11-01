@@ -10345,3 +10345,8 @@ html {
   font-size: 13px;
   color: var(--ink-2);
 }
+
+/* WI-119: the answer as Rumi writes it, until the stored answer takes its place. */
+.rumi-message.is-draft .rumi-reply {
+  color: var(--ink-2);
+}

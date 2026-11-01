@@ -1,4 +1,5 @@
 import 'server-only';
+import type { StreamEvent } from '@/features/ai/stream';
 import { pageInput, pageRef } from './page-domain';
 import { readPage } from './page-context';
 import { formatInTimeZone } from 'date-fns-tz';
@@ -189,6 +190,8 @@ export async function sendMessage(
     voice?: VoiceMeta | null;
     /** WI-117: the path of the page Rumi was opened on, read for the owner only. */
     page?: string | null;
+    /** WI-119: the answer's text as it is written (and a reset when a round turns to tools). */
+    onStream?: (e: StreamEvent) => void;
   },
   now = new Date(),
   fetcher: Fetcher = fetch,
@@ -338,6 +341,7 @@ export async function sendMessage(
       now,
       fetcher,
       words: WORDS,
+      onStream: input.onStream,
     });
     spent += cost.micros;
     const message = answer.choices?.[0]?.message;
@@ -527,6 +531,8 @@ export async function askRumi(
   voice?: VoiceMeta | null,
   /** The page Rumi was opened on (WI-117). */
   page?: string | null,
+  /** The answer's text as it is written (WI-119). */
+  onStream?: (e: StreamEvent) => void,
 ): Promise<AskResult> {
   try {
     const result = await sendMessage(
@@ -540,6 +546,7 @@ export async function askRumi(
         onWrite,
         voice,
         page,
+        onStream,
       },
       new Date(),
       fetcher,
