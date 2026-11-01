@@ -502,6 +502,18 @@ test('the Rumi button shows on every page and the key opens the drawer', async (
   await page.keyboard.press('ControlOrMeta+/');
   await expect(drawer).toBeHidden();
   await expect(page.locator('button.rumi-fab')).toBeFocused();
+  // WI-115: the owner can hide the button from its own ×, and Undo brings it back.
+  await page.locator('button.rumi-fab').hover();
+  await page.getByRole('button', { name: 'Hide the Rumi button' }).click();
+  await expect(page.locator('button.rumi-fab')).toHaveCount(0);
+  await page.getByRole('button', { name: 'Undo' }).click();
+  await expect(page.locator('button.rumi-fab')).toBeVisible();
+  // Hidden again, Rumi still opens with the key.
+  await page.locator('button.rumi-fab').hover();
+  await page.getByRole('button', { name: 'Hide the Rumi button' }).click();
+  await expect(page.locator('button.rumi-fab')).toHaveCount(0);
+  await page.keyboard.press('ControlOrMeta+/');
+  await expect(drawer).toBeVisible();
 });
 
 test('the week draft adds a day and Undo takes it back', async ({ page }) => {

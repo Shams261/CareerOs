@@ -106,7 +106,12 @@ export default async function RoadmapPage() {
       <div className="roadmap-single">
         {/* The goal, centred and bold: the one thing on the page that is not a list. */}
         <section className="goal-hero" aria-labelledby="goal-heading">
-          <RumiPose pose="goal-flag" size={100} className="goal-pose" />
+          <RumiPose
+            pose="goal-flag"
+            size={100}
+            className="goal-pose"
+            priority
+          />
           <p className="goal-hero-eyebrow">Your goal</p>
           {lead ? (
             <>

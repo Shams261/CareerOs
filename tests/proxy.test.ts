@@ -70,8 +70,23 @@ describe('proxy access control', () => {
       '/manifest.webmanifest',
       '/sw.js',
       '/icons/icon-192.png',
+      // WI-112 and WI-115: shared art, never private, so it can be cached.
+      '/notify/calm-focus.jpg',
+      '/mascot/hello.webp',
     ])
       expect((await proxy(req(open))).status, open).toBe(200);
+    // Only the art's own shapes: anything else under those folders stays signed-in.
+    for (const closed of [
+      '/mascot/../today',
+      '/mascot/x.png',
+      '/notify/a.webp',
+    ])
+      expect((await proxy(req(closed))).status, closed).not.toBe(200);
+    for (const open of ['/mascot/hello.webp', '/notify/calm-focus.jpg'])
+      expect(
+        (await proxy(req(open))).headers.get('cache-control'),
+        open,
+      ).toBeNull();
     session.value = { user: { id: 'u' } };
     const ok = await proxy(req('/today'));
     expect(ok.status).toBe(200);

@@ -84,7 +84,12 @@ export async function FirstRunToday({
             className="welcome-hero has-pose"
             aria-labelledby="welcome-heading"
           >
-            <RumiPose pose="checklist" size={128} className="welcome-pose" />
+            <RumiPose
+              pose="checklist"
+              size={128}
+              className="welcome-pose"
+              priority
+            />
             <p className="eyebrow welcome-eyebrow">A good place to start</p>
             <h2 id="welcome-heading">Start small. Build your rhythm.</h2>
             <p>

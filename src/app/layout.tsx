@@ -1,4 +1,4 @@
-import { savedTextSize, savedTheme } from '@/server/theme';
+import { savedRumiButton, savedTextSize, savedTheme } from '@/server/theme';
 import { themeColor } from '@/lib/theme';
 import Link from 'next/link';
 import { BrandLogo } from '@/components/brand';
@@ -45,7 +45,11 @@ export default async function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const [theme, size] = await Promise.all([savedTheme(), savedTextSize()]);
+  const [theme, size, rumiButton] = await Promise.all([
+    savedTheme(),
+    savedTextSize(),
+    savedRumiButton(),
+  ]);
   // Signed-out pages (sign-in) render without navigation.
   if (!(await currentSession()))
     return (
@@ -107,7 +111,7 @@ export default async function RootLayout({
           <CommandBar />
           <ToastHost />
           {/* Rumi from any page (WI-060), only where the server has AI. */}
-          {aiConfig() && <RumiDrawer />}
+          {aiConfig() && <RumiDrawer button={rumiButton} />}
         </div>
       </body>
     </html>

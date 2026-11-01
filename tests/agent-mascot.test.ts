@@ -15,6 +15,8 @@ import { RumiMark } from '../src/features/agent/mark';
 import { RumiPose } from '../src/features/agent/pose';
 
 const PUBLIC = join(__dirname, '..', 'public');
+/** A served path without its version (WI-115). */
+const file = (src: string) => join(PUBLIC, src.split('?')[0]);
 /** A webp with alpha starts with a VP8X chunk holding the canvas size (each less one, 24 bits). */
 function webpSize(file: string) {
   const b = readFileSync(file);
@@ -39,24 +41,24 @@ const key = (k: string, mods: Partial<Record<string, boolean>> = {}) => ({
 describe("Rumi's poses (WI-111)", () => {
   it('serves every pose as a cut-out webp of the size the manifest says', () => {
     for (const pose of Object.keys(POSES) as Pose[]) {
-      const file = join(PUBLIC, poseSrc(pose));
-      expect(existsSync(file), pose).toBe(true);
-      const size = webpSize(file);
+      const path = file(poseSrc(pose));
+      expect(existsSync(path), pose).toBe(true);
+      const size = webpSize(path);
       expect(size, pose).toEqual({
         w: POSES[pose].w,
         h: POSES[pose].h,
         alpha: true,
       });
       // Small enough to load on a page that shows it.
-      expect(readFileSync(file).length, pose).toBeLessThan(40_000);
+      expect(readFileSync(path).length, pose).toBeLessThan(40_000);
     }
     for (const src of Object.values(HEAD_SRC))
-      expect(existsSync(join(PUBLIC, src))).toBe(true);
+      expect(existsSync(file(src))).toBe(true);
   });
   it('keeps nothing in the folder that the manifest does not name', () => {
     const named = new Set([
       ...Object.keys(POSES).map((p) => `${p}.webp`),
-      ...Object.values(HEAD_SRC).map((s) => s.split('/').pop()),
+      ...Object.values(HEAD_SRC).map((s) => s.split('?')[0].split('/').pop()),
     ]);
     for (const f of readdirSync(join(PUBLIC, 'mascot')))
       expect(named.has(f), f).toBe(true);
@@ -91,7 +93,8 @@ describe("Rumi's poses (WI-111)", () => {
     );
     expect(html).toContain('aria-hidden="true"');
     expect(html).toContain('alt=""');
-    expect(html).toContain('src="/mascot/sitting.webp"');
+    expect(html).toContain('src="/mascot/sitting.webp?v=');
+    expect(html).toContain('loading="lazy"');
     // WI-112: the tile is sized from the pose's own width, never from the card around it.
     expect(html).toContain('--pose:100px');
     expect(html).toContain('class="rumi-pose-figure" data-motion="breathe"');
@@ -99,10 +102,22 @@ describe("Rumi's poses (WI-111)", () => {
     expect(
       renderToStaticMarkup(createElement(RumiPose, { pose: 'sleeping' })),
     ).toContain('rumi-zzz');
+    expect(
+      renderToStaticMarkup(
+        createElement(RumiPose, { pose: 'goal-flag', priority: true }),
+      ),
+    ).toMatch(
+      /loading="eager"[^>]*fetchPriority="high"|fetchPriority="high"[^>]*loading="eager"/,
+    );
   });
   it('draws the icon as the head with eyelids, and the × only while open', () => {
     const html = renderToStaticMarkup(createElement(RumiMark, { size: 60 }));
     expect(html).toContain(`src="${HEAD_SRC.open}"`);
+    // WI-115: the happy head is fetched only after the pointer comes near.
+    expect(html).not.toContain(HEAD_SRC.happy);
+    expect(
+      renderToStaticMarkup(createElement(RumiMark, { size: 60, happy: true })),
+    ).toContain(HEAD_SRC.happy);
     expect(html.match(/class="rumi-lid"/g)).toHaveLength(2);
     expect(html).not.toContain('rumi-mark-badge');
     expect(

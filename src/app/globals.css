@@ -6744,11 +6744,23 @@ button.attention-link {
 }
 
 /* WI-060: Rumi from any page — the round button and its drawer beside the page. */
-.rumi-fab {
+/* WI-115: the wrapper sits in a corner; the button and its × live inside it. */
+.rumi-fab-wrap {
   position: fixed;
   right: 24px;
   bottom: 24px;
   z-index: 30;
+  touch-action: none;
+}
+.rumi-fab-wrap[data-side='left'] {
+  right: auto;
+  left: 272px;
+}
+.rumi-fab-wrap[data-dragging='true'] {
+  cursor: grabbing;
+}
+.rumi-fab {
+  position: relative;
   display: inline-grid;
   place-items: center;
   width: 60px;
@@ -6814,7 +6826,7 @@ button.attention-link {
   align-content: start;
 }
 /* Focus and the drawer never share the screen. */
-.shell:has(.focus-card) .rumi-fab {
+.shell:has(.focus-card) .rumi-fab-wrap {
   display: none;
 }
 /* Room under the last row, so the round button never sits on the page's end (WI-062). */
@@ -6824,8 +6836,62 @@ button.attention-link {
 /* Since WI-111 the round button shows on a desktop again, by the owner's choice: Rumi from
    anywhere. The page keeps room under its last row so nothing ends under the button (WI-093's
    worry), and a side panel or modal hides it while open. */
-html[data-panel-open] .rumi-fab {
+html[data-panel-open] .rumi-fab-wrap {
   display: none;
+}
+/* The × that hides the button: on hover or keyboard focus, or after a long press on a phone. */
+.rumi-fab-hide {
+  position: absolute;
+  z-index: 2;
+  top: -6px;
+  left: -6px;
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: 1px solid var(--border-strong);
+  border-radius: 50%;
+  background: var(--surface);
+  color: var(--text-secondary);
+  box-shadow: var(--shadow-sm);
+  cursor: pointer;
+  opacity: 0;
+  pointer-events: none;
+}
+.rumi-fab-wrap[data-side='left'] .rumi-fab-hide {
+  left: auto;
+  right: -6px;
+}
+.rumi-fab-wrap:is(:hover, :focus-within, [data-reveal='true']) .rumi-fab-hide {
+  opacity: 1;
+  pointer-events: auto;
+}
+.rumi-fab-hide:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+/* Folded small into its corner while the page scrolls down or a pose is in view; back to full
+   size on hover or focus. It grows from the corner, so the pointer stays on it. */
+.rumi-fab-wrap[data-tucked='true'] {
+  transform: scale(0.55);
+  transform-origin: 100% 100%;
+  opacity: 0.85;
+}
+.rumi-fab-wrap[data-tucked='true'][data-side='left'] {
+  transform-origin: 0 100%;
+}
+.rumi-fab-wrap[data-tucked='true']:is(:hover, :focus-within) {
+  transform: none;
+  opacity: 1;
+}
+/* One blinking Rumi at a time: the menu's icon stays still. */
+.nav .rumi-lid {
+  animation: none !important;
+}
+.rumi-drawer[data-side='left'] {
+  right: auto;
+  left: 272px;
 }
 /* WI-111: Rumi, from the owner's renders. The icon is the small head; a pose is a moment. */
 .rumi-mark {
@@ -7099,6 +7165,14 @@ html[data-panel-open] .rumi-fab {
   .rumi-fab .rumi-mark {
     transition: transform 180ms ease;
   }
+  .rumi-fab-wrap:not([data-dragging='true']) {
+    transition:
+      transform 220ms ease,
+      opacity 220ms ease;
+  }
+  .rumi-fab-hide {
+    transition: opacity 140ms ease;
+  }
   .rumi-fab:hover .rumi-mark {
     transform: translateY(-2px) rotate(-4deg);
   }
@@ -7165,9 +7239,16 @@ html[data-panel-open] .rumi-fab {
   }
 }
 @media (max-width: 700px) {
-  .rumi-fab {
+  .rumi-fab-wrap {
     right: 16px;
     bottom: calc(76px + env(safe-area-inset-bottom));
+  }
+  .rumi-fab-wrap[data-side='left'] {
+    right: auto;
+    left: 16px;
+  }
+  .rumi-drawer[data-side='left'] {
+    left: 0;
   }
   .rumi-drawer {
     right: 0;
@@ -7178,7 +7259,7 @@ html[data-panel-open] .rumi-fab {
     border-radius: var(--radius-lg) var(--radius-lg) 0 0;
   }
   /* The sheet has its own Close; the round button would cover its composer. */
-  .rumi-fab[aria-expanded='true'] {
+  .rumi-fab-wrap:has(.rumi-fab[aria-expanded='true']) {
     display: none;
   }
 }
@@ -8416,6 +8497,15 @@ html[data-panel-open] .rumi-fab {
   font-size: 14px;
   line-height: 1.5;
   pointer-events: auto;
+}
+.toast.is-info {
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  border-color: var(--border-strong);
+  align-items: center;
+}
+.toast-action {
+  font-weight: 600;
+  white-space: nowrap;
 }
 .toast > svg:first-child {
   margin-top: 3px;
@@ -10234,4 +10324,17 @@ html {
   .rumi-memory-add {
     grid-template-columns: minmax(0, 1fr);
   }
+}
+
+/* WI-115: Settings → Rumi button: the switch and the corner on one line. */
+.rumi-button-setting {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.rumi-button-setting select {
+  min-height: 0;
+  height: 34px;
+  padding: 4px 8px;
 }

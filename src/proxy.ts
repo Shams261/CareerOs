@@ -22,6 +22,8 @@ const PUBLIC = [
   /^\/icons\/[\w.-]+$/,
   // WI-112: the fixed pictures a push may show; art only, the same for everyone.
   /^\/notify\/[a-z-]+\.jpg$/,
+  // WI-115: Rumi's poses are art too, the same for everyone; public so browsers can cache them.
+  /^\/mascot\/[a-z-]+\.webp$/,
   /^\/apple-touch-icon\.png$/,
   /^\/favicon\.ico$/,
   // A private app: crawlers are told to stay out (WI-057).

@@ -32,10 +32,13 @@ export function RumiPose({
   pose,
   size = 120,
   className,
+  priority = false,
 }: {
   pose: Pose;
   size?: number;
   className?: string;
+  /** WI-115: a pose at the top of its page loads at once instead of popping in later. */
+  priority?: boolean;
 }) {
   const info = POSES[pose];
   return (
@@ -54,7 +57,8 @@ export function RumiPose({
           height={info.h}
           alt=""
           decoding="async"
-          loading="lazy"
+          loading={priority ? 'eager' : 'lazy'}
+          fetchPriority={priority ? 'high' : undefined}
           draggable={false}
         />
         <Lids lids={info.lids} delay={blinkDelay(pose)} />

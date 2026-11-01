@@ -5,6 +5,8 @@ import { X } from 'lucide-react';
 import { RumiChat } from './chat';
 import { AGENT_NAME } from './domain';
 import { RumiMark } from './mark';
+import { RumiButton } from './rumi-button';
+import { BUTTON_EVENT, type ButtonPref } from './button-pref';
 import {
   ASK_EVENT,
   ASK_KEY,
@@ -33,11 +35,20 @@ const noSubscribe = () => () => {};
  * the page, which stays as it is. The chat is the same one as /rumi, kept while the tab lives,
  * so closing and reopening continues the conversation. Esc closes it. Since WI-111 the button
  * carries Rumi's mark and shows on a desktop too, and ⌘/ (Ctrl+/) opens or closes the drawer
- * from any page that has it; on the Rumi page the key goes to the composer.
+ * from any page that has it; on the Rumi page the key goes to the composer. Since WI-115 the
+ * button is `RumiButton` (hide, drag to a corner, fold to the edge); with it hidden the
+ * drawer still opens from the sidebar's hand-overs, ⌘/ and ⌘K.
  */
-export function RumiDrawer() {
+export function RumiDrawer({ button: initialButton }: { button: ButtonPref }) {
   const path = usePathname();
   const [open, setOpen] = useState(false);
+  // WI-115: shown or hidden, and which corner; the server read it from the cookie.
+  const [pref, setPref] = useState(initialButton);
+  useEffect(() => {
+    const onPref = (e: Event) => setPref((e as CustomEvent<ButtonPref>).detail);
+    window.addEventListener(BUTTON_EVENT, onPref);
+    return () => window.removeEventListener(BUTTON_EVENT, onPref);
+  }, []);
   // Mounted on first open and kept, so the conversation survives closing the drawer.
   const [started, setStarted] = useState(false);
   const button = useRef<HTMLButtonElement>(null);
@@ -119,26 +130,24 @@ export function RumiDrawer() {
   if (hidden) return null;
   return (
     <>
-      <button
-        ref={button}
-        type="button"
-        className="rumi-fab"
-        aria-label={open ? `Close ${AGENT_NAME}` : `Ask ${AGENT_NAME}`}
-        aria-expanded={open}
-        aria-controls="rumi-drawer"
-        title={open ? `Close ${AGENT_NAME}` : `Ask ${AGENT_NAME} · ${keyLabel}`}
-        onClick={() => {
-          setStarted(true);
-          setOpen((o) => !o);
-        }}
-      >
-        <RumiMark size={60} closed={open} />
-      </button>
+      {pref.shown && (
+        <RumiButton
+          open={open}
+          onToggle={() => {
+            setStarted(true);
+            setOpen((o) => !o);
+          }}
+          keyLabel={keyLabel}
+          pref={pref}
+          buttonRef={button}
+        />
+      )}
       {started && (
         <div
           ref={panel}
           id="rumi-drawer"
           className="rumi-drawer"
+          data-side={pref.side}
           role="dialog"
           aria-label={`Ask ${AGENT_NAME}`}
           hidden={!open}
