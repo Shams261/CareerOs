@@ -481,6 +481,29 @@ test('Rumi writes the morning line and Reply prefills the drawer', async ({
   await page.keyboard.press('Escape');
 });
 
+test('the week draft adds a day and Undo takes it back', async ({ page }) => {
+  // WI-107: next week is prepared from the routines first, then Rumi drafts around them.
+  await page.goto('/review?step=plan');
+  await page
+    .getByRole('button', { name: 'Prepare next week from my routines' })
+    .click();
+  await expect(
+    page.getByText(/scheduled for next week|already prepared/),
+  ).toBeVisible();
+  await page.reload();
+  await page.getByRole('button', { name: 'Draft next week with Rumi' }).click();
+  await expect(page).toHaveURL(/\/rumi\?c=/, { timeout: 20_000 });
+  const card = page.getByRole('group', { name: /^Plan for / }).first();
+  await expect(card).toContainText('Graphs: BFS');
+  await accessible(page);
+  await card.getByRole('button', { name: /to plan$/ }).click();
+  await expect(card).toContainText('Added.');
+  await page.getByRole('button', { name: 'Undo' }).click();
+  await expect(
+    page.getByText(/Block cancelled|Blocks cancelled/),
+  ).toBeVisible();
+});
+
 test('Settings saves the dark theme and stays accessible', async ({ page }) => {
   await page.goto('/settings');
   await expect(

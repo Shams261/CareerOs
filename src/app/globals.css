@@ -9619,6 +9619,48 @@ html {
 .rumi-kept q {
   quotes: '\201C' '\201D';
 }
+/* WI-107: a plan card's times can change and blocks can be added before Add to plan. */
+.rumi-plan-edit {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 6px;
+}
+.rumi-plan-edit label,
+.rumi-plan-add label {
+  display: grid;
+  gap: 2px;
+  margin: 0;
+  font-size: 13px;
+}
+.rumi-plan-change {
+  justify-self: start;
+  margin-top: 2px;
+  font-size: 13px;
+  white-space: nowrap;
+}
+.rumi-plan-add-link {
+  display: block;
+  justify-self: start;
+  margin: 6px 0 4px;
+  text-align: left;
+}
+.rumi-plan-add {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) auto auto;
+  gap: 8px;
+  align-items: end;
+  margin: 8px 0;
+}
+.rumi-plan-add .button {
+  grid-column: 1 / -1;
+  justify-self: start;
+}
+@media (max-width: 700px) {
+  .rumi-plan-add {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+}
 /* WI-104: the microphone beside Send, the words heard, and Settings → Voice. */
 .rumi-mic {
   display: inline-grid;

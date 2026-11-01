@@ -19,6 +19,8 @@ import {
 import { readVoiceLang, voiceSettingsInput } from './voice-domain';
 import { answerSuggestion, applyProposal, dismissProposal } from './plans';
 import { applyRequest, appliedWords, dismissRequest } from './requests';
+import { draftWeek } from './draft';
+import { AiRefusal, AiUnavailable } from '@/features/ai/service';
 import { restore } from '@/features/undo/service';
 import { undoWrite } from './writes';
 import { afterWrites } from './after-writes';
@@ -196,6 +198,28 @@ export async function undoWriteAction(
   }
 }
 
+/** "Draft next week with Rumi" (WI-107): plan cards per day in a new conversation. */
+export async function draftWeekAction(): Promise<
+  { ok: true; href: string } | { ok: false; message: string }
+> {
+  try {
+    const id = await draftWeek(await owner());
+    revalidatePath('/rumi');
+    return { ok: true, href: `/rumi?c=${id}` };
+  } catch (error) {
+    if (error instanceof AiRefusal || error instanceof AiUnavailable)
+      return { ok: false, message: error.message };
+    console.error(
+      '[agent] draft failed',
+      error instanceof Error ? error.name : 'Error',
+    );
+    return {
+      ok: false,
+      message: `${AGENT_NAME} couldn’t draft next week right now.`,
+    };
+  }
+}
+
 const cardIds = (f: FormData) =>
   z
     .object({ messageId: z.string().min(1), cardId: z.string().min(1) })
@@ -213,12 +237,43 @@ export async function applyProposalAction(
       .array(z.coerce.number().int().min(0).max(50))
       .max(50)
       .parse(f.getAll('skip'));
+    // Times changed and blocks added on the card (WI-107), checked again under the lock.
+    const HHMM = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/);
+    const json = (v: FormDataEntryValue | null) => {
+      try {
+        return v ? JSON.parse(String(v)) : [];
+      } catch {
+        return [];
+      }
+    };
+    const edits = z
+      .array(
+        z.object({
+          i: z.number().int().min(0).max(50),
+          start: HHMM,
+          end: HHMM,
+        }),
+      )
+      .max(50)
+      .parse(json(f.get('edits')));
+    const extra = z
+      .array(
+        z.object({
+          title: z.string().trim().min(1).max(80),
+          kind: z.string().trim().min(1).max(40),
+          start: HHMM,
+          end: HHMM,
+        }),
+      )
+      .max(4)
+      .parse(json(f.get('extra')));
     const { day, ids } = await applyProposal(
       user,
       messageId,
       cardId,
       new Date(),
       skip,
+      { edits, extra },
     );
     forgetAll();
     syncSoon(user);
