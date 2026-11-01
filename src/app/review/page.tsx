@@ -1,3 +1,4 @@
+import { RumiPose } from '@/features/agent/pose';
 import Link from 'next/link';
 import type { ReactNode } from 'react';
 import { confidenceWord } from '@/features/dsa/words';
@@ -327,6 +328,7 @@ export default async function Review({
       {step === 'week' && weekEmpty && (
         // An empty week says what to do and what this step will show (WI-059).
         <section className="card setup-card" aria-labelledby="week-heading">
+          <RumiPose pose="sitting" size={104} className="setup-pose" />
           <p className="eyebrow">Start here</p>
           <h2 id="week-heading">Nothing planned this week</h2>
           <p>
@@ -494,7 +496,11 @@ export default async function Review({
             className="today-rail"
             aria-label="The week beside the reflection"
           >
-            <section className="card rail-card" aria-labelledby="facts-heading">
+            <section
+              className="card rail-card has-corner-pose"
+              aria-labelledby="facts-heading"
+            >
+              <RumiPose pose="writing" size={64} className="corner-pose" />
               <h2 id="facts-heading">The week in short</h2>
               <p className="muted review-rail-line">{summary.line}</p>
               {s.rows.length > 0 && (
@@ -683,9 +689,10 @@ export default async function Review({
           </div>
           <aside className="today-rail" aria-label="Closing the week">
             <section
-              className="card rail-card close-week"
+              className="card rail-card close-week has-corner-pose"
               aria-labelledby="close-heading"
             >
+              <RumiPose pose="high-five" size={64} className="corner-pose" />
               <h2 id="close-heading">Close the week</h2>
               <p className="review-rail-line">
                 {closeWeekLine({

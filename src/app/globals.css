@@ -6929,6 +6929,42 @@ html[data-panel-open] .rumi-fab {
 .rumi-empty-mark {
   display: block;
 }
+/* WI-113: Rumi in a setup card, in a card's corner, and beside Practice's facts. */
+.setup-pose {
+  display: block;
+  margin-bottom: 14px;
+}
+.has-corner-pose {
+  position: relative;
+}
+.corner-pose {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+}
+.has-corner-pose > h2,
+.has-corner-pose > .attention-head,
+.has-corner-pose > p:first-of-type {
+  padding-right: 76px;
+}
+.has-corner-pose:has(.corner-pose) {
+  min-height: 96px;
+}
+.practice-facts-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+.practice-facts-row .practice-facts {
+  margin: 0;
+}
+@media (max-width: 700px) {
+  .practice-pose {
+    --pose: 56px;
+    width: 56px !important;
+  }
+}
 /* Rumi's line card keeps its pose in the top corner. */
 .nudge.has-pose {
   position: relative;

@@ -487,6 +487,8 @@ test('the Rumi button shows on every page and the key opens the drawer', async (
   // WI-111: the round button carries Rumi's mark on a desktop too; ⌘/ or Ctrl+/ toggles it.
   for (const path of ['/jobs', '/dsa']) {
     await page.goto(path);
+    // WI-113: each page also has one of Rumi's poses in it.
+    await expect(page.locator('.rumi-pose').first()).toBeVisible();
     const button = page.locator('button.rumi-fab');
     await expect(button).toBeVisible();
     await expect(button.locator('.rumi-mark img').first()).toBeVisible();
