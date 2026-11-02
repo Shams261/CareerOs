@@ -86,6 +86,10 @@ export function setupSteps(f: SetupFacts): SetupStep[] {
 export const setupLine = (steps: SetupStep[]) =>
   `${steps.filter((s) => s.done).length} of ${steps.length} done`;
 export const setupComplete = (steps: SetupStep[]) => steps.every((s) => s.done);
+/** Steps left before the card leaves Today for Settings (WI-141): a nearly done list is quiet. */
+const SETUP_TODAY_MIN_LEFT = 3;
+export const setupOnToday = (steps: SetupStep[]) =>
+  steps.filter((s) => !s.done).length >= SETUP_TODAY_MIN_LEFT;
 
 /** The cookie that hides the card on Today for a week; Settings keeps the list. */
 export const SETUP_COOKIE = 'silsila-setup-hidden';

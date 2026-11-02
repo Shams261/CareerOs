@@ -28,6 +28,13 @@ export function categoryGroup(category: string) {
   if (['JOB_SEARCH', 'INTERVIEW'].includes(key)) return 'Job search';
   return categoryLabel(key);
 }
+/**
+ * What the owner is here for (WI-141): their study categories, DSA, Technical and job search.
+ * Rumi sends these titles (`titleVisible`, ADR-024); Plan draws the rest quietly.
+ */
+export const isFocusCategory = (category: string, study: string[]) =>
+  isStudyCategory(category, [...study, 'DSA', 'Technical', 'Job search']);
+
 /** A block or session counts as study when its category (or its group) is chosen. */
 export function isStudyCategory(category: string, chosen: string[]) {
   const wanted = new Set(chosen.map(categoryKey));

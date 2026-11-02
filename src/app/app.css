@@ -6309,6 +6309,14 @@ button.attention-link {
 .shell:has(.rumi-fab) .content {
   padding-bottom: 104px;
 }
+/* A gutter on the button's side, so it never sits on a row's chevron or a control at the right
+   edge (WI-141). On the left the button sits over the sidebar, so only the right needs it; a
+   phone keeps its full width and room under the page instead. */
+@media (min-width: 701px) {
+  .shell:has(.rumi-fab-wrap[data-side='right']) .content {
+    padding-right: 96px;
+  }
+}
 /* Since WI-111 the round button shows on a desktop again, by the owner's choice: Rumi from
    anywhere. The page keeps room under its last row so nothing ends under the button (WI-093's
    worry), and a side panel or modal hides it while open. */

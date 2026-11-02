@@ -1,7 +1,20 @@
 'use client';
-import { useEffect, useMemo, useState, useSyncExternalStore } from 'react';
-import { ChevronLeft, ChevronRight, Pause, Play } from 'lucide-react';
+import {
+  useEffect,
+  useId,
+  useMemo,
+  useState,
+  useSyncExternalStore,
+} from 'react';
+import {
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+  Pause,
+  Play,
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 import { MAX_INPUT, parseInput, trace, TRACES, type TraceKind } from './trace';
 
 const PLAY_MS = 1400;
@@ -19,11 +32,53 @@ function useReducedMotion() {
 }
 
 /**
- * Watch It Run (WI-030): the pattern traced by Silsila's own code on a small input. Step and
- * Back move one step; Play advances on its own and is not offered under reduced motion. The
- * arrow keys step while the trace has focus. Nothing is saved.
+ * Watch It Run (WI-030) as a closed band on the problem page (WI-141): one line naming the
+ * pattern, opened by the owner when they want it, so it no longer takes the room of the
+ * attempt form. Nothing is saved.
  */
 export function WatchItRun({ kind }: { kind: TraceKind }) {
+  const [open, setOpen] = useState(false);
+  const id = useId();
+  const meta = TRACES[kind];
+  return (
+    <section className="card flat" aria-labelledby={`${id}-heading`}>
+      <h2 id={`${id}-heading`} className="m-0 text-[17px]">
+        <button
+          type="button"
+          aria-expanded={open}
+          aria-controls={id}
+          onClick={() => setOpen(!open)}
+          className="flex w-full cursor-pointer items-center gap-3 border-0 bg-transparent p-0 text-left font-[inherit] text-ink"
+        >
+          <span className="min-w-0 flex-1">Watch it run · {meta.title}</span>
+          <span className="text-[14px] font-normal text-meta phone:hidden">
+            A sample of the pattern
+          </span>
+          <ChevronDown
+            size={18}
+            aria-hidden="true"
+            className={cn(
+              'flex-none text-meta motion-safe:transition-transform',
+              open && 'rotate-180',
+            )}
+          />
+        </button>
+      </h2>
+      {open && (
+        <div id={id} className="mt-3">
+          <Trace kind={kind} />
+        </div>
+      )}
+    </section>
+  );
+}
+
+/**
+ * The trace itself (WI-030): the pattern traced by Silsila's own code on a small input. Step
+ * and Back move one step; Play advances on its own and is not offered under reduced motion.
+ * The arrow keys step while the trace has focus.
+ */
+function Trace({ kind }: { kind: TraceKind }) {
   const meta = TRACES[kind];
   const reduced = useReducedMotion();
   const [input, setInput] = useState(meta.sample);
@@ -63,12 +118,9 @@ export function WatchItRun({ kind }: { kind: TraceKind }) {
   };
 
   return (
-    <section className="card trace" aria-labelledby="trace-heading">
-      <div className="section-head">
-        <h2 id="trace-heading">Watch it run · {meta.title}</h2>
-      </div>
+    <div className="trace">
       <p className="muted">
-        A sample of the pattern, not this problem. {meta.question}
+        Not this problem: {meta.question}
         {kind === 'binary-search' ? ` Target ${target}.` : ''}
       </p>
       <div
@@ -212,6 +264,6 @@ export function WatchItRun({ kind }: { kind: TraceKind }) {
           </p>
         )}
       </form>
-    </section>
+    </div>
   );
 }

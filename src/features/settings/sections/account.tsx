@@ -9,7 +9,7 @@ import { formatInTimeZone } from 'date-fns-tz';
 import { SettingRow } from '../rows';
 import type { SettingsView } from '../page-data';
 
-/** Account: the owner, sessions, and the name and sessions panels. */
+/** Account: the owner, the name Today greets (here since WI-141), sessions, and their panels. */
 export function AccountGroup({ v }: { v: SettingsView }) {
   const { user, sessions } = v;
   return (
@@ -30,6 +30,14 @@ export function AccountGroup({ v }: { v: SettingsView }) {
           label="Owner"
           title={user.email}
           context={`${user.timezone} · signed in with Google`}
+        />
+        <SettingRow
+          source="job"
+          icon={<UserRound size={22} />}
+          label="Name"
+          title={user.name}
+          context="What Silsila calls you on Today"
+          panel="name"
         />
         <SettingRow
           source="job"

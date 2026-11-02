@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   setupComplete,
   setupLine,
+  setupOnToday,
   setupSteps,
   type SetupFacts,
 } from '../src/features/setup/domain';
@@ -77,5 +78,14 @@ describe('Make Silsila yours (WI-050)', () => {
     for (const s of steps)
       for (const w of BANNED_WORDS)
         expect(`${s.title} ${s.action}`.toLowerCase()).not.toContain(w);
+  });
+
+  it('stays on Today while three or more steps are left, then only in Settings (WI-141)', () => {
+    const doneOf = (done: number) =>
+      setupSteps(empty).map((s, i) => ({ ...s, done: i < done }));
+    expect(setupOnToday(doneOf(0))).toBe(true);
+    expect(setupOnToday(doneOf(3))).toBe(true);
+    expect(setupOnToday(doneOf(4))).toBe(false);
+    expect(setupOnToday(doneOf(6))).toBe(false);
   });
 });

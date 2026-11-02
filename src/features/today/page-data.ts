@@ -16,7 +16,6 @@ import { todaysNudge } from '@/features/nudges/service';
 import { dayPrint } from '@/features/day-print/domain';
 import { closeDayOpen } from '@/features/close-day/domain';
 import { previewSlots, stopTime } from '@/features/close-day/service';
-import { weekProgress } from './home';
 import {
   agendaEntries,
   daySummary,
@@ -72,7 +71,6 @@ export async function todayPage(
     stop,
     pastBlocks,
     weekSessions,
-    weekBlocks,
   ] = await Promise.all([
     (isToday
       ? generateThroughSunday(user, today).catch((error) => {
@@ -136,21 +134,6 @@ export async function todayPage(
             },
           },
           select: { startedAt: true, endedAt: true },
-        })
-      : Promise.resolve([]),
-    // This week's blocks, Monday to Sunday, for the rail's This week (WI-065).
-    isToday
-      ? db().timeBlock.findMany({
-          where: {
-            dailyPlan: {
-              userId: user.id,
-              date: {
-                gte: new Date(monday),
-                lte: new Date(shiftDay(monday, 6)),
-              },
-            },
-          },
-          select: { status: true, skipReason: true },
         })
       : Promise.resolve([]),
   ]);
@@ -289,12 +272,6 @@ export async function todayPage(
     preview,
     closedPrint: reviewed && user.dayPrint !== false ? print(true) : null,
     livePrint: isToday && !reviewed ? print(false) : null,
-    week: weekProgress({
-      done: weekBlocks.filter((b) => b.status === 'COMPLETED').length,
-      planned: weekBlocks.filter(
-        (b) => b.status !== 'CANCELLED' && !isDeleted(b),
-      ).length,
-    }),
   };
 }
 export type TodayView = Awaited<ReturnType<typeof todayPage>>;

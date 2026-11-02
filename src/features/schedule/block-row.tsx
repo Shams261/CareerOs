@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import { Check, Circle, CircleDot, Pause } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import type { Resolution } from './row';
 
 /** The glyph beside a row's status word. */
@@ -32,6 +33,7 @@ export function BlockRowShell({
   statusTone,
   side,
   children,
+  quiet = false,
 }: {
   id?: string;
   resolution: Resolution;
@@ -49,11 +51,20 @@ export function BlockRowShell({
   statusTone?: 'up-next' | 'planned';
   side?: ReactNode;
   children?: ReactNode;
+  /** Plan draws a block outside the owner's study and job kinds in meta ink (WI-141). */
+  quiet?: boolean;
 }) {
   return (
     <li
       id={id}
-      className={`agenda-row is-${resolution}${unresolved ? ' is-unresolved' : ''}${justDone ? ' is-just-done' : ''}${justAdded ? ' is-just-added' : ''}`}
+      className={cn(
+        `agenda-row is-${resolution}`,
+        unresolved && 'is-unresolved',
+        justDone && 'is-just-done',
+        justAdded && 'is-just-added',
+        quiet &&
+          'text-meta [&_.agenda-title]:font-normal [&_.agenda-title]:text-meta [&_.category-icon]:text-meta',
+      )}
     >
       <span className="agenda-time">{time}</span>
       <span className="agenda-dot" aria-hidden="true" />
