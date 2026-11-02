@@ -215,8 +215,17 @@ describe('the budget', () => {
     expect(costMicros({ prompt_tokens: 700, completion_tokens: 900 })).toEqual({
       input: 700,
       output: 900,
+      cached: 0,
       micros: 520,
     });
+    // WI-143: the tokens the prompt cache served, as OpenRouter reports them.
+    expect(
+      costMicros({
+        prompt_tokens: 700,
+        completion_tokens: 900,
+        prompt_tokens_details: { cached_tokens: 600 },
+      }).cached,
+    ).toBe(600);
     expect(
       costMicros({ prompt_tokens: 700, completion_tokens: 900, cost: 0.000612 })
         .micros,

@@ -23,6 +23,7 @@ import { AGENT_NAME } from './constants';
 import {
   dictationError,
   SILENCE_MS,
+  TALK_SILENCE_MS,
   speakableLines,
   TALK_SEND_MS,
   talkNext,
@@ -127,7 +128,7 @@ export function useComposerVoice({
       setError('');
       ended.current = done;
       base.current = text;
-      d.start();
+      d.start(TALK_SILENCE_MS);
     },
     /** What dictation filled, for the message's voice mark; cleared after a send. */
     take: () => {

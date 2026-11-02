@@ -54,6 +54,26 @@ export function useVoices(prefix = 'en') {
   return voices;
 }
 
+type VoiceLike = { name: string; lang: string; localService: boolean };
+/**
+ * The voice to read with (WI-143): one on the device before a network one, so the words never
+ * leave it; then the exact language before a neighbour (an Indian voice says Indian names and
+ * Hinglish right); then a "Premium", "Enhanced", "Natural" or "Neural" voice, which sounds far
+ * less robotic than the compact one.
+ */
+export function pickVoice<V extends VoiceLike>(voices: V[], lang: string) {
+  const prefix = lang.slice(0, 2).toLowerCase();
+  const score = (v: V) =>
+    (v.localService ? 100 : 0) +
+    (v.lang.toLowerCase() === lang.toLowerCase() ? 20 : 0) +
+    (/premium|enhanced|natural|neural/i.test(v.name) ? 10 : 0);
+  return (
+    voices
+      .filter((v) => v.lang.toLowerCase().startsWith(prefix))
+      .sort((a, b) => score(b) - score(a))[0] ?? null
+  );
+}
+
 /**
  * Reads lines aloud one after another with the device's voice; `stop` cancels at once and a
  * line that ends after Stop never starts the next. Cancelled on unmount. `onDone` runs when
@@ -89,9 +109,7 @@ export function useSpeaker(lang = 'en-IN') {
           return onDone?.();
         }
         const u = new SpeechSynthesisUtterance(lines[i]);
-        const v =
-          voices.find((x) => x.lang === lang) ??
-          voices.find((x) => x.lang.startsWith(lang.slice(0, 2)));
+        const v = pickVoice(voices, lang);
         if (v) u.voice = v;
         u.lang = v?.lang ?? lang;
         u.onend = () => say(i + 1);
@@ -148,43 +166,46 @@ export function useDictation({
     setListening(false);
   }, []);
   useEffect(() => cancel, [cancel]);
-  const start = useCallback(() => {
-    const Ctor = recognitionCtor();
-    if (!Ctor) return onError('unsupported');
-    rec.current?.abort();
-    const r = new Ctor();
-    r.lang = lang;
-    r.continuous = false;
-    r.interimResults = true;
-    let heard = '';
-    r.onresult = (e) => {
-      let interim = '';
-      for (let i = e.resultIndex; i < e.results.length; i++) {
-        const res = e.results[i];
-        if (res.isFinal) heard += res[0].transcript;
-        else interim += res[0].transcript;
+  const start = useCallback(
+    (pause = silenceMs) => {
+      const Ctor = recognitionCtor();
+      if (!Ctor) return onError('unsupported');
+      rec.current?.abort();
+      const r = new Ctor();
+      r.lang = lang;
+      r.continuous = false;
+      r.interimResults = true;
+      let heard = '';
+      r.onresult = (e) => {
+        let interim = '';
+        for (let i = e.resultIndex; i < e.results.length; i++) {
+          const res = e.results[i];
+          if (res.isFinal) heard += res[0].transcript;
+          else interim += res[0].transcript;
+        }
+        onText(heard.trim(), interim.trim());
+        clear();
+        timer.current = setTimeout(() => r.stop(), pause);
+      };
+      r.onerror = (e) => onError(e.error);
+      r.onend = () => {
+        clear();
+        // Cancelled (or replaced): its words are dropped, not handed on.
+        if (rec.current !== r) return;
+        rec.current = null;
+        setListening(false);
+        onEnd?.(heard.trim());
+      };
+      rec.current = r;
+      setListening(true);
+      try {
+        r.start();
+      } catch {
+        setListening(false);
+        onError('start');
       }
-      onText(heard.trim(), interim.trim());
-      clear();
-      timer.current = setTimeout(() => r.stop(), silenceMs);
-    };
-    r.onerror = (e) => onError(e.error);
-    r.onend = () => {
-      clear();
-      // Cancelled (or replaced): its words are dropped, not handed on.
-      if (rec.current !== r) return;
-      rec.current = null;
-      setListening(false);
-      onEnd?.(heard.trim());
-    };
-    rec.current = r;
-    setListening(true);
-    try {
-      r.start();
-    } catch {
-      setListening(false);
-      onError('start');
-    }
-  }, [lang, silenceMs, onText, onError, onEnd]);
+    },
+    [lang, silenceMs, onText, onError, onEnd],
+  );
   return { listening, start, stop, cancel };
 }

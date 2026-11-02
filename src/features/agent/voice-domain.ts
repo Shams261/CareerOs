@@ -19,6 +19,8 @@ export const readVoiceLang = (v: unknown): VoiceLang =>
   VOICE_LANGS.some(([code]) => code === v) ? (v as VoiceLang) : 'en-IN';
 /** Dictation stops after this long without a new word. */
 export const SILENCE_MS = 2000;
+/** Talk ends a turn sooner (WI-143): a conversation should not wait. */
+export const TALK_SILENCE_MS = 1500;
 
 /** How long Talk shows what it heard before it sends it; Edit or Stop within it keeps it. */
 export const TALK_SEND_MS = 2000;

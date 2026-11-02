@@ -10,7 +10,7 @@ If CLAUDE.md conflicts with the implementation, schema, tests, migrations or an 
 
 ## Current state
 
-- Latest completed work item: **WI-142** (Talk with Rumi, 2026-11-02, no migration, ADR-030 amended by the owner's choice: the composer's Talk button listens, shows what was heard for two seconds with Edit and Send now, sends it, reads the answer aloud and listens again until Stop or a turn with nothing heard (`useTalk`, `talkNext`, `TALK_SEND_MS`); without voice consent the composer points to Settings → Voice). Before it, WI-141 (a calmer screen), WI-140 (an index and no unused exports), WI-139 (code hardening), WI-138 (ops and truth), WI-137 (Tailwind for new UI), WI-135 and WI-136 (four small CSS Modules), WI-120 to WI-134 (the audit's cleanup, 2026-11-02) and WI-099 to WI-119 Rumi 2 and 3 (2026-11-01).
+- Latest completed work item: **WI-143** (Rumi as a conversation, and prompt caching, 2026-11-02, no migration, ADR-022 and ADR-030 amended: the chat prompt adds a study partner for concepts, interview questions and decisions, with replies up to 3,000 tokens and short spoken answers for voice messages; `withClock` puts the time on the latest question and `withCacheMarks` marks the system prompt and that question as `cache_control` blocks, so rounds and messages within five minutes read the prefix at a tenth; `costMicros` reports `cached`; Talk ends a turn after 1.5 s; `pickVoice` reads with the device's best local voice for the language). Before it, WI-142 (Talk with Rumi), WI-141 (a calmer screen), WI-140 (an index and no unused exports), WI-139 (code hardening), WI-138 (ops and truth), WI-137 (Tailwind for new UI), WI-135 and WI-136 (four small CSS Modules), WI-120 to WI-134 (the audit's cleanup, 2026-11-02) and WI-099 to WI-119 Rumi 2 and 3 (2026-11-01).
 - Live at https://usesilsila.me since 2026-10-20 (Render + Supabase, ADR-014). Latest migration: `20261107000000_time_block_plan_index` (WI-140).
 - Phase: two weeks of owner UAT of Rumi 2 and 3 with the plan's measures, then the owner's monthly AI limit and hosting choices. Proposed next work items are in `output/Silsila-Full-Audit.pdf` (not committed).
 - History: every work item has an entry in `CHANGELOG.md` (cut into versions); the last ten handoffs are in `docs/`, older ones under the tag (`docs/HISTORY.md`). What each feature does and where it lives: `docs/architecture/features.md`.
@@ -174,7 +174,7 @@ State as of 2026-10-20: **Silsila is live at https://usesilsila.me** on a Render
 - Schema: `prisma/schema.prisma`; migrations: `prisma/migrations/`
 - Architecture, features and decisions: `docs/architecture/overview.md`, `docs/architecture/features.md`, `docs/architecture/decisions.md`, `docs/architecture/rumi-2.md`
 - Handbook index: `docs/README.md`; history and the archive tag: `docs/HISTORY.md`; changelog: `CHANGELOG.md`
-- Handoffs: the last ten in `docs/` (latest `docs/WI-142-HANDOFF.md`); the Rumi 2 and 3 plan: `docs/product/rumi2-plan.md`
+- Handoffs: the last ten in `docs/` (latest `docs/WI-143-HANDOFF.md`); the Rumi 2 and 3 plan: `docs/product/rumi2-plan.md`
 - Security: `docs/engineering/security.md`, `SECURITY.md`; operations: `docs/engineering/operations.md`; backups: `docs/engineering/backup-restore.md`
 - Brand and design principles: `docs/product/brand-system.md`
 - Contributing rules: `CONTRIBUTING.md`

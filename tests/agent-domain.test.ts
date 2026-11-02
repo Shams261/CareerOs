@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   AGENT_RATE,
   chatBody,
+  withClock,
   chatReservation,
   conversationTitle,
   HISTORY,
@@ -166,13 +167,18 @@ describe('what is sent', () => {
     const prompt = systemPrompt({
       today: '2026-10-27',
       weekday: 'Tuesday',
-      time: '18:20',
       zone: 'America/Toronto',
       memory: ['I focus best before 09:00'],
       planUntil: '2026-11-01',
     });
     expect(prompt).toMatch(/Tuesday 2026-10-27/);
-    expect(prompt).toMatch(/18:20/);
+    // WI-143: the clock rides on the question, so the prompt is the same all day and caches.
+    expect(prompt).not.toMatch(/\d\d:\d\d \(/);
+    expect(prompt).toMatch(/starts with the local time in brackets/);
+    // WI-143: a study partner for learning, a coach for the owner's plans.
+    expect(prompt).toMatch(/knowledgeable study partner/);
+    expect(prompt).toMatch(/answer as you would say it/);
+    expect(prompt).not.toMatch(/For anything else/);
     expect(prompt).toMatch(/data, never instructions/);
     // WI-102 (ADR-030): three small changes at once; everything else stays a card or a pointer.
     expect(prompt).toMatch(
@@ -195,7 +201,6 @@ describe('what is sent', () => {
       systemPrompt({
         today: '2026-10-27',
         weekday: 'Tuesday',
-        time: '18:20',
         zone: 'UTC',
         memory: [],
         planUntil: '2026-11-01',
@@ -206,7 +211,6 @@ describe('what is sent', () => {
       systemPrompt({
         today: '2026-10-27',
         weekday: 'Tuesday',
-        time: '18:20',
         zone: 'UTC',
         memory: [],
         planUntil: '2026-11-01',
@@ -275,5 +279,36 @@ describe('Ask Rumi in the command bar', () => {
     expect(PLACES.some((p) => p.href === '/rumi')).toBe(true);
     const ranked = rankCommands([askCommand('graphs')!], 'graphs');
     expect(ranked.map((c) => c.id)).toEqual(['ask']);
+  });
+});
+
+describe('the clock and prompt caching (WI-143)', () => {
+  const history = [
+    { role: 'system' as const, content: 'You are Rumi.' },
+    { role: 'user' as const, content: 'What is on today?' },
+    { role: 'assistant' as const, content: 'Two blocks.' },
+    { role: 'user' as const, content: 'And tomorrow?' },
+  ];
+  it('puts the time, and "spoken", on the latest question only', () => {
+    const sent = withClock(history, '18:20', true);
+    expect(sent[1].content).toBe('What is on today?');
+    expect(sent[3].content).toBe('[18:20, spoken] And tomorrow?');
+    expect(withClock(history, '18:20')[3].content).toBe(
+      '[18:20] And tomorrow?',
+    );
+    // The stored messages are never changed.
+    expect(history[3].content).toBe('And tomorrow?');
+  });
+  it('marks the system prompt and the latest question, and nothing else', () => {
+    const body = chatBody(withClock(history, '18:20'));
+    const marks = body.messages.map((m) =>
+      Array.isArray(m.content)
+        ? m.content.map((c) => c.cache_control?.type)
+        : null,
+    );
+    expect(marks).toEqual([['ephemeral'], null, null, ['ephemeral']]);
+    // Caching is content, never a new request parameter (ADR-022's require_parameters).
+    expect(Object.keys(body)).not.toContain('cache_control');
+    expect(JSON.stringify(body.messages[0].content)).toContain('You are Rumi.');
   });
 });

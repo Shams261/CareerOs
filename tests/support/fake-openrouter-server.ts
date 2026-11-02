@@ -411,6 +411,13 @@ createServer(async (req, res) => {
       tools?: unknown[];
       tool_choice?: string;
     };
+    // WI-143: a message cached by Rumi arrives as content blocks; read it as its text.
+    body.messages = body.messages.map((m) => ({
+      ...m,
+      content: Array.isArray(m.content)
+        ? (m.content as { text?: string }[]).map((p) => p.text ?? '').join('')
+        : m.content,
+    }));
     const plugins = (body as { plugins?: { id: string }[] }).plugins;
     if (plugins?.some((p) => p.id === 'web')) {
       // A search (WI-042): a short summary citing three generic pages, one on the company's site.

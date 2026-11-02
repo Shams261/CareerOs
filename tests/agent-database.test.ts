@@ -487,13 +487,18 @@ describe.skipIf(!url)('Ask Rumi (PostgreSQL)', () => {
       );
     const last = r.chats().at(-1)!.body!.messages as {
       role: string;
-      content: string;
+      content: string | { text: string; cache_control?: unknown }[];
     }[];
+    // WI-143: the system prompt and the latest question go as cached blocks.
+    const text = (c: (typeof last)[number]['content']) =>
+      typeof c === 'string' ? c : c.map((p) => p.text).join('');
     expect(last).toHaveLength(13);
-    expect(last[0].content).toMatch(/- Preference: Rest day is Saturday/);
+    expect(text(last[0].content)).toMatch(/- Preference: Rest day is Saturday/);
     expect(last[1]).toEqual({ role: 'assistant', content: 'Done.' });
     expect(last[2]).toEqual({ role: 'user', content: 'q2' });
-    expect(last.at(-1)).toEqual({ role: 'user', content: 'q7' });
+    // The latest question carries the clock, as sent, never as stored.
+    expect(last.at(-1)!.role).toBe('user');
+    expect(text(last.at(-1)!.content)).toMatch(/^\[\d\d:\d\d\] q7$/);
     await expect(
       sendMessage(
         other,
