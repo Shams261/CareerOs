@@ -3,7 +3,6 @@ import Link from 'next/link';
 import { cookies } from 'next/headers';
 import { ArrowRight, CalendarClock, Check, Circle, Plus } from 'lucide-react';
 import { FeedbackOutlet } from '@/components/feedback-outlet';
-import { db } from '@/server/db';
 import { formatInTimeZone } from 'date-fns-tz';
 import type { ScheduleUser } from '@/server/lock';
 import { BlockForm, RoutineForm } from '@/features/schedule/forms';
@@ -16,6 +15,7 @@ import { nextSlot } from './domain';
 import { dayPart } from './daily-line';
 import { DailyLine } from './daily-line-card';
 import { PanelButton, SidePanel } from './panels';
+import { hasLearningFocus } from './reads';
 
 /**
  * Today for an empty account (WI-065, ADR-027): one welcoming action, three optional steps
@@ -40,13 +40,7 @@ export async function FirstRunToday({
   const [hidden, focus] = await Promise.all([
     cookies().then((c) => !!c.get(FIRST_STEPS_COOKIE)),
     // A learning focus: any roadmap item or practice problem the owner has begun.
-    Promise.all([
-      db().roadmapItem.count({
-        where: { userId: user.id, status: { not: 'NOT_STARTED' } },
-        take: 1,
-      }),
-      db().dsaAttempt.count({ where: { userId: user.id }, take: 1 }),
-    ]).then(([items, attempts]) => items + attempts > 0),
+    hasLearningFocus(user),
   ]);
   const { steps, done } = firstSteps({
     hasGoal: goals.some((g) => g.status === 'ACTIVE'),

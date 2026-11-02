@@ -56,9 +56,9 @@ describe('module boundaries (WI-123)', () => {
     expect(offenders).toEqual([]);
   });
 
-  it('pages read through loaders, never the database directly (WI-129)', () => {
+  it('pages and components read through loaders, never the database directly (WI-129, WI-130)', () => {
     const direct = [...files.keys()]
-      .filter((f) => rel(f).startsWith('app/') && /\/page\.tsx$/.test(f))
+      .filter((f) => f.endsWith('.tsx'))
       .filter((f) => /\bdb\(\)/.test(files.get(f) ?? ''))
       .map(rel);
     expect(direct).toEqual([]);

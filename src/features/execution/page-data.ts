@@ -28,3 +28,32 @@ export const focusBlock = (user: ScheduleUser, blockId: string) =>
       },
     },
   });
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+/**
+ * The shell's session card (WI-068, WI-130): the running session, else the one that ended last
+ * within a day, with its block and that block's finished sessions. One statement.
+ */
+export const latestSession = (userId: string, now: Date) =>
+  db().actualSession.findFirst({
+    where: {
+      userId,
+      OR: [{ endedAt: null }, { endedAt: { gte: new Date(+now - DAY_MS) } }],
+    },
+    orderBy: { endedAt: { sort: 'desc', nulls: 'first' } },
+    include: {
+      task: {
+        select: {
+          id: true,
+          title: true,
+          status: true,
+          plannedStart: true,
+          plannedEnd: true,
+          sessions: {
+            where: { endedAt: { not: null } },
+            select: { startedAt: true, endedAt: true },
+          },
+        },
+      },
+    },
+  });

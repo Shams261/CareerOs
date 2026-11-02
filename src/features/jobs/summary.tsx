@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { db } from '@/server/db';
+import { interviewMentions } from './page-data';
 
 /** Read-only backlink from learning/DSA pages to interview prep and weak areas that reference them. */
 export async function InterviewMentions({
@@ -11,16 +11,7 @@ export async function InterviewMentions({
   learningTopicId?: string;
   dsaProblemId?: string;
 }) {
-  const items = await db().interviewPrepItem.findMany({
-    where: {
-      userId,
-      round: { userId },
-      ...(learningTopicId ? { learningTopicId } : { dsaProblemId }),
-    },
-    include: { round: { include: { application: true } } },
-    orderBy: { createdAt: 'desc' },
-    take: 20,
-  });
+  const items = await interviewMentions(userId, learningTopicId, dsaProblemId);
   if (!items.length) return null;
   return (
     <section className="card" aria-label="Interview mentions">

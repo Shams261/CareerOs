@@ -7,7 +7,6 @@ import { Calendar, Unplug } from 'lucide-react';
 import { DisconnectForm } from './disconnect-form';
 import type { ScheduleUser } from '@/server/lock';
 import { calendarConfig } from '@/lib/env';
-import { db } from '@/server/db';
 import {
   categoriesAction,
   connectCalendarAction,
@@ -28,6 +27,7 @@ import {
 import { categoryKey } from '@/lib/categories';
 import { categoryGroup } from '@/lib/categories';
 import { ArrowRight } from 'lucide-react';
+import { blockCategories, syncWindowBlocks } from './reads';
 
 const statusText = {
   DISCONNECTED: 'Disconnected',
@@ -81,17 +81,7 @@ export async function GoogleCalendarPanel({
       </>
     );
   const connected = conn && conn.status !== 'DISCONNECTED';
-  const blocks = connected
-    ? await db().timeBlock.findMany({
-        where: {
-          dailyPlan: { userId: user.id },
-          plannedEnd: { gte: new Date(+now - SYNC_WINDOW.pastDays * 86400000) },
-          plannedStart: {
-            lte: new Date(+now + SYNC_WINDOW.futureDays * 86400000),
-          },
-        },
-      })
-    : [];
+  const blocks = connected ? await syncWindowBlocks(user.id, now) : [];
   const views = blocks.map((b) =>
     blockSyncView(b, conn?.calendarId ?? null, conn?.excludedCategories ?? []),
   );
@@ -111,13 +101,7 @@ export async function GoogleCalendarPanel({
             : 'Healthy';
   const categories = [
     ...new Set(
-      (
-        await db().timeBlock.findMany({
-          where: { dailyPlan: { userId: user.id } },
-          select: { category: true },
-          distinct: ['category'],
-        })
-      ).map((b) => categoryKey(b.category)),
+      (await blockCategories(user.id)).map((b) => categoryKey(b.category)),
     ),
   ].sort();
   const excluded = (conn?.excludedCategories ?? []).map(categoryKey);
