@@ -488,3 +488,14 @@ export async function markPresent(userId: string, now = new Date()) {
     data: { lastActiveAt: now },
   });
 }
+
+/** Which Study nudges are on, for the card that offers them when none is (WI-060, WI-130). */
+export const nudgeModes = (userId: string) =>
+  db().studyNudgeSetting.findUnique({
+    where: { userId },
+    select: {
+      morningEnabled: true,
+      eveningEnabled: true,
+      blockStartEnabled: true,
+    },
+  });

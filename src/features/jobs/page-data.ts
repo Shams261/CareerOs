@@ -177,3 +177,20 @@ export async function applicationPage(
 export type ApplicationView = NonNullable<
   Awaited<ReturnType<typeof applicationPage>>
 >;
+
+/** Prep items and weak areas that point at a learning topic or a problem (WI-130). */
+export const interviewMentions = (
+  userId: string,
+  learningTopicId?: string,
+  dsaProblemId?: string,
+) =>
+  db().interviewPrepItem.findMany({
+    where: {
+      userId,
+      round: { userId },
+      ...(learningTopicId ? { learningTopicId } : { dsaProblemId }),
+    },
+    include: { round: { include: { application: true } } },
+    orderBy: { createdAt: 'desc' },
+    take: 20,
+  });

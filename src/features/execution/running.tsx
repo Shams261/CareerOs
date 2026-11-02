@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { db, owner } from '@/server/db';
+import { owner } from '@/server/db';
 import { ActionForm } from '@/components/action-form';
 import {
   executionAction,
@@ -13,8 +13,7 @@ import { PipHost, type PipSession } from './pip';
 import { TitleClock } from './title-clock';
 import { categoryGroup } from '@/lib/categories';
 import { Button } from '@/components/ui/button';
-
-const DAY_MS = 24 * 60 * 60 * 1000;
+import { latestSession } from './page-data';
 
 /**
  * The running or paused session, shown in the shell on every page so it is never lost
@@ -25,28 +24,7 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 export async function RunningNow() {
   const user = await owner();
   const now = new Date();
-  const latest = await db().actualSession.findFirst({
-    where: {
-      userId: user.id,
-      OR: [{ endedAt: null }, { endedAt: { gte: new Date(+now - DAY_MS) } }],
-    },
-    orderBy: { endedAt: { sort: 'desc', nulls: 'first' } },
-    include: {
-      task: {
-        select: {
-          id: true,
-          title: true,
-          status: true,
-          plannedStart: true,
-          plannedEnd: true,
-          sessions: {
-            where: { endedAt: { not: null } },
-            select: { startedAt: true, endedAt: true },
-          },
-        },
-      },
-    },
-  });
+  const latest = await latestSession(user.id, now);
   const task = latest?.task ?? null;
   const running = latest && !latest.endedAt ? latest : null;
   // Paused (WI-067): the last session ended, its block is still planned and its slot open.

@@ -1,10 +1,10 @@
 import Link from 'next/link';
 import { cookies } from 'next/headers';
 import { BellOff } from 'lucide-react';
-import { db } from '@/server/db';
 import type { ScheduleUser } from '@/server/lock';
 import { NUDGES_CARD_COOKIE } from './domain';
 import { DismissNudgesCard } from './off-card-dismiss';
+import { nudgeModes } from './service';
 
 /**
  * One card on Today while every study nudge is off (WI-060): the morning plan, the block-start
@@ -13,14 +13,7 @@ import { DismissNudgesCard } from './off-card-dismiss';
  */
 export async function NudgesOffCard({ user }: { user: ScheduleUser }) {
   if ((await cookies()).get(NUDGES_CARD_COOKIE)) return null;
-  const s = await db().studyNudgeSetting.findUnique({
-    where: { userId: user.id },
-    select: {
-      morningEnabled: true,
-      eveningEnabled: true,
-      blockStartEnabled: true,
-    },
-  });
+  const s = await nudgeModes(user.id);
   if (s && (s.morningEnabled || s.eveningEnabled || s.blockStartEnabled))
     return null;
   return (

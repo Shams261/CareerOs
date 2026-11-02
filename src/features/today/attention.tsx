@@ -8,12 +8,12 @@ import { revisionDue } from '@/features/roadmap/service';
 import { weeklyReviewOpen } from '@/features/review/service';
 import type { ScheduleUser } from '@/server/lock';
 import { dayKey } from '@/lib/time';
-import { db } from '@/server/db';
 import { attentionItems, type RoundLike } from './domain';
 import { AttentionPages, AttentionRow } from './attention-rows';
 import { PanelButton, SidePanel } from './panels';
 import { noticedFor } from '@/features/noticed/service';
 import { NoticedRows } from '@/features/noticed/rows';
+import { attentionReminders } from './reads';
 
 const PREVIEW = 5;
 /** Phones show two rows; the label says so (CSS picks the right one). */
@@ -47,23 +47,7 @@ export async function Attention({
       revisionDue(user, now),
       dsaSnapshot(user),
       weeklyReviewOpen(user, now),
-      db().notificationLog.findMany({
-        where: {
-          userId: user.id,
-          readAt: null,
-          scheduledFor: { lte: now },
-          // Study nudges have their own card on Today (WI-028).
-          type: { notIn: ['STUDY_MORNING', 'STUDY_EVENING', 'STUDY_BLOCK'] },
-        },
-        orderBy: { scheduledFor: 'desc' },
-        select: {
-          id: true,
-          type: true,
-          title: true,
-          scheduledFor: true,
-          dedupeKey: true,
-        },
-      }),
+      attentionReminders(user, now),
       // Rumi noticed (WI-043): at most two facts, above the queue.
       noticedFor(user, now),
     ]);
