@@ -10,7 +10,7 @@ If CLAUDE.md conflicts with the implementation, schema, tests, migrations or an 
 
 ## Current state
 
-- Latest completed work item: **WI-123** (the kernel and module boundaries, 2026-11-02, no migration: shared rules moved out of features into `src/lib/day.ts`, `categories.ts`, `copy.ts` and `src/server/lock.ts`; Rumi's client-safe words in `agent/constants.ts`, `text.ts`, `card-rules.ts`, input schemas in `page-schema.ts` and `voice-schema.ts`; `lib/time.ts` without Zod; 24 unused exports removed; `tests/boundaries.test.ts`). Before it, WI-120 to WI-122 (repo cleanup, ops safety, the action runner, 2026-11-02) and WI-099 to WI-119 Rumi 2 and 3 (2026-11-01).
+- Latest completed work item: **WI-124** (dead CSS removed, 2026-11-02, no migration: 97 rules and 48 class names that no code used left `globals.css` (10,352 → 9,892 lines), every page's computed styles unchanged at 1440 and 390; `tests/css-dead.test.ts` fails on a class the code never uses). Before it, WI-120 to WI-123 (repo cleanup, ops safety, the action runner, the kernel, 2026-11-02) and WI-099 to WI-119 Rumi 2 and 3 (2026-11-01).
 - Live at https://usesilsila.me since 2026-10-20 (Render + Supabase, ADR-014). Latest migration: `20261106000000_owner_ai_limit` (WI-114).
 - Phase: two weeks of owner UAT of Rumi 2 and 3 with the plan's measures, then the owner's monthly AI limit and hosting choices. Proposed next work items are in `output/Silsila-Full-Audit.pdf` (not committed).
 - History: every work item has an entry in `CHANGELOG.md` (cut into versions); the last ten handoffs are in `docs/`, older ones under the tag (`docs/HISTORY.md`). What each feature does and where it lives: `docs/architecture/features.md`.
@@ -165,14 +165,14 @@ State as of 2026-10-20: **Silsila is live at https://usesilsila.me** on a Render
 
 ## Current next step
 
-**Two weeks of UAT** of Rumi 2 and 3 with the plan's measures (rated lines and the fallback share, writes kept versus undone, cards applied versus dismissed, messages by voice, drafts and mocks used); the owner sets the monthly AI limit as they like (none by default, never a hard-coded cap). Owner steps still open: rate ten Rumi lines before turning the afternoon line on, Settings → Voice → Check this device on the iPhone tab and Home Screen app, delete the orphan test events in the Silsila Google calendar, check push and Safari on a real iPhone. The full audit of 2026-11-02 proposed the next items: WI-120 repo cleanup, WI-121 ops safety, WI-122 the action runner and WI-123 the kernel are done; owner steps from WI-121 are the `CRON_SECRET` repository secret and an external monitor. Next proposed: CSS cleanup, page loaders (review, application, Settings), splitting the calendar and jobs services; each starts only when the owner says so. One work item at a time; a migration is applied to the personal database before its merge.
+**Two weeks of UAT** of Rumi 2 and 3 with the plan's measures (rated lines and the fallback share, writes kept versus undone, cards applied versus dismissed, messages by voice, drafts and mocks used); the owner sets the monthly AI limit as they like (none by default, never a hard-coded cap). Owner steps still open: rate ten Rumi lines before turning the afternoon line on, Settings → Voice → Check this device on the iPhone tab and Home Screen app, delete the orphan test events in the Silsila Google calendar, check push and Safari on a real iPhone. The full audit of 2026-11-02 proposed the next items: WI-120 repo cleanup, WI-121 ops safety, WI-122 the action runner, WI-123 the kernel and WI-124 the dead CSS are done; owner steps from WI-121 are the `CRON_SECRET` repository secret and an external monitor. Next proposed: page loaders (review, application, Settings), regrouping `globals.css` by component (then CSS Modules, the owner's choice against Tailwind), splitting the calendar and jobs services; each starts only when the owner says so. One work item at a time; a migration is applied to the personal database before its merge.
 
 ## Where to look for details
 
 - Schema: `prisma/schema.prisma`; migrations: `prisma/migrations/`
 - Architecture, features and decisions: `docs/architecture/overview.md`, `docs/architecture/features.md`, `docs/architecture/decisions.md`, `docs/architecture/rumi-2.md`
 - Handbook index: `docs/README.md`; history and the archive tag: `docs/HISTORY.md`; changelog: `CHANGELOG.md`
-- Handoffs: the last ten in `docs/` (latest `docs/WI-123-HANDOFF.md`); the Rumi 2 and 3 plan: `docs/product/rumi2-plan.md`
+- Handoffs: the last ten in `docs/` (latest `docs/WI-124-HANDOFF.md`); the Rumi 2 and 3 plan: `docs/product/rumi2-plan.md`
 - Security: `docs/engineering/security.md`, `SECURITY.md`; operations: `docs/engineering/operations.md`; backups: `docs/engineering/backup-restore.md`
 - Brand and design principles: `docs/product/brand-system.md`
 - Contributing rules: `CONTRIBUTING.md`

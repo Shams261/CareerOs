@@ -103,24 +103,6 @@ h3 {
   font-size: 13px;
   line-height: 1.7;
 }
-.hero {
-  background: var(--primary);
-  color: var(--on-primary);
-  border-radius: var(--radius-xl);
-  padding: var(--space-8);
-  margin: var(--space-6) 0;
-  display: flex;
-  justify-content: space-between;
-  gap: 20px;
-}
-.hero .muted,
-.hero .eyebrow {
-  color: inherit;
-}
-.hero h2 {
-  font-size: 25px;
-  margin: 10px 0;
-}
 .grid-main {
   display: grid;
   grid-template-columns: minmax(0, 1.8fr) minmax(260px, 1fr);
@@ -238,9 +220,6 @@ h3 {
   color: var(--muted);
   line-height: 1.7;
 }
-.table-wrap {
-  overflow: auto;
-}
 table {
   border-collapse: collapse;
   width: 100%;
@@ -317,10 +296,6 @@ input[type='time'] {
   }
   .content {
     padding: 22px 18px;
-  }
-  .hero {
-    padding: 23px;
-    display: block;
   }
   .block {
     grid-template-columns: 80px 1fr;
@@ -419,13 +394,6 @@ input[type='checkbox'] {
   max-height: 300px;
   overflow: auto;
 }
-.execution-block {
-  padding: 24px 0;
-  border-top: 1px solid var(--border);
-}
-.execution-block:first-of-type {
-  border-top: 0;
-}
 summary {
   cursor: pointer;
   font-size: 13px;
@@ -439,16 +407,6 @@ details[open] > summary {
 .routine-row {
   padding: 16px 0;
   border-top: 1px solid var(--border);
-}
-.hero input {
-  color: var(--foreground);
-}
-.hero .button:not(.secondary) {
-  background: var(--on-primary);
-  color: var(--primary);
-}
-.hero .button.secondary {
-  background: var(--surface);
 }
 @media (max-width: 700px) {
   .form-grid {
@@ -473,11 +431,6 @@ details[open] > summary {
   grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
   gap: 1rem;
   align-items: end;
-}
-.dsa-list {
-  list-style: decimal;
-  padding-left: 1.25rem;
-  margin: 1rem 0;
 }
 
 .dsa-form fieldset {
@@ -724,12 +677,6 @@ summary {
 .today-focus {
   border-top: 3px solid var(--primary);
 }
-.editorial-heading {
-  font-family: var(--font-display), Georgia, serif;
-  font-weight: 600;
-  font-size: clamp(36px, 4vw, 48px);
-  letter-spacing: -0.025em;
-}
 .login-shell {
   min-height: 100vh;
   display: grid;
@@ -789,9 +736,6 @@ summary {
   }
   .brand-name-fallback {
     font-size: 22px;
-  }
-  .brand-caption {
-    display: none;
   }
   .nav {
     gap: 4px;
@@ -963,9 +907,6 @@ summary {
 .block-origin {
   margin-top: 2px;
 }
-.execution-block .disclosure {
-  margin-top: 14px;
-}
 .recorded {
   font-size: 13px;
   color: var(--muted);
@@ -1037,11 +978,6 @@ summary {
   font-size: 13px;
   color: var(--muted);
 }
-.view-links a[aria-current='page'] {
-  color: var(--foreground);
-  font-weight: 600;
-  text-decoration: none;
-}
 .step-foot {
   display: flex;
   justify-content: flex-end;
@@ -1093,11 +1029,6 @@ summary {
 }
 
 /* WI-009 polish: timeline rail, today's column, inline skip reason. */
-.execution-block {
-  display: grid;
-  grid-template-columns: 96px minmax(0, 1fr);
-  gap: 0 20px;
-}
 .block-time {
   display: flex;
   flex-direction: column;
@@ -1124,10 +1055,6 @@ summary {
   font-size: 13px;
 }
 @media (max-width: 700px) {
-  .execution-block {
-    grid-template-columns: 1fr;
-    gap: 8px;
-  }
   .block-time {
     flex-direction: row;
     align-items: baseline;
@@ -1208,39 +1135,6 @@ summary {
 .goal-row .status-line {
   margin-top: 6px;
 }
-.roadmap-item {
-  display: grid;
-  grid-template-columns: 24px minmax(0, 1fr);
-  gap: 0 10px;
-  padding: 14px 0;
-  border-top: 1px solid var(--border-subtle);
-}
-.roadmap-item:first-child {
-  border-top: 0;
-}
-.roadmap-item.is-done .roadmap-mark {
-  color: var(--success);
-}
-.roadmap-item.is-in-progress .roadmap-mark {
-  color: var(--primary);
-}
-.roadmap-item.is-done .roadmap-title {
-  color: var(--muted);
-}
-.roadmap-title {
-  font-weight: 600;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px 10px;
-  align-items: center;
-}
-.roadmap-item .actions {
-  margin-top: 8px;
-}
-
-.roadmap-item .disclosure {
-  margin-top: 6px;
-}
 .running-now {
   padding: 10px 12px;
   border: 1px solid var(--primary);
@@ -1309,15 +1203,7 @@ summary {
   font-weight: 600;
   letter-spacing: 0.02em;
 }
-.kbd-hint {
-  font-size: 11px;
-  letter-spacing: 0.02em;
-  margin-left: 6px;
-}
 @media (max-width: 700px) {
-  .kbd-hint {
-    display: none;
-  }
   .running-now {
     grid-template-columns: 1fr auto;
     align-items: center;
@@ -1542,13 +1428,6 @@ summary {
 .nav-more {
   display: none;
 }
-.summary-line {
-  font-size: 14px;
-  color: var(--foreground);
-}
-.summary-line .pill {
-  margin-right: 2px;
-}
 @media (max-width: 700px) {
   .sidebar .nav {
     display: none;
@@ -1641,17 +1520,10 @@ summary {
   margin-bottom: 6px;
 }
 .card.flat .dsa-item:last-child,
-.card.flat .roadmap-item:last-child,
 .card.flat .note-row:last-child {
   border-bottom: 0;
 }
 /* Density: lists tighter than forms. */
-.roadmap-item {
-  padding: 10px 0;
-}
-.execution-block {
-  padding: 18px 0;
-}
 .learning-history {
   padding: 0.75rem 0;
 }
@@ -1659,13 +1531,6 @@ summary {
 .pill.cancelled {
   text-decoration: line-through;
   opacity: 0.75;
-}
-.execution-block.is-cancelled h3 {
-  text-decoration: line-through;
-  color: var(--muted);
-}
-.execution-block.is-green h3 {
-  color: var(--muted);
 }
 
 /* WI-011: shortcuts overlay, category glyphs, empty-state mark, reminder lines. */
@@ -1728,19 +1593,6 @@ kbd {
   color: var(--border-strong);
   margin-bottom: 14px;
 }
-.reminder-lines li {
-  display: grid;
-  gap: 2px;
-  padding: 10px 0;
-  border-bottom: 1px solid var(--border-subtle);
-}
-.reminder-lines li:last-child {
-  border-bottom: 0;
-}
-.reminder-lines li.is-off strong {
-  color: var(--muted);
-  font-weight: 500;
-}
 @media (prefers-reduced-motion: no-preference) {
   .shortcuts {
     animation: silsila-rise var(--motion-normal) var(--motion-easing) both;
@@ -1748,17 +1600,6 @@ kbd {
 }
 
 /* WI-012: the roadmap as the tracker. */
-.roadmap-toggles {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0 16px;
-}
-.roadmap-toggles > .disclosure {
-  flex-basis: auto;
-}
-.roadmap-toggles > .disclosure.is-open {
-  flex-basis: 100%;
-}
 
 .study-prompt {
   border-top: 1px solid var(--border-subtle);
@@ -1822,23 +1663,6 @@ kbd {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-}
-.note-form fieldset {
-  display: grid;
-  gap: 8px;
-  justify-items: start;
-}
-.note-form label {
-  width: 100%;
-  margin: 0;
-  font-size: 13px;
-  color: var(--muted);
-}
-.note-form textarea {
-  margin-top: 4px;
-  width: 100%;
-  box-sizing: border-box;
-  min-height: 0;
 }
 
 .item-actions-spacer {
@@ -2186,8 +2010,6 @@ a.problem-title:hover {
   }
 }
 
-/* Quick Done in the row: shown on hover and keyboard focus, always on phones. */
-
 /* Practice library: four aligned columns, grouped by pattern, paged. */
 .problem-table {
   display: grid;
@@ -2250,7 +2072,6 @@ a.problem-title:hover {
   font-size: 13px;
   white-space: nowrap;
 }
-.problem-cell-pattern,
 .problem-cell-level {
   font-size: 13px;
   overflow: hidden;
@@ -2420,26 +2241,6 @@ a.problem-title:hover {
 }
 
 /* Roadmap audit: progress bars, continue marker, done animation, panel order, keyboard focus. */
-.progress-bar {
-  display: flex;
-  height: 4px;
-  border-radius: 2px;
-  background: var(--subtle);
-  overflow: hidden;
-  width: 100%;
-  max-width: 220px;
-}
-.progress-done {
-  background: var(--success);
-}
-.progress-active {
-  background: var(--primary);
-  opacity: 0.6;
-}
-
-.roadmap-row-main .progress-bar {
-  margin-top: 6px;
-}
 .goal-pace {
   margin-top: 4px;
 }
@@ -2452,13 +2253,6 @@ a.problem-title:hover {
   font-size: 13px;
   display: grid;
   gap: 2px;
-}
-
-.pill-link {
-  text-decoration: none;
-}
-.pill-link:hover {
-  filter: brightness(0.95);
 }
 .item-icon {
   transition:
@@ -2544,7 +2338,6 @@ a.problem-title:hover {
 @media (pointer: coarse) {
   .button.small,
   .link-button,
-  .pill-link,
   .disclosure-link,
   .nav-more a {
     min-height: 44px;
@@ -2574,7 +2367,6 @@ h4 {
 .prep-item svg,
 .plain-list svg,
 .status-line svg,
-.setup-checklist svg,
 p svg,
 span > svg {
   display: inline-block;
@@ -2599,18 +2391,6 @@ span > svg {
 }
 
 /* WI-016: review leftovers. */
-.roadmap-row-due {
-  display: inline-block;
-  margin: 4px 0 8px;
-  font-size: 13px;
-}
-.row-title {
-  font-size: 15px;
-}
-.row-urgent {
-  color: var(--foreground);
-  font-weight: 600;
-}
 @media (max-width: 700px) {
   /* The running session is a one-line strip on a phone. */
   .running-now {
@@ -2664,63 +2444,6 @@ span > svg {
   border-color: var(--error) !important;
   box-shadow: 0 0 0 3px var(--error-bg);
 }
-.stage-steps-form fieldset {
-  border: 0;
-  padding: 0;
-  margin: 0;
-}
-.stage-steps {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  align-items: center;
-  padding: 6px;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-pill);
-  width: max-content;
-  max-width: 100%;
-}
-.stage-step {
-  font: 600 12px/1 var(--font-sans, inherit);
-  padding: 8px 12px;
-  border-radius: var(--radius-pill);
-  border: 1px solid transparent;
-  background: transparent;
-  color: var(--muted);
-  cursor: pointer;
-  min-height: 32px;
-}
-.stage-step.is-done {
-  color: var(--primary);
-}
-.stage-step.is-current {
-  background: var(--primary);
-  color: var(--on-primary);
-  cursor: default;
-}
-.stage-step:not(:disabled):hover {
-  background: var(--tint);
-  color: var(--primary);
-}
-.stage-steps-closed {
-  display: inline-flex;
-  gap: 4px;
-  margin-left: 6px;
-  padding-left: 8px;
-  border-left: 1px solid var(--border);
-}
-.stage-step.is-closed {
-  color: var(--muted);
-}
-.stage-step.is-closed:not(:disabled):hover {
-  background: var(--error-bg);
-  color: var(--error);
-}
-.stage-steps-form .form-success,
-.stage-steps-form .form-message {
-  margin-top: 8px;
-}
 /* Secondary block actions: inline on a desktop, behind "More" on a phone. */
 .exec-more-toggle {
   display: none;
@@ -2743,46 +2466,9 @@ span > svg {
     gap: 8px;
     width: 100%;
   }
-  .stage-steps {
-    border-radius: var(--radius-md);
-  }
 }
-/* The stage as one select at every width (WI-063). */
-.stage-select-form {
-  display: block;
-  max-width: 380px;
-}
-.stage-select-form fieldset {
-  display: flex;
-  align-items: end;
-  gap: 8px;
-  border: 0;
-  padding: 0;
-  margin: 0;
-}
-.stage-select {
-  display: grid;
-  gap: 4px;
-  flex: 1;
-  font-size: 13px;
-  font-weight: 600;
-}
-@media (max-width: 640px) {
-  .stage-steps-form {
-    display: none;
-  }
-  .stage-select-form {
-    display: block;
-  }
-}
-
 /* WI-017 (items 11–16): launcher, interview rows, roadmap panel order, application
    details, two-surface depth, optimistic rows and illustrated empties. */
-.execution-block.is-interview h3 .category-icon {
-  color: var(--info);
-  margin-right: 6px;
-  vertical-align: -0.15em;
-}
 .setup-illustration {
   color: var(--primary);
   margin-bottom: 10px;
@@ -2817,14 +2503,6 @@ span > svg {
   border-radius: var(--radius-md);
   background: var(--warning-bg);
   margin-bottom: 4px;
-}
-.next-action-main strong {
-  display: block;
-  font-size: 15px;
-}
-.next-action-main small {
-  font-size: 13px;
-  color: var(--ink-2);
 }
 .next-action.is-done {
   background: var(--success-bg);
@@ -3014,12 +2692,6 @@ span > svg {
   .settings-group {
     scroll-margin-top: 64px;
   }
-}
-
-/* WI-019: reminder timestamps and the search scope line. */
-.reminder-when {
-  font-size: 12px;
-  margin-top: 2px;
 }
 
 /* WI-020: Today as an agenda. Scoped to the Today workspace; other pages untouched. */
@@ -3265,17 +2937,6 @@ span > svg {
   font-size: 28px;
   letter-spacing: -0.01em;
   margin: 0;
-}
-.agenda-add > .disclosure-link {
-  font-size: 17px;
-  font-weight: 500;
-}
-.agenda-add > .disclosure-panel {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 14px;
-  padding: 18px 22px;
-  margin: 10px 0 14px;
 }
 .agenda-list {
   margin: 0;
@@ -3558,19 +3219,6 @@ span > svg {
   .button:not(.secondary) {
   background: var(--primary);
   color: var(--on-primary);
-}
-.skip-step {
-  display: inline-flex;
-  gap: 6px;
-  align-items: center;
-  flex-wrap: wrap;
-}
-.skip-step .reason {
-  width: 190px;
-  min-height: 30px;
-  margin: 0;
-  padding: 3px 10px;
-  font-size: 13px;
 }
 .agenda-cancelled {
   margin-top: 14px;
@@ -4142,7 +3790,6 @@ a.attention-link:hover .attention-title {
 
 /* WI-022: Jobs as moves. The list and the rail reuse Today's workspace and rows. */
 .jobs-workspace.is-today,
-.roadmap-workspace.is-today,
 .review-workspace.is-today {
   grid-template-areas: 'main rail';
   grid-template-columns: minmax(0, 1fr) 340px;
@@ -4163,12 +3810,6 @@ a.attention-link:hover .attention-title {
 }
 .jobs-main .attention-row:not(.is-urgent) .attention-context {
   color: var(--muted);
-}
-.application-stage {
-  white-space: nowrap;
-}
-.rail-head {
-  margin-top: 28px;
 }
 .rail-fact {
   margin: 4px 0 0;
@@ -4318,24 +3959,9 @@ a.attention-link:hover .attention-title {
   margin: 0 0 10px;
   font-size: 16px;
 }
-.contacts-list {
-  margin: 0;
-  display: grid;
-  gap: 6px;
-}
-.contacts-list dt {
-  font-size: 12px;
-  color: var(--muted);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-}
-.contacts-list dd {
-  margin: 0;
-}
 @media (max-width: 1099px) {
   /* One column: the list first, the rail after it (WI-096; the roadmap since WI-060). */
   .jobs-workspace.is-today,
-  .roadmap-workspace.is-today,
   .review-workspace.is-today {
     grid-template-columns: minmax(0, 1fr);
     grid-template-areas: 'main' 'rail';
@@ -4344,9 +3970,6 @@ a.attention-link:hover .attention-title {
 @media (max-width: 700px) {
   .jobs-main .attention-link {
     grid-template-columns: 48px minmax(0, 1fr) 18px;
-  }
-  .application-stage {
-    display: none;
   }
   .round-row {
     grid-template-columns: 48px minmax(0, 1fr);
@@ -4373,25 +3996,6 @@ a.attention-link:hover .attention-title {
 }
 
 /* WI-023: Roadmap as rows. Counts are records; no bars. */
-.roadmap-workspace .attention-link {
-  grid-template-columns: 48px minmax(0, 1fr) auto 18px;
-}
-.roadmap-counts {
-  display: grid;
-  gap: 2px;
-  text-align: right;
-  font-size: 13px;
-  color: var(--muted);
-  font-variant-numeric: tabular-nums;
-  white-space: nowrap;
-}
-.roadmap-counts .is-due {
-  color: var(--warning-text);
-  font-weight: 600;
-}
-.roadmap-workspace .empty-state {
-  margin: 12px 0 0;
-}
 
 .today-summary > span + span::before {
   content: ' · ';
@@ -4402,14 +4006,6 @@ a.attention-link:hover .attention-title {
   }
   .today-summary > span + span::before {
     content: none;
-  }
-}
-@media (max-width: 700px) {
-  .roadmap-workspace .attention-link {
-    grid-template-columns: 48px minmax(0, 1fr) 18px;
-  }
-  .roadmap-counts {
-    display: none;
   }
 }
 
@@ -5098,9 +4694,6 @@ button.attention-link {
 }
 
 /* Practice drills (WI-030): Which Pattern? and Watch It Run. */
-.page-head .page-head-link {
-  margin-left: auto;
-}
 .drill-card {
   display: grid;
   gap: 14px;
@@ -6576,29 +6169,11 @@ button.attention-link {
   margin-top: 6px;
   font-size: 13px;
 }
-/* Under the first-run card, the same reading width. */
-.setup-first-run {
-  max-width: var(--reading-max);
-}
-
-/* Study aids in an open roadmap item (WI-053): the prompt first, then Check yourself. */
-
+/* Study aids in an open roadmap item (WI-053): the first-time hint. */
 .study-hint {
   font-size: 13px;
   color: var(--text-secondary);
   margin: 0;
-}
-.check-yourself {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px;
-}
-.check-yourself-label {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--text-secondary);
-  margin-right: 4px;
 }
 
 /* What an answer read (WI-055): quiet, under the reply. */
@@ -7297,19 +6872,6 @@ html[data-panel-open] .rumi-fab-wrap {
     justify-items: start;
   }
 }
-.today-goal {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px 12px;
-  align-items: baseline;
-  margin: 4px 0 0;
-  font-size: 14px;
-  color: var(--ink-2);
-}
-.today-goal > span {
-  font-weight: 600;
-  color: var(--foreground);
-}
 .confirm-delete {
   display: grid;
   gap: 8px;
@@ -7673,24 +7235,6 @@ html[data-panel-open] .rumi-fab-wrap {
 .first-steps-skip {
   margin-top: 10px;
 }
-.first-picks li {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 12px;
-  padding: 10px 0;
-  border-bottom: 1px solid var(--border-subtle);
-}
-.first-picks li > span {
-  display: grid;
-  gap: 2px;
-  min-width: 0;
-}
-.today-cheer {
-  margin: 6px 0 0;
-  color: var(--ink-2);
-  font-size: 15px;
-}
 .today-facts {
   display: flex;
   flex-wrap: wrap;
@@ -8027,10 +7571,6 @@ html[data-panel-open] .rumi-fab-wrap {
 @media (max-width: 700px) {
   .welcome-hero {
     padding: 22px 20px;
-  }
-  .today-chip {
-    min-width: 0;
-    flex: 1 1 140px;
   }
 }
 
