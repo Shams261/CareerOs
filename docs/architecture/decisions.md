@@ -648,6 +648,8 @@ The owner's decisions (2026-10-26) and the R5 spike (2026-10-27, `scripts/r5-spi
 - The invented-number check, the forbidden-field property test over every tool and the never-stored invite text are the regression contracts.
 - The first AI-written text the owner reads without asking is bounded by a fixed schedule, a fixed fallback and a code check; the first AI-made write is bounded by a class, a cap and an Undo.
 
+**Amendment (WI-142, 2026-11-02, the owner's choice): Talk.** Besides push-to-talk, the composer offers Talk, started by the owner's tap. Each turn listens until a two-second pause. It shows what was heard for two more seconds, with Edit and Send now, and then sends it with no press. The answer is read aloud whatever the "read replies" setting says, and it listens again. Stop, Edit, a failure or a turn with nothing heard ends it. The consent and its recipients are unchanged. Still no wake word, no open microphone between turns and no audio kept. A message keeps only that it came by voice.
+
 ## ADR-031 — Rumi plans the next seven days; a card for next week prepares it
 
 **Status:** Accepted (2026-11-01, the owner's acceptance of the Rumi audit; WI-116).

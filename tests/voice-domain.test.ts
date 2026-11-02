@@ -3,6 +3,8 @@ import {
   dictationError,
   readVoiceLang,
   speakableLines,
+  TALK_SEND_MS,
+  talkNext,
   voiceMeta,
   VOICE_LANGS,
 } from '../src/features/agent/voice-domain';
@@ -70,5 +72,50 @@ describe('voice (WI-104)', () => {
     expect(policy).toContain('microphone=(self)');
     expect(policy).toContain('camera=()');
     expect(policy).toContain('geolocation=()');
+  });
+});
+
+describe('Talk (WI-142)', () => {
+  it('goes round: listen, show what was heard, send, read the answer, listen again', () => {
+    let p = talkNext('off', { type: 'start' });
+    expect(p).toBe('listening');
+    p = talkNext(p, { type: 'heard', text: 'what is on today' });
+    expect(p).toBe('confirming');
+    p = talkNext(p, { type: 'sent' });
+    expect(p).toBe('waiting');
+    p = talkNext(p, { type: 'replied' });
+    expect(p).toBe('speaking');
+    expect(talkNext(p, { type: 'spoken' })).toBe('listening');
+  });
+
+  it('ends on a turn with nothing heard, on Stop, Edit or a failure', () => {
+    expect(talkNext('listening', { type: 'heard', text: '  ' })).toBe('off');
+    for (const phase of [
+      'listening',
+      'confirming',
+      'waiting',
+      'speaking',
+    ] as const)
+      for (const type of ['stop', 'edit', 'failed'] as const)
+        expect(talkNext(phase, { type })).toBe('off');
+  });
+
+  it('ignores an event that does not belong to the moment', () => {
+    // A late answer after Stop is not read; a second Start does not restart a turn.
+    expect(talkNext('off', { type: 'replied' })).toBe('off');
+    expect(talkNext('off', { type: 'spoken' })).toBe('off');
+    expect(talkNext('waiting', { type: 'start' })).toBe('waiting');
+    expect(talkNext('speaking', { type: 'heard', text: 'x' })).toBe('speaking');
+    expect(talkNext('listening', { type: 'sent' })).toBe('listening');
+  });
+
+  it('picks up on the new conversation page by reading the answer (resume)', () => {
+    expect(talkNext('off', { type: 'resume' })).toBe('speaking');
+    expect(talkNext('listening', { type: 'resume' })).toBe('listening');
+  });
+
+  it('waits long enough to stop it, not long enough to wait', () => {
+    expect(TALK_SEND_MS).toBeGreaterThanOrEqual(1500);
+    expect(TALK_SEND_MS).toBeLessThanOrEqual(3000);
   });
 });

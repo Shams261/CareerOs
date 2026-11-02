@@ -56,7 +56,9 @@ export function useVoices(prefix = 'en') {
 
 /**
  * Reads lines aloud one after another with the device's voice; `stop` cancels at once and a
- * line that ends after Stop never starts the next. Cancelled on unmount.
+ * line that ends after Stop never starts the next. Cancelled on unmount. `onDone` runs when
+ * the lines end by themselves (or the voice fails), never after Stop (WI-142, Talk). `prime`
+ * speaks nothing inside a tap, so a reply that arrives later may be read on iOS.
  */
 export function useSpeaker(lang = 'en-IN') {
   const voices = useVoices(lang.slice(0, 2));
@@ -68,15 +70,24 @@ export function useSpeaker(lang = 'en-IN') {
     setSpeaking(false);
   }, []);
   useEffect(() => stop, [stop]);
+  const prime = useCallback(() => {
+    if (!speechSupported()) return;
+    const u = new SpeechSynthesisUtterance('');
+    u.volume = 0;
+    speechSynthesis.speak(u);
+  }, []);
   const speak = useCallback(
-    (lines: string[]) => {
-      if (!speechSupported() || !lines.length) return;
+    (lines: string[], onDone?: () => void) => {
+      if (!speechSupported() || !lines.length) return onDone?.();
       const id = ++run.current;
       speechSynthesis.cancel();
       setSpeaking(true);
       const say = (i: number) => {
         if (id !== run.current) return;
-        if (i >= lines.length) return setSpeaking(false);
+        if (i >= lines.length) {
+          setSpeaking(false);
+          return onDone?.();
+        }
         const u = new SpeechSynthesisUtterance(lines[i]);
         const v =
           voices.find((x) => x.lang === lang) ??
@@ -85,7 +96,9 @@ export function useSpeaker(lang = 'en-IN') {
         u.lang = v?.lang ?? lang;
         u.onend = () => say(i + 1);
         u.onerror = () => {
-          if (id === run.current) setSpeaking(false);
+          if (id !== run.current) return;
+          setSpeaking(false);
+          onDone?.();
         };
         speechSynthesis.speak(u);
       };
@@ -93,24 +106,27 @@ export function useSpeaker(lang = 'en-IN') {
     },
     [voices, lang],
   );
-  return { speak, stop, speaking };
+  return { speak, stop, prime, speaking };
 }
 
 /**
  * Dictation with the browser's recognition: tap to start, tap again or a pause of `silenceMs`
  * to stop, `cancel` to drop what was heard. `onText` gets the words heard so far (final and
- * interim); the caller decides where they go. Nothing is recorded or kept.
+ * interim); the caller decides where they go. `onEnd` gets the final words once listening ends
+ * by itself or by `stop`, never after `cancel` (WI-142, Talk). Nothing is recorded or kept.
  */
 export function useDictation({
   lang,
   silenceMs,
   onText,
   onError,
+  onEnd,
 }: {
   lang: string;
   silenceMs: number;
   onText: (finalText: string, interim: string) => void;
   onError: (code: string) => void;
+  onEnd?: (heard: string) => void;
 }) {
   const rec = useRef<Recognition | null>(null);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -125,8 +141,10 @@ export function useDictation({
   }, []);
   const cancel = useCallback(() => {
     clear();
-    rec.current?.abort();
+    const r = rec.current;
+    // Taken first, so the abort's own end is not read as words heard.
     rec.current = null;
+    r?.abort();
     setListening(false);
   }, []);
   useEffect(() => cancel, [cancel]);
@@ -153,8 +171,11 @@ export function useDictation({
     r.onerror = (e) => onError(e.error);
     r.onend = () => {
       clear();
-      if (rec.current === r) rec.current = null;
+      // Cancelled (or replaced): its words are dropped, not handed on.
+      if (rec.current !== r) return;
+      rec.current = null;
       setListening(false);
+      onEnd?.(heard.trim());
     };
     rec.current = r;
     setListening(true);
@@ -164,6 +185,6 @@ export function useDictation({
       setListening(false);
       onError('start');
     }
-  }, [lang, silenceMs, onText, onError]);
+  }, [lang, silenceMs, onText, onError, onEnd]);
   return { listening, start, stop, cancel };
 }

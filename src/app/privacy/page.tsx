@@ -176,7 +176,9 @@ export default async function Privacy() {
         the browser&rsquo;s own speech recognition to turn speech into text in
         Rumi&rsquo;s composer: Chrome sends the audio to Google and Safari to
         Apple, outside Silsila&rsquo;s zero-retention AI rule. Nothing is sent
-        to Rumi until the owner presses Send, and then only the text. Silsila
+        to Rumi until the owner presses Send, and then only the text; in Talk,
+        which the owner starts with a tap, what was heard is shown for two
+        seconds and then sent unless the owner presses Edit or Stop. Silsila
         keeps no audio and no transcript, only that a message came by voice and
         whether it was edited. Replies and Rumi&rsquo;s line are read aloud by
         the device&rsquo;s own voice when the owner asks.
