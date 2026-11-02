@@ -10,7 +10,7 @@ If CLAUDE.md conflicts with the implementation, schema, tests, migrations or an 
 
 ## Current state
 
-- Latest completed work item: **WI-132** (the jobs module split, 2026-11-02, no migration: `jobs/service.ts` (1,070 lines) became `owned.ts`, `applications.ts`, `round-blocks.ts`, `rounds.ts`, `prep-items.ts`, `reads.ts` and `formats-service.ts`, with `service.ts` a barrel of the same exports). Before it, WI-131 the calendar split, WI-125 to WI-130 (the page and component loaders), WI-120 to WI-124 (2026-11-02) and WI-099 to WI-119 Rumi 2 and 3 (2026-11-01).
+- Latest completed work item: **WI-133** (three browser journeys, 2026-11-02, no migration, tests only: Plan (the week, the Routines panel, ‹ ›), Close the Day on yesterday with a block let go, and ⌘K (a place by name, Add a note); `e2e/journeys.spec.ts` has 18 journeys). Before it, WI-131 and WI-132 (the calendar and jobs splits), WI-125 to WI-130 (the loaders), WI-120 to WI-124 (2026-11-02) and WI-099 to WI-119 Rumi 2 and 3 (2026-11-01).
 - Live at https://usesilsila.me since 2026-10-20 (Render + Supabase, ADR-014). Latest migration: `20261106000000_owner_ai_limit` (WI-114).
 - Phase: two weeks of owner UAT of Rumi 2 and 3 with the plan's measures, then the owner's monthly AI limit and hosting choices. Proposed next work items are in `output/Silsila-Full-Audit.pdf` (not committed).
 - History: every work item has an entry in `CHANGELOG.md` (cut into versions); the last ten handoffs are in `docs/`, older ones under the tag (`docs/HISTORY.md`). What each feature does and where it lives: `docs/architecture/features.md`.
@@ -166,14 +166,14 @@ State as of 2026-10-20: **Silsila is live at https://usesilsila.me** on a Render
 
 ## Current next step
 
-**Two weeks of UAT** of Rumi 2 and 3 with the plan's measures (rated lines and the fallback share, writes kept versus undone, cards applied versus dismissed, messages by voice, drafts and mocks used); the owner sets the monthly AI limit as they like (none by default, never a hard-coded cap). Owner steps still open: rate ten Rumi lines before turning the afternoon line on, Settings → Voice → Check this device on the iPhone tab and Home Screen app, delete the orphan test events in the Silsila Google calendar, check push and Safari on a real iPhone. The full audit of 2026-11-02 proposed the next items: WI-120 repo cleanup, WI-121 ops safety, WI-122 the action runner, WI-123 the kernel, WI-124 the dead CSS, WI-125 to WI-130 the page and component loaders and WI-131 and WI-132 the calendar and jobs splits are done; owner steps from WI-121 are the `CRON_SECRET` repository secret and an external monitor. Next proposed: regrouping `globals.css` by component (then CSS Modules, the owner's choice against Tailwind), e2e journeys for Plan, Close the Day and ⌘K, and retention pruning (sessions, inbox, AI usage); each starts only when the owner says so. One work item at a time; a migration is applied to the personal database before its merge.
+**Two weeks of UAT** of Rumi 2 and 3 with the plan's measures (rated lines and the fallback share, writes kept versus undone, cards applied versus dismissed, messages by voice, drafts and mocks used); the owner sets the monthly AI limit as they like (none by default, never a hard-coded cap). Owner steps still open: rate ten Rumi lines before turning the afternoon line on, Settings → Voice → Check this device on the iPhone tab and Home Screen app, delete the orphan test events in the Silsila Google calendar, check push and Safari on a real iPhone. The full audit of 2026-11-02 proposed the next items: WI-120 repo cleanup, WI-121 ops safety, WI-122 the action runner, WI-123 the kernel, WI-124 the dead CSS, WI-125 to WI-130 the page and component loaders WI-131 and WI-132 the calendar and jobs splits and WI-133 the missing journeys are done; owner steps from WI-121 are the `CRON_SECRET` repository secret and an external monitor. Next proposed: regrouping `globals.css` by component (then CSS Modules, the owner's choice against Tailwind), and retention pruning (sessions, inbox, AI usage); each starts only when the owner says so. One work item at a time; a migration is applied to the personal database before its merge.
 
 ## Where to look for details
 
 - Schema: `prisma/schema.prisma`; migrations: `prisma/migrations/`
 - Architecture, features and decisions: `docs/architecture/overview.md`, `docs/architecture/features.md`, `docs/architecture/decisions.md`, `docs/architecture/rumi-2.md`
 - Handbook index: `docs/README.md`; history and the archive tag: `docs/HISTORY.md`; changelog: `CHANGELOG.md`
-- Handoffs: the last ten in `docs/` (latest `docs/WI-132-HANDOFF.md`); the Rumi 2 and 3 plan: `docs/product/rumi2-plan.md`
+- Handoffs: the last ten in `docs/` (latest `docs/WI-133-HANDOFF.md`); the Rumi 2 and 3 plan: `docs/product/rumi2-plan.md`
 - Security: `docs/engineering/security.md`, `SECURITY.md`; operations: `docs/engineering/operations.md`; backups: `docs/engineering/backup-restore.md`
 - Brand and design principles: `docs/product/brand-system.md`
 - Contributing rules: `CONTRIBUTING.md`
