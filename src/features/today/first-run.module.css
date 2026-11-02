@@ -1,0 +1,71 @@
+/* Today on an empty account: the first focus card and Your first 3 steps (WI-065; a CSS Module since WI-136). */
+
+.first-day-sub {
+  margin: 2px 0 0;
+  font-size: 14px;
+}
+.first-day-empty {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+  padding: 18px;
+  border: 1px dashed var(--border);
+  border-radius: 12px;
+}
+.first-day-empty p {
+  margin: 0;
+}
+.first-day-title {
+  font-weight: 600;
+  margin-bottom: 2px !important;
+}
+.first-day-icon {
+  display: inline-grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--primary-soft);
+  color: var(--primary);
+  flex: none;
+}
+.first-steps-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.first-steps-head h2 {
+  margin: 0;
+  font-size: 18px;
+}
+.first-steps-list li {
+  display: grid;
+  grid-template-columns: 20px minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+  padding: 12px 0;
+  border-top: 1px solid var(--border-subtle);
+}
+.first-step-mark {
+  color: var(--muted);
+}
+.first-steps-list li:global(.is-done) .first-step-mark {
+  color: var(--primary);
+}
+.first-step-text {
+  display: grid;
+  gap: 2px;
+  font-size: 14px;
+}
+.first-step-title {
+  font-weight: 600;
+  font-size: 15px;
+}
+.first-steps-list li:global(.is-done) .first-step-title {
+  color: var(--muted);
+}
+.first-steps-skip {
+  margin-top: 10px;
+}

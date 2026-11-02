@@ -1,5 +1,6 @@
 'use client';
 import { useRef, useState } from 'react';
+import styles from './quick-fields.module.css';
 
 /** The kinds a block offers as chips; another stored kind shows as its own chip (WI-066). */
 const KINDS = [
@@ -78,7 +79,7 @@ export function QuickBlockFields({
           autoFocus
         />
       </label>
-      <fieldset className="quick-kinds">
+      <fieldset className={styles['quick-kinds']}>
         <legend>Kind</legend>
         <input type="hidden" name="category" value={kind} />
         <div className="template-chips">
@@ -95,7 +96,7 @@ export function QuickBlockFields({
           ))}
         </div>
       </fieldset>
-      <div className="quick-when">
+      <div className={styles['quick-when']}>
         <label className="quick-start">
           Start time
           <input
@@ -109,7 +110,9 @@ export function QuickBlockFields({
             }}
           />
         </label>
-        <fieldset className="quick-kinds quick-length">
+        <fieldset
+          className={`${styles['quick-kinds']} ${styles['quick-length']}`}
+        >
           <legend>Length</legend>
           <div className="template-chips">
             {BLOCK_LENGTHS.map((d) => (
@@ -141,7 +144,7 @@ export function QuickBlockFields({
         />
       </label>
       {!editingEnd && (
-        <p className="quick-ends">
+        <p className={styles['quick-ends']}>
           Ends {end}
           {' · '}
           <button
@@ -168,11 +171,11 @@ export function QuickBlockFields({
           />
         </label>
       ) : (
-        <p className="quick-note-line">
+        <p className={styles['quick-note-line']}>
           <input type="hidden" name="description" value="" />
           <button
             type="button"
-            className="link-button quick-note-toggle"
+            className={`link-button ${styles['quick-note-toggle']}`}
             onClick={() => setNoting(true)}
           >
             + Add a note
@@ -241,7 +244,7 @@ export function LengthFields({
           />
         </label>
       </div>
-      <fieldset className="quick-kinds">
+      <fieldset className={styles['quick-kinds']}>
         <legend>Length</legend>
         <div className="template-chips">
           {lengths.map((d) => (
