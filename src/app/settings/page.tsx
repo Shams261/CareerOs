@@ -8,13 +8,18 @@ import { RemindersGroup } from '@/features/settings/sections/reminders';
 import { AppearanceGroup } from '@/features/settings/sections/appearance';
 import { AccountGroup } from '@/features/settings/sections/account';
 import { DataGroup } from '@/features/settings/sections/data';
+import { RumiGroup } from '@/features/settings/sections/rumi';
+import { AGENT_NAME } from '@/features/agent/constants';
 export const metadata = { title: 'Settings' };
 
+// WI-141: the owner first, then what reminds, Rumi and AI together, the calendar, the look and
+// the data.
 const groups = [
+  { id: 'account', label: 'Account' },
   { id: 'reminders', label: 'Reminders' },
+  { id: 'rumi', label: `${AGENT_NAME} and AI` },
   { id: 'calendar', label: 'Calendar' },
   { id: 'appearance', label: 'Appearance' },
-  { id: 'account', label: 'Account' },
   { id: 'data', label: 'Data' },
 ];
 
@@ -33,7 +38,9 @@ export default async function Settings({
         <SettingsIndex sections={groups} />
         <div className="settings-main">
           {v.remaining.length > 0 && <SetupSteps v={v} />}
+          <AccountGroup v={v} />
           <RemindersGroup v={v} />
+          <RumiGroup v={v} />
           <section
             id="calendar"
             className="settings-group"
@@ -42,7 +49,6 @@ export default async function Settings({
             <GoogleCalendarPanel user={user} flash={v.flash} />
           </section>
           <AppearanceGroup v={v} />
-          <AccountGroup v={v} />
           <DataGroup v={v} />
         </div>
       </div>

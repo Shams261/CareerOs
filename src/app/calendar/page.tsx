@@ -37,6 +37,7 @@ import {
 } from '@/features/schedule/week-list';
 import { UtilityMenu } from '@/components/utility-menu';
 import { WeekCard } from '@/features/today/week-card';
+import { isFocusCategory } from '@/lib/categories';
 import { weekProgress } from '@/features/today/home';
 import { nextSlot } from '@/features/today/domain';
 import { planPage } from '@/features/schedule/page-data';
@@ -64,7 +65,7 @@ export default async function Calendar({
     selected = dateInput.safeParse(query.date).success ? query.date! : today,
     days = weekDays(selected),
     thisWeek = weekDays(today);
-  const { routines, plans, goals, connection, generationError, rounds } =
+  const { routines, plans, goals, connection, generationError, rounds, study } =
     await planPage(user, today, days);
   const syncing = connection && connection.status !== 'DISCONNECTED';
   const roundOf = (b: { interviewRoundId: string | null }) => {
@@ -335,6 +336,7 @@ export default async function Calendar({
                             )
                           }
                           title={title}
+                          quiet={!round && !isFocusCategory(b.category, study)}
                           meta={`${rowMeta(b, round, now, user.timezone)}${google}`}
                           status={resolutionText[resolution]}
                           side={

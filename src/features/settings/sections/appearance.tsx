@@ -1,11 +1,4 @@
-import {
-  ImageIcon,
-  Keyboard,
-  Quote,
-  Sun,
-  ALargeSmall,
-  UserRound,
-} from 'lucide-react';
+import { ImageIcon, Keyboard, Quote, Sun, ALargeSmall } from 'lucide-react';
 import { ActionForm } from '@/components/action-form';
 import { Button } from '@/components/ui/button';
 import { ShortcutsToggle } from '@/components/shortcuts-toggle';
@@ -55,14 +48,6 @@ export function AppearanceGroup({ v }: { v: SettingsView }) {
           title="Single-key shortcuts on this device"
           context="N, S, J, K, D, C; ? always lists them"
           control={<ShortcutsToggle label="On" className="check" />}
-        />
-        <SettingRow
-          source="practice"
-          icon={<UserRound size={22} />}
-          label="Name"
-          title={user.name}
-          context="What Silsila calls you on Today"
-          panel="name"
         />
         <SettingRow
           source="practice"

@@ -8,7 +8,7 @@ import { interviewTypes } from '@/features/jobs/domain';
 import { z } from 'zod';
 import { MODEL, PINNED_PROVIDER, PRICE } from '@/features/ai/domain';
 import { BANNED_WORDS } from '@/lib/copy';
-import { isStudyCategory } from '@/lib/categories';
+import { isFocusCategory } from '@/lib/categories';
 import { PROPOSAL_BLOCKS, proposeArgs, suggestArgs } from './plan-domain';
 import { REQUESTS_PER_ANSWER, requestArgs } from './request-domain';
 import {
@@ -68,8 +68,7 @@ export const ACTIVITY_DAYS = 28;
  * Study is what the owner ticked under Study nudges → Study categories (such as Backend),
  * always with DSA, Technical and job search.
  */
-export const titleVisible = (category: string, study: string[]) =>
-  isStudyCategory(category, [...study, 'DSA', 'Technical', 'Job search']);
+export const titleVisible = isFocusCategory;
 
 export type ToolCall = {
   id: string;

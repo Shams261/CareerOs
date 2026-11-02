@@ -349,7 +349,7 @@ export function SuggestionCard({
           {status === 'kept' ? (
             <>
               Kept.{' '}
-              <Link href="/settings#data" prefetch={false} className="link">
+              <Link href="/settings#rumi" prefetch={false} className="link">
                 {AGENT_NAME} knows
               </Link>
             </>

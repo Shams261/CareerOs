@@ -1,13 +1,11 @@
 'use client';
 import { useEffect, useState } from 'react';
-import Link from 'next/link';
-import { ArrowRight } from 'lucide-react';
 import { MILESTONE_ORDER, type Milestone } from './home';
 
 const SEEN_KEY = 'silsila-week-milestone';
 
 /**
- * This week on Today's rail (WI-065, ADR-027): blocks done of blocks planned, a thin bar and one
+ * This week (WI-065, ADR-027; on Plan's rail only since WI-141): blocks done of blocks planned, a thin bar and one
  * line. When the week crosses a milestone since this device last saw it (first block, half,
  * all), the bar and the line celebrate once, quietly; reduced motion shows the same state still.
  * The bar is the one place Silsila draws progress, by the owner's choice; it is never a score.
@@ -88,15 +86,6 @@ export function WeekCard({
         {week.line}
       </p>
       {facts && <p className="muted week-facts">{facts}</p>}
-      {/* The whole card opens the week on Plan (WI-080). */}
-      <Link
-        href="/calendar"
-        prefetch={false}
-        className="link rail-card-link"
-        aria-label="Open this week on Plan"
-      >
-        Plan <ArrowRight size={14} aria-hidden="true" />
-      </Link>
     </section>
   );
 }

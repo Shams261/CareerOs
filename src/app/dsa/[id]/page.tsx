@@ -227,6 +227,46 @@ export default async function Problem({
       {p.attemptsCount > 0 && (
         <RevisionLadder problemId={p.id} ladder={ladder} today={today} />
       )}
+      {/* The attempts sit under their ladder (WI-141): the revision steps and what happened
+          at each are read together; with none yet the form below says enough. */}
+      {p.attemptsCount > 0 && (
+        <section className="card flat" aria-labelledby="history-heading">
+          <div className="section-head">
+            <h2 id="history-heading">
+              Attempts <span className="muted">· {p.attemptsCount}</span>
+            </h2>
+          </div>
+          {legacy > 0 && (
+            <p className="muted">
+              {legacy} earlier attempt{legacy === 1 ? '' : 's'} without details.
+            </p>
+          )}
+          {!p.attempts.length && <p className="muted">No attempts yet.</p>}
+          <ol className="plain-list">
+            {p.attempts.map((a) => (
+              <li className="attempt-row" key={a.id}>
+                <span className="attempt-when">{date(a.attemptedAt)}</span>
+                <span>
+                  <span className={`pill ${tone[a.confidenceAfter]}`}>
+                    {confidenceWord(a.confidenceAfter)}
+                  </span>{' '}
+                  {solvedText[a.solvedIndependently]}
+                  {a.durationMinutes ? ` · ${a.durationMinutes} min` : ''}
+                  {a.actualSessionId ? ' · during a recorded session' : ''}
+                  {a.mistake && (
+                    <span className="muted attempt-note">
+                      Missed: {a.mistake}
+                    </span>
+                  )}
+                  {a.notes && (
+                    <span className="muted attempt-note">{a.notes}</span>
+                  )}
+                </span>
+              </li>
+            ))}
+          </ol>
+        </section>
+      )}
       {note.line && <p className="muted mb-5">{note.line}</p>}
       {p.resources.length > 0 && (
         <p className="item-links mb-5">
@@ -289,42 +329,6 @@ export default async function Problem({
       {traceForTopic(p.topic.name) && (
         <WatchItRun kind={traceForTopic(p.topic.name)!} />
       )}
-      <section className="card flat" aria-labelledby="history-heading">
-        <div className="section-head">
-          <h2 id="history-heading">
-            Attempts <span className="muted">· {p.attemptsCount}</span>
-          </h2>
-        </div>
-        {legacy > 0 && (
-          <p className="muted">
-            {legacy} earlier attempt{legacy === 1 ? '' : 's'} without details.
-          </p>
-        )}
-        {!p.attempts.length && <p className="muted">No attempts yet.</p>}
-        <ol className="plain-list">
-          {p.attempts.map((a) => (
-            <li className="attempt-row" key={a.id}>
-              <span className="attempt-when">{date(a.attemptedAt)}</span>
-              <span>
-                <span className={`pill ${tone[a.confidenceAfter]}`}>
-                  {confidenceWord(a.confidenceAfter)}
-                </span>{' '}
-                {solvedText[a.solvedIndependently]}
-                {a.durationMinutes ? ` · ${a.durationMinutes} min` : ''}
-                {a.actualSessionId ? ' · during a recorded session' : ''}
-                {a.mistake && (
-                  <span className="muted attempt-note">
-                    Missed: {a.mistake}
-                  </span>
-                )}
-                {a.notes && (
-                  <span className="muted attempt-note">{a.notes}</span>
-                )}
-              </span>
-            </li>
-          ))}
-        </ol>
-      </section>
       <InterviewMentions userId={user.id} dsaProblemId={p.id} />
     </>
   );

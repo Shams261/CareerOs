@@ -16,7 +16,7 @@ export async function planPage(
     () => '',
     (error) => ownerWords(error) ?? 'Unable to plan this week.',
   );
-  const [routines, plans, goals, connection, generationError] =
+  const [routines, plans, goals, connection, generationError, nudges] =
     await Promise.all([
       db().routineBlock.findMany({
         where: { userId: user.id },
@@ -46,6 +46,11 @@ export async function planPage(
       }),
       getConnection(user.id),
       generated,
+      // The owner's study kinds, so other blocks read quietly (WI-141).
+      db().studyNudgeSetting.findUnique({
+        where: { userId: user.id },
+        select: { studyCategories: true },
+      }),
     ]);
   // Linked interviews, so a block named "Company — Round" reads as the round here too.
   // Usually no linked block exists and this costs nothing.
@@ -62,5 +67,13 @@ export async function planPage(
         },
       })
     : [];
-  return { routines, plans, goals, connection, generationError, rounds };
+  return {
+    routines,
+    plans,
+    goals,
+    connection,
+    generationError,
+    rounds,
+    study: nudges?.studyCategories ?? [],
+  };
 }
