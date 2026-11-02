@@ -30,6 +30,7 @@ import {
 } from '@/features/roadmap/domain';
 import { roadmapRevisionRows } from '@/features/attention/domain';
 import { AttentionPages } from '@/features/today/attention-rows';
+import styles from '@/features/roadmap/overview.module.css';
 export const metadata = { title: 'Roadmap' };
 
 const statusText = {
@@ -105,49 +106,49 @@ export default async function RoadmapPage() {
       </header>
       <div className="roadmap-single">
         {/* The goal, centred and bold: the one thing on the page that is not a list. */}
-        <section className="goal-hero" aria-labelledby="goal-heading">
+        <section className={styles['goal-hero']} aria-labelledby="goal-heading">
           <RumiPose
             pose="goal-flag"
             size={100}
-            className="goal-pose"
+            className={styles['goal-pose']}
             priority
           />
-          <p className="goal-hero-eyebrow">Your goal</p>
+          <p className={styles['goal-hero-eyebrow']}>Your goal</p>
           {lead ? (
             <>
-              <h2 id="goal-heading" className="goal-hero-title">
+              <h2 id="goal-heading" className={styles['goal-hero-title']}>
                 {lead.title}
               </h2>
-              <p className="goal-hero-when">
+              <p className={styles['goal-hero-when']}>
                 <b>{targetLabel(target(lead), today)}</b>
                 {target(lead) && <span> · {longDate(target(lead)!)}</span>}
               </p>
               {others.map((g) => (
-                <p className="goal-hero-more" key={g.id}>
+                <p className={styles['goal-hero-more']} key={g.id}>
                   Also: {g.title} · {targetLabel(target(g), today)}
                 </p>
               ))}
               <PanelButton
                 panel="goals"
                 focus={`goal-${lead.id}`}
-                className="link-button goal-hero-edit"
+                className={`link-button ${styles['goal-hero-edit']}`}
               >
                 Edit goal
               </PanelButton>
             </>
           ) : (
             <>
-              <h2 id="goal-heading" className="goal-hero-title">
+              <h2 id="goal-heading" className={styles['goal-hero-title']}>
                 Set a goal
               </h2>
-              <div className="goal-hero-form">
+              <div className={styles['goal-hero-form']}>
                 <GoalForm compact />
               </div>
             </>
           )}
         </section>
         {(live.length > 0 || dueRows.length > 0) && (
-          <p className="more-line goal-hero-line">
+          <p className={`more-line ${styles['goal-hero-line']}`}>
             {live.length > 0 && (
               <PanelButton panel="week" className="link-button">
                 This week
@@ -333,7 +334,7 @@ export default async function RoadmapPage() {
           <div className="panel-section">
             <h3>Other goals</h3>
             {rest.map((g) => (
-              <div className="goal-row" key={g.id}>
+              <div className={styles['goal-row']} key={g.id}>
                 <div>
                   <strong>{g.title}</strong>
                   <p className="muted">

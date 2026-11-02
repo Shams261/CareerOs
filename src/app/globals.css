@@ -1114,27 +1114,7 @@ summary {
 .chain-ring:hover {
   transform: scale(1.2);
 }
-.goal-line + .goal-line,
-.goal-row + .goal-row {
-  margin-top: 14px;
-  padding-top: 14px;
-  border-top: 1px solid var(--border-subtle);
-}
-.goal-row {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 4px 16px;
-  align-items: start;
-}
-.goal-row > .disclosure {
-  display: contents;
-}
-.goal-row .disclosure-panel {
-  grid-column: 1 / -1;
-}
-.goal-row .status-line {
-  margin-top: 6px;
-}
+
 .running-now {
   padding: 10px 12px;
   border: 1px solid var(--primary);
@@ -1708,35 +1688,6 @@ kbd {
   color: var(--error);
 }
 
-/* Roadmap overview */
-.goal-card .goal-summary {
-  display: flex;
-  justify-content: space-between;
-  gap: 16px 24px;
-  flex-wrap: wrap;
-  align-items: center;
-}
-.goal-card .goal-summary h2 {
-  margin: 4px 0 0;
-}
-.goal-card .goal-summary > .disclosure {
-  display: contents;
-}
-.goal-card .goal-summary .disclosure-panel {
-  flex-basis: 100%;
-}
-.goal-card .goal-summary + .goal-summary {
-  margin-top: 16px;
-  padding-top: 16px;
-  border-top: 1px solid var(--border-subtle);
-}
-.goal-more {
-  display: flex;
-  gap: 4px 20px;
-  flex-wrap: wrap;
-  margin-top: 12px;
-}
-
 /* Practice */
 .problem-row {
   display: grid;
@@ -2240,20 +2191,6 @@ a.problem-title:hover {
   }
 }
 
-/* Roadmap audit: progress bars, continue marker, done animation, panel order, keyboard focus. */
-.goal-pace {
-  margin-top: 4px;
-}
-.goal-upnext {
-  margin-top: 8px;
-  font-size: 13px;
-}
-.goal-upnext-list {
-  margin-top: 6px;
-  font-size: 13px;
-  display: grid;
-  gap: 2px;
-}
 .item-icon {
   transition:
     color var(--motion-normal) var(--motion-easing),
@@ -6680,9 +6617,7 @@ html[data-panel-open] .rumi-fab-wrap {
   top: -10px;
   right: 0;
 }
-.goal-pose {
-  margin-bottom: -2px;
-}
+
 .page-head.has-pose {
   align-items: center;
 }
@@ -8080,75 +8015,7 @@ html[data-panel-open] .rumi-fab-wrap {
 .roadmap-single {
   max-width: 1040px;
 }
-.goal-hero {
-  position: relative;
-  margin: 26px auto 0;
-  max-width: 720px;
-  padding: 30px 28px 24px;
-  text-align: center;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  background: var(--surface);
-  box-shadow: var(--shadow-card);
-  display: grid;
-  gap: 8px;
-  justify-items: center;
-  overflow: hidden;
-}
-.goal-hero::before {
-  content: '';
-  position: absolute;
-  inset: 0 0 auto;
-  height: 5px;
-  background: var(--primary);
-}
-.goal-hero-eyebrow {
-  margin: 0;
-  font-size: 11px;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  font-weight: 700;
-  color: var(--primary);
-}
-.goal-hero-title {
-  margin: 0;
-  font-family: var(--font-display), Georgia, serif;
-  font-size: 40px;
-  font-weight: 700;
-  line-height: 1.1;
-  letter-spacing: -0.005em;
-  text-wrap: balance;
-  max-width: 20ch;
-}
-.goal-hero-when {
-  margin: 0;
-  font-size: 17px;
-  color: var(--foreground);
-}
-.goal-hero-when b {
-  font-weight: 700;
-}
-.goal-hero-more {
-  margin: 0;
-  font-size: 14px;
-  color: var(--ink-2);
-}
-.goal-hero-edit {
-  margin-top: 2px;
-  font-size: 14px;
-  font-weight: 600;
-}
-.goal-hero-form {
-  width: 100%;
-  max-width: 440px;
-  text-align: left;
-  margin-top: 6px;
-}
-.goal-hero-line {
-  justify-content: center;
-  margin: 14px 0 0;
-  font-weight: 600;
-}
+
 .roadmap-single > section[aria-labelledby='roadmaps-heading'] {
   margin-top: 34px;
 }
@@ -8216,8 +8083,7 @@ html[data-panel-open] .rumi-fab-wrap {
   white-space: nowrap;
   font-variant-numeric: tabular-nums;
 }
-.roadmap-band-counts .is-due,
-.band-section-count .is-due {
+.roadmap-band-counts .is-due {
   color: var(--warning-text);
   font-weight: 700;
 }
@@ -8229,78 +8095,7 @@ html[data-panel-open] .rumi-fab-wrap {
   transform: rotate(180deg);
   color: var(--primary);
 }
-.band-sections {
-  display: grid;
-  margin: 2px 0 6px;
-  padding-left: 54px;
-}
-.band-section {
-  border-bottom: 1px solid var(--divider);
-}
-.band-section:last-child {
-  border-bottom: 0;
-}
-.band-section-link {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto 18px;
-  align-items: center;
-  gap: 12px;
-  padding: 12px 14px;
-  color: var(--foreground);
-  text-decoration: none;
-  font-size: 15.5px;
-  min-height: 48px;
-}
-.band-section-link:hover .band-section-text {
-  text-decoration: underline;
-  text-underline-offset: 3px;
-}
-.band-section.is-current {
-  margin: 4px 0;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  background: var(--surface);
-}
-.band-section-name {
-  min-width: 0;
-  font-weight: 500;
-  overflow-wrap: anywhere;
-}
-.band-section.is-current .band-section-name {
-  font-weight: 700;
-}
-.band-section-name small {
-  display: block;
-  margin-top: 1px;
-  font-size: 12.5px;
-  font-weight: 400;
-  color: var(--muted);
-}
-.band-section-current {
-  margin-left: 8px;
-  padding: 2px 7px;
-  font-size: 10px;
-  vertical-align: 2px;
-}
-.band-section-count {
-  display: inline-flex;
-  gap: 10px;
-  align-items: center;
-  font-size: 13px;
-  color: var(--muted);
-  white-space: nowrap;
-  font-variant-numeric: tabular-nums;
-}
-.band-section-chevron {
-  color: var(--muted);
-}
-.band-section-add {
-  padding: 10px 14px;
-}
-.band-section-add-button {
-  font-size: 14.5px;
-  font-weight: 600;
-}
+
 .roadmap-add {
   display: flex;
   justify-content: center;
@@ -8491,16 +8286,6 @@ html[data-panel-open] .rumi-fab-wrap {
   transition: opacity var(--motion-fast) var(--motion-easing);
 }
 @media (max-width: 700px) {
-  .goal-hero {
-    margin-top: 16px;
-    padding: 22px 18px 18px;
-  }
-  .goal-hero-title {
-    font-size: 30px;
-  }
-  .goal-hero-when {
-    font-size: 16px;
-  }
   .roadmap-band-toggle {
     grid-template-columns: minmax(0, 1fr) 20px;
     padding: 12px 14px;
@@ -8516,13 +8301,7 @@ html[data-panel-open] .rumi-fab-wrap {
     grid-column: 2;
     grid-row: 1 / span 2;
   }
-  .band-sections {
-    padding-left: 0;
-  }
-  .band-section-link {
-    font-size: 15px;
-    padding: 12px 10px;
-  }
+
   .roadmap-head .today-head-row {
     flex-wrap: wrap;
   }
