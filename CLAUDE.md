@@ -10,7 +10,7 @@ If CLAUDE.md conflicts with the implementation, schema, tests, migrations or an 
 
 ## Current state
 
-- Latest completed work item: **WI-130** (component reads behind server modules, 2026-11-02, no migration: the Google Calendar panel, Needs attention, the first-run card, the shell's session card, interview mentions and the nudges-off card read through `calendar/reads.ts`, `today/reads.ts`, `execution/page-data.ts`, `jobs/page-data.ts` and `nudges/service.ts`; no `.tsx` file calls `db()`, and `tests/boundaries.test.ts` keeps it so). Before it, WI-125 to WI-129 (the page loaders), WI-120 to WI-124 (2026-11-02) and WI-099 to WI-119 Rumi 2 and 3 (2026-11-01).
+- Latest completed work item: **WI-131** (the calendar module split, 2026-11-02, no migration: `calendar/service.ts` (1,158 lines) became `errors.ts`, `core.ts`, `oauth.ts`, `sync.ts`, `watch.ts` and `connection.ts`, with `service.ts` a 15-line barrel of the same exports, so no importer changed). Before it, WI-125 to WI-130 (the page and component loaders), WI-120 to WI-124 (2026-11-02) and WI-099 to WI-119 Rumi 2 and 3 (2026-11-01).
 - Live at https://usesilsila.me since 2026-10-20 (Render + Supabase, ADR-014). Latest migration: `20261106000000_owner_ai_limit` (WI-114).
 - Phase: two weeks of owner UAT of Rumi 2 and 3 with the plan's measures, then the owner's monthly AI limit and hosting choices. Proposed next work items are in `output/Silsila-Full-Audit.pdf` (not committed).
 - History: every work item has an entry in `CHANGELOG.md` (cut into versions); the last ten handoffs are in `docs/`, older ones under the tag (`docs/HISTORY.md`). What each feature does and where it lives: `docs/architecture/features.md`.
@@ -72,7 +72,7 @@ Violating any of these is a bug, not a design choice.
 - The default curriculum (ADR-026) is never deleted and never tied to a goal: `Roadmap.curriculum` rows are archived, not deleted, and keep their name; nothing creates a goal from a bundle; a wipe or reset keeps the curriculum or Restore brings it back.
 - Attempts, activities, job activities and stage history are append-only.
 - Owner id comes from the server session only. Never accept a user id from the browser.
-- Existing migrations are immutable; schema changes get a new migration. Multi-row mutations use transactions and the owner row lock (`locked()` in `src/server/lock.ts`, `SELECT … FOR UPDATE` on the `User` row); calendar sync uses the lease on its connection row in `calendar/service.ts`.
+- Existing migrations are immutable; schema changes get a new migration. Multi-row mutations use transactions and the owner row lock (`locked()` in `src/server/lock.ts`, `SELECT … FOR UPDATE` on the `User` row); calendar sync uses the lease on its connection row in `calendar/sync.ts`.
 
 ## Time and timezone rules
 
@@ -166,14 +166,14 @@ State as of 2026-10-20: **Silsila is live at https://usesilsila.me** on a Render
 
 ## Current next step
 
-**Two weeks of UAT** of Rumi 2 and 3 with the plan's measures (rated lines and the fallback share, writes kept versus undone, cards applied versus dismissed, messages by voice, drafts and mocks used); the owner sets the monthly AI limit as they like (none by default, never a hard-coded cap). Owner steps still open: rate ten Rumi lines before turning the afternoon line on, Settings → Voice → Check this device on the iPhone tab and Home Screen app, delete the orphan test events in the Silsila Google calendar, check push and Safari on a real iPhone. The full audit of 2026-11-02 proposed the next items: WI-120 repo cleanup, WI-121 ops safety, WI-122 the action runner, WI-123 the kernel, WI-124 the dead CSS, WI-125 to WI-130 the page and component loaders are done (no `.tsx` file queries the database); owner steps from WI-121 are the `CRON_SECRET` repository secret and an external monitor. Next proposed: regrouping `globals.css` by component (then CSS Modules, the owner's choice against Tailwind), splitting the calendar and jobs services; each starts only when the owner says so. One work item at a time; a migration is applied to the personal database before its merge.
+**Two weeks of UAT** of Rumi 2 and 3 with the plan's measures (rated lines and the fallback share, writes kept versus undone, cards applied versus dismissed, messages by voice, drafts and mocks used); the owner sets the monthly AI limit as they like (none by default, never a hard-coded cap). Owner steps still open: rate ten Rumi lines before turning the afternoon line on, Settings → Voice → Check this device on the iPhone tab and Home Screen app, delete the orphan test events in the Silsila Google calendar, check push and Safari on a real iPhone. The full audit of 2026-11-02 proposed the next items: WI-120 repo cleanup, WI-121 ops safety, WI-122 the action runner, WI-123 the kernel, WI-124 the dead CSS, WI-125 to WI-130 the page and component loaders and WI-131 the calendar split are done; owner steps from WI-121 are the `CRON_SECRET` repository secret and an external monitor. Next proposed: regrouping `globals.css` by component (then CSS Modules, the owner's choice against Tailwind), splitting the jobs service (as WI-131 split the calendar one); each starts only when the owner says so. One work item at a time; a migration is applied to the personal database before its merge.
 
 ## Where to look for details
 
 - Schema: `prisma/schema.prisma`; migrations: `prisma/migrations/`
 - Architecture, features and decisions: `docs/architecture/overview.md`, `docs/architecture/features.md`, `docs/architecture/decisions.md`, `docs/architecture/rumi-2.md`
 - Handbook index: `docs/README.md`; history and the archive tag: `docs/HISTORY.md`; changelog: `CHANGELOG.md`
-- Handoffs: the last ten in `docs/` (latest `docs/WI-130-HANDOFF.md`); the Rumi 2 and 3 plan: `docs/product/rumi2-plan.md`
+- Handoffs: the last ten in `docs/` (latest `docs/WI-131-HANDOFF.md`); the Rumi 2 and 3 plan: `docs/product/rumi2-plan.md`
 - Security: `docs/engineering/security.md`, `SECURITY.md`; operations: `docs/engineering/operations.md`; backups: `docs/engineering/backup-restore.md`
 - Brand and design principles: `docs/product/brand-system.md`
 - Contributing rules: `CONTRIBUTING.md`
