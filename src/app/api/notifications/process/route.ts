@@ -3,6 +3,7 @@ import { deliverPending } from '@/features/push/service';
 import { recordRun } from '@/server/jobs';
 import { dailyProviderCheck } from '@/features/ai/service';
 import { pruneMemories } from '@/features/agent/memory-service';
+import { dailyRetention } from '@/features/notifications/retention';
 import { writeRumiLines } from '@/features/agent/lines';
 import { learnNudgeTimes } from '@/features/nudges/learn-service';
 export const runtime = 'nodejs';
@@ -32,6 +33,8 @@ export async function POST() {
       await pruneMemories();
       // Once a week per owner, the line times follow when study starts (WI-109).
       await learnNudgeTimes();
+      // Once a day, system records past their retention go (WI-134).
+      await dailyRetention();
     } catch (error) {
       console.error(
         '[study] provider check failed',
