@@ -604,3 +604,110 @@ test('Settings saves the dark theme and stays accessible', async ({ page }) => {
   const robots = await page.request.get('/robots.txt');
   expect(await robots.text()).toContain('Disallow: /');
 });
+
+/** The owner's day as a label, `offset` days from today (America/Toronto, as appEnv sets). */
+const ownerDay = (offset: number) => {
+  const day = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'America/Toronto',
+  }).format(new Date());
+  const d = new Date(`${day}T12:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + offset);
+  return d.toISOString().slice(0, 10);
+};
+
+test('Plan shows the week, its routines and the weeks around it', async ({
+  page,
+}) => {
+  // WI-133: Plan had no journey. The week as one list, the Routines panel, ‹ › between weeks.
+  await page.goto('/calendar');
+  await expect(
+    page.getByRole('heading', { name: 'Plan', level: 1 }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole('region', { name: "The week's plan" }),
+  ).toContainText('Graphs: BFS practice');
+  await accessible(page);
+  await page
+    .getByRole('button', { name: /^Routines/ })
+    .first()
+    .click();
+  const routines = page.getByRole('dialog', { name: 'Routines' });
+  await expect(routines).toContainText('Morning DSA');
+  await accessible(page);
+  await page.keyboard.press('Escape');
+  await expect(routines).toBeHidden();
+  await page.getByRole('link', { name: 'Next week' }).click();
+  await expect(page).toHaveURL(/date=/);
+  await expect(
+    page.getByRole('region', { name: "The week's plan" }),
+  ).not.toContainText('Graphs: BFS practice');
+  await page.getByRole('link', { name: 'Previous week' }).click();
+  await expect(
+    page.getByRole('region', { name: "The week's plan" }),
+  ).toContainText('Graphs: BFS practice');
+  await fitsPhone(page, '/calendar');
+});
+
+test('a past day closes with each block left decided', async ({ page }) => {
+  // WI-133: Close the Day (WI-029) had no journey. Yesterday gets a block nobody recorded,
+  // then Close the day lets it go and the day reads as reviewed.
+  const yesterday = ownerDay(-1);
+  await page.goto(`/today?date=${yesterday}`);
+  await page.getByRole('button', { name: 'Add a block' }).first().click();
+  const form = page.getByRole('form', { name: 'Add a block' });
+  await form.getByLabel('Title').fill('Heaps reading');
+  await form.getByLabel('Start time').fill('09:00');
+  await form.getByRole('button', { name: 'Add block' }).click();
+  await expect(
+    page.locator('li.agenda-row', { hasText: 'Heaps reading' }),
+  ).toBeVisible();
+  await page.getByRole('button', { name: 'Close the day' }).first().click();
+  const panel = page.getByRole('dialog', { name: 'Close the day' });
+  await expect(panel).toContainText('What happened');
+  await accessible(page);
+  await panel.getByLabel('One line (optional)').fill('Short on sleep');
+  await panel
+    .getByRole('group', { name: /Heaps reading/ })
+    .getByLabel(/Let go/)
+    .check();
+  await panel
+    .getByRole('button', { name: 'Close the day', exact: true })
+    .click();
+  await expect(panel).toBeHidden();
+  await expect(
+    page.locator('li.agenda-row', { hasText: 'Heaps reading' }),
+  ).toContainText(/Let go|Skipped/);
+  await expect(page.getByRole('button', { name: 'Close the day' })).toHaveCount(
+    0,
+  );
+  await accessible(page);
+});
+
+test('⌘K opens a place and adds a note', async ({ page }) => {
+  // WI-133: the command bar (WI-036) had no journey: a place by its name, and its one write.
+  await page.goto('/today');
+  await page.keyboard.press('ControlOrMeta+k');
+  const bar = page.getByRole('dialog', { name: 'Command bar' });
+  await expect(bar).toBeVisible();
+  await accessible(page);
+  await bar.getByRole('combobox').fill('plan');
+  await bar.getByRole('option', { name: /Go to · Plan/ }).click();
+  await page.waitForURL(/\/calendar/);
+  await page.keyboard.press('ControlOrMeta+k');
+  await bar.getByRole('combobox').fill('Call the recruiter back');
+  await bar
+    .getByRole('option', { name: /Add a note · “Call the recruiter back”/ })
+    .click();
+  await expect(bar.getByRole('status')).toHaveText('Saved to Today.');
+  await page.keyboard.press('Escape');
+  await page.goto('/today');
+  // Notes live in the head's More menu on Today (WI-063).
+  await page.getByRole('button', { name: 'More', exact: true }).first().click();
+  await page
+    .getByRole('button', { name: /^Notes/ })
+    .first()
+    .click();
+  await expect(
+    page.getByRole('dialog', { name: /Notes to self/ }),
+  ).toContainText('Call the recruiter back');
+});

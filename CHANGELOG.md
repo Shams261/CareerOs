@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- WI-133 (three browser journeys, 2026-11-02, tests only): Plan (the week's list, the Routines panel, the weeks around it, phone width), Close the Day on a past day (a block nobody recorded is let go, the day reads as reviewed) and ⌘K (a place by name, Add a note) now run in Chromium and WebKit with axe, so 18 journeys in all.
 - WI-132 (the jobs module split, 2026-11-02, no migration): `src/features/jobs/service.ts` became seven modules by concern (owner checks, applications, the interview's schedule block, rounds, prep items, reads, formats); `service.ts` re-exports the same public functions, so nothing else changed. The full suite passes unchanged.
 - WI-131 (the calendar module split, 2026-11-02, no migration): `src/features/calendar/service.ts` became six modules by concern (errors, core, oauth, sync, watch, connection); `service.ts` re-exports the same public functions, so nothing else changed. Calendar behaviour is unchanged; its 31 tests and the full suite pass.
 - WI-130 (component reads, 2026-11-02, no migration): the six server components that still queried the database (the Google Calendar panel, Needs attention, the first-run card, the session card in the shell, interview mentions, the nudges-off card) read through functions in their features' server modules. No `.tsx` file calls the database; the boundaries test now checks every one. Styles are unchanged; only live timers differ between runs.
