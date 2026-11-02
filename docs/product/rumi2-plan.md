@@ -6,7 +6,7 @@ The Rumi plan (v2, 2026-10-26) is complete: WI-038 to WI-043 and WI-060 are live
 
 This plan merges two phases the owner asked to see together: **Rumi 2** (the four Muse-like areas) and **Rumi 3** (the enhancements on top: interview-invite deep research, the pattern coach, the week draft, the debrief and mock interview, reminders that learn, the review summary). The architecture, the data flow diagrams and the user flows are in `docs/architecture/rumi-2.md`; the story and the diagrams the owner approved are `output/Silsila-Rumi-2-Story.pdf` and `output/Silsila-Rumi-2-Architecture.pdf` (not committed).
 
-Three earlier rules change, so ADR-030 is part of this work item: ADR-021 ruled out AI-written coach lines and a morning line; ADR-024 allowed writes only by the owner's press on a card; the Rumi plan deferred voice. ADR-022 (one pinned model on one zero-retention endpoint, the US$3 stop, the US$5 key) does not change.
+Three earlier rules change, so ADR-030 is part of this work item: ADR-021 ruled out AI-written coach lines and a morning line; ADR-024 allowed writes only by the owner's press on a card; the Rumi plan deferred voice. ADR-022 (one pinned model on one zero-retention endpoint, the US$3 stop, the US$5 key) does not change. (Since WI-114 the monthly limit is the owner's setting, none by default; the key limit is set at OpenRouter.)
 
 ### Owner decisions (2026-10-31)
 
@@ -52,7 +52,7 @@ Three earlier rules change, so ADR-030 is part of this work item: ADR-021 ruled 
 | Reminders at the wrong time                                 | WI-109 (E5): times shift in 15-minute steps from feedback and "started within 30 minutes", by code                         | Feedback mix over weeks                                                                                                                          |
 | The week in short is numbers only                           | WI-110 (E8): a two-line Rumi summary on Weekly review step 1, numbers checked, edited before Save                          | Summaries kept versus edited versus removed                                                                                                      |
 
-**Guardrails throughout:** studying stays the owner's work; every write has Undo or a press; the never-read list and non-study masking stand; the lock screen stays generic; no streak, score, pace or guilt, and "missed" never from Rumi; quiet hours, pause, rest and caps apply to every line; the US$3 stop and provider pinning stand; Rumi never signs into the owner's accounts.
+**Guardrails throughout:** studying stays the owner's work; every write has Undo or a press; the never-read list and non-study masking stand; the lock screen stays generic; no streak, score, pace or guilt, and "missed" never from Rumi; quiet hours, pause, rest and caps apply to every line; the owner's monthly limit (since WI-114; the US$3 stop before) and provider pinning stand; Rumi never signs into the owner's accounts.
 
 ## Order of work
 

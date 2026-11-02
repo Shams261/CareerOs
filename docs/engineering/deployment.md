@@ -77,65 +77,11 @@ Updating is a push to `main`: Render deploys after the Quality workflow passes (
 
 ### 6. Limits to know
 
-750 free instance hours per workspace per month (a month of one always-on service is 744). 512 MB RAM and a fractional CPU: pages render in hundreds of milliseconds, not tens. Supabase pauses a free project after 7 days without activity (the cron prevents this) and the session pooler caps clients at the project's pool size (default 15; the app uses 5). If the GitHub Student Heroku credit is granted later, the [Heroku path](#alternative-path-heroku-container-stack-adr-013) remains valid with the same image.
+750 free instance hours per workspace per month (a month of one always-on service is 744). 512 MB RAM and a fractional CPU: pages render in hundreds of milliseconds, not tens. Supabase pauses a free project after 7 days without activity (the cron prevents this) and the session pooler caps clients at the project's pool size (default 15; the app uses 5).
 
-## Alternative path: Heroku container stack (ADR-013)
+## Heroku (retired)
 
-Kept as the documented alternative; `heroku.yml` remains in the repository. The free-tier path above was chosen on 2026-10-02 because the student credit had not been granted after six days ([ADR-014](../architecture/decisions.md#adr-014--render-and-supabase-free-tiers-while-the-heroku-credit-is-pending)).
-
-Decision record: [ADR-013](../architecture/decisions.md#adr-013--heroku-container-hosting-with-portable-12-factor-constraints). Heroku builds the repository's `Dockerfile` (declared in `heroku.yml`) and runs it as the `web` process on an **Eco** dyno with **Postgres Essential-0** (PostgreSQL 17, 1 GB, 20 connections). The GitHub Student Developer Pack credit covers both for 24 months. The sections after this one remain the host-independent reference; this section is the concrete sequence. Commands marked _(owner)_ need your account; nothing here is run for you.
-
-### Create the app _(owner)_
-
-1. Apply for the [Heroku student offer](https://www.heroku.com/github-students/) through the Student Pack, add a payment method, and install the CLI (`brew tap heroku/brew && brew install heroku`, then `heroku login`).
-2. Create the resources in the US region (closest to Toronto):
-
-```sh
-heroku create silsila --region us --stack container
-heroku addons:create heroku-postgresql:essential-0 --app silsila
-heroku ps:type eco --app silsila
-```
-
-`DATABASE_URL` is injected by the add-on and rotates when Heroku maintains credentials; never copy it into another variable.
-
-### Configure _(owner)_
-
-Generate the secrets from [1. Prepare secrets](#1-prepare-secrets) and set them with `heroku config:set … --app silsila`. Required: `APP_BASE_URL=https://usesilsila.me`, `OWNER_EMAIL`, `CRON_SECRET`, `AUTH_SECRET`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `DATABASE_SSL=no-verify`, `DATABASE_POOL_MAX=5`. Optional: `CALENDAR_TOKEN_ENCRYPTION_KEY`, `GOOGLE_CALENDAR_WEBHOOK_BASE_URL=https://usesilsila.me`, `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT`, `OPENROUTER_API_KEY` (Grill Me, WI-031). Try `DATABASE_SSL=verify-full` first; if the start-up log shows a certificate error, use `no-verify` (encrypted, unverified, Heroku's documented mode). Do not set any `GOOGLE_OAUTH_*_URL` override.
-
-### Deploy _(owner)_
-
-Dashboard → Deploy → GitHub: connect `Shams261/CareerOs`, enable **Automatic deploys** from `main` with **Wait for CI to pass before deploy**. Trigger the first deploy manually, then:
-
-```sh
-heroku logs --tail --app silsila          # expect no configuration warning and no time-zone error
-heroku run pnpm db:deploy --app silsila   # migrations, owner-run
-curl https://silsila-<hash>.herokuapp.com/api/health
-```
-
-The database starts empty; the first sign-in with the `OWNER_EMAIL` account creates the owner. Never run `pnpm db:seed` here.
-
-### Domain and TLS _(owner)_
-
-```sh
-heroku domains:add usesilsila.me --app silsila
-heroku domains:add www.usesilsila.me --app silsila
-heroku certs:auto:enable --app silsila
-heroku domains --app silsila             # shows one DNS target per domain
-```
-
-At Namecheap → Advanced DNS: an **ALIAS** record for `@` and a **CNAME** for `www`, each pointing at the DNS target Heroku printed (no proxy, TTL automatic). Certificates issue within an hour of DNS resolving. Then in the Google Cloud console add `https://usesilsila.me/api/auth/callback` and `https://usesilsila.me/api/calendar/oauth/callback` as redirect URIs ([Google production checklist](google-production.md)), and repeat the [smoke test](#6-smoke-test) on the custom domain.
-
-### Scheduler _(owner)_
-
-Heroku Scheduler runs at most every 10 minutes, so use [cron-job.org](https://cron-job.org) (free, per-minute, custom headers): two jobs per the [cron table](operations.md#scheduled-jobs), method `POST`, header `Authorization: Bearer <CRON_SECRET>`, timeout 30 s, notifications on failure. The per-minute call also keeps the Eco dyno awake. Settings → System status must show a recent success for both jobs.
-
-### Backups and updates _(owner)_
-
-Before every migration: `heroku pg:backups:capture --app silsila` (Essential plans support manual captures, not schedules) and, independently, `DATABASE_URL="$(heroku config:get DATABASE_URL --app silsila)" pnpm db:backup` from a workstation, verified with `pnpm db:restore:verify`. Updating is a push to `main`: CI passes, Heroku builds and releases the image, then `heroku run pnpm db:deploy` if the release contains migrations. `heroku releases:rollback` restores the previous image; migrations are forward-only.
-
-### Costs and limits
-
-Eco dynos: $5 per month for 1000 shared hours (a month of web time is 744). Essential-0: $5 per month, 1 GB, 20 connections (the pool uses 5). The student credit covers $13 per month for 24 months. The dyno restarts daily and on every release; in-memory rate limits reset then. The container's filesystem is ephemeral, which the application never relies on.
+The Heroku container path of ADR-013 was retired on 2026-11-02 (WI-120, ADR-014 addendum) and `heroku.yml` removed; the steps are in the archive tag ([HISTORY](../HISTORY.md)). The same `Dockerfile` runs on any host that sets `PORT` and meets the requirements above.
 
 ## 1. Prepare secrets
 

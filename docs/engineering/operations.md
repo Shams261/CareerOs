@@ -26,7 +26,7 @@ A fresh local install follows the [README](../../README.md). An existing owner s
 | Reminders + push | `/api/notifications/process`                          | every minute   | < 1 s; bounded by 100 pushes | 500 and `JobRun.lastError` (error class only). Safe to retry or overlap: inbox rows are unique, push attempts are capped at 3. Study Nudges (WI-028) run in the same request. Once a day the same request also runs Grill Me's provider check (WI-031, `JobRun` `ai-provider-check`); its failure never fails the reminders. |
 | Calendar sync    | `/api/calendar/sync`                                  | every 5–15 min | seconds; per-owner lease     | Per-owner errors are recorded on the connection and retried with backoff; a busy lease is skipped, not queued.                                                                                                                                                                                                               |
 
-In production (ADR-014; also the Heroku alternative) the caller is [cron-job.org](https://cron-job.org): free, per-minute schedules, custom request headers, a 30 s execution limit (both jobs finish in seconds) and failure notifications. The per-minute call is also what keeps a Render free instance (or a Heroku Eco dyno) from spinning down, so a silent cron outage shows up as a sleeping app and a stale "last success" in Settings. Any other caller gets 401. Each run records `lastStartedAt`, `lastSucceededAt`/`lastFailedAt` and a count summary in `JobRun`; Settings → System status shows "last success". If a job has not succeeded for longer than three of its intervals, check the scheduler's own log first (401 means a wrong secret, connection errors mean the app or TLS), then the app log. Missed minutes are not replayed as alerts, but inbox reminders still appear once processing resumes.
+In production (ADR-014) the caller is [cron-job.org](https://cron-job.org): free, per-minute schedules, custom request headers, a 30 s execution limit (both jobs finish in seconds) and failure notifications. The per-minute call is also what keeps a Render free instance (or a Heroku Eco dyno) from spinning down, so a silent cron outage shows up as a sleeping app and a stale "last success" in Settings. Any other caller gets 401. Each run records `lastStartedAt`, `lastSucceededAt`/`lastFailedAt` and a count summary in `JobRun`; Settings → System status shows "last success". If a job has not succeeded for longer than three of its intervals, check the scheduler's own log first (401 means a wrong secret, connection errors mean the app or TLS), then the app log. Missed minutes are not replayed as alerts, but inbox reminders still appear once processing resumes.
 
 ## Uptime and job alerts (WI-051)
 
@@ -44,7 +44,7 @@ The health check gives only `ok`, `stale` or `unknown`, never names or times, an
 
 ## Backups and restoration
 
-See [backup and restore](backup-restore.md) for `pnpm db:backup`, `pnpm db:restore:verify`, the schedule, recovery and the personal database migration checklist. Supabase Free (ADR-014) has no automated backups: `pnpm db:backup` from a workstation against the session-pooler URL, weekly and before every migration, is the only copy; it needs `pg_dump` 17 or newer (`brew install libpq`). On the Heroku alternative, `heroku pg:backups:capture` adds a provider-side snapshot. Proposed RPO/RTO are in the NFR register. Restore rehearsals always go into a new scratch database, never over a live one. Do not commit backups.
+See [backup and restore](backup-restore.md) for `pnpm db:backup`, `pnpm db:restore:verify`, the schedule, recovery and the personal database migration checklist. Supabase Free (ADR-014) has no automated backups: `pnpm db:backup` from a workstation against the session-pooler URL, weekly and before every migration, is the only copy; it needs `pg_dump` 17 or newer (`brew install libpq`). Proposed RPO/RTO are in the NFR register. Restore rehearsals always go into a new scratch database, never over a live one. Do not commit backups.
 
 ## Roadmap material import (WI-012)
 
@@ -120,6 +120,18 @@ For a database used before WI-005.1 on a non-UTC PostgreSQL server (see the READ
 
 Stop writes if integrity is at risk. Roll back the app only if the prior build supports the current schema. If not, deploy a forward fix or restore a backup into a new database and explicitly account for writes since that backup. Do not run `migrate reset`, delete volumes, or force-rewrite migration history on production. Escalate unresolved data reconciliation to the product owner.
 
+## Measuring a page's queries
+
+Every statement is a cross-region round trip in production (about 80 ms, app in Ohio, database in Canada Central), so the statement count of a page is its latency. Measure before adding queries to a page (WI-010, WI-061):
+
+1. Turn on statement logging on a local, disposable PostgreSQL: `ALTER SYSTEM SET log_statement = 'all'; SELECT pg_reload_conf();` (Homebrew logs to `/opt/homebrew/var/log/postgresql@16.log`).
+2. Build and start the app against a migrated database with example data: `pnpm build`, then `pnpm start` (never `pnpm dev`, which compiles on request).
+3. Sign in through the fake provider (`pnpm google:fake`) and copy the session cookie.
+4. Request one page with `curl -H "Cookie: careeros_session=…" http://localhost:3000/today`, note the log size before and after, and count the `statement` and `execute` lines in between. Repeat once to see the warm count (the snapshot cache keeps reads for three minutes).
+5. Turn logging off again with `ALTER SYSTEM RESET log_statement; SELECT pg_reload_conf();`.
+
+Record the counts (cold and warm) in the work item's handoff.
+
 ## Evidence still needed
 
-WI-008 provides the procedures and tooling (health, job runs, backups with restore verification, security headers, sanitized logs, local accessibility and timing checks). The hosted environment itself, real backup retention and timed restores, TLS/ingress checks on the real host, real-device push checks and load measurements remain to be recorded after deployment. This runbook does not establish that those controls have been deployed.
+Recorded since WI-008: the live host (Render and Supabase, ADR-014), health and job runs, a weekly encrypted backup with a restore check in CI (WI-051) and push on two devices. Still open: a timed restore into a fresh project (the recovery time), real-user latency from production, a monitor that checks more often than GitHub's best-effort schedule, and error tracking.

@@ -1,44 +1,37 @@
-# Contributing to CareerOS
+# Contributing to Silsila
 
-Start with the [engineering handbook](docs/README.md) and [setup](README.md#local-setup). Use Node.js 24 and the pnpm version in `package.json`. Use a disposable PostgreSQL database for automated tests; tests invoke notification processing and must never target production.
+Silsila has one owner and is built in small work items. Start with [setup](README.md#local-setup) and the [engineering handbook](docs/README.md). Use Node.js 24 and the pnpm version in `package.json`. Tests and browser checks use disposable databases only; never point them at the personal database or a real Google account.
 
-## Story-to-release workflow
+## Work item workflow
 
-1. Open a user story with a stable `US-xxx` ID (or bug referencing an existing story). Define outcome, acceptance criteria, exclusions, relevant NFRs and test plan before coding.
-2. Create a short branch from current `main`, e.g. `feat/us-023-session-corrections`, `fix/us-013-session-race`, or `docs/architecture-update`.
-3. Keep changes cohesive. Use Conventional Commit subjects (`feat:`, `fix:`, `docs:`, `test:`, `chore:`). Explain why and migration implications in the body when useful. Never commit secrets, dumps, build output or real personal fixtures.
-4. Extend the existing feature boundaries. Resolve owner on the server, validate input, preserve planned/actual separation, and use transaction locks for execution writes. No direct browser-to-database access.
-5. Add focused domain/integration tests for changed invariants. New migrations must preserve data, include constraints/indexes, and be tested from a clean database and against upgrade fixtures. Never edit an already shipped migration; add another migration. Create database clients only through `src/lib/database.ts` (UTC sessions, ADR-009). Store instants as `timestamptz` and calendar labels as `DATE`, and name the zone explicitly in any SQL conversion.
-6. Update affected stories, NFR evidence, diagrams, ADRs and changelog in the same PR. Record screenshots from non-sensitive test data when UI behavior changes.
-7. Open a PR using the template; request code-owner review. Resolve checks and comments before merge. Prefer squash merging routine feature PRs with a meaningful subject; do not force-push `main`.
-8. Deploy only using the [operations runbook](docs/engineering/operations.md) after the applicable readiness gates are satisfied.
+1. **Name it.** One work item, `WI-NNN`, one outcome. Read the relevant code, `prisma/schema.prisma`, migrations, tests and ADRs first, and pick the smallest correct change.
+2. **Branch** from current `main`: `feat/wi-NNN-short-name`, `fix/…` or `chore/…`.
+3. **Build inside the existing boundaries.** Pure rules in a domain file, writes in a service under the owner lock, the owner resolved on the server and never taken from the browser, planned and actual time kept apart. Create database clients only through `src/lib/database.ts` (UTC sessions, ADR-009); store instants as `timestamptz` and calendar labels as `DATE`.
+4. **Schema changes** get a new migration (existing ones are immutable), an upgrade test from the previous migration, a drift check, the seed run twice, and a bump of `LATEST_MIGRATION` in `src/server/health.ts`. Keep a migration expand-only: the running code must still work once it is applied, because it is applied to the personal database before the merge (verified backup first, [checklist](docs/engineering/backup-restore.md)).
+5. **Tests** cover the changed rules (pure tests) and invariants (database tests). Existing tests are contracts: never delete or weaken one to make new work pass.
+6. **Docs in the same change:** a changelog entry under "Unreleased" (what the owner sees and the migration name, three lines at most), the status lines in `CLAUDE.md`, an ADR when a decision changes, and `docs/WI-NNN-HANDOFF.md` with the gate results and any owner steps. When the new handoff lands, the oldest of the last ten leaves `docs/` ([HISTORY](docs/HISTORY.md)).
+7. **Merge** with `git merge --no-ff` into `main` after the gate passes, then push. Render deploys `main` only after CI passes. No force-push to `main`; roll back with reviewed revert commits.
 
-## Required checks
+Commit subjects follow Conventional Commits (`feat(scope): …`, `fix:`, `docs:`, `chore:`). Never commit secrets, dumps, build output, screenshots of the personal workspace or real personal fixtures; local audits, mocks and PDFs go in `output/` (ignored).
+
+## The gate
 
 ```sh
-pnpm install --frozen-lockfile
+pnpm exec prisma format
 pnpm db:generate
 pnpm lint
 pnpm typecheck
-pnpm docs:check
-# Set DATABASE_URL and TEST_DATABASE_URL to the same disposable test database.
-pnpm db:deploy
+# TEST_DATABASE_URL and DATABASE_URL set to the same fresh, migrated disposable database:
 pnpm test:ci
 pnpm build
+pnpm test:e2e            # UI work; CI runs it on every push
+pnpm test:e2e:safari     # UI work, WebKit
+pnpm docs:check
+git diff --check
 ```
 
-`pnpm test` can skip database suites when `TEST_DATABASE_URL` is absent. It is useful locally but is not sufficient release evidence by itself. `pnpm test:ci` requires a PostgreSQL test URL and runs the full suite. Browser acceptance (Chromium, Firefox and WebKit through the production build and `pnpm google:fake`) is run per work item and recorded in its handoff; it is not yet committed as portable automated CI coverage, so do not imply that the CI workflow verifies visual or end-to-end behavior. Never point browser tests at a real Google account or a personal database.
+`pnpm test` skips database suites without `TEST_DATABASE_URL`; it is not release evidence on its own. UI work is also checked in a browser at about 1440 and 390 px, light and dark: no console errors, no horizontal overflow, axe clean.
 
 ## Review checklist
 
-Check acceptance criteria, ownership/auth boundaries, validation, concurrency, DST, errors and empty states, migrations, changed performance characteristics, keyboard/mobile behavior, and docs. A green build does not prove data safety or accessibility. Keep product behavior and deployment claims honest.
-
-## Repository settings
-
-The supplied workflow and CODEOWNERS file are repository content. The maintainer should configure a `main` ruleset requiring PRs, the `quality` check from the Quality workflow, a reviewer when another engineer is available, resolved conversations, and blocked force pushes/deletions. These settings are not automatically enabled by committing this document. Apply a solo-maintainer review policy that can actually be followed; revisit it when hiring. No open-source license has been selected by this change.
-
-## CI reuse and checkpoint tags
-
-The quality workflow generates Prisma once and uses Next's production build for the TypeScript check, covering the repository tsconfig. Dependency/compiler caches reuse work; a cache hit never skips tests or migrations. The two seed executions assert that records are unchanged on rerun. Feature branches run on pull requests, main runs after merge, and superseded runs are cancelled. Keep the required check named `quality`.
-
-Use an annotated pre-change tag for major migrations and a verified milestone tag after successful checks. Tags are source checkpoints, not database backups or a production readiness claim. Keep feature commits cohesive; if preserving individual commits matters, use a reviewed merge commit rather than a squash. Roll back shared history with reviewed revert commits. For schema changes, first verify old-code compatibility or plan a forward fix/isolated backup restoration; never assume reverting Git reverses PostgreSQL.
+Owner scoping and the session boundary, validation, the lock and transaction, DST and DATE handling, empty and error states, Undo for every write that hides something, one primary per page, keyboard and phone behaviour, what reaches an AI model (ADR-022, ADR-024, ADR-030), log vocabulary ([security](docs/engineering/security.md)), and docs. A green build does not prove data safety or accessibility.
