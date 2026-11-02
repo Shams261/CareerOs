@@ -2,7 +2,7 @@ import { RumiPose } from '@/features/agent/pose';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { ArrowLeft } from 'lucide-react';
-import { db, owner } from '@/server/db';
+import { owner } from '@/server/db';
 import { dayKey, shortDate } from '@/lib/time';
 import { Disclosure } from '@/components/disclosure';
 import { ActionForm } from '@/components/action-form';
@@ -14,6 +14,7 @@ import { deletePrepDocAction } from '@/features/prep/actions';
 import type { Link as ItemLink, Source } from '@/features/prep/domain';
 import { PlanUntilButton } from '@/features/prep/plan-button';
 import { typeText } from '@/features/jobs/formats';
+import { linkedTargets } from '@/features/prep/page-data';
 
 export const metadata = { title: 'Prep doc' };
 
@@ -62,22 +63,7 @@ export default async function PrepDocPage({
     ).values(),
   ];
   // Links open the item where it lives now; one removed since reads as plain text.
-  const [items, problems] = await Promise.all([
-    db().roadmapItem.findMany({
-      where: {
-        userId: user.id,
-        id: { in: linked.filter((l) => l.kind === 'roadmap').map((l) => l.id) },
-      },
-      select: { id: true, roadmapId: true, section: true },
-    }),
-    db().dsaProblem.findMany({
-      where: {
-        userId: user.id,
-        id: { in: linked.filter((l) => l.kind === 'problem').map((l) => l.id) },
-      },
-      select: { id: true },
-    }),
-  ]);
+  const { items, problems } = await linkedTargets(user, linked);
   const href = (l: ItemLink) => {
     if (l.kind === 'problem')
       return problems.some((p) => p.id === l.id) ? `/dsa/${l.id}` : null;

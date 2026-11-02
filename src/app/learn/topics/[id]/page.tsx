@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { db, owner } from '@/server/db';
+import { owner } from '@/server/db';
 import { dayKey } from '@/lib/time';
 import { ResourceLink } from '@/components/resource-link';
 import { Disclosure } from '@/components/disclosure';
@@ -18,6 +18,7 @@ import {
   calendarDate,
 } from '@/features/learning/domain';
 import { ArrowLeft } from 'lucide-react';
+import { topicPage, topicSiblings } from '@/features/learning/page-data';
 export const metadata = { title: 'Learn' };
 export default async function Topic({
   params,
@@ -26,24 +27,9 @@ export default async function Topic({
 }) {
   const user = await owner(),
     { id } = await params,
-    topic = await db().learningTopic.findFirst({
-      where: { id, userId: user.id },
-      include: {
-        subject: true,
-        parent: true,
-        resources: { where: { userId: user.id } },
-        activities: {
-          where: { userId: user.id },
-          orderBy: [{ performedAt: 'desc' }, { id: 'desc' }],
-          take: 100,
-        },
-      },
-    });
+    topic = await topicPage(user, id);
   if (!topic) notFound();
-  const siblings = await db().learningTopic.findMany({
-    where: { userId: user.id, subjectId: topic.subjectId },
-    orderBy: { ordering: 'asc' },
-  });
+  const siblings = await topicSiblings(user, topic.subjectId);
   return (
     <>
       <Link

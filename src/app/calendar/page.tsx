@@ -1,5 +1,4 @@
 import Link from 'next/link';
-import { ownerWords } from '@/lib/action-error';
 import { isDeleted } from '@/features/deletes/domain';
 import { openTemplates } from '@/features/schedule/templates';
 import { Briefcase, ChevronLeft, ChevronRight } from 'lucide-react';
@@ -8,11 +7,9 @@ import { Disclosure } from '@/components/disclosure';
 import { PageShortcuts } from '@/components/shortcuts';
 import { CategoryIcon } from '@/components/category-icon';
 import { DateJump } from '@/components/date-jump';
-import { getConnection } from '@/features/calendar/service';
 import { blockSyncView } from '@/features/calendar/domain';
-import { db, owner } from '@/server/db';
+import { owner } from '@/server/db';
 import { dayKey, hhmm } from '@/lib/time';
-import { generateThroughSunday } from '@/features/schedule/service';
 import { dateInput } from '@/features/schedule/domain';
 import { weekDays, shiftDay } from '@/lib/day';
 import {
@@ -42,6 +39,7 @@ import { UtilityMenu } from '@/features/today/utility-menu';
 import { WeekCard } from '@/features/today/week-card';
 import { weekProgress } from '@/features/today/home';
 import { nextSlot } from '@/features/today/domain';
+import { planPage } from '@/features/schedule/page-data';
 export const metadata = { title: 'Plan' };
 
 const WEEKDAY = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -66,58 +64,9 @@ export default async function Calendar({
     selected = dateInput.safeParse(query.date).success ? query.date! : today,
     days = weekDays(selected),
     thisWeek = weekDays(today);
-  // Only the week's plans wait for generation; the rest starts at once (WI-061).
-  const generated = generateThroughSunday(user, today).then(
-    () => '',
-    (error) => ownerWords(error) ?? 'Unable to plan this week.',
-  );
-  const [routines, plans, goals, connection, generationError] =
-    await Promise.all([
-      db().routineBlock.findMany({
-        where: { userId: user.id },
-        orderBy: { createdAt: 'asc' },
-      }),
-      generated.then(() =>
-        db().dailyPlan.findMany({
-          where: {
-            userId: user.id,
-            date: { gte: new Date(days[0]), lte: new Date(days[6]) },
-          },
-          include: {
-            blocks: {
-              orderBy: { plannedStart: 'asc' },
-              include: {
-                sessions: {
-                  select: { id: true, startedAt: true, endedAt: true },
-                },
-              },
-            },
-          },
-        }),
-      ),
-      db().goal.findMany({
-        where: { userId: user.id },
-        select: { id: true, title: true },
-      }),
-      getConnection(user.id),
-      generated,
-    ]);
+  const { routines, plans, goals, connection, generationError, rounds } =
+    await planPage(user, today, days);
   const syncing = connection && connection.status !== 'DISCONNECTED';
-  // Linked interviews, so a block named "Company — Round" reads as the round here too.
-  // Usually no linked block exists and this costs nothing.
-  const roundIds = plans.flatMap((p) =>
-    p.blocks.flatMap((b) => (b.interviewRoundId ? [b.interviewRoundId] : [])),
-  );
-  const rounds = roundIds.length
-    ? await db().interviewRound.findMany({
-        where: { id: { in: roundIds }, userId: user.id },
-        select: {
-          id: true,
-          title: true,
-          application: { select: { company: true } },
-        },
-      })
-    : [];
   const roundOf = (b: { interviewRoundId: string | null }) => {
     const r = rounds.find((x) => x.id === b.interviewRoundId);
     return r ? { title: r.title, company: r.application.company } : null;
