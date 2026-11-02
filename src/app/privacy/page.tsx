@@ -26,7 +26,7 @@ export default async function Privacy() {
       )}
       <p className="eyebrow">Silsila · usesilsila.me</p>
       <h1 id="privacy-heading">Privacy</h1>
-      <p className="policy-updated">Last updated 27 October 2026</p>
+      <p className="policy-updated">Last updated 2 November 2026</p>
       <p>
         Silsila is a personal execution system run by one person for their own
         use: it turns routines into a dated plan, records what happened, tracks
@@ -201,12 +201,15 @@ export default async function Privacy() {
 
       <h2>Keeping and removing data</h2>
       <p>
-        Data is kept for as long as the owner uses Silsila. Settings offers a
-        JSON export of every record (without credentials or device keys),
-        disconnecting Google Calendar, and disabling push on a device. Because
-        there is one owner, deleting the workspace means deleting the database,
-        which the owner can do at any time; Google access can be revoked from
-        the Google account at any time.
+        Data is kept for as long as the owner uses Silsila. A few records the
+        app keeps for itself are removed once a day when they are old: sign-in
+        sessions 30 days after they expired or were signed out, reminders the
+        owner has read 180 days after they were due, and the AI usage ledger
+        after 400 days. Settings offers a JSON export of every record (without
+        credentials or device keys), disconnecting Google Calendar, and
+        disabling push on a device. Because there is one owner, deleting the
+        workspace means deleting the database, which the owner can do at any
+        time; Google access can be revoked from the Google account at any time.
       </p>
 
       <h2>Security</h2>
