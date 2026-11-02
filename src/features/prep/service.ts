@@ -30,6 +30,7 @@ import {
   PREP_FORMAT,
   prepMessages,
   readPrepDoc,
+  storedPrepDoc,
   SEARCH_RESERVE_MICROS,
   searchBody,
   searchQueries,
@@ -429,7 +430,7 @@ export async function prepDoc(user: ScheduleUser, id: string) {
   if (!row) return null;
   return {
     ...row,
-    doc: row.content as unknown as PrepDoc,
+    doc: storedPrepDoc(row.content),
     cited: row.sources as unknown as Source[],
   };
 }
@@ -463,7 +464,7 @@ export async function latestPrepDocs(user: ScheduleUser) {
   ].slice(0, 3);
   return {
     docs: latest.map((r) => {
-      const d = r.content as unknown as PrepDoc;
+      const d = storedPrepDoc(r.content);
       return {
         company: r.company,
         role: r.role,

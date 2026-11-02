@@ -34,6 +34,7 @@ import {
 } from './domain';
 import { Button } from '@/components/ui/button';
 import { aiPolicyLabel, practiceFormats, typeLabel, typeText } from './formats';
+import { hhmm } from '@/lib/time';
 
 const Options = ({
   values,
@@ -359,9 +360,7 @@ function WhenFields({ zone, round }: { zone: string; round?: InterviewRound }) {
           name="start"
           type="time"
           required
-          defaultValue={
-            round ? formatInTimeZone(round.scheduledStart, z, 'HH:mm') : ''
-          }
+          defaultValue={round ? hhmm(round.scheduledStart, z) : ''}
         />
       </label>
       <label>
@@ -369,11 +368,7 @@ function WhenFields({ zone, round }: { zone: string; round?: InterviewRound }) {
         <input
           name="end"
           type="time"
-          defaultValue={
-            round?.scheduledEnd
-              ? formatInTimeZone(round.scheduledEnd, z, 'HH:mm')
-              : ''
-          }
+          defaultValue={round?.scheduledEnd ? hhmm(round.scheduledEnd, z) : ''}
         />
       </label>
       <label>

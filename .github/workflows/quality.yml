@@ -72,8 +72,11 @@ jobs:
         run: |
           pnpm db:deploy
           pnpm exec tsx scripts/verify-seed.ts
-      - name: All tests (database required)
-        run: pnpm test:ci
+      - name: All tests (database required), with a coverage summary
+        run: pnpm test:ci --coverage
+      # WI-139: unused files, exports and dependencies, as a report; it never fails the build.
+      - name: Unused code report (knip)
+        run: pnpm exec knip --no-progress --no-exit-code
       # Next build runs the TypeScript check. The Prisma client was generated above.
       - name: Production build and type checks
         run: pnpm exec next build --webpack

@@ -22,7 +22,7 @@ import { ActionForm } from '@/components/action-form';
 import { makeCurrentAction } from '@/features/dsa/actions';
 import { Disclosure } from '@/components/disclosure';
 import { PanelButton, SidePanel } from '@/components/side-panel';
-import { UtilityMenu } from '@/features/today/utility-menu';
+import { UtilityMenu } from '@/components/utility-menu';
 import { dayKey, localInstant } from '@/lib/time';
 import { resourceUrl } from '@/lib/validation';
 import { shiftDay } from '@/lib/day';

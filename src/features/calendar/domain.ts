@@ -3,6 +3,7 @@ import { formatInTimeZone } from 'date-fns-tz';
 import type { EventWrite, GoogleEvent } from './google';
 import { weekDays } from '@/lib/day';
 import { categoryKey } from '@/lib/categories';
+import { hhmm } from '@/lib/time';
 
 /** Private extended property keys that prove CareerOS created an event (ADR-010). */
 export const PROP = {
@@ -158,7 +159,7 @@ export function blockSyncView(
 export function snapshotLabel(s: Snapshot, zone: string) {
   if (s.cancelled || !s.start || !s.end)
     return `${s.title || 'Event'} · deleted`;
-  return `${s.title} · ${formatInTimeZone(new Date(s.start), zone, 'EEE MMM d, HH:mm')}–${formatInTimeZone(new Date(s.end), zone, 'HH:mm')}`;
+  return `${s.title} · ${formatInTimeZone(new Date(s.start), zone, 'EEE MMM d, HH:mm')}–${hhmm(new Date(s.end), zone)}`;
 }
 /** httpOnly cookie carrying the encrypted OAuth state + PKCE verifier between redirects. */
 export const OAUTH_COOKIE = 'careeros_google_oauth';

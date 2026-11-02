@@ -2,7 +2,7 @@
 import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
 import { ChevronDown } from 'lucide-react';
 
-/** Header utilities behind one labelled More button at every width (WI-063). */
+/** Header utilities behind one labelled More button at every width (WI-063); shared by every page head since WI-139. */
 export function UtilityMenu({ children }: { children: ReactNode }) {
   const [open, setOpen] = useState(false);
   const id = useId();

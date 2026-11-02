@@ -1,8 +1,7 @@
 'use server';
-import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { owner } from '@/server/db';
-import { forgetAll } from '@/server/memo';
+import { runAction } from '@/server/action';
 import { answerNoticed } from './service';
 
 const input = z.object({
@@ -17,10 +16,12 @@ export async function answerNoticedAction(raw: {
   kind: string;
   acted: boolean;
 }): Promise<{ ok: boolean }> {
-  const parsed = input.safeParse(raw);
-  if (!parsed.success) return { ok: false };
-  await answerNoticed(await owner(), parsed.data);
-  forgetAll();
-  revalidatePath('/today');
-  return { ok: true };
+  const done = await runAction(
+    async () => {
+      await answerNoticed(await owner(), input.parse(raw));
+      return '';
+    },
+    { area: 'noticed' },
+  );
+  return { ok: !!done.ok };
 }

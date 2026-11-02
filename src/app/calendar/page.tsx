@@ -35,7 +35,7 @@ import {
   weekGroups,
   weekRange,
 } from '@/features/schedule/week-list';
-import { UtilityMenu } from '@/features/today/utility-menu';
+import { UtilityMenu } from '@/components/utility-menu';
 import { WeekCard } from '@/features/today/week-card';
 import { weekProgress } from '@/features/today/home';
 import { nextSlot } from '@/features/today/domain';

@@ -403,13 +403,11 @@ export function interviewTime(
   ownerZone: string,
 ) {
   const local = `${formatInTimeZone(r.scheduledStart, ownerZone, 'EEE, MMM d · HH:mm')}${
-    r.scheduledEnd
-      ? `–${formatInTimeZone(r.scheduledEnd, ownerZone, 'HH:mm')}`
-      : ''
+    r.scheduledEnd ? `–${hhmm(r.scheduledEnd, ownerZone)}` : ''
   }`;
   return r.timezone === ownerZone
     ? local
-    : `${local} (${formatInTimeZone(r.scheduledStart, r.timezone, 'HH:mm')} ${r.timezone})`;
+    : `${local} (${hhmm(r.scheduledStart, r.timezone)} ${r.timezone})`;
 }
 export const lastActivityDays = (last: Date, now: Date, zone: string) =>
   daysBetween(dayKey(last, zone), dayKey(now, zone));

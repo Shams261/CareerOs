@@ -7,9 +7,14 @@ if (!connection || !/^postgres(ql)?:\/\//.test(connection)) {
   );
   process.exit(1);
 }
-const result = spawnSync('pnpm', ['exec', 'vitest', 'run'], {
-  stdio: 'inherit',
-});
+// Extra arguments go to Vitest (CI adds --coverage, WI-139).
+const result = spawnSync(
+  'pnpm',
+  ['exec', 'vitest', 'run', ...process.argv.slice(2)],
+  {
+    stdio: 'inherit',
+  },
+);
 if (result.error)
   console.error('Unable to launch tests:', result.error.message);
 process.exit(result.status ?? 1);

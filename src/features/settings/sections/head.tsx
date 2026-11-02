@@ -1,5 +1,5 @@
 import { Button } from '@/components/ui/button';
-import { UtilityMenu } from '@/features/today/utility-menu';
+import { UtilityMenu } from '@/components/utility-menu';
 import { signOutAction } from '@/features/auth/actions';
 import { settingsSummary } from '../domain';
 import type { SettingsView } from '../page-data';

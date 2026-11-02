@@ -11,7 +11,7 @@ import { shiftDay } from '@/lib/day';
 import { getPatterns, studyKinds } from '@/features/agent/tools';
 import { proposeBlocks, takenOn } from '@/features/agent/plans';
 import { planWindow, type Proposal } from '@/features/agent/plan-domain';
-import type { PrepDoc } from './domain';
+import { storedPrepDoc } from './domain';
 import { studySlots } from './invite';
 
 /**
@@ -29,7 +29,7 @@ export async function planFromDoc(
     select: { applicationId: true, company: true, content: true },
   });
   if (!row) throw new Error('This doc no longer exists.');
-  const doc = row.content as unknown as PrepDoc;
+  const doc = storedPrepDoc(row.content);
   const steps = (doc.order?.length ? doc.order : doc.topics).map((t) => t.name);
   if (!steps.length) throw new Error('This doc has no study order to plan.');
   const today = dayKey(now, user.timezone);

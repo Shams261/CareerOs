@@ -10,10 +10,10 @@ import {
   answerSuggestionAction,
   applyProposalAction,
   dismissProposalAction,
-  undoWriteAction,
   applyRequestAction,
   dismissRequestAction,
 } from './actions';
+import { undoWriteAction } from '@/features/undo/actions';
 import type { CardView } from './request-domain';
 import { REQUEST_WORDS } from '@/features/agent/text';
 import { useRouter } from 'next/navigation';

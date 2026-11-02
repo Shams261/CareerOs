@@ -1,7 +1,7 @@
 'use server';
 import { deleteBlock } from '@/features/deletes/service';
 import { blockUndo } from '@/features/deletes/domain';
-import { planLine } from '@/features/today/home';
+import { planLine } from './plan-lines';
 import { runAction } from '@/server/action';
 import type { ActionState } from '@/lib/action-state';
 import { redirect } from 'next/navigation';

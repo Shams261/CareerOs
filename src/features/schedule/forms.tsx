@@ -19,6 +19,7 @@ import type {
   DailyCheckIn,
 } from '@/generated/prisma/client';
 import { formatInTimeZone } from 'date-fns-tz';
+import { hhmm } from '@/lib/time';
 import { Button } from '@/components/ui/button';
 import {
   SecondaryActions,
@@ -85,8 +86,8 @@ export function BlockForm({
       <QuickBlockFields
         defaultTitle={block?.title}
         defaultKind={block?.category}
-        defaultStart={block ? local(block.plannedStart, 'HH:mm') : defaultStart}
-        defaultEnd={block ? local(block.plannedEnd, 'HH:mm') : defaultEnd}
+        defaultStart={block ? hhmm(block.plannedStart, zone) : defaultStart}
+        defaultEnd={block ? hhmm(block.plannedEnd, zone) : defaultEnd}
         defaultNote={block?.description ?? ''}
       />
       {/* A new block takes the day it is added on, normal priority and no goal (WI-070). */}
@@ -504,8 +505,8 @@ export function ManualSessionForm({
         endName="endLocal"
         startLabel="Started at"
         endLabel="Ended at"
-        defaultStart={at(range.start, 'HH:mm')}
-        defaultEnd={at(range.end, 'HH:mm')}
+        defaultStart={hhmm(range.start, zone)}
+        defaultEnd={hhmm(range.end, zone)}
         lengths={LOG_LENGTHS}
       />
       <FormMore label="More: another day, a note">

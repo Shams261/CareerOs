@@ -4,7 +4,7 @@ import { PrismaClient } from '../src/generated/prisma/client';
 import { createPgAdapter, describeDatabase } from '../src/lib/database';
 import { parseDatabaseSsl } from '../src/lib/database-ssl';
 import { importBundle } from './lib/roadmap-import';
-import type { Bundle } from './lib/roadmap-bundle';
+import { readBundle } from './lib/roadmap-bundle';
 
 /**
  * pnpm roadmap:import <bundle.json>
@@ -19,7 +19,10 @@ async function main() {
     console.error('Usage: DATABASE_URL=… pnpm roadmap:import <bundle.json>');
     process.exit(1);
   }
-  const bundle = JSON.parse(readFileSync(file, 'utf8')) as Bundle;
+  const read = readBundle(JSON.parse(readFileSync(file, 'utf8')));
+  if (!read.ok)
+    throw new Error(`Not a version 1 Silsila roadmap bundle: ${read.problem}`);
+  const bundle = read.bundle;
   console.log(
     `Importing ${file} (built ${bundle.builtAt}) into ${describeDatabase(url)}`,
   );
