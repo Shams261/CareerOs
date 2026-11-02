@@ -1,4 +1,5 @@
 'use server';
+import { failure } from '@/server/action';
 import { revalidatePath } from 'next/cache';
 import { owner } from '@/server/db';
 import { forgetAll } from '@/server/memo';
@@ -29,16 +30,13 @@ export async function restoreCurriculumAction(): Promise<ActionState> {
         : 'Everything in the default curriculum is already here.',
     };
   } catch (error) {
-    // Names and codes only, never record content (docs/engineering/security.md).
-    console.error(
-      '[curriculum] restore failed',
-      error instanceof Error ? error.name : 'Error',
-    );
+    // `failure` logs names, codes and a reference only (docs/engineering/security.md).
     return {
-      message:
-        error instanceof Error && !('code' in error)
-          ? error.message
-          : 'Could not restore the curriculum. Try again.',
+      message: failure(
+        error,
+        'curriculum',
+        'Could not restore the curriculum. Try again.',
+      ),
     };
   }
 }

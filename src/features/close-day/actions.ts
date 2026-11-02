@@ -1,4 +1,5 @@
 'use server';
+import { failure } from '@/server/action';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { forgetAll } from '@/server/memo';
@@ -26,10 +27,11 @@ export async function closeDayAction(
     if (error instanceof z.ZodError)
       return { message: issueMessages(error.issues) };
     return {
-      message:
-        error instanceof Error && !('code' in error)
-          ? error.message
-          : 'Unable to close the day. Reload and try again.',
+      message: failure(
+        error,
+        'close-day',
+        'Unable to close the day. Reload and try again.',
+      ),
     };
   }
 }

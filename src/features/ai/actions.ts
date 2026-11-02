@@ -1,9 +1,7 @@
 'use server';
-import { revalidatePath } from 'next/cache';
+import { runAction } from '@/server/action';
 import { z } from 'zod';
-import { forgetAll } from '@/server/memo';
 import { db, owner } from '@/server/db';
-import { issueMessages } from '@/lib/validation';
 import type { ActionState } from '@/features/schedule/actions';
 import {
   budgetLine,
@@ -24,31 +22,8 @@ import {
   setMonthlyLimit,
 } from './service';
 
-const refresh = () => {
-  forgetAll();
-  revalidatePath('/roadmap', 'layout');
-  revalidatePath('/settings');
-};
-async function perform(
-  work: () => Promise<string | Omit<ActionState, 'ok'>>,
-): Promise<ActionState> {
-  try {
-    const done = await work();
-    refresh();
-    return typeof done === 'string'
-      ? { message: done, ok: true }
-      : { ...done, ok: true };
-  } catch (error) {
-    if (error instanceof z.ZodError)
-      return { message: issueMessages(error.issues) };
-    return {
-      message:
-        error instanceof Error && !('code' in error)
-          ? error.message
-          : 'Unable to save. Reload and try again.',
-    };
-  }
-}
+const perform = (work: () => Promise<string | Omit<ActionState, 'ok'>>) =>
+  runAction(work, { area: 'ai' });
 
 export type GrillResult =
   | { ok: true; ladder: Ladder; budget: string }

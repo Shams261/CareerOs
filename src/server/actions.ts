@@ -4,7 +4,8 @@ import { z } from 'zod';
 import { db, owner } from './db';
 import { forgetAll } from './memo';
 import { localTime } from '@/lib/validation';
-type ActionState = { message: string; ok?: boolean };
+import { failure } from './action';
+import type { ActionState } from '@/lib/action-state';
 /** Form-state wrapper so Settings can show "Preference saved." like every other form. */
 export async function reminderAction(
   _state: ActionState,
@@ -18,9 +19,7 @@ export async function reminderAction(
       message:
         error instanceof z.ZodError
           ? 'Enter the reminder time as HH:MM.'
-          : error instanceof Error
-            ? error.message
-            : 'Unable to save. Reload and try again.',
+          : failure(error, 'reminders'),
     };
   }
 }

@@ -1,8 +1,5 @@
 'use server';
-import { forgetAll } from '@/server/memo';
-import { revalidatePath } from 'next/cache';
-import { z } from 'zod';
-import { issueMessages } from '@/lib/validation';
+import { runAction } from '@/server/action';
 import { owner } from '@/server/db';
 import type { ActionState } from '@/features/schedule/actions';
 import {
@@ -16,27 +13,8 @@ import {
 } from './service';
 
 type Done = string | { message: string; undo?: ActionState['undo'] };
-async function perform(work: () => Promise<Done>): Promise<ActionState> {
-  try {
-    const done = await work();
-    forgetAll();
-    revalidatePath('/roadmap', 'layout');
-    revalidatePath('/today');
-    revalidatePath('/review');
-    return typeof done === 'string'
-      ? { ok: true, message: done }
-      : { ok: true, message: done.message, undo: done.undo };
-  } catch (error) {
-    return {
-      message:
-        error instanceof z.ZodError
-          ? issueMessages(error.issues)
-          : error instanceof Error && !('code' in error)
-            ? error.message
-            : 'Unable to save. Reload and try again.',
-    };
-  }
-}
+const perform = (work: () => Promise<Done>) =>
+  runAction(work, { area: 'roadmap' });
 export async function goalAction(_s: ActionState, f: FormData) {
   return perform(async () => {
     await saveGoal(await owner(), Object.fromEntries(f));

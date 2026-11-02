@@ -1,4 +1,5 @@
 import 'server-only';
+import { UserError } from '@/lib/action-error';
 import { streamReader, type StreamEvent } from './stream';
 import { z } from 'zod';
 import { db } from '@/server/db';
@@ -37,11 +38,11 @@ import {
 
 export type Fetcher = typeof fetch;
 /** A refusal the owner can act on; no request was sent. */
-export class AiRefusal extends Error {
+export class AiRefusal extends UserError {
   name = 'AiRefusal';
 }
 /** The provider could not give a usable answer; the message stays general. */
-export class AiUnavailable extends Error {
+export class AiUnavailable extends UserError {
   name = 'AiUnavailable';
 }
 export const UNAVAILABLE = 'Grill Me is unavailable right now.';

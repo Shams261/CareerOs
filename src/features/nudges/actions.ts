@@ -1,10 +1,9 @@
 'use server';
+import { runAction } from '@/server/action';
 import { revalidatePath } from 'next/cache';
 import { cookies } from 'next/headers';
 import { z } from 'zod';
-import { forgetAll } from '@/server/memo';
 import { db, owner } from '@/server/db';
-import { issueMessages } from '@/lib/validation';
 import { dayKey, hhmm } from '@/lib/time';
 import { dateInput, shiftDay } from '@/features/schedule/domain';
 import { saveBlock } from '@/features/schedule/editing';
@@ -23,28 +22,8 @@ import {
   thisSunday,
 } from './service';
 
-async function perform(
-  work: () => Promise<string | Omit<ActionState, 'ok'>>,
-): Promise<ActionState> {
-  try {
-    const done = await work();
-    forgetAll();
-    for (const route of ['/today', '/settings', '/calendar'])
-      revalidatePath(route);
-    return typeof done === 'string'
-      ? { message: done, ok: true }
-      : { ...done, ok: true };
-  } catch (error) {
-    if (error instanceof z.ZodError)
-      return { message: issueMessages(error.issues) };
-    return {
-      message:
-        error instanceof Error && !('code' in error)
-          ? error.message
-          : 'Unable to save. Reload and try again.',
-    };
-  }
-}
+const perform = (work: () => Promise<string | Omit<ActionState, 'ok'>>) =>
+  runAction(work, { area: 'nudges' });
 
 /** Settings → Study nudges. Days and categories arrive as repeated fields. */
 export async function nudgeSettingsAction(_s: ActionState, form: FormData) {

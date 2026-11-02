@@ -5,6 +5,7 @@ import 'server-only';
  * persistent Undo. The day's count is read under the same lock. Nothing here trusts the
  * model beyond its validated arguments. Covered by tests/agent-writes-database.test.ts.
  */
+import { ownerWords } from '@/lib/action-error';
 import { randomUUID } from 'node:crypto';
 import { db } from '@/server/db';
 import type { Prisma } from '@/generated/prisma/client';
@@ -123,8 +124,8 @@ export async function runWrite(
     });
   } catch (error) {
     // A writer's own refusal (an overlap found by saveBlock, a bad note) is the model's answer.
-    if (error instanceof Error && !('code' in error))
-      return refused(error.message.slice(0, 200));
+    const words = ownerWords(error);
+    if (words) return refused(words.slice(0, 200));
     throw error;
   }
 }

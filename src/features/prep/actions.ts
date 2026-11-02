@@ -1,4 +1,5 @@
 'use server';
+import { failure } from '@/server/action';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { z } from 'zod';
@@ -38,14 +39,11 @@ const inviteIn = z
   .object({ rounds: z.array(roundIn).max(6), topics: inviteTopics })
   .nullable()
   .optional();
-const failed = (error: unknown) => {
-  if (error instanceof AiRefusal || error instanceof AiUnavailable)
-    return error.message;
-  if (error instanceof z.ZodError)
-    return 'That did not look right. Reload and try again.';
-  if (error instanceof Error && !('code' in error)) return error.message;
-  return UNAVAILABLE;
-};
+const failed = (error: unknown) =>
+  // AiRefusal and AiUnavailable are owner-facing (UserError); the rest is logged by `failure`.
+  error instanceof z.ZodError
+    ? 'That did not look right. Reload and try again.'
+    : failure(error, 'prep', UNAVAILABLE);
 
 /**
  * "I have the invite" (WI-105): read only when the owner ticked "Send the invite text"; the
@@ -221,10 +219,11 @@ export async function deletePrepDocAction(
     );
   } catch (error) {
     return {
-      message:
-        error instanceof Error && !('code' in error)
-          ? error.message
-          : 'Unable to delete. Reload and try again.',
+      message: failure(
+        error,
+        'prep',
+        'Unable to delete. Reload and try again.',
+      ),
     };
   }
   revalidatePath('/jobs', 'layout');

@@ -1,4 +1,5 @@
 'use server';
+import { failure } from '@/server/action';
 import { revalidatePath } from 'next/cache';
 import { forgetAll } from '@/server/memo';
 import { owner } from '@/server/db';
@@ -14,10 +15,7 @@ export async function undoAction(kind: string, payload: unknown) {
   } catch (error) {
     return {
       ok: false,
-      message:
-        error instanceof Error && !('code' in error)
-          ? error.message
-          : 'Unable to undo. Reload and try again.',
+      message: failure(error, 'undo', 'Unable to undo. Reload and try again.'),
     };
   }
 }

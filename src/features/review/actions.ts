@@ -1,5 +1,5 @@
 'use server';
-import { forgetAll } from '@/server/memo';
+import { runAction } from '@/server/action';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { z } from 'zod';
@@ -18,26 +18,8 @@ import {
 } from './service';
 
 type Done = string | { message: string; undo?: ActionState['undo'] };
-async function perform(work: () => Promise<Done>): Promise<ActionState> {
-  try {
-    const done = await work();
-    forgetAll();
-    revalidatePath('/review');
-    revalidatePath('/today');
-    return typeof done === 'string'
-      ? { ok: true, message: done }
-      : { ok: true, message: done.message, undo: done.undo };
-  } catch (error) {
-    return {
-      message:
-        error instanceof z.ZodError
-          ? error.issues.map((i) => i.message).join('; ')
-          : error instanceof Error && !('code' in error)
-            ? error.message
-            : 'Unable to save. Reload and try again.',
-    };
-  }
-}
+const perform = (work: () => Promise<Done>) =>
+  runAction(work, { area: 'review' });
 const id = (f: FormData) => z.string().min(1).parse(f.get('id'));
 
 export async function reviewAction(_s: ActionState, f: FormData) {

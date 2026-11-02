@@ -1,5 +1,5 @@
 'use server';
-import { forgetAll } from '@/server/memo';
+import { runAction } from '@/server/action';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
@@ -24,26 +24,19 @@ function deps() {
   if (!d) throw new CalendarError('not_configured');
   return d;
 }
-async function perform(work: () => Promise<string>): Promise<ActionState> {
-  try {
-    const message = await work();
-    forgetAll();
-    revalidatePath('/calendar');
-    revalidatePath('/settings');
-    revalidatePath('/today');
-    return { ok: true, message };
-  } catch (error) {
-    revalidatePath('/settings');
-    return {
-      message:
-        error instanceof CalendarError
-          ? errorMessages[error.code]
-          : error instanceof z.ZodError
-            ? 'Invalid request.'
-            : errorMessages.unexpected,
-    };
-  }
-}
+const perform = (work: () => Promise<string>) =>
+  runAction(work, {
+    area: 'calendar',
+    fallback: errorMessages.unexpected,
+    known: (error) => {
+      // A failed calendar call can still change the connection's state on Settings.
+      revalidatePath('/settings');
+      if (error instanceof CalendarError)
+        return { message: errorMessages[error.code] };
+      if (error instanceof z.ZodError) return { message: 'Invalid request.' };
+      return undefined;
+    },
+  });
 
 /** Server action (origin-checked by Next) that starts OAuth with a fresh state cookie. */
 export async function connectCalendarAction() {

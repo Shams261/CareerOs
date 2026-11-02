@@ -1,4 +1,5 @@
 import { ConfirmDelete } from '@/components/confirm-delete';
+import { ownerWords } from '@/lib/action-error';
 import { deleteGoalAction } from '@/features/deletes/actions';
 import { Suspense } from 'react';
 import { SetupRail } from '@/features/setup/rail';
@@ -108,10 +109,7 @@ export default async function Today({
   ] = await Promise.all([
     (isToday
       ? generateThroughSunday(user, today).catch((error) => {
-          generationError =
-            error instanceof Error
-              ? error.message
-              : 'Unable to plan this week.';
+          generationError = ownerWords(error) ?? 'Unable to plan this week.';
         })
       : Promise.resolve()
     ).then(() =>

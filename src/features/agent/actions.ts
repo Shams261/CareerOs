@@ -1,4 +1,5 @@
 'use server';
+import { failure, runAction } from '@/server/action';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { owner } from '@/server/db';
@@ -53,23 +54,8 @@ export async function askAction(
   return result;
 }
 
-async function perform(work: () => Promise<string>): Promise<ActionState> {
-  try {
-    const message = await work();
-    revalidatePath('/rumi');
-    revalidatePath('/settings');
-    return { message, ok: true };
-  } catch (error) {
-    if (error instanceof z.ZodError)
-      return { message: issueMessages(error.issues) };
-    return {
-      message:
-        error instanceof Error && !('code' in error)
-          ? error.message
-          : 'Unable to save. Reload and try again.',
-    };
-  }
-}
+const perform = (work: () => Promise<string>) =>
+  runAction(work, { area: 'agent' });
 
 export async function deleteConversationAction(_s: ActionState, f: FormData) {
   return perform(async () => {
@@ -115,10 +101,7 @@ export async function removeMemoryAction(
     };
   } catch (error) {
     return {
-      message:
-        error instanceof Error && !('code' in error)
-          ? error.message
-          : 'Unable to save. Reload and try again.',
+      message: failure(error, 'agent', 'Unable to save. Reload and try again.'),
     };
   }
 }
@@ -192,10 +175,7 @@ export async function undoWriteAction(
   } catch (error) {
     return {
       ok: false,
-      message:
-        error instanceof Error && !('code' in error)
-          ? error.message
-          : 'Unable to undo. Reload and try again.',
+      message: failure(error, 'agent', 'Unable to undo. Reload and try again.'),
     };
   }
 }
@@ -265,10 +245,7 @@ export async function keepSummaryAction(
   } catch (error) {
     return {
       ok: false,
-      message:
-        error instanceof Error && !('code' in error)
-          ? error.message
-          : 'Unable to save. Reload and try again.',
+      message: failure(error, 'agent', 'Unable to save. Reload and try again.'),
     };
   }
 }
@@ -343,10 +320,7 @@ export async function applyProposalAction(
     if (error instanceof z.ZodError)
       return { message: issueMessages(error.issues) };
     return {
-      message:
-        error instanceof Error && !('code' in error)
-          ? error.message
-          : 'Unable to save. Reload and try again.',
+      message: failure(error, 'agent', 'Unable to save. Reload and try again.'),
     };
   }
 }
@@ -394,10 +368,7 @@ export async function applyRequestAction(
     if (error instanceof z.ZodError)
       return { message: issueMessages(error.issues) };
     return {
-      message:
-        error instanceof Error && !('code' in error)
-          ? error.message
-          : 'Unable to save. Reload and try again.',
+      message: failure(error, 'agent', 'Unable to save. Reload and try again.'),
     };
   }
 }
