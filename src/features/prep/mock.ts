@@ -24,7 +24,7 @@ import {
 import { MODEL, PINNED_PROVIDER, PRICE } from '@/features/ai/domain';
 import { AGENT_RATE, PERSONA } from '@/features/agent/domain';
 import { AGENT_NAME } from '@/features/agent/constants';
-import type { PrepDoc } from './domain';
+import { storedPrepDoc } from './domain';
 import {
   cleanFeedback,
   hasScore,
@@ -97,7 +97,7 @@ export async function mockFor(user: ScheduleUser, docId: string) {
   if (!row) return null;
   return {
     ...row,
-    questions: mockQuestions(row.content as unknown as PrepDoc),
+    questions: mockQuestions(storedPrepDoc(row.content)),
   };
 }
 
@@ -167,7 +167,7 @@ export async function mockFeedback(
     });
     return id;
   });
-  const doc = mock.content as unknown as PrepDoc;
+  const doc = storedPrepDoc(mock.content);
   const messages: { role: 'system' | 'user'; content: string }[] = [
     { role: 'system', content: `${PERSONA}\n${MOCK_SYSTEM}` },
     {

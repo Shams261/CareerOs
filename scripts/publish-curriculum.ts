@@ -5,8 +5,8 @@ import { createPgAdapter, describeDatabase } from '../src/lib/database';
 import { parseDatabaseSsl } from '../src/lib/database-ssl';
 import {
   bundleCounts,
+  readBundle,
   validateBundle,
-  type Bundle,
 } from '../src/features/curriculum/bundle';
 
 /**
@@ -26,9 +26,10 @@ async function main() {
     );
     process.exit(1);
   }
-  const bundle = JSON.parse(readFileSync(file, 'utf8')) as Bundle;
-  if (bundle.format !== 'silsila-roadmap-bundle' || bundle.version !== 1)
-    throw new Error('Not a version 1 Silsila roadmap bundle.');
+  const read = readBundle(JSON.parse(readFileSync(file, 'utf8')));
+  if (!read.ok)
+    throw new Error(`Not a version 1 Silsila roadmap bundle: ${read.problem}`);
+  const bundle = read.bundle;
   const problems = validateBundle(bundle);
   if (problems.length)
     throw new Error('Bundle problems:\n' + problems.join('\n'));

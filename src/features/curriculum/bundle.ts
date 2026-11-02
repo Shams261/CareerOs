@@ -1,3 +1,5 @@
+import { z } from 'zod';
+
 /**
  * The roadmap bundle: everything `scripts/import-roadmap.ts` needs, as plain JSON. Built from
  * the owner's study materials by `scripts/build-roadmap-bundle.ts`; the file itself may hold
@@ -56,6 +58,88 @@ export type Bundle = {
     problems: BundleProblem[];
   };
 };
+
+const reference = z.object({
+  label: z.string(),
+  url: z.string(),
+  kind: z.string().optional(),
+});
+const item = z.object({
+  slug: z.string().min(1),
+  title: z.string().min(1),
+  kind: z.enum(['CONCEPT', 'QUESTION']),
+  priority: z.union([z.literal(1), z.literal(2), z.literal(3)]),
+  estimateMinutes: z.number().int().optional(),
+  scope: z.string().optional(),
+  checkpoint: z.string().optional(),
+  references: z.array(reference).optional(),
+  url: z.string().optional(),
+  notes: z.string().optional(),
+  sourceRef: z.string().optional(),
+  dsaTopic: z.string().optional(),
+  problemUrl: z.string().optional(),
+});
+const bundleSchema = z.object({
+  format: z.literal('silsila-roadmap-bundle'),
+  version: z.literal(1),
+  builtAt: z.string(),
+  goal: z
+    .object({
+      title: z.string(),
+      category: z.string(),
+      targetDate: z.string().optional(),
+      description: z.string().optional(),
+    })
+    .optional(),
+  roadmaps: z.array(
+    z.object({
+      title: z.string().min(1),
+      description: z.string().optional(),
+      promptTemplate: z.string().optional(),
+      scenarios: z
+        .array(
+          z.object({ id: z.string(), name: z.string(), intro: z.string() }),
+        )
+        .optional(),
+      sections: z.array(z.object({ name: z.string(), items: z.array(item) })),
+    }),
+  ),
+  dsa: z.object({
+    topics: z.array(
+      z.object({
+        name: z.string(),
+        description: z.string().optional(),
+        ordering: z.number().int(),
+      }),
+    ),
+    problems: z.array(
+      z.object({
+        title: z.string(),
+        problemUrl: z.string(),
+        difficulty: z.enum(['EASY', 'MEDIUM', 'HARD']),
+        topic: z.string(),
+        notes: z.string().optional(),
+      }),
+    ),
+  }),
+}) satisfies z.ZodType<Bundle>;
+
+/**
+ * A bundle read from a file or from the stored curriculum (WI-139): checked against the
+ * format instead of cast, so a hand-edited file or an old stored row fails here with the
+ * path of the first problem, never halfway through a copy.
+ */
+export function readBundle(
+  value: unknown,
+): { ok: true; bundle: Bundle } | { ok: false; problem: string } {
+  const r = bundleSchema.safeParse(value);
+  if (r.success) return { ok: true, bundle: r.data };
+  const first = r.error.issues[0];
+  return {
+    ok: false,
+    problem: `${first?.path.join('.') || 'root'}: ${first?.message ?? 'invalid'}`,
+  };
+}
 
 export const slugify = (text: string) =>
   text

@@ -2,8 +2,12 @@
  * Today's words and counts (WI-065, ADR-027): the facts first, then one short line that cheers
  * them on. The owner chose short motivational lines beside the facts and a thin bar for the
  * week; never a streak, a score, a pace forecast or guilt. Every line is fixed text, checked
- * against BANNED_WORDS in the tests. Pure, no imports, so client parts can use it too.
+ * against BANNED_WORDS in the tests. Pure, importing only the schedule's pure plan lines, so
+ * client parts can use it too.
  */
+import { PLAN_LINES, planLine } from '@/features/schedule/plan-lines';
+
+export { PLAN_LINES, planLine };
 
 /** A line under Today's title, chosen by the day's facts; the day seeds the quiet ones. */
 export const QUIET_LINES = [
@@ -86,17 +90,6 @@ export function firstSteps(input: {
 }
 
 /** Every fixed line on Today's home, for the copy check. */
-/** What Add a block answers (WI-071): one quiet line with the time, chosen by the block's id. */
-export const PLAN_LINES = [
-  'Planned for {time}. See you there.',
-  'On the plan at {time}. One clear step.',
-  'Set for {time}. That is enough for now.',
-] as const;
-export function planLine(time: string, seed: string) {
-  let n = 0;
-  for (const c of seed) n = (n * 31 + c.charCodeAt(0)) % 1_000_003;
-  return PLAN_LINES[n % PLAN_LINES.length].replace('{time}', time);
-}
 
 export const HOME_COPY = [
   ...QUIET_LINES,

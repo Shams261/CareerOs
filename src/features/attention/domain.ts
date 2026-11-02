@@ -6,6 +6,7 @@
 import { dayKey, hhmm, shortDate, weekdayDate } from '@/lib/time';
 import { confidenceWord, type ConfidenceValue } from '@/features/dsa/words';
 import type { Attention } from '@/features/jobs/domain';
+import { plural } from '@/lib/copy';
 
 export type AttentionSource =
   'interview-prep' | 'job' | 'practice' | 'roadmap' | 'notification' | 'weekly';
@@ -266,7 +267,6 @@ export function revisionDeckRow(
   const withCards = items.filter((i) => (i.cards ?? 0) > 0);
   const cards = withCards.reduce((n, i) => n + (i.cards ?? 0), 0);
   if (!cards) return null;
-  const plural = (n: number, w: string) => `${n} ${w}${n === 1 ? '' : 's'}`;
   return {
     id: 'deck:today',
     source: 'roadmap',

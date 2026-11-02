@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { PageShortcuts } from '@/components/shortcuts';
-import { UtilityMenu } from '@/features/today/utility-menu';
+import { UtilityMenu } from '@/components/utility-menu';
 import { shiftDay } from '@/lib/day';
 import { reviewSummaryLine } from '../domain';
 import { STEPS, shortWeekLabel, weekLabel } from '../labels';

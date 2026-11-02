@@ -8,6 +8,7 @@ import { formatInTimeZone } from 'date-fns-tz';
 import { categoryGroup } from '@/lib/categories';
 import { formatDuration } from '@/features/schedule/row';
 import { minutes } from '@/lib/time';
+import { plural } from '@/lib/copy';
 
 /**
  * Fixed print colours (the light tokens), so a saved print looks the same anywhere. No second
@@ -115,7 +116,6 @@ export function dayPrint({
   const total = parts.reduce((n, p) => n + p.minutes, 0);
   const groups = [...new Set(parts.map((p) => p.group))];
   const noon = new Date(`${day}T12:00:00Z`);
-  const plural = (n: number, w: string) => `${n} ${w}${n === 1 ? '' : 's'}`;
   const detail = [
     parts.length
       ? `${plural(parts.length, 'session')}, one ring each, in the order you did them.`

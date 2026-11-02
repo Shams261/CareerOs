@@ -72,6 +72,8 @@ describe('module boundaries (WI-123)', () => {
       'features/jobs/stage-row.tsx',
       'features/listen/listen.tsx',
       'features/prep/panel.tsx',
+      // Split from week-items.tsx in WI-139: the same item form, now in the item's own file.
+      'features/roadmap/item-body.tsx',
       'features/roadmap/item-form.tsx',
       'features/roadmap/study-prompt.tsx',
       'features/roadmap/week-items.tsx',
@@ -108,5 +110,66 @@ describe('module boundaries (WI-123)', () => {
       'components/toast.tsx',
     ])
       expect(reachesZod(join(SRC, shell)), shell).toBe(false);
+  });
+
+  it('features depend on each other in one direction, apart from the pairs listed (WI-139)', () => {
+    // Two features that import each other are one tangle. These pairs are the ones left at
+    // WI-139; the list may only shrink. A client's import of a server action is a reference
+    // to an endpoint, not a dependency of code, so it does not count.
+    const LEFT = [
+      'agent ↔ jobs',
+      'agent ↔ nudges',
+      'agent ↔ prep',
+      'agent ↔ review',
+      'ai ↔ roadmap',
+      'calendar ↔ schedule',
+      'deletes ↔ schedule',
+      'dsa ↔ roadmap',
+      'execution ↔ schedule',
+      'jobs ↔ prep',
+      'jobs ↔ roadmap',
+      'notifications ↔ nudges',
+      'notifications ↔ review',
+    ];
+    const feature = (f: string) => {
+      const parts = rel(f).split('/');
+      return parts[0] === 'features' && parts.length > 2 ? parts[1] : null;
+    };
+    const edges = new Set<string>();
+    for (const f of files.keys()) {
+      const from = feature(f);
+      if (!from) continue;
+      for (const d of deps(f)) {
+        const to = feature(d);
+        if (!to || to === from) continue;
+        if (directive(f, 'use client') && directive(d, 'use server')) continue;
+        edges.add(`${from}→${to}`);
+      }
+    }
+    const pairs = [...edges]
+      .map((e) => e.split('→'))
+      .filter(([a, b]) => a < b && edges.has(`${b}→${a}`))
+      .map(([a, b]) => `${a} ↔ ${b}`)
+      .sort();
+    expect(pairs).toEqual(LEFT);
+  });
+
+  it('every server action answers through the action runner, apart from the files listed (WI-139)', () => {
+    // runAction / failure (WI-122) keep an unexpected error's text off the screen, log it with
+    // a reference and refresh every page. These files do without, each for its reason.
+    const WITHOUT: Record<string, string> = {
+      'features/theme-actions.ts':
+        'a cookie for this browser, no record and no message',
+      'features/setup/actions.ts':
+        'a cookie for this browser, no record and no message',
+      'features/listen/actions.ts':
+        'answers with the monthly budget beside the words; only its own AI refusals speak, the rest is logged by name',
+    };
+    const without = [...files.keys()]
+      .filter((f) => directive(f, 'use server'))
+      .filter((f) => !/\b(runAction|failure)\(/.test(files.get(f) ?? ''))
+      .map(rel)
+      .sort();
+    expect(without).toEqual(Object.keys(WITHOUT).sort());
   });
 });

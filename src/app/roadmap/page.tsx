@@ -7,7 +7,7 @@ import { owner } from '@/server/db';
 import { dayKey, longDate, shortDate } from '@/lib/time';
 import { Disclosure } from '@/components/disclosure';
 import { PageShortcuts } from '@/components/shortcuts';
-import { UtilityMenu } from '@/features/today/utility-menu';
+import { UtilityMenu } from '@/components/utility-menu';
 import { RoadmapIllustration } from '@/components/illustrations';
 import { FeedbackOutlet } from '@/components/feedback-outlet';
 import { PanelButton, SidePanel } from '@/components/side-panel';

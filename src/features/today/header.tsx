@@ -7,7 +7,7 @@ import { FeedbackOutlet } from '@/components/feedback-outlet';
 import { shiftDay } from '@/lib/day';
 import { PanelButton, PressButton } from './panels';
 import { LiveMinutes } from './live-summary';
-import { UtilityMenu } from './utility-menu';
+import { UtilityMenu } from '@/components/utility-menu';
 import { DailyLine } from './daily-line-card';
 import type { DayPart } from './daily-line';
 

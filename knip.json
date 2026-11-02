@@ -1,0 +1,13 @@
+{
+  "$schema": "https://unpkg.com/knip@6/schema.json",
+  "entry": ["scripts/*.{ts,mjs}", "e2e/**/*.ts", "tests/**/*.ts"],
+  "project": [
+    "src/**/*.{ts,tsx}",
+    "scripts/**/*.{ts,mjs}",
+    "tests/**/*.ts",
+    "e2e/**/*.ts",
+    "prisma/**/*.ts"
+  ],
+  "ignoreBinaries": ["pdftotext"],
+  "ignoreDependencies": ["@prisma/client"]
+}

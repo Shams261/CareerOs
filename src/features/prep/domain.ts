@@ -453,6 +453,66 @@ export type PrepDoc = {
 };
 export const MIN_SOURCED_POINTS = 3;
 
+const link = z.object({
+  kind: z.enum(['roadmap', 'problem']),
+  id: z.string(),
+  title: z.string(),
+});
+const sourced = z.object({ text: z.string(), sources: z.array(z.string()) });
+const named = z.object({
+  name: z.string(),
+  why: z.string(),
+  sources: z.array(z.string()),
+  links: z.array(link),
+});
+/** A list that reads as empty when its stored shape no longer fits, instead of failing. */
+const list = <T extends z.ZodType>(item: T) => z.array(item).catch([]);
+const storedDoc = z.object({
+  process: list(sourced),
+  rounds: list(
+    z.object({
+      name: z.string(),
+      tests: z.array(z.string()),
+      sources: z.array(z.string()),
+    }),
+  ),
+  topics: list(named),
+  plan: list(
+    z.object({ day: z.number(), focus: z.string(), links: z.array(link) }),
+  ),
+  questions: list(z.string()),
+  asks: list(sourced),
+  order: list(named),
+  invite: z
+    .object({
+      topics: z.array(z.string()),
+      rounds: z.array(
+        z.object({ type: z.string(), date: z.string().nullable() }),
+      ),
+    })
+    .optional()
+    .catch(undefined),
+}) satisfies z.ZodType<PrepDoc>;
+const EMPTY_DOC: PrepDoc = {
+  process: [],
+  rounds: [],
+  topics: [],
+  plan: [],
+  questions: [],
+  asks: [],
+  order: [],
+};
+
+/**
+ * A prep doc as stored (WI-139): read through its shape instead of cast, so a doc written by
+ * an older version, or a column edited by hand, shows what still fits and never breaks the
+ * page. A part that no longer fits reads as empty.
+ */
+export function storedPrepDoc(content: unknown): PrepDoc {
+  const r = storedDoc.safeParse(content);
+  return r.success ? r.data : EMPTY_DOC;
+}
+
 /**
  * Reads the model's doc and keeps only what is grounded: points, rounds and topics need at
  * least one real source id; links must name the owner's own items; the plan keeps days 1–7

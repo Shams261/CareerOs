@@ -2,15 +2,24 @@ import 'server-only';
 import { db } from '@/server/db';
 import { forgetAll } from '@/server/memo';
 import { locked, type ScheduleUser } from '@/server/lock';
-import type { Bundle } from './bundle';
+import { readBundle } from './bundle';
 import { copyCurriculum } from './copy';
 
-/** The one published bundle (WI-064), or null before the owner publishes it. */
+/**
+ * The one published bundle (WI-064), or null before the owner publishes it. A stored payload
+ * that no longer reads as a bundle counts as none (WI-139), logged by path only.
+ */
 export async function publishedBundle() {
   const row = await db().curriculumBundle.findUnique({
     where: { id: 'default' },
   });
-  return row ? { ...row, bundle: row.payload as unknown as Bundle } : null;
+  if (!row) return null;
+  const read = readBundle(row.payload);
+  if (!read.ok) {
+    console.error('[curriculum] stored bundle unreadable', read.problem);
+    return null;
+  }
+  return { ...row, bundle: read.bundle };
 }
 
 /** What Settings shows: roadmap and problem counts, read in SQL so the bundle is not loaded. */

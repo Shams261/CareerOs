@@ -12,7 +12,7 @@ import {
 } from './domain';
 import { validateGoal, ownedBlock, clearBlockReminders } from './service';
 import { locked, type ScheduleUser } from '@/server/lock';
-import { dayKey } from '@/lib/time';
+import { dayKey, hhmm } from '@/lib/time';
 export class PreviewRequired extends Error {
   constructor(
     public token: string,
@@ -89,7 +89,7 @@ export async function saveBlockIn(
   );
   if (collisions.length && !allowOverlap)
     throw new Error(
-      `Overlap: ${collisions.map((b) => `${b.title} (${formatInTimeZone(b.plannedStart, user.timezone, 'MMM d, HH:mm')}–${formatInTimeZone(b.plannedEnd, user.timezone, 'HH:mm')})`).join('; ')}. Check “Allow this overlap” to proceed intentionally.`,
+      `Overlap: ${collisions.map((b) => `${b.title} (${formatInTimeZone(b.plannedStart, user.timezone, 'MMM d, HH:mm')}–${hhmm(b.plannedEnd, user.timezone)})`).join('; ')}. Check “Allow this overlap” to proceed intentionally.`,
     );
   const plan = await tx.dailyPlan.upsert({
     where: { userId_date: { userId: user.id, date: new Date(input.day) } },
@@ -265,7 +265,7 @@ export async function saveRoutine(
       : [];
     const lines = changes.map(
       (p) =>
-        `${p.day}: ${p.kind} ${p.title}${p.start ? ` → ${formatInTimeZone(p.start, user.timezone, 'HH:mm')}–${formatInTimeZone(p.end!, user.timezone, 'HH:mm')}` : ''}`,
+        `${p.day}: ${p.kind} ${p.title}${p.start ? ` → ${hhmm(p.start, user.timezone)}–${hhmm(p.end!, user.timezone)}` : ''}`,
     );
     const token = fingerprint({
       input: candidate,

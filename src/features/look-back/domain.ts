@@ -10,6 +10,7 @@ import { formatDuration } from '@/features/schedule/row';
 import { categoryGroup } from '@/lib/categories';
 import { layoutRings, colourOf } from '@/features/day-print/domain';
 import { dayKey, minutes } from '@/lib/time';
+import { plural } from '@/lib/copy';
 
 /** At most half a year of weeks on one screen; earlier weeks are named, not drawn. */
 export const MAX_WEEKS = 26;
@@ -271,7 +272,6 @@ export function monthFacts({
     afternoon: 'mostly in the afternoon',
     evening: 'mostly in the evening',
   };
-  const plural = (n: number, w: string) => `${n} ${w}${n === 1 ? '' : 's'}`;
   const own = attempts.filter((a) => a.own).length;
   const lines = [
     attempts.length

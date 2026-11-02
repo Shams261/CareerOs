@@ -14,7 +14,7 @@ import {
   revokeOtherSessions,
   revokeSession,
 } from '@/server/session';
-import { revalidatePath } from 'next/cache';
+import { runAction } from '@/server/action';
 import type { ActionState } from '@/lib/action-state';
 import { clientIp, rateLimit } from '@/server/rate-limit';
 import { authorizationUrl, safeNext } from './oidc';
@@ -64,14 +64,15 @@ export async function signOutAction() {
 
 /** Settings → Sessions (WI-057): every other device signs out; this one stays signed in. */
 export async function signOutOthersAction(): Promise<ActionState> {
-  const session = await currentSession();
-  if (!session) redirect('/login');
-  const count = await revokeOtherSessions(session.userId, session.id);
-  revalidatePath('/settings');
-  return {
-    ok: true,
-    message: count
-      ? `Signed out of ${count} other device${count === 1 ? '' : 's'}.`
-      : 'No other device was signed in.',
-  };
+  return runAction(
+    async () => {
+      const session = await currentSession();
+      if (!session) redirect('/login');
+      const count = await revokeOtherSessions(session.userId, session.id);
+      return count
+        ? `Signed out of ${count} other device${count === 1 ? '' : 's'}.`
+        : 'No other device was signed in.';
+    },
+    { area: 'auth' },
+  );
 }

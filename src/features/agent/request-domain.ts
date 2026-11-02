@@ -103,7 +103,7 @@ export const REQUEST_ID_ARGS: Record<RequestKind, string[]> = {
   set_goal: [],
 };
 /** The undo each kind leaves once applied; an attempt has none (attempts are append-only). */
-export const REQUEST_UNDO: Record<RequestKind, string | null> = {
+export const REQUEST_UNDO = {
   move_block: 'restore-block-slot',
   delete_block: 'restore-block',
   change_stage: 'restore-stage',
@@ -113,7 +113,7 @@ export const REQUEST_UNDO: Record<RequestKind, string | null> = {
   add_application: 'remove-application',
   add_round: 'remove-round',
   set_goal: 'remove-goal',
-};
+} as const satisfies Record<RequestKind, string | null>;
 
 /** Shaky, Okay, Solid as the stored confidence; yes, partial, no as the stored outcome. */
 export const confidenceOf = (w: (typeof CONFIDENCE_WORDS)[number]) =>

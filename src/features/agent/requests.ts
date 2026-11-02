@@ -149,22 +149,27 @@ export async function prepareRequest(
       return refused(
         'That block has recorded time or a decision; it keeps its slot.',
       );
+    // A move names its day and times; read them by the move's own shape (WI-139).
+    const move = requestArgs.move_block.safeParse(raw);
+    if (!move.success)
+      return refused('A move needs a day, a start and an end.');
+    const m = move.data;
     const window = planWindow(today);
-    if (a.day! < window.first || a.day! > window.last)
+    if (m.day < window.first || m.day > window.last)
       return refused(
         `${AGENT_NAME} moves blocks only to ${window.first} to ${window.last}.`,
       );
-    const taken = (await takenOn(db(), user.id, a.day!, zone, study)).filter(
+    const taken = (await takenOn(db(), user.id, m.day, zone, study)).filter(
       (t) => !(+t.start === +b.plannedStart && +t.end === +b.plannedEnd),
     );
     const [checked] = checkBlocks(
-      a.day!,
+      m.day,
       [
         {
           title: b.title,
           kind: b.category,
-          start: a.start!,
-          end: a.end!,
+          start: m.start,
+          end: m.end,
           reason: 'Move',
         },
       ],
@@ -178,7 +183,7 @@ export async function prepareRequest(
         `${checked.conflict}. No card was made; suggest another time.`,
       );
     return card(
-      [head, `From ${from}`, `To ${when(a.day!, today)} · ${a.start}–${a.end}`],
+      [head, `From ${from}`, `To ${when(m.day, today)} · ${m.start}–${m.end}`],
       {
         version: b.updatedAt.toISOString(),
         fromDay: dayOf(b.dailyPlan.date),
@@ -462,7 +467,7 @@ async function applyIn(
         throw new Error(changed);
       await applyItemOpIn(tx, user, { id: item.id, op: a.mark }, now);
       return {
-        kind: REQUEST_UNDO.mark_item!,
+        kind: REQUEST_UNDO.mark_item,
         payload: {
           id: item.id,
           status: item.status,
@@ -496,7 +501,7 @@ async function applyIn(
         }),
         now,
       );
-      return { kind: REQUEST_UNDO.add_application!, payload: { id: app.id } };
+      return { kind: REQUEST_UNDO.add_application, payload: { id: app.id } };
     }
     case 'add_round': {
       const a = requestArgs.add_round.parse(c.args);
@@ -522,7 +527,7 @@ async function applyIn(
         }),
         now,
       );
-      return { kind: REQUEST_UNDO.add_round!, payload: { id: round.id } };
+      return { kind: REQUEST_UNDO.add_round, payload: { id: round.id } };
     }
     case 'set_goal': {
       const a = requestArgs.set_goal.parse(c.args);
@@ -537,7 +542,7 @@ async function applyIn(
           targetRole: a.targetRole ?? '',
         }),
       );
-      return { kind: REQUEST_UNDO.set_goal!, payload: { id: goal.id } };
+      return { kind: REQUEST_UNDO.set_goal, payload: { id: goal.id } };
     }
     case 'move_block': {
       const a = requestArgs.move_block.parse(c.args);
@@ -576,7 +581,7 @@ async function applyIn(
         select: { updatedAt: true },
       });
       return {
-        kind: REQUEST_UNDO.move_block!,
+        kind: REQUEST_UNDO.move_block,
         payload: {
           id: b.id,
           day: c.snapshot.fromDay,
@@ -613,7 +618,7 @@ async function applyIn(
         now,
       );
       return {
-        kind: REQUEST_UNDO.change_stage!,
+        kind: REQUEST_UNDO.change_stage,
         payload: { id: app.id, stage: app.stage },
       };
     }
@@ -669,7 +674,7 @@ async function applyIn(
         select: { id: true },
       });
       return {
-        kind: REQUEST_UNDO.write_review!,
+        kind: REQUEST_UNDO.write_review,
         payload: { day: a.day, checkInId: checkIn.id },
       };
     }

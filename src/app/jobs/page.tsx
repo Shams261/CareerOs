@@ -24,9 +24,10 @@ import { aiPolicyLabel } from '@/features/jobs/formats';
 import { ApplicationRow } from '@/features/jobs/components';
 import { QuickAddForm } from '@/features/jobs/forms';
 import { PanelButton, SidePanel } from '@/components/side-panel';
-import { UtilityMenu } from '@/features/today/utility-menu';
+import { UtilityMenu } from '@/components/utility-menu';
 import { FeedbackOutlet } from '@/components/feedback-outlet';
 import { Button } from '@/components/ui/button';
+import { plural } from '@/lib/copy';
 export const metadata = { title: 'Jobs' };
 
 const FILTER_THRESHOLD = 8;
@@ -82,8 +83,6 @@ export default async function Jobs({
     waiting: apps.filter(isWaiting).length,
     action: apps.filter(needsAction).length,
   };
-  const plural = (n: number, word: string) =>
-    `${n} ${word}${n === 1 ? '' : 's'}`;
   const summary = [
     `${counts.active} active`,
     upcoming ? plural(upcoming, 'upcoming interview') : null,

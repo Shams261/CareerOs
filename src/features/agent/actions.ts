@@ -26,8 +26,6 @@ import { draftWeek } from './draft';
 import { weekSummary } from './summary';
 import { keepWeekSummary } from '@/features/review/service';
 import { AiRefusal, AiUnavailable } from '@/features/ai/service';
-import { restore } from '@/features/undo/service';
-import { undoWrite } from './writes';
 import { addMemory, deleteConversation, removeMemory } from './service';
 
 export type { AskResult } from './service';
@@ -131,31 +129,6 @@ export async function voiceStateAction() {
 export async function rumiStyleAction(f: FormData) {
   await setRumiStyle(await owner(), readStyle(f.get('style')));
   revalidatePath('/settings');
-}
-
-/** Undo on one of Rumi's changes (WI-102): the stored undo of the owner's own answer. */
-export async function undoWriteAction(
-  messageId: string,
-  actionId: string,
-): Promise<{ ok: boolean; message: string }> {
-  try {
-    const user = await owner();
-    const message = await undoWrite(
-      user,
-      z.string().min(1).max(40).parse(messageId),
-      z.string().min(1).max(60).parse(actionId),
-      (kind, payload) => restore(user, kind, payload),
-    );
-    forgetAll();
-    for (const path of ['/rumi', '/today', '/calendar']) revalidatePath(path);
-    syncSoon(user);
-    return { ok: true, message };
-  } catch (error) {
-    return {
-      ok: false,
-      message: failure(error, 'agent', 'Unable to undo. Reload and try again.'),
-    };
-  }
 }
 
 /** "Draft next week with Rumi" (WI-107): plan cards per day in a new conversation. */
