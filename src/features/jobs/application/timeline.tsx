@@ -1,6 +1,5 @@
 import { dayKey, shortDate } from '@/lib/time';
 import { Disclosure } from '@/components/disclosure';
-
 import { NoteForm } from '@/features/jobs/forms';
 import { activityLine } from '@/features/jobs/domain';
 import type { ApplicationView } from '../page-data';
