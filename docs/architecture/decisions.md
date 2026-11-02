@@ -176,6 +176,8 @@ Attention is derived, not stored: overdue follow-up, result needed, interview be
 - **Migrations and backups run from a workstation.** Free instances have no shell or one-off jobs. `pnpm db:deploy` and `pnpm db:backup` (with `pg_dump` 17+) run locally against the Supabase URL; the Prisma CLI stays in the image so the Heroku path keeps working unchanged.
 - **Heroku remains the documented alternative.** `heroku.yml` stays. If the credit arrives, moving is a redeploy plus restore, per ADR-013.
 
+**Addendum (2026-11-02, WI-120):** Render and Supabase have run production since 2026-10-20, so the Heroku alternative is retired: `heroku.yml` and the Heroku steps in `deployment.md` are removed (kept in the archive tag `docs-archive-2026-11-02`). ADR-013's portability rules stay: one `Dockerfile`, `PORT` from the host, explicit database TLS, owner-run migrations.
+
 **Alternatives rejected:** Heroku on a personal card (recurring cost before value is proven); waiting indefinitely (blocks the usage phase); Neon instead of Supabase (its 100 CU-hour monthly cap suspends the project under a per-minute cron); keeping the instance awake with a separate pinger (the cron already provides the traffic); a `release`-style migration on container start (would run with no backup and on every spin-up).
 
 **Consequences:** No vendor backups: the owner's weekly `pnpm db:backup` is the only copy, verified with `pnpm db:restore:verify`. A fractional CPU makes server renders slower than on a paid dyno; acceptable for one owner and a reason to move once usage justifies spend. If cron-job.org fails, the instance sleeps and the first visit waits about a minute; Settings → System status reveals it. The Supabase session pooler caps clients at the project's pool size, so `DATABASE_POOL_MAX` stays small. Supabase pauses a free project after 7 idle days; the cron prevents this, and a paused project is resumed from the dashboard without data loss.
@@ -297,7 +299,7 @@ Attention is derived, not stored: overdue follow-up, result needed, interview be
 
 ## ADR-021 — Version 2: deterministic moments first; AI only on minimal, previewed study text
 
-**Status:** Accepted (2026-10-25, WI-027). The plan is `docs/product/v2-plan.md`.
+**Status:** Accepted (2026-10-25, WI-027). The plan was `docs/product/v2-plan.md` (archived in WI-120, see `docs/HISTORY.md`).
 
 **Context:** Version 1 (WI-001 to WI-026) is live and the feature freeze ends with the owner's Version 2 plan. Two earlier V2 directions were rejected or narrowed: an AI morning brief and week draft ("not exciting") and a broad set of AI study features. The owner set the constraints: calm, story-led "moments, not dashboards"; AI through OpenRouter, only on generic study text, under a US$5 monthly cap enforced in Silsila; no guilt, streaks, scores or confetti.
 
@@ -410,7 +412,7 @@ Attention is derived, not stored: overdue follow-up, result needed, interview be
   - User-generated and video sites (YouTube, Reddit, Glassdoor, job boards, Medium) are never fetched.
   - At most four sources, official first. Redirects are followed by hand, only to listed sites and at most three. The page must be HTML or plain text, with 8 seconds and 1.5 MB at most.
 - **Passages, not pages.** Each page is reduced to readable paragraphs (no navigation, scripts or code blocks). The paragraphs sharing the most content words with the item are kept: at most three a page and nine in all, each clipped at a sentence to 600 characters.
-- **One pinned request** through the ADR-022 engine (`ask()`), with the same endpoint, ledger, US$3 stop, rate limits and provider check. It sends the item's title, scope and done-when, plus the passages. The owner's note and "asked at" are never sent. The prompt allows only facts stated in the passages, and every line must cite the passage ids it relies on.
+- **One pinned request** through the ADR-022 engine (`ask()`), with the same endpoint, ledger, monthly stop (US$3 then; the owner's limit since WI-114), rate limits and provider check. It sends the item's title, scope and done-when, plus the passages. The owner's note and "asked at" are never sent. The prompt allows only facts stated in the passages, and every line must cite the passage ids it relies on.
 - **The cross-check** (`crossCheck`) is deterministic and runs on the server:
   - A cited passage counts only if it exists and shares at least two, and 40%, of the line's content words (`supports`).
   - A line is kept when an official passage supports it, or when supported passages come from two different sites.
@@ -424,7 +426,7 @@ Attention is derived, not stored: overdue follow-up, result needed, interview be
 
 ## ADR-024 — Rumi, the assistant: what it reads, writes and sends
 
-**Status:** Accepted (2026-10-27, owner sign-off below). WI-040 builds on it. It amends ADR-021, ADR-022 and ADR-023 for the Rumi plan (`docs/product/rumi-plan.md`).
+**Status:** Accepted (2026-10-27, owner sign-off below). WI-040 builds on it. It amends ADR-021, ADR-022 and ADR-023 for the Rumi plan (`docs/product/rumi-plan.md`, archived in WI-120).
 
 **Context:** ADR-021 kept the schedule, sessions and jobs away from any model. The owner now wants an assistant, Rumi, that reads them:
 
@@ -432,7 +434,7 @@ Attention is derived, not stored: overdue follow-up, result needed, interview be
 - to plan the next day;
 - to prepare a company interview doc from the web.
 
-The owner's decisions (2026-10-26) and the R5 spike (2026-10-27, `scripts/r5-spike.ts`, US$0.0133 in all) settle how.
+The owner's decisions (2026-10-26) and the R5 spike (2026-10-27, `scripts/r5-spike.ts` and `docs/R5-HANDOFF.md`, both archived in WI-120; US$0.0133 in all) settle how.
 
 **What R5 showed** (model `anthropic/claude-haiku-5.5`, endpoint `google-vertex/global`, pinned with `only`, `allow_fallbacks: false`, `zdr: true`, `data_collection: "deny"`, `require_parameters: true`; every answer came from the pinned provider):
 
@@ -470,7 +472,7 @@ The owner's decisions (2026-10-26) and the R5 spike (2026-10-27, `scripts/r5-spi
 - **Stored, as owner records:** conversations and their messages, prep docs with their sources, and the "Rumi knows" list. All of them are deletable and in the export.
   - The ledger (`AiUsage`) keeps cost and token counts only, with new features `AGENT_CHAT` and `PREP_RESEARCH`.
 - **Limits:**
-  - The US$3 monthly stop and the US$5 key limit stay.
+  - The US$3 monthly stop and the US$5 key limit stay. (Superseded by WI-114: the monthly limit is the owner's setting, none by default.)
   - Agent use counts owner messages, at 30 an hour and 100 a day; existing features keep their limits.
   - Haiku stays the model for everything.
 
@@ -635,7 +637,7 @@ The owner's decisions (2026-10-26) and the R5 spike (2026-10-27, `scripts/r5-spi
 - **Writes.** Class A, at once with Undo: `add_note`, `add_block` on a free slot, `rest_today`, two per answer and twenty a day. Class B, by one press on a card with a re-check under the owner lock: `move_block`, `delete_block`, `change_stage`, `write_review` (a draft the owner edits), `log_attempt`. The model names records only by ids it read in the same conversation; an unknown id is refused; every write goes through the existing owner-scoped service; Rumi writes free text into an owner field only as a note in the owner's words or a review draft the owner edits. `log_attempt` has no Undo because attempts are append-only (ADR-006): the press is the confirmation.
 - **Voice.** Push-to-talk through the browser's recognition after an explicit consent stored as `AgentSetting.voiceConsentAt`, whose text names Google (Chrome) and Apple (Safari) as recipients outside the zero-retention rule; the transcript is shown before Send; replies and the line are spoken by `speechSynthesis` on request; no wake word, no open microphone, no audio stored; R6 decides iOS Home Screen support.
 - **Research.** Web search only through Exa with code-built queries (company, role, round types, topics found in an invite), outside the chat loop, no write tools; an interview invite is parsed by the model only when the owner ticks "Send the invite text" and is never stored; every point of a doc cites a source or is dropped; the plan that follows is `propose_blocks` cards. Rumi never signs into the owner's accounts (no mail, no calendar reading beyond the Silsila calendar, no purchases).
-- **Cost.** Option A: Haiku 5.5 on `google-vertex/global` for everything, about US$1.2 a month; the US$3 stop and the US$5 key limit stand. Free models were considered and set aside: most OpenRouter free endpoints and the Gemini free tier keep or train on prompts. A zero-retention free endpoint may be tried for the line only, under the same provider check and fallback, after UAT.
+- **Cost.** Option A: Haiku 5.5 on `google-vertex/global` for everything, about US$1.2 a month; the US$3 stop and the US$5 key limit stand (since WI-114 the monthly limit is the owner's setting, none by default). Free models were considered and set aside: most OpenRouter free endpoints and the Gemini free tier keep or train on prompts. A zero-retention free endpoint may be tried for the line only, under the same provider check and fallback, after UAT.
 
 **Alternatives rejected:** the model deciding when to speak; a new table for lines; memory as a tool call in the loop; silent memory with no Settings view; records named by title in write arguments; an Undo for attempts; a wake word or an open microphone; reading Gmail for invites; a WhatsApp channel; Sonnet by default; a free model for anything that reads the owner's records.
 

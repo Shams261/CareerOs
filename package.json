@@ -29,6 +29,7 @@
     "roadmap:bundle": "tsx scripts/build-roadmap-bundle.ts",
     "roadmap:import": "tsx scripts/import-roadmap.ts",
     "curriculum:publish": "tsx scripts/publish-curriculum.ts",
+    "brand:icons": "node scripts/generate-icons.mjs",
     "google:fake": "tsx tests/support/fake-google-server.ts",
     "openrouter:fake": "tsx tests/support/fake-openrouter-server.ts",
     "test:e2e": "tsx scripts/e2e-db.ts && playwright test",

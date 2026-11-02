@@ -25,3 +25,9 @@ test-results/
 
 # Browser smoke suite (WI-052): the signed-in session of the throwaway e2e owner
 /e2e/.auth/
+
+# Local working folders: audits, mocks, PDFs and editor history (never committed, WI-120)
+/output/
+/uat-review/
+/docs/audit/
+/.history/

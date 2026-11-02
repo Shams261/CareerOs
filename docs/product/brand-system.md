@@ -6,7 +6,7 @@ Silsila is the product name for the existing CareerOS application. The promise i
 
 **Artwork replacement is pending the original SVG package.** The supplied PDFs contain flattened JPEG images, not vector paths. They have not been raster-traced or passed off as SVG artwork. The previous Cormorant wordmark recreation has been removed. `BrandLogo` currently uses a clearly documented, neutral Inter text fallback with the provisional ring mark; it is not the final supplied lockup.
 
-Place authoritative horizontal, stacked, mark-only and monochrome assets in `public/brand` when supplied; see the [asset handoff](../../public/brand/README.md). Horizontal lockup height should be 30–34px desktop and 26–30px mobile, with clear space of half the mark height where possible. Do not stretch, rotate, redraw, add shadows/gradients or substitute a font for the supplied wordmark.
+Place authoritative horizontal, stacked, mark-only and monochrome assets in `public/brand` when supplied; see [Pending artwork](#pending-artwork). Horizontal lockup height should be 30–34px desktop and 26–30px mobile, with clear space of half the mark height where possible. Do not stretch, rotate, redraw, add shadows/gradients or substitute a font for the supplied wordmark.
 
 Inter is used for product UI. Cormorant Garamond semibold appears only in the login hook and Weekly Review heading. [Font configuration](../../src/lib/fonts.ts) uses local WOFF2 files (about 70 KB total), swap rendering and bundled SIL licenses. No runtime font-provider request is required.
 
@@ -35,9 +35,30 @@ Semantic base colors match the specification. On light tinted backgrounds, succe
 
 ## Copy and component rules
 
-The philosophy is **Plan → Execute → Record → Review → Continue**. Navigation labels (WI-009) say what you do there: Today, Plan, Roadmap, Practice, Learn, Jobs, Weekly review and Settings; routes keep their original names (`/calendar`, `/dsa`, `/review`). Use factual copy rather than productivity scores, streak pressure or hype. Since WI-059 (the owner's decision of 2026-10-28: a job is needed soon, so the gap should be felt) the facts are **direct**: Today states "Yesterday: 0 of 3 blocks recorded" and the week's recorded time against planned, and Rumi names a kind not recorded yesterday every morning. Direct means counts of the owner's own records, never shame words ("missed", "failed", "didn't"), a streak counter, a score or a pace forecast. Copy uses the owner's words: a block is "Routine", "Changed for this day" or "Added for this day"; never "dated plan", "occurrence", "override" or "generate". Pages carry no taglines; the date, the week or the page's name is the heading. No explanatory paragraph sits under a form.
+The philosophy is **Plan → Execute → Record → Review → Continue**. Navigation labels say what you do there: Today, Plan, Roadmap, Practice, Jobs, Weekly review, Settings and Ask Rumi; routes keep their original names (`/calendar`, `/dsa`, `/review`, `/rumi`). Learn (`/learn`) left the navigation in WI-012 and is reachable by URL only. Use factual copy rather than productivity scores, streak pressure or hype. Since WI-059 (the owner's decision of 2026-10-28: a job is needed soon, so the gap should be felt) the facts are **direct**: Today states "Yesterday: 0 of 3 blocks recorded" and the week's recorded time against planned, and Rumi names a kind not recorded yesterday every morning. Direct means counts of the owner's own records, never shame words ("missed", "failed", "didn't"), a streak counter, a score or a pace forecast. Copy uses the owner's words: a block is "Routine", "Changed for this day" or "Added for this day"; never "dated plan", "occurrence", "override" or "generate". Pages carry no taglines; the date, the week or the page's name is the heading. No explanatory paragraph sits under a form.
 
 Login uses the primary hook, descriptor, **Continue with Google** and the mantra. The authenticated shell has no tagline, workspace label or repeated mantra. Today is an agenda: one launcher with one primary action, the day as an open list, one Needs attention list, and panels for the review, the chain and notes (WI-020); Weekly Review allows a restrained editorial heading and is a three-step flow (This week, Reflect, Next week) with a Details view. No landing page or new product feature is added.
+
+## Design principles
+
+From the whole-app design review of 2026-10-21 (archived, see [HISTORY](../HISTORY.md)); every new screen keeps them:
+
+1. **One primary per page, and it is the next thing to do.** Start on Today, Done on a roadmap item, Save attempt on a problem, Log the result on an application. Everything else is secondary or a link.
+2. **Feedback never disappears with the row.** Every write that removes or hides something shows its message and its Undo somewhere that stays: the list header, the card, the status line or a toast.
+3. **The phone is the "mark it and move on" device.** First screen: the title and the one action. Shell chrome stays under 15% of the viewport. Titles wrap; metadata takes the second line; targets are 44 px.
+4. **Labels say what you do, dates look like dates.** No raw keys, no ISO strings, no timezone ids, no glyphs doing the work of icons. One helper per format (`shortDate`, `weekdayDate`, `hhmm`).
+5. **Same thing, same recipe.** One button, one row, one filter bar, one form stack, one feedback pattern, two breakpoints. New screens compose these; they do not add another row style.
+
+## Pending artwork
+
+The current reference PDFs contain flattened JPEGs. Original SVG assets are still required; do not trace screenshots, wrap bitmaps in SVG or recreate the supplied wordmark with a font. Expected files for `public/brand/`:
+
+- `silsila-horizontal-light.svg` and `silsila-horizontal-dark.svg`
+- `silsila-stacked-light.svg` and `silsila-stacked-dark.svg`
+- `silsila-mark-light.svg` and `silsila-mark-dark.svg`
+- `silsila-monochrome-light.svg` (for the primary teal background)
+
+Once supplied, wire them into `src/components/brand.tsx`, allow only the required public brand assets through the login gate, and export favicon, PWA and Apple icons from the mark (`pnpm brand:icons` runs `scripts/generate-icons.mjs`). Preserve aspect ratio and half-mark-height clear space. The current Inter name and procedural rings are provisional.
 
 ## Assets and maintenance
 

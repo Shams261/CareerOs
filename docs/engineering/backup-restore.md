@@ -23,12 +23,13 @@ pnpm db:restore:verify <file> --keep   # keep the scratch database for inspectio
 
 ## Schedule
 
+Supabase Free keeps no provider backups and offers no point-in-time recovery, so the Backup workflow is the only off-site copy: data written since its last run can be lost (up to a week while it runs weekly).
+
 | When                       | What                                                                           |
 | -------------------------- | ------------------------------------------------------------------------------ |
-| Daily (provider)           | Automated backups with at least 7 days of retention; PITR where offered        |
 | Weekly (automated, WI-051) | The Backup workflow: dump, restore check, encrypted artifact kept 35 days      |
 | **Before every migration** | `pnpm db:backup`, then `pnpm db:restore:verify <file>`; keep the last 4 copies |
-| Monthly                    | Time a full restore verification and record duration and data age (NFR-004)    |
+| Monthly                    | Time a full restore verification and record duration and data age              |
 
 ## Weekly automated backup (WI-051)
 

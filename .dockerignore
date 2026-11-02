@@ -22,3 +22,9 @@ tests
 *.md
 !README.md
 *.pdf
+# Local working folders and the e2e session (WI-120)
+output
+uat-review
+.history
+e2e/.auth
+.claude

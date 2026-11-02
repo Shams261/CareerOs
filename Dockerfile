@@ -6,7 +6,7 @@
 #
 # Build:  docker build -t silsila .
 # Run:    docker run --rm -p 3000:3000 --env-file .env.docker silsila
-# Heroku builds this same file through heroku.yml, so production runs exactly what was tested.
+# Render builds this same file (render.yaml), so production runs exactly what was tested.
 
 # ---------------------------------------------------------------------------------------------
 # Stage "base": the Node.js version and the pinned pnpm every later stage shares.
@@ -68,7 +68,7 @@ COPY --chown=node:node next.config.ts prisma.config.ts tsconfig.json ./
 # Regenerate the Prisma client for the production node_modules (pure TypeScript output, fast).
 RUN pnpm db:generate && chown -R node:node /app/src/generated
 USER node
-# Render and Heroku set PORT; `next start` reads it and binds 0.0.0.0. 3000 is the default elsewhere.
+# Render sets PORT; `next start` reads it and binds 0.0.0.0. 3000 is the default elsewhere.
 # Next.js is started directly rather than through `pnpm start`: pnpm's verify-deps-before-run check
 # could otherwise decide the production node_modules are stale (file timestamps change when a host
 # re-layers the image), try `pnpm install --production` as the unprivileged user, fail with EACCES
