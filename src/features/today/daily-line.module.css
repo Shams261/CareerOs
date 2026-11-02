@@ -1,0 +1,118 @@
+/* Today's band: the date, a live clock, the greeting and a quotation on the part of the day's tint (WI-073 to WI-098; a CSS Module since WI-136). */
+
+.daily-band {
+  --band-bg: #e1f5ee;
+  --band-ink: #04342c;
+  --band-ink-2: #085041;
+  --band-meta: #0f6e56;
+  /* Centred like the roadmap's goal card (WI-098): date, clock, greeting, quotation. */
+  display: grid;
+  justify-items: center;
+  text-align: center;
+  gap: 0;
+  margin: 10px 0 18px;
+  padding: 28px 26px 26px;
+  border-radius: var(--radius-lg);
+  background: var(--band-bg);
+  color: var(--band-ink);
+}
+.daily-band[data-part='morning'],
+.daily-band[data-part='evening'] {
+  --band-bg: #faeeda;
+  --band-ink: #412402;
+  --band-ink-2: #633806;
+  --band-meta: #854f0b;
+}
+.daily-band[data-part='night'] {
+  --band-bg: #e6f1fb;
+  --band-ink: #042c53;
+  --band-ink-2: #0c447c;
+  --band-meta: #185fa5;
+}
+.daily-band[hidden] {
+  display: none;
+}
+.daily-eyebrow {
+  margin: 0;
+  font-size: 12px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  font-weight: 600;
+  color: var(--band-meta);
+}
+.daily-greeting {
+  margin: 0;
+  font-family: var(--font-display), Georgia, serif;
+  font-size: 44px;
+  line-height: 1.1;
+  text-wrap: balance;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--band-ink);
+}
+.daily-quote {
+  margin: 10px 0 0;
+  font-size: 17px;
+  line-height: 1.5;
+  color: var(--band-ink-2);
+  max-width: 60ch;
+  text-wrap: balance;
+}
+.daily-quote q {
+  font-style: italic;
+  quotes: '\201C' '\201D';
+}
+.daily-by {
+  color: var(--band-meta);
+}
+.daily-another {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  margin-left: 4px;
+  padding: 0;
+  border-radius: 999px;
+  color: var(--band-meta);
+  vertical-align: middle;
+}
+.daily-another:hover {
+  color: var(--band-ink);
+}
+.daily-clock {
+  display: block;
+  margin: 10px 0 8px;
+  font-size: 30px;
+  line-height: 1;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+  color: var(--band-ink);
+}
+:global(.home-head) .daily-band {
+  margin-top: 14px;
+}
+
+@media (max-width: 700px) {
+  .daily-band {
+    padding: 20px 16px 18px;
+    margin: 4px 0 14px;
+  }
+  .daily-greeting {
+    font-size: 30px;
+  }
+  .daily-quote {
+    font-size: 15px;
+  }
+  .daily-clock {
+    margin: 8px 0 6px;
+    font-size: 26px;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .daily-quote {
+    animation: global(rise-in) 320ms var(--motion-easing) both;
+  }
+}

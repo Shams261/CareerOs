@@ -16,6 +16,7 @@ import { dayPart } from './daily-line';
 import { DailyLine } from './daily-line-card';
 import { PanelButton, SidePanel } from './panels';
 import { hasLearningFocus } from './reads';
+import styles from './first-run.module.css';
 
 /**
  * Today for an empty account (WI-065, ADR-027): one welcoming action, three optional steps
@@ -102,7 +103,7 @@ export async function FirstRunToday({
                 <h2 id="agenda-heading" className="agenda-heading">
                   Your day
                 </h2>
-                <p className="muted first-day-sub">
+                <p className={`muted ${styles['first-day-sub']}`}>
                   A simple plan, only when you are ready
                 </p>
               </div>
@@ -115,12 +116,14 @@ export async function FirstRunToday({
               </PanelButton>
             </div>
             <FeedbackOutlet channel="blocks" className="mb-3" />
-            <div className="first-day-empty">
-              <span className="first-day-icon" aria-hidden="true">
+            <div className={styles['first-day-empty']}>
+              <span className={styles['first-day-icon']} aria-hidden="true">
                 <CalendarClock size={20} />
               </span>
               <div>
-                <p className="first-day-title">Nothing scheduled yet</p>
+                <p className={styles['first-day-title']}>
+                  Nothing scheduled yet
+                </p>
                 <p className="muted">
                   Add one focus block, or leave today open. Your next step shows
                   here when you are ready.
@@ -135,18 +138,21 @@ export async function FirstRunToday({
             className="card first-steps"
             aria-labelledby="first-steps-heading"
           >
-            <div className="first-steps-head">
+            <div className={styles['first-steps-head']}>
               <h2 id="first-steps-heading">Your first 3 steps</h2>
               <span className="pill">{done} of 3</span>
             </div>
-            <ol className="plain-list first-steps-list">
+            <ol className={`plain-list ${styles['first-steps-list']}`}>
               {steps.map((s) => (
                 <li key={s.key} className={s.done ? 'is-done' : ''}>
-                  <span className="first-step-mark" aria-hidden="true">
+                  <span
+                    className={styles['first-step-mark']}
+                    aria-hidden="true"
+                  >
                     {s.done ? <Check size={16} /> : <Circle size={16} />}
                   </span>
-                  <span className="first-step-text">
-                    <span className="first-step-title">
+                  <span className={styles['first-step-text']}>
+                    <span className={styles['first-step-title']}>
                       <span className="sr-only">
                         {s.done ? 'Done: ' : 'To do: '}
                       </span>
@@ -177,7 +183,10 @@ export async function FirstRunToday({
               ))}
             </ol>
             <form action={hideFirstStepsAction}>
-              <button type="submit" className="link-button first-steps-skip">
+              <button
+                type="submit"
+                className={`link-button ${styles['first-steps-skip']}`}
+              >
                 Skip for now
               </button>
             </form>

@@ -7096,80 +7096,13 @@ html[data-panel-open] .rumi-fab-wrap {
 .welcome-actions .button svg {
   vertical-align: -0.15em;
 }
-.first-day-sub {
-  margin: 2px 0 0;
-  font-size: 14px;
-}
-.first-day-empty {
-  display: flex;
-  gap: 14px;
-  align-items: flex-start;
-  padding: 18px;
-  border: 1px dashed var(--border);
-  border-radius: 12px;
-}
-.first-day-empty p {
-  margin: 0;
-}
-.first-day-title {
-  font-weight: 600;
-  margin-bottom: 2px !important;
-}
-.first-day-icon {
-  display: inline-grid;
-  place-items: center;
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  background: var(--primary-soft);
-  color: var(--primary);
-  flex: none;
-}
+
 .home-pace {
   margin: 0;
   font-size: 14px;
   color: var(--muted);
 }
-.first-steps-head {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 12px;
-}
-.first-steps-head h2 {
-  margin: 0;
-  font-size: 18px;
-}
-.first-steps-list li {
-  display: grid;
-  grid-template-columns: 20px minmax(0, 1fr) auto;
-  gap: 10px;
-  align-items: center;
-  padding: 12px 0;
-  border-top: 1px solid var(--border-subtle);
-}
-.first-step-mark {
-  color: var(--muted);
-}
-.first-steps-list li.is-done .first-step-mark {
-  color: var(--primary);
-}
-.first-step-text {
-  display: grid;
-  gap: 2px;
-  font-size: 14px;
-}
-.first-step-title {
-  font-weight: 600;
-  font-size: 15px;
-}
-.first-steps-list li.is-done .first-step-title {
-  color: var(--muted);
-}
-.first-steps-skip {
-  margin-top: 10px;
-}
+
 .today-facts {
   display: flex;
   flex-wrap: wrap;
@@ -7532,21 +7465,6 @@ html[data-panel-open] .rumi-fab-wrap {
 .button.secondary.danger {
   color: var(--danger);
 }
-.quick-kinds {
-  border: 0;
-  padding: 0;
-  margin: 0;
-  min-width: 0;
-}
-.quick-kinds legend {
-  font-size: 13px;
-  font-weight: 600;
-  padding: 0;
-  margin-bottom: 6px;
-}
-.quick-kinds .template-chips {
-  margin-bottom: 10px;
-}
 
 .form-grid > .form-wide {
   grid-column: 1 / -1;
@@ -7584,10 +7502,7 @@ html[data-panel-open] .rumi-fab-wrap {
 .side-panel-root.is-modal .side-panel-body {
   padding: 12px 20px 18px;
 }
-/* The block form in its modal is short (WI-070, WI-072): the gaps between answers are small. */
-.block-form .quick-kinds .template-chips {
-  margin-bottom: 4px;
-}
+
 .block-form > label,
 .block-form > .form-grid {
   margin-bottom: 2px;
@@ -7680,42 +7595,8 @@ html[data-panel-open] .rumi-fab-wrap {
   display: flex;
   gap: 6px;
 }
-/* A block in three lines: start beside its length chips, the end as a line. */
-.quick-when {
-  display: grid;
-  grid-template-columns: 150px minmax(0, 1fr);
-  gap: 12px;
-  align-items: start;
-}
-/* The two labels sit on one line, and the chips centre on the field (WI-072). */
-.quick-when > label,
-.quick-when > fieldset {
-  margin: 0;
-}
-.quick-when legend {
-  margin-bottom: 6px;
-}
-.quick-when .quick-length .template-chips {
-  min-height: 44px;
-  align-items: center;
-  margin-bottom: 0;
-}
-.quick-ends {
-  margin: -4px 0 0;
-  font-size: 13px;
-  color: var(--ink-2);
-}
-.quick-note-line {
-  margin: 0;
-}
-.quick-note-toggle {
-  font-size: 14px;
-}
+
 @media (max-width: 700px) {
-  .quick-when {
-    grid-template-columns: minmax(0, 1fr);
-    gap: 4px;
-  }
   /* The row's menu hangs from the actions' right edge on a phone (WI-098), so it stays
      inside the screen whatever the row; WI-072 had anchored it to the ⋯ itself. */
   .agenda-actions {
@@ -7822,128 +7703,10 @@ html[data-panel-open] .rumi-fab-wrap {
   }
 }
 
-/* WI-073, WI-075, WI-076: the band at the top of Today, on the part of the day's tint, the
-   same cream, teal and blue in both themes (like the Day Print's fixed colours), with its
-   text in the tint's own dark shades: the date as an eyebrow, the greeting large, the
-   quotation under it, a live clock on the right. */
-.daily-band {
-  --band-bg: #e1f5ee;
-  --band-ink: #04342c;
-  --band-ink-2: #085041;
-  --band-meta: #0f6e56;
-  /* Centred like the roadmap's goal card (WI-098): date, clock, greeting, quotation. */
-  display: grid;
-  justify-items: center;
-  text-align: center;
-  gap: 0;
-  margin: 10px 0 18px;
-  padding: 28px 26px 26px;
-  border-radius: var(--radius-lg);
-  background: var(--band-bg);
-  color: var(--band-ink);
-}
-.daily-band[data-part='morning'],
-.daily-band[data-part='evening'] {
-  --band-bg: #faeeda;
-  --band-ink: #412402;
-  --band-ink-2: #633806;
-  --band-meta: #854f0b;
-}
-.daily-band[data-part='night'] {
-  --band-bg: #e6f1fb;
-  --band-ink: #042c53;
-  --band-ink-2: #0c447c;
-  --band-meta: #185fa5;
-}
-.daily-band[hidden] {
-  display: none;
-}
 /* The band carries the date, so the title row's date line steps aside while it shows. */
 .today-head[data-band='on'] .today-date,
 .home-head[data-band='on'] > .eyebrow {
   display: none;
-}
-.daily-eyebrow {
-  margin: 0;
-  font-size: 12px;
-  letter-spacing: 2px;
-  text-transform: uppercase;
-  font-weight: 600;
-  color: var(--band-meta);
-}
-.daily-greeting {
-  margin: 0;
-  font-family: var(--font-display), Georgia, serif;
-  font-size: 44px;
-  line-height: 1.1;
-  text-wrap: balance;
-  font-weight: 600;
-  letter-spacing: -0.01em;
-  color: var(--band-ink);
-}
-.daily-quote {
-  margin: 10px 0 0;
-  font-size: 17px;
-  line-height: 1.5;
-  color: var(--band-ink-2);
-  max-width: 60ch;
-  text-wrap: balance;
-}
-.daily-quote q {
-  font-style: italic;
-  quotes: '\201C' '\201D';
-}
-.daily-by {
-  color: var(--band-meta);
-}
-.daily-another {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 32px;
-  height: 32px;
-  margin-left: 4px;
-  padding: 0;
-  border-radius: 999px;
-  color: var(--band-meta);
-  vertical-align: middle;
-}
-.daily-another:hover {
-  color: var(--band-ink);
-}
-.daily-clock {
-  display: block;
-  margin: 10px 0 8px;
-  font-size: 30px;
-  line-height: 1;
-  font-weight: 600;
-  letter-spacing: -0.02em;
-  font-variant-numeric: tabular-nums;
-  color: var(--band-ink);
-}
-.home-head .daily-band {
-  margin-top: 14px;
-}
-@media (max-width: 700px) {
-  .daily-band {
-    padding: 20px 16px 18px;
-    margin: 4px 0 14px;
-  }
-  .daily-greeting {
-    font-size: 30px;
-  }
-  .daily-quote {
-    font-size: 15px;
-  }
-  .daily-clock {
-    margin: 8px 0 6px;
-    font-size: 26px;
-  }
-}
-@media (prefers-reduced-motion: no-preference) {
-  .daily-quote {
-    animation: rise-in 320ms var(--motion-easing) both;
-  }
 }
 
 /* Toasts (WI-080 fix): a refusal floats at the foot of the screen, above the phone bar. */

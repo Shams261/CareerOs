@@ -3,6 +3,7 @@ import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { useSecondTick } from '@/lib/clock-tick';
 import { RefreshCw } from 'lucide-react';
 import { clockLabel, dailyQuote, greeting, type DayPart } from './daily-line';
+import styles from './daily-line.module.css';
 
 /** The daily line can be switched off per browser (Settings → Appearance), like the shortcuts. */
 export const DAILY_LINE_KEY = 'silsila-daily-line';
@@ -88,22 +89,22 @@ export function DailyLine({
   return (
     <section
       ref={root}
-      className="daily-band"
+      className={styles['daily-band']}
       data-part={part}
       hidden={!enabled}
       aria-label="Today's greeting"
     >
-      <p className="daily-eyebrow">{dateLabel}</p>
-      <time className="daily-clock" suppressHydrationWarning>
+      <p className={styles['daily-eyebrow']}>{dateLabel}</p>
+      <time className={styles['daily-clock']} suppressHydrationWarning>
         {clockLabel(now, zone)}
       </time>
-      <p className="daily-greeting">{greeting(part, name)}</p>
-      <p className="daily-quote" key={quote.text}>
+      <p className={styles['daily-greeting']}>{greeting(part, name)}</p>
+      <p className={styles['daily-quote']} key={quote.text}>
         <q>{quote.text}</q>
-        <span className="daily-by"> — {quote.by}</span>
+        <span className={styles['daily-by']}> — {quote.by}</span>
         <button
           type="button"
-          className="link-button daily-another"
+          className={`link-button ${styles['daily-another']}`}
           onClick={() => setOffset((o) => o + 1)}
           aria-label="Another quotation"
         >

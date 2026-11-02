@@ -1,0 +1,56 @@
+/* Add a block's short form: kind chips, start and length, the end line and the note (WI-066 to WI-071; a CSS Module since WI-136). */
+
+.quick-kinds {
+  border: 0;
+  padding: 0;
+  margin: 0;
+  min-width: 0;
+}
+.quick-kinds legend {
+  font-size: 13px;
+  font-weight: 600;
+  padding: 0;
+  margin-bottom: 6px;
+}
+.quick-kinds :global(.template-chips) {
+  margin-bottom: 10px;
+}
+:global(.block-form) .quick-kinds :global(.template-chips) {
+  margin-bottom: 4px;
+}
+.quick-when {
+  display: grid;
+  grid-template-columns: 150px minmax(0, 1fr);
+  gap: 12px;
+  align-items: start;
+}
+.quick-when > label,
+.quick-when > fieldset {
+  margin: 0;
+}
+.quick-when legend {
+  margin-bottom: 6px;
+}
+.quick-when .quick-length :global(.template-chips) {
+  min-height: 44px;
+  align-items: center;
+  margin-bottom: 0;
+}
+.quick-ends {
+  margin: -4px 0 0;
+  font-size: 13px;
+  color: var(--ink-2);
+}
+.quick-note-line {
+  margin: 0;
+}
+.quick-note-toggle {
+  font-size: 14px;
+}
+
+@media (max-width: 700px) {
+  .quick-when {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 4px;
+  }
+}
