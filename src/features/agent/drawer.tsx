@@ -3,6 +3,7 @@ import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { usePathname } from 'next/navigation';
 import { X } from 'lucide-react';
 import { RumiChat } from './chat';
+import { STUDY_EVENT, explainQuestion, type StudyRequest } from '@/lib/rumi';
 import { AGENT_NAME } from '@/features/agent/constants';
 import { RumiMark } from './mark';
 import { RumiButton } from './rumi-button';
@@ -51,9 +52,32 @@ export function RumiDrawer({ button: initialButton }: { button: ButtonPref }) {
   }, []);
   // Mounted on first open and kept, so the conversation survives closing the drawer.
   const [started, setStarted] = useState(false);
+  // WI-144: Grill me or Read it to me from a roadmap item, shown as a card in the chat.
+  const [study, setStudy] = useState<StudyRequest | null>(null);
   const button = useRef<HTMLButtonElement>(null);
   const panel = useRef<HTMLDivElement>(null);
   const hidden = hiddenOn(path);
+  useEffect(() => {
+    if (hidden) return;
+    const onStudy = (e: Event) => {
+      const request = (e as CustomEvent<StudyRequest>).detail;
+      setStarted(true);
+      setOpen(true);
+      // Explain it is a question like any other; the tools are a card.
+      if (request.kind === 'explain') {
+        try {
+          sessionStorage.setItem(ASK_KEY, explainQuestion(request.item));
+        } catch {
+          return;
+        }
+        setTimeout(() => window.dispatchEvent(new Event(ASK_EVENT)), 0);
+        return;
+      }
+      setStudy(request);
+    };
+    window.addEventListener(STUDY_EVENT, onStudy);
+    return () => window.removeEventListener(STUDY_EVENT, onStudy);
+  }, [hidden]);
   // The device decides the key's name; the server render uses the general one.
   const keyLabel = useSyncExternalStore(
     noSubscribe,
@@ -118,13 +142,29 @@ export function RumiDrawer({ button: initialButton }: { button: ButtonPref }) {
   useEffect(() => {
     if (!open) return;
     panel.current?.querySelector<HTMLTextAreaElement>('textarea')?.focus();
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key !== 'Escape' || e.defaultPrevented) return;
+    const close = () => {
       setOpen(false);
       button.current?.focus();
     };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape' || e.defaultPrevented) return;
+      close();
+    };
+    // WI-144: with the focus on the page behind, Escape closes the drawer first and only it,
+    // so an open roadmap item stays open. From inside the drawer the composer may take the key
+    // first (it drops what the microphone heard), so that case keeps the bubbling listener.
+    const onKeyFirst = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape' || e.defaultPrevented) return;
+      if (panel.current?.contains(e.target as Node)) return;
+      e.preventDefault();
+      close();
+    };
+    window.addEventListener('keydown', onKeyFirst, true);
     window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
+    return () => {
+      window.removeEventListener('keydown', onKeyFirst, true);
+      window.removeEventListener('keydown', onKey);
+    };
   }, [open]);
 
   if (hidden) return null;
@@ -176,6 +216,8 @@ export function RumiDrawer({ button: initialButton }: { button: ButtonPref }) {
             today={localToday()}
             page={path}
             drawer
+            study={study}
+            onStudyClose={() => setStudy(null)}
           />
         </div>
       )}

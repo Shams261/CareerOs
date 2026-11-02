@@ -351,6 +351,56 @@ test('a move card is applied and undone', async ({ page }) => {
   ).toContainText('00:40');
 });
 
+test('a roadmap item is studied with Rumi: Grill me as a card, Explain it as a question', async ({
+  page,
+}) => {
+  // WI-144: one way to study with help, after Rumi's journeys have run the AI check. The
+  // week is the one the roadmap journey made.
+  await page.goto('/roadmap');
+  // The band stays open as the roadmap journey left it; open it only if it is closed.
+  const band = page.locator('.roadmap-band-toggle', {
+    hasText: 'System design',
+  });
+  await expect(band).toBeVisible();
+  if ((await band.getAttribute('aria-expanded')) !== 'true') await band.click();
+  const week = page.getByRole('link', { name: /Building blocks/ });
+  await week.click();
+  // A roadmap the owner makes has Study AI off; the owner turns it on in Edit roadmap.
+  await page.waitForLoadState('networkidle');
+  await page.getByRole('button', { name: 'More', exact: true }).click();
+  await page.getByRole('button', { name: 'Edit roadmap' }).click();
+  const edit = page.getByRole('form', { name: 'Edit roadmap System design' });
+  await edit.getByLabel(/Study AI/).check();
+  await edit.getByRole('button', { name: 'Save roadmap' }).click();
+  await expect(edit).toContainText(/Saved|saved/);
+  await page.reload();
+  const item = page.locator('.week-item.is-open');
+  await expect(item).toContainText('Design a rate limiter');
+  await expect(item).toContainText('Ask Rumi');
+  await expect(item.getByText('Copy the study prompt')).toBeVisible();
+  await item.getByRole('button', { name: 'Grill me on this' }).click();
+  const drawer = page.getByRole('dialog', { name: 'Ask Rumi' });
+  const card = drawer.getByRole('region', {
+    name: 'Grill me · Design a rate limiter',
+  });
+  await expect(card).toBeVisible();
+  await expect(card).toContainText('What will be sent');
+  await accessible(page);
+  await card.getByRole('button', { name: /^Close Grill me/ }).click();
+  await expect(card).toHaveCount(0);
+  // Escape closes the drawer and only it: the item behind stays open.
+  await page.evaluate(() =>
+    (document.activeElement as HTMLElement | null)?.blur(),
+  );
+  await page.keyboard.press('Escape');
+  await expect(drawer).toBeHidden();
+  await expect(item).toHaveClass(/is-open/);
+  await item.getByRole('button', { name: 'Explain it' }).click();
+  await expect(
+    drawer.locator('.rumi-message[data-role="owner"]').last(),
+  ).toContainText('Explain Design a rate limiter', { timeout: 10_000 });
+});
+
 test('the microphone shows only after consent and fills the composer', async ({
   page,
 }) => {

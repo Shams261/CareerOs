@@ -3,12 +3,14 @@
  * URL, and the event asks an open chat to take them. Since WI-060 the round Rumi button's
  * drawer takes them on any page; without it (Focus, or AI off) the Rumi page does.
  */
+import { DRAWER_FLAG } from '@/lib/rumi';
+
 export const ASK_KEY = 'silsila-rumi-ask';
 export const ASK_EVENT = 'silsila:ask-rumi';
 /** Opens the Rumi drawer (WI-060). */
 export const OPEN_RUMI_EVENT = 'silsila:open-rumi';
-/** Set on <body> while the drawer is available on this page. */
-export const DRAWER_FLAG = 'rumiDrawer';
+/** Set on <body> while the drawer is available on this page (kept in the kernel since WI-144). */
+export { DRAWER_FLAG };
 /** Words put in the composer without sending (WI-101: Reply on one of Rumi's lines). */
 export const PREFILL_KEY = 'silsila-rumi-prefill';
 export const PREFILL_EVENT = 'silsila:prefill-rumi';

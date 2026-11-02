@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { confidenceWord } from '@/features/dsa/words';
 import { useRef } from 'react';
-import { Check, ExternalLink } from 'lucide-react';
+import { Check, ExternalLink, MessageCircle } from 'lucide-react';
 import { PanelButton, SidePanel, closePanel } from '@/components/side-panel';
 import { MoreMenu } from '@/components/more-menu';
 import { ActionForm } from '@/components/action-form';
@@ -19,8 +19,7 @@ import {
   scopeLines,
 } from './week-items-domain';
 import { Button } from '@/components/ui/button';
-import { GrillMe } from '@/features/ai/grill';
-import { Listen } from '@/features/listen/listen';
+import { AGENT_NAME, studyWithRumi } from '@/lib/rumi';
 import { removeCardAction } from '@/features/ai/actions';
 import type { Row } from './week-items';
 import { StudyHint } from './study-hint';
@@ -100,6 +99,16 @@ export function ItemBody({
     checkpoint: item.checkpoint,
     references: item.references,
   };
+  // WI-144: the item's study fields to Rumi's drawer, as Grill me, Read it to me or Explain it.
+  const study = (kind: 'grill' | 'listen' | 'explain') =>
+    grill &&
+    studyWithRumi({
+      kind,
+      item: studyItem,
+      budget: grill.budget,
+      status,
+      revisionDue: due,
+    });
   const estimate = item.estimateMinutes
     ? item.estimateMinutes >= 60
       ? `${Math.round((item.estimateMinutes / 60) * 10) / 10} h`
@@ -274,29 +283,48 @@ export function ItemBody({
             item={promptItem}
             onCopy={autoStart}
           />
-          {grill && grillable && (
-            <PanelButton
-              panel={`grill:${item.id}`}
-              className="pane-tool"
-              data-grill-open
-            >
-              <b>Grill me</b>
-              <span>
+          {/* WI-144, the owner's choice: one way to study with help, Rumi. Grill me and
+              Read it to me open in Rumi as a card; Explain it asks Rumi. */}
+          {grill && (
+            <div className="grid content-start gap-1 rounded-md border border-border bg-surface px-3.5 py-3">
+              <b className="inline-flex items-center gap-1.5 text-[14.5px] font-semibold">
+                <MessageCircle size={15} aria-hidden="true" /> Ask {AGENT_NAME}
+              </b>
+              <span className="text-[12.5px] text-meta">
                 {practice
-                  ? 'Five questions on the pattern'
-                  : 'Five questions on this item, kept as cards'}
+                  ? 'Questions on the pattern, or an explanation'
+                  : 'Questions kept as cards, the references read aloud, or an explanation'}
               </span>
-            </PanelButton>
-          )}
-          {grill && listenable && (
-            <PanelButton
-              panel={`listen:${item.id}`}
-              className="pane-tool"
-              data-listen-open
-            >
-              <b>Listen</b>
-              <span>A spoken summary from the references</span>
-            </PanelButton>
+              <div className="mt-1.5 flex flex-wrap gap-1.5">
+                {grillable && (
+                  <button
+                    type="button"
+                    className="button secondary small"
+                    data-grill-open
+                    onClick={() => study('grill')}
+                  >
+                    Grill me on this
+                  </button>
+                )}
+                {listenable && (
+                  <button
+                    type="button"
+                    className="button secondary small"
+                    data-listen-open
+                    onClick={() => study('listen')}
+                  >
+                    Read it to me
+                  </button>
+                )}
+                <button
+                  type="button"
+                  className="button secondary small"
+                  onClick={() => study('explain')}
+                >
+                  Explain it
+                </button>
+              </div>
+            </div>
           )}
         </div>
       </div>
@@ -459,21 +487,6 @@ export function ItemBody({
           onSettled={followMove}
         />
       </SidePanel>
-      {grill && grillable && (
-        <SidePanel id={`grill:${item.id}`} title={`Grill me · ${item.title}`}>
-          <GrillMe
-            item={studyItem}
-            budget={grill.budget}
-            status={status}
-            revisionDue={due}
-          />
-        </SidePanel>
-      )}
-      {grill && listenable && (
-        <SidePanel id={`listen:${item.id}`} title={`Listen · ${item.title}`}>
-          <Listen item={studyItem} budget={grill.budget} />
-        </SidePanel>
-      )}
     </div>
   );
 }
