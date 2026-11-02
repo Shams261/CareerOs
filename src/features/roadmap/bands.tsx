@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { useSyncExternalStore } from 'react';
 import { ChevronDown, ChevronRight, Route } from 'lucide-react';
 import { PanelButton } from '@/components/side-panel';
+import styles from '@/features/roadmap/overview.module.css';
 
 export type BandSection = {
   name: string;
@@ -109,24 +110,26 @@ export function RoadmapBands({
             </h3>
             <div id={listId} hidden={!isOpen}>
               {isOpen && (
-                <ol className="plain-list band-sections">
+                <ol className={`plain-list ${styles['band-sections']}`}>
                   {r.sections.map((s) => {
                     const isCurrent = s.name === r.current;
                     return (
                       <li
                         key={s.name}
-                        className={`band-section${isCurrent ? ' is-current' : ''}`}
+                        className={`${styles['band-section']}${isCurrent ? ' is-current' : ''}`}
                       >
                         <Link
                           prefetch={false}
-                          className="band-section-link"
+                          className={styles['band-section-link']}
                           href={`/roadmap/${r.id}?section=${encodeURIComponent(s.name)}`}
                         >
-                          <span className="band-section-name">
-                            <span className="band-section-text">
+                          <span className={styles['band-section-name']}>
+                            <span className={styles['band-section-text']}>
                               {s.name}
                               {isCurrent && (
-                                <span className="pill priority band-section-current">
+                                <span
+                                  className={`pill priority ${styles['band-section-current']}`}
+                                >
                                   Current
                                 </span>
                               )}
@@ -135,7 +138,7 @@ export function RoadmapBands({
                               <small>Next: {r.nextTitle}</small>
                             )}
                           </span>
-                          <span className="band-section-count">
+                          <span className={styles['band-section-count']}>
                             {s.due > 0 && (
                               <span className="is-due">{s.due} due</span>
                             )}
@@ -146,16 +149,18 @@ export function RoadmapBands({
                           <ChevronRight
                             size={18}
                             aria-hidden="true"
-                            className="band-section-chevron"
+                            className={styles['band-section-chevron']}
                           />
                         </Link>
                       </li>
                     );
                   })}
-                  <li className="band-section band-section-add">
+                  <li
+                    className={`${styles['band-section']} ${styles['band-section-add']}`}
+                  >
                     <PanelButton
                       panel={`add-items:${r.id}`}
-                      className="link-button band-section-add-button"
+                      className={`link-button ${styles['band-section-add-button']}`}
                     >
                       + Add a week or items to {r.title}
                     </PanelButton>
