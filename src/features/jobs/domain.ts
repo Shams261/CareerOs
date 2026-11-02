@@ -687,3 +687,38 @@ export function funnelRows<T extends { monday: string; counts: number[] }>(
       );
   return { rows: kept, folded: weeks.length - kept.length };
 }
+
+/** What an application's timeline row says (WI-125: moved from the application page). */
+export function activityLine(
+  a: {
+    type: string;
+    fromStage?: string | null;
+    toStage?: string | null;
+    note?: string | null;
+    previousStart?: Date | null;
+    newStart?: Date | null;
+  },
+  zone: string,
+) {
+  const at = (d: Date) => formatInTimeZone(d, zone, 'MMM d, HH:mm');
+  switch (a.type) {
+    case 'CREATED':
+      return `Added as ${label(a.toStage ?? 'SAVED')}`;
+    case 'STAGE_CHANGED':
+      return a.fromStage
+        ? `${label(a.fromStage)} to ${label(a.toStage ?? '')}`
+        : `Moved to ${label(a.toStage ?? '')}`;
+    case 'INTERVIEW_SCHEDULED':
+      return `Interview scheduled: ${a.note ?? ''}${a.newStart ? ` for ${at(a.newStart)}` : ''}`;
+    case 'INTERVIEW_RESCHEDULED':
+      return `Interview rescheduled: ${a.previousStart ? at(a.previousStart) : '?'} to ${a.newStart ? at(a.newStart) : '?'}`;
+    case 'INTERVIEW_RESULT':
+      return `Interview result — ${a.note ?? ''}`;
+    case 'FOLLOW_UP_SET':
+      return 'Next action updated';
+    case 'FOLLOW_UP_DONE':
+      return 'Next action completed';
+    case 'NOTE':
+      return 'Note';
+  }
+}
