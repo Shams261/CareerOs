@@ -1,5 +1,7 @@
 'use client';
 import Link from 'next/link';
+import { StudyCard } from './study-card';
+import type { StudyRequest } from '@/lib/rumi';
 import { pageRef, promptsFor } from './page-domain';
 import { RumiPose } from './pose';
 import { useEffect, useRef, useState, useTransition } from 'react';
@@ -161,6 +163,8 @@ export function RumiChat({
   drawer = false,
   voice: voiceInitial,
   page = null,
+  study = null,
+  onStudyClose,
 }: {
   conversationId: string | null;
   title: string | null;
@@ -176,6 +180,9 @@ export function RumiChat({
   voice?: VoiceState | null;
   /** WI-117: the page the drawer is open on, for its record and its questions. */
   page?: string | null;
+  /** WI-144: Grill me or Read it to me from a roadmap item, as a card in the chat. */
+  study?: StudyRequest | null;
+  onStudyClose?: () => void;
 }) {
   const router = useRouter();
   const [messages, setMessages] = useState(initial);
@@ -492,6 +499,7 @@ export function RumiChat({
             {error}
           </p>
         )}
+        {study && <StudyCard study={study} onClose={() => onStudyClose?.()} />}
         <div ref={end} />
       </div>
       <form

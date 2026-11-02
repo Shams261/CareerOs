@@ -439,6 +439,13 @@ The other model calls (Grill Me, Listen, lines, memory, prep, summaries) are sin
 
 **Consequences:** a line is only as good as its passages. The check tests that a passage states a line's words, not that the line is a correct reading of it. Showing every passage beside its line is how the owner judges the rest. The plan's test still applies: the owner rates five scripts useful before relying on Listen. Adding a site to a list is a reviewed code change.
 
+**Amendment (WI-144, 2026-11-02, the owner's choice): Grill Me and Listen open in Rumi.** On a roadmap item, the separate Grill me and Listen tools gave way to one Ask Rumi card. It has three chips, Grill me on this, Read it to me and Explain it; Copy the study prompt stays beside it.
+
+- **Grill me on this and Read it to me** open Rumi's drawer with the tool as a card in the chat (`StudyCard`). The engines are unchanged, with this ADR's and ADR-023's rules.
+- **The card is not part of the conversation:** it is never stored, and closing it is the end of it. Only Keep as card keeps rungs, as before.
+- **Explain it** sends one question to Rumi's chat: the item's title and scope, nothing else.
+- **The handover** is a browser event (`studyWithRumi`, `src/lib/rumi.ts`). It carries the same study fields the item already showed; no note, link or "asked at" goes with it.
+
 ## ADR-024 — Rumi, the assistant: what it reads, writes and sends
 
 **Status:** Accepted (2026-10-27, owner sign-off below). WI-040 builds on it. It amends ADR-021, ADR-022 and ADR-023 for the Rumi plan (`docs/product/rumi-plan.md`, archived in WI-120).

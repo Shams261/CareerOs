@@ -53,6 +53,8 @@ export function PageShortcuts({
           target.isContentEditable)
       )
         return;
+      // A key pressed inside a dialog (Rumi's drawer, WI-144) belongs to it, never the page.
+      if (target?.closest?.('[role="dialog"]')) return;
       if (event.key === 'Escape' && open) {
         setOpen(false);
         return;
