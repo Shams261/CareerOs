@@ -2,8 +2,11 @@ name: Scheduler
 # WI-121: a second, independent caller of the two scheduler endpoints, so reminders, push,
 # Rumi's lines and calendar sync keep running if cron-job.org stops. Both endpoints are safe to
 # call twice or to overlap (unique inbox rows, capped push attempts, the calendar lease), so
-# this runs beside cron-job.org, not instead of it. GitHub runs schedules on a best-effort basis,
-# so this is a backstop, not the main clock. Secrets (set by the owner, never in the repository):
+# this runs beside cron-job.org, not instead of it. GitHub keeps no clock for this repository:
+# schedules started every 3.5 to 8 hours, and this one had no scheduled start in its first six
+# hours (measured in WI-138). So it is a best-effort backstop that may run a few times a day;
+# Better Stack's "jobs":"ok" check is what notices a stopped scheduler. Secrets (set by the
+# owner, never in the repository):
 #   CRON_SECRET    the same value the app and cron-job.org use
 # Without it the run says so and stops without failing.
 on:

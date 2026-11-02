@@ -10,7 +10,7 @@ If CLAUDE.md conflicts with the implementation, schema, tests, migrations or an 
 
 ## Current state
 
-- Latest completed work item: **WI-137** (Tailwind for new UI, 2026-11-02, no migration: Silsila's tokens as Tailwind's theme in `src/app/globals.css` (`bg-canvas`, `text-ink`, `text-meta`, `border-divider`, … and no default palette; `phone:` for the 700 px breakpoint), the hand-written styles moved to `src/app/app.css` (9,398 lines) and imported into the components layer so utilities win; two margin utilities that never applied removed, the duplicate `.sr-only`, `.mr-2`, `.w-40`/`.w-60` and the dead `.block` rules gone; the first-run cards written in Tailwind; `tests/tailwind.test.ts`; nothing painted changed). Before it, WI-135 and WI-136 (four small CSS Modules), WI-120 to WI-134 (the audit's cleanup, 2026-11-02) and WI-099 to WI-119 Rumi 2 and 3 (2026-11-01).
+- Latest completed work item: **WI-138** (ops and truth, 2026-11-02, no migration: `onRequestError` logs every server error by route, class, code and the digest the error page shows (`src/lib/request-error.ts`); Rumi's settings in the export; Quality runs on `feat/**`, `fix/**` and `chore/**` pushes so a branch is green before its merge; a weekly WebKit workflow; Actions and npm patch updates from Dependabot (not `lucide-react`, too new); the recovery drill `scripts/restore-drill.sh`; the docs' release checklist, second caller, backup and Rumi writes made true). Before it, WI-137 (Tailwind for new UI), WI-135 and WI-136 (four small CSS Modules), WI-120 to WI-134 (the audit's cleanup, 2026-11-02) and WI-099 to WI-119 Rumi 2 and 3 (2026-11-01).
 - Live at https://usesilsila.me since 2026-10-20 (Render + Supabase, ADR-014). Latest migration: `20261106000000_owner_ai_limit` (WI-114).
 - Phase: two weeks of owner UAT of Rumi 2 and 3 with the plan's measures, then the owner's monthly AI limit and hosting choices. Proposed next work items are in `output/Silsila-Full-Audit.pdf` (not committed).
 - History: every work item has an entry in `CHANGELOG.md` (cut into versions); the last ten handoffs are in `docs/`, older ones under the tag (`docs/HISTORY.md`). What each feature does and where it lives: `docs/architecture/features.md`.
@@ -174,7 +174,7 @@ State as of 2026-10-20: **Silsila is live at https://usesilsila.me** on a Render
 - Schema: `prisma/schema.prisma`; migrations: `prisma/migrations/`
 - Architecture, features and decisions: `docs/architecture/overview.md`, `docs/architecture/features.md`, `docs/architecture/decisions.md`, `docs/architecture/rumi-2.md`
 - Handbook index: `docs/README.md`; history and the archive tag: `docs/HISTORY.md`; changelog: `CHANGELOG.md`
-- Handoffs: the last ten in `docs/` (latest `docs/WI-137-HANDOFF.md`); the Rumi 2 and 3 plan: `docs/product/rumi2-plan.md`
+- Handoffs: the last ten in `docs/` (latest `docs/WI-138-HANDOFF.md`); the Rumi 2 and 3 plan: `docs/product/rumi2-plan.md`
 - Security: `docs/engineering/security.md`, `SECURITY.md`; operations: `docs/engineering/operations.md`; backups: `docs/engineering/backup-restore.md`
 - Brand and design principles: `docs/product/brand-system.md`
 - Contributing rules: `CONTRIBUTING.md`

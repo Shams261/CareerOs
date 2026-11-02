@@ -8,16 +8,15 @@ A fresh local install follows the [README](../../README.md). An existing owner s
 
 ## Release checklist
 
-1. Link delivered stories and changed ADR/NFR entries in the release PR; verify CI and relevant browser evidence.
-2. Take a backup and verify it (`pnpm db:backup`, then `pnpm db:restore:verify <file>`), see [backup and restore](backup-restore.md). Record the current app commit and migration status.
-3. Build from the lockfile with validated environment configuration. Do not use example passwords in production.
-4. Review migration SQL for compatibility with the currently running app. These early migrations may require a maintenance window; no zero-downtime guarantee is made.
-5. Run `pnpm db:deploy` against the intended database, then start the matching app build (`pnpm start`). Never use `db push` as the production migration strategy.
-6. Smoke-test: `/api/health` is `ok`/`UTC`/`current`; anonymous pages redirect to `/login` and APIs return 401; owner sign-in works; Today, Calendar and a non-destructive saved edit work; the scheduler endpoints reject a missing bearer.
-7. Confirm the [scheduled jobs](#scheduled-jobs) run (Settings → System status shows recent successes). Alert on repeated failures or missing runs.
-8. Record commit, migrations, operator, time, environment and results. Observe errors and latency before closing the release.
+A release is a merge to `main`: Render builds and deploys it once every Quality check is green.
 
-`prisma migrate deploy` does not make a backup. Destructive schema changes need a separate reviewed data migration and rollback plan.
+1. **Gate on the branch:** the full gate from [CONTRIBUTING](../../CONTRIBUTING.md#the-gate) passes locally, and for UI work the WebKit journeys too (`pnpm test:e2e:safari`, or Actions → WebKit → Run workflow). Then push the branch and wait for its Quality run to be green before merging (WI-138: Quality runs on `feat/**`, `fix/**` and `chore/**` pushes), so `main` never turns red.
+2. **Backup first:** Actions → Backup → Run workflow, and wait for it to be green (dump, restore check, encrypted artifact). For a migration, also take and verify a local copy and apply the migration to the personal database before the merge, following the [checklist](backup-restore.md#migrating-an-existing-personal-database). A migration must be expand-only: the running code keeps working once it is applied.
+3. **Merge and watch:** the Quality run on `main` turns green and Render deploys; `/api/health` reads `ok`, `UTC`, `current` and `"jobs":"ok"`, and its `schema` is current once a migration is in.
+4. **Smoke-test:** sign-in works; Today, Plan and one non-destructive saved edit work; Settings → System status shows recent successes for the scheduled jobs.
+5. **Look at the log** in Render for `[request] failed` or `action failed` lines in the first minutes. A line names a route, an error class and a reference; the owner sees the same reference on the screen.
+
+Never use `db push` against production. `prisma migrate deploy` does not make a backup; destructive schema changes need a separate reviewed data migration and rollback plan.
 
 ## Scheduled jobs
 
@@ -30,7 +29,7 @@ In production (ADR-014) the main caller is [cron-job.org](https://cron-job.org):
 
 **Retention (WI-134).** Once a day the reminder request also prunes system records past their retention (`dailyRetention`, `src/features/notifications/retention.ts`, `JobRun` `retention`): sign-in sessions 30 days after expiry or revocation, read reminders 180 days after they were due (never a job follow-up, never an unread one), and AI usage rows after 400 days. It logs counts only and never touches the owner's own records.
 
-**Second caller (WI-121).** `.github/workflows/scheduler.yml` calls both endpoints every 15 minutes from GitHub Actions with the same bearer secret, so reminders, push, Rumi's lines and calendar sync keep going if cron-job.org stops. It needs the repository secret `CRON_SECRET` (the same value as the app's); without it the run only says so. GitHub starts scheduled runs late at busy times, so it is a backstop, not the main clock. Both endpoints are safe to call twice, so the two callers never conflict.
+**Second caller (WI-121; measured in WI-138).** `.github/workflows/scheduler.yml` asks GitHub Actions to call both endpoints every 15 minutes with the same bearer secret (the repository secret `CRON_SECRET`; without it the run only says so). GitHub does not keep that clock for this repository. Its schedules started every 3.5 to 8 hours (the hourly Uptime workflow, 2026-10-27 to 2026-11-02), and the Scheduler had no scheduled start at all in its first six hours (its one run was by hand). So it is a best-effort backstop that may run a few times a day, not a second clock. If cron-job.org stops, reminders and sync slow to GitHub's pace, and the external monitor below turns red within minutes because `jobs` goes `stale`. Both endpoints are safe to call twice, so the callers never conflict. A real second clock would need another always-on caller holding the secret, such as a second scheduler service; that is the owner's choice, since it hands the secret to one more party.
 
 ## Uptime and job alerts (WI-051)
 
@@ -46,11 +45,11 @@ Reminders must always have run. The other two count only once they have run at l
 
 The health check gives only `ok`, `stale` or `unknown`, never names or times, and the field never changes the status code, so the host does not restart a healthy app over a cron outage. When it reads `stale`, Settings → System status shows which job and when it last succeeded. Then check the scheduler first, as above. cron-job.org's own failure emails remain the first signal for the scheduler itself.
 
-**External monitor (owner step, WI-121).** GitHub runs the hourly check on a best-effort basis; in practice it ran every 3.5 to 8 hours (2026-10-27 to 2026-11-02). Add a free external monitor that checks every 5 minutes: UptimeRobot or Better Stack, an HTTP keyword monitor on `https://usesilsila.me/api/health` with the keyword `"jobs":"ok"`, alerting by email. Keep the workflow as a second check.
+**External monitor (WI-121; set up by the owner on 2026-11-02).** GitHub runs the hourly check on a best-effort basis; in practice it ran every 3.5 to 8 hours (2026-10-27 to 2026-11-02). The real watch is Better Stack: an HTTP keyword monitor on `https://usesilsila.me/api/health` with the keyword `"jobs":"ok"`, every few minutes, alerting by email. It catches both an app outage and a stopped scheduler. The Uptime workflow stays as a second check.
 
 ## Backups and restoration
 
-See [backup and restore](backup-restore.md) for `pnpm db:backup`, `pnpm db:restore:verify`, the schedule, recovery and the personal database migration checklist. Supabase Free (ADR-014) has no automated backups: `pnpm db:backup` from a workstation against the session-pooler URL, weekly and before every migration, is the only copy; it needs `pg_dump` 17 or newer (`brew install libpq`). Proposed RPO/RTO are in the NFR register. Restore rehearsals always go into a new scratch database, never over a live one. Do not commit backups.
+See [backup and restore](backup-restore.md) for the schedule, recovery, the recovery drill and the personal database migration checklist. Supabase Free (ADR-014) keeps no provider backups. The Backup workflow dumps, verifies and encrypts production every day (WI-121), so up to a day of writes can be lost (the recovery point). `pnpm db:backup` from a workstation (it needs `pg_dump` 17 or newer, `brew install libpq`) is for the copy before a migration. How long a recovery takes is measured by the drill (`scripts/restore-drill.sh`) and recorded there. Restores always go into a new scratch database, never over a live one. Do not commit backups.
 
 ## Roadmap material import (WI-012)
 

@@ -1,0 +1,74 @@
+name: WebKit
+# WI-138: the browser journeys in Safari's engine once a week, so a Safari-only break shows up
+# without slowing every push (Quality runs them in Chromium on each push). GitHub starts
+# scheduled runs late, often by hours; for a weekly check that is fine. Run it by hand before a
+# release that changes the UI: Actions → WebKit → Run workflow.
+on:
+  schedule:
+    - cron: '41 9 * * 0'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: webkit
+  cancel-in-progress: true
+jobs:
+  webkit:
+    # The same journeys and axe checks as Quality's e2e job, in WebKit (Safari's engine).
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: careeros
+          POSTGRES_PASSWORD: ci-only-password
+          POSTGRES_DB: careeros
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U careeros -d careeros"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      CI: 'true'
+      NEXT_TELEMETRY_DISABLED: '1'
+      E2E_DATABASE_URL: postgresql://careeros:ci-only-password@localhost:5432/silsila_e2e
+      # The build reads the same throwaway values the server runs with (e2e/env.ts).
+      DATABASE_URL: postgresql://careeros:ci-only-password@localhost:5432/silsila_e2e
+      OWNER_EMAIL: owner@example.com
+      CRON_SECRET: e2e-only-scheduler-secret-not-for-deployment
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .node-version
+      - name: Install pinned package manager
+        run: npm install --global pnpm@11.19.0
+      - name: Locate pnpm store
+        id: store
+        run: echo "path=$(pnpm store path --silent)" >> "$GITHUB_OUTPUT"
+      - name: Restore dependency cache
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ steps.store.outputs.path }}
+          key: ${{ runner.os }}-node24-pnpm11-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: ${{ runner.os }}-node24-pnpm11-
+      - name: Install locked dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Install WebKit for Playwright
+        run: pnpm exec playwright install --with-deps webkit
+      - name: Production build
+        run: pnpm build
+      - name: Browser journeys with axe in WebKit
+        run: pnpm test:e2e:safari
+      - name: Keep the report when a journey fails
+        if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: playwright-report-webkit
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 7

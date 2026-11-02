@@ -1,7 +1,9 @@
 name: Quality
 on:
   push:
-    branches: [main]
+    # WI-138: work branches too, so a branch is green before it is merged into main (the gate
+    # before the merge; main runs again on the merge commit, and Render deploys only that).
+    branches: [main, 'feat/**', 'fix/**', 'chore/**']
   pull_request:
   workflow_dispatch:
 permissions:
@@ -32,10 +34,10 @@ jobs:
       CRON_SECRET: ci-only-scheduler-secret-not-for-deployment
       NEXT_TELEMETRY_DISABLED: '1'
     steps:
-      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version-file: .node-version
       - name: Install pinned package manager
@@ -44,13 +46,13 @@ jobs:
         id: store
         run: echo "path=$(pnpm store path --silent)" >> "$GITHUB_OUTPUT"
       - name: Restore dependency cache
-        uses: actions/cache@caa296126883cff596d87d8935842f9db880ef25 # v5
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ${{ steps.store.outputs.path }}
           key: ${{ runner.os }}-node24-pnpm11-${{ hashFiles('pnpm-lock.yaml') }}
           restore-keys: ${{ runner.os }}-node24-pnpm11-
       - name: Restore Next compiler cache
-        uses: actions/cache@caa296126883cff596d87d8935842f9db880ef25 # v5
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: .next/cache
           key: ${{ runner.os }}-next-${{ hashFiles('pnpm-lock.yaml') }}-${{ github.sha }}
@@ -80,7 +82,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
       - name: Build the runtime image
@@ -121,10 +123,10 @@ jobs:
       OWNER_EMAIL: owner@example.com
       CRON_SECRET: e2e-only-scheduler-secret-not-for-deployment
     steps:
-      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version-file: .node-version
       - name: Install pinned package manager
@@ -133,7 +135,7 @@ jobs:
         id: store
         run: echo "path=$(pnpm store path --silent)" >> "$GITHUB_OUTPUT"
       - name: Restore dependency cache
-        uses: actions/cache@caa296126883cff596d87d8935842f9db880ef25 # v5
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ${{ steps.store.outputs.path }}
           key: ${{ runner.os }}-node24-pnpm11-${{ hashFiles('pnpm-lock.yaml') }}

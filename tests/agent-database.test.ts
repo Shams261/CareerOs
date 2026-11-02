@@ -646,7 +646,14 @@ describe.skipIf(!url)('Ask Rumi (PostgreSQL)', () => {
     await addMemory(user, 'Best hours 06:00–09:00');
     await deleteConversation(user, b.conversationId);
     await expect(deleteConversation(other, a.conversationId)).rejects.toThrow();
+    await prisma.agentSetting.upsert({
+      where: { userId: user.id },
+      create: { userId: user.id, voiceLang: 'hi-IN' },
+      update: { voiceLang: 'hi-IN' },
+    });
     const data = await exportOwnerData(user.id, now);
+    // WI-138: Rumi's settings travel with the export.
+    expect(data.rumi.setting?.voiceLang).toBe('hi-IN');
     expect(data.rumi.conversations.map((c) => c.title)).toEqual(['Keep this']);
     expect(data.rumi.conversations[0].messages).toHaveLength(2);
     expect(data.rumi.knows.map((m) => m.text)).toEqual([
