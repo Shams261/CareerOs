@@ -3,7 +3,6 @@ import { deleteApplicationAction } from '@/features/deletes/actions';
 import { ResourceLink } from '@/components/resource-link';
 import { Disclosure } from '@/components/disclosure';
 import { PanelButton, SidePanel } from '@/components/side-panel';
-
 import { DetailsForm } from '@/features/jobs/forms';
 import { AGENT_NAME } from '@/features/agent/constants';
 import { PrepTools } from './prep-tools';

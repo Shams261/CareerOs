@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- WI-127 (Settings split, 2026-11-02, no migration): the 703-line page became a loader (`settingsPage` in `src/features/settings/page-data.ts`) and six server components in `src/features/settings/sections/`; the page has no database query of its own. Settings renders the same styles and text as before, with and without the setup card and the calendar notices.
 - WI-126 (the application page split, 2026-11-02, no migration): the 951-line page became a loader (`applicationPage` in `src/features/jobs/page-data.ts`), `activityLine` in `jobs/domain.ts`, and eight server components in `src/features/jobs/application/`; the page has no database query of its own. Three applications (one with every kind of round, one open, one closed) render the same styles and text as before.
 - WI-125 (the Weekly review page split, 2026-11-02, no migration): the 1,074-line page became a loader (`reviewPage` in `src/features/review/page-data.ts`), labels (`labels.ts`) and five server components (the head and the four steps in `src/features/review/steps/`); the page has no database query of its own. Every review page renders the same styles and text as before.
 - WI-124 (dead CSS, 2026-11-02, no migration): 97 rules styling screens that were removed long ago (For today picks, the stage stepper, the roadmap outline, the old progress bar and more) left `globals.css`, 460 lines and about 6 KB; computed styles of every element on 36 page views are unchanged. A test now fails when a stylesheet class is no longer used.
