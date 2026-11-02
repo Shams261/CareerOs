@@ -4,7 +4,7 @@ import { notFound } from 'next/navigation';
 import { ArrowLeft } from 'lucide-react';
 import { owner } from '@/server/db';
 import { aiConfig } from '@/lib/env';
-import { AGENT_NAME } from '@/features/agent/domain';
+import { AGENT_NAME } from '@/features/agent/constants';
 import { agentSetting } from '@/features/agent/memory-service';
 import { readVoiceLang } from '@/features/agent/voice-domain';
 import { mockFor } from '@/features/prep/mock';

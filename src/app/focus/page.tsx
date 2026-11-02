@@ -2,7 +2,7 @@ import { redirect } from 'next/navigation';
 import { db, owner } from '@/server/db';
 import { dayKey, hhmm } from '@/lib/time';
 import { FocusView } from '@/features/execution/focus';
-import { categoryGroup } from '@/features/review/domain';
+import { categoryGroup } from '@/lib/categories';
 import { recordedBefore } from '@/features/execution/focus-domain';
 export const metadata = { title: 'Focus' };
 

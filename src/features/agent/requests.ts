@@ -14,10 +14,9 @@ import { dayKey, hhmm, localInstant, weekdayDate } from '@/lib/time';
 import { isTestNamed } from '@/lib/test-data';
 import {
   generateInTransaction,
-  locked,
   recordReview,
-  type ScheduleUser,
 } from '@/features/schedule/service';
+import { locked, type ScheduleUser } from '@/server/lock';
 import { saveBlockIn } from '@/features/schedule/editing';
 import { deleteBlockIn } from '@/features/deletes/service';
 import { blockUndo } from '@/features/deletes/domain';
@@ -36,8 +35,9 @@ import { typeLabel } from '@/features/jobs/formats';
 import { applyItemOpIn, saveGoalIn } from '@/features/roadmap/service';
 import { goalInput } from '@/features/roadmap/domain';
 import { recordAttemptIn } from '@/features/dsa/service';
-import { categoryGroup } from '@/features/review/domain';
-import { AGENT_NAME, titleVisible } from './domain';
+import { categoryGroup } from '@/lib/categories';
+import { titleVisible } from './domain';
+import { AGENT_NAME } from '@/features/agent/constants';
 import { checkBlocks, planWindow } from './plan-domain';
 import { takenOn } from './plans';
 import { studyKinds } from './tools';
@@ -46,13 +46,13 @@ import {
   confidenceOf,
   readRequests,
   REQUEST_UNDO,
-  REQUEST_WORDS,
   requestArgs,
   reviewFields,
   solvedOf,
   type ActionCard,
   type RequestKind,
 } from './request-domain';
+import { REQUEST_WORDS } from '@/features/agent/text';
 
 type Tx = Prisma.TransactionClient;
 type Prepared = { result: unknown; card?: ActionCard };

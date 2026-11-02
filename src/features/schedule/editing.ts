@@ -1,7 +1,6 @@
 import 'server-only';
 import { createHash, randomUUID } from 'node:crypto';
 import { formatInTimeZone } from 'date-fns-tz';
-import { db } from '@/server/db';
 import type { Prisma } from '@/generated/prisma/client';
 import {
   blockInput,
@@ -11,13 +10,8 @@ import {
   interval,
   routineOverlaps,
 } from './domain';
-import {
-  locked,
-  validateGoal,
-  ownedBlock,
-  clearBlockReminders,
-  type ScheduleUser,
-} from './service';
+import { validateGoal, ownedBlock, clearBlockReminders } from './service';
+import { locked, type ScheduleUser } from '@/server/lock';
 import { dayKey } from '@/lib/time';
 export class PreviewRequired extends Error {
   constructor(
@@ -388,12 +382,5 @@ export async function saveRoutine(
       if (p.id) await clearBlockReminders(tx, user.id, p.id);
     }
     return { changed: changes.length, added };
-  });
-}
-export async function routineOptions(userId: string) {
-  return db().goal.findMany({
-    where: { userId },
-    select: { id: true, title: true },
-    orderBy: { title: 'asc' },
   });
 }

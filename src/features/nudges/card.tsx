@@ -1,5 +1,5 @@
 'use client';
-import { isSunday } from '@/features/agent/page-domain';
+import { isSunday } from '@/lib/day';
 import { RumiPose } from '@/features/agent/pose';
 import { RumiMark } from '@/features/agent/mark';
 import { useState } from 'react';
@@ -7,10 +7,10 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { ActionForm } from '@/components/action-form';
 import { Button } from '@/components/ui/button';
-import { AGENT_NAME } from '@/features/agent/domain';
+import { AGENT_NAME } from '@/features/agent/constants';
 import { askRumi, prefillRumi } from '@/features/agent/events';
 import { ListenLine } from '@/features/agent/voice';
-import { lineHeading, PART_WORDS } from '@/features/agent/line-domain';
+import { lineHeading, PART_WORDS } from '@/features/agent/text';
 import {
   letGoAction,
   moveToTomorrowAction,

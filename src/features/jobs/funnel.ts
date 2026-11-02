@@ -1,4 +1,4 @@
-import { shiftDay } from '../schedule/domain';
+import { shiftDay } from '@/lib/day';
 
 /**
  * The job search's own funnel (WI-056): for the applications sent each week, how far each got.
@@ -12,7 +12,6 @@ export const FUNNEL_STEPS = [
   'Final',
   'Offer',
 ] as const;
-export type FunnelStep = (typeof FUNNEL_STEPS)[number];
 
 /** How far a stage or a round type gets an application, as an index into FUNNEL_STEPS. */
 const STAGE_REACH: Record<string, number> = {

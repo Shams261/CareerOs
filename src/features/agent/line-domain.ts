@@ -1,16 +1,11 @@
 import { z } from 'zod';
 import type { OutputFormat } from '@/features/ai/domain';
-import { BANNED_WORDS, type LineLanguage } from '@/features/nudges/domain';
+import type { LineLanguage } from '@/features/nudges/domain';
+import { BANNED_WORDS } from '@/lib/copy';
 import { STYLE_LINES, type RumiStyle } from './domain';
 import { withoutIds } from './write-domain';
+import type { LinePart } from './text';
 
-/**
- * Rumi's line (WI-101, ADR-030): pure rules. Code decides when a line is due and what Rumi may
- * read; the model writes one line; code checks it and keeps the fixed template as the fallback.
- * Nothing here touches the database or the network.
- */
-export type LinePart = 'morning' | 'midday' | 'evening';
-export const LINE_PARTS: LinePart[] = ['morning', 'midday', 'evening'];
 /** The reads each part is written from (ids and arguments fixed in code, never by the model). */
 export const LINE_READS: Record<LinePart, [string, Record<string, unknown>][]> =
   {
@@ -50,11 +45,6 @@ export const SHAMING_WORDS = [
   'fell behind',
   'falling behind',
 ];
-export const PART_WORDS: Record<LinePart, string> = {
-  morning: 'Morning',
-  midday: 'Afternoon',
-  evening: 'Evening',
-};
 
 export const LINE_FORMAT: OutputFormat = {
   name: 'line',
@@ -226,7 +216,3 @@ export const rumiStateOf = (metadata: unknown): RumiState | null => {
       : null;
   return v === 'pending' || v === 'written' || v === 'fallback' ? v : null;
 };
-
-/** The card's heading when Rumi wrote the line. */
-export const lineHeading = (part: LinePart, agent: string) =>
-  `${agent} · ${PART_WORDS[part]}`;

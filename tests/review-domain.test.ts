@@ -1,12 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import {
-  categoryGroup,
   closeWeekLine,
   defaultReviewWeek,
   hasReflection,
   lastReviewLine,
   lastReviewQuote,
-  plural,
   reviewWeekParam,
   dsaWeek,
   formatMinutes,
@@ -18,10 +16,12 @@ import {
   reviewSummaryLine,
   scheduleWeek,
   weekBounds,
-  weekOf,
   weeklyPromptDue,
   weeklyReminderDue,
 } from '../src/features/review/domain';
+import { weekOf } from '../src/lib/day';
+import { categoryGroup } from '../src/lib/categories';
+import { plural } from '../src/lib/copy';
 import { localInstant } from '../src/lib/time';
 
 const zone = 'America/Toronto';

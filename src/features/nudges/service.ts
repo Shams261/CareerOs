@@ -5,8 +5,8 @@ import type { Prisma } from '@/generated/prisma/client';
 import { dayBounds, dayKey } from '@/lib/time';
 import { isTestNamed } from '@/lib/test-data';
 import { reminderKey } from '@/features/notifications/domain';
-import { locked, type ScheduleUser } from '@/features/schedule/service';
-import { shiftDay } from '@/features/schedule/domain';
+import { locked, type ScheduleUser } from '@/server/lock';
+import { shiftDay } from '@/lib/day';
 import { rumiStateOf } from '@/features/agent/line-domain';
 import {
   blockBody,
@@ -15,7 +15,6 @@ import {
   eveningBody,
   eveningDue,
   inAppOnly,
-  isStudyCategory,
   MIDDAY_PAUSE_DAYS,
   middayBody,
   middayDue,
@@ -27,6 +26,7 @@ import {
   recapDue,
   type NudgeSetting,
 } from './domain';
+import { isStudyCategory } from '@/lib/categories';
 
 type Row = {
   morningEnabled: boolean;

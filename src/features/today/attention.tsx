@@ -6,7 +6,7 @@ import { ladderLine, ladderState, revisionQueue } from '@/features/dsa/domain';
 import { jobTodaySummary } from '@/features/jobs/service';
 import { revisionDue } from '@/features/roadmap/service';
 import { weeklyReviewOpen } from '@/features/review/service';
-import type { ScheduleUser } from '@/features/schedule/service';
+import type { ScheduleUser } from '@/server/lock';
 import { dayKey } from '@/lib/time';
 import { db } from '@/server/db';
 import { attentionItems, type RoundLike } from './domain';

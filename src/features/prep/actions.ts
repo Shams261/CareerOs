@@ -5,7 +5,7 @@ import { redirect } from 'next/navigation';
 import { z } from 'zod';
 import { owner } from '@/server/db';
 import { forgetAll } from '@/server/memo';
-import type { ActionState } from '@/features/schedule/actions';
+import type { ActionState } from '@/lib/action-state';
 import { AiRefusal, AiUnavailable } from '@/features/ai/service';
 import { docInput } from './domain';
 import {

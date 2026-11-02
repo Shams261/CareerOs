@@ -1,7 +1,7 @@
 import type { Prisma } from '../src/generated/prisma/client';
 import { assess, type Mastery } from '../src/features/learning/domain';
 import { localInstant } from '../src/lib/time';
-import { shiftDay } from '../src/features/schedule/domain';
+import { shiftDay } from '../src/lib/day';
 export async function seedLearning(
   tx: Prisma.TransactionClient,
   userId: string,

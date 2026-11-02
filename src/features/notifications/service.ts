@@ -7,13 +7,14 @@ import {
   reminderKey,
   reviewReminderDue,
 } from './domain';
-import { locked } from '@/features/schedule/service';
+import { locked } from '@/server/lock';
 import { blockReminderDue } from './domain';
 import { followUpReminderDue, interviewWindow } from '@/features/jobs/domain';
-import { weekOf, weeklyReminderDue } from '@/features/review/domain';
+import { weeklyReminderDue } from '@/features/review/domain';
+import { weekOf } from '@/lib/day';
 import { weekdayDate } from '@/lib/time';
 import { processStudyNudges, nudgeKey } from '@/features/nudges/service';
-import { isStudyCategory } from '@/features/nudges/domain';
+import { isStudyCategory } from '@/lib/categories';
 import { nudgeSetting } from '@/features/nudges/service';
 import { settleRevisionsIn } from '@/features/dsa/service';
 export async function processNotifications(now = new Date()) {

@@ -1,7 +1,7 @@
 'use client';
 import { RumiPose } from './pose';
 import { useState, useTransition } from 'react';
-import { AGENT_NAME } from './domain';
+import { AGENT_NAME } from '@/features/agent/constants';
 import { keepSummaryAction, weekSummaryAction } from './actions';
 
 /**

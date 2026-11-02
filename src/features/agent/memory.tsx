@@ -10,7 +10,8 @@ import {
   removeMemoryAction,
   rumiStyleAction,
 } from './actions';
-import { AGENT_NAME, RUMI_STYLES, type RumiStyle } from './domain';
+import { RUMI_STYLES, type RumiStyle } from './domain';
+import { AGENT_NAME } from '@/features/agent/constants';
 import {
   KIND_LABELS,
   MEMORY,

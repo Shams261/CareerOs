@@ -8,7 +8,7 @@ import { aiConfig, type AiConfig } from '@/lib/env';
 import { dayKey, shortDate } from '@/lib/time';
 import { isTestNamed } from '@/lib/test-data';
 import { recordRun } from '@/server/jobs';
-import { locked, type ScheduleUser } from '@/features/schedule/service';
+import { locked, type ScheduleUser } from '@/server/lock';
 import { revisionDue } from '@/features/roadmap/service';
 import {
   CHECK_MAX_AGE_MS,

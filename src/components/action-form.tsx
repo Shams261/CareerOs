@@ -14,7 +14,7 @@ import { Check } from 'lucide-react';
 import { publishToast } from './toast';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import type { ActionState } from '@/features/schedule/actions';
+import type { ActionState } from '@/lib/action-state';
 import { undoAction } from '@/features/undo/actions';
 import { publishFeedback } from './feedback-channel';
 import { Button } from '@/components/ui/button';

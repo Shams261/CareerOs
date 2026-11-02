@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { CONFIDENCE_WORD, confidenceWord } from '../src/features/dsa/words';
 import { STATUS_FILTERS } from '../src/features/dsa/domain';
-import { BANNED_WORDS } from '../src/features/nudges/domain';
+import { BANNED_WORDS } from '../src/lib/copy';
 
 describe('WI-063 plain words', () => {
   it('says how sure the owner is instead of a colour', () => {

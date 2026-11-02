@@ -15,7 +15,7 @@ import {
   revokeSession,
 } from '@/server/session';
 import { revalidatePath } from 'next/cache';
-import type { ActionState } from '@/features/schedule/actions';
+import type { ActionState } from '@/lib/action-state';
 import { clientIp, rateLimit } from '@/server/rate-limit';
 import { authorizationUrl, safeNext } from './oidc';
 import { LOGIN_COOKIE } from './constants';

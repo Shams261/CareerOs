@@ -2,18 +2,18 @@ import 'server-only';
 import { memo } from '@/server/memo';
 import { z } from 'zod';
 import { db } from '@/server/db';
-import { locked, type ScheduleUser } from '@/features/schedule/service';
+import { locked, type ScheduleUser } from '@/server/lock';
 import { resourceUrl } from '@/lib/validation';
 import { dayKey } from '@/lib/time';
 import { dateInput } from '@/features/schedule/domain';
 import {
   attemptInput,
-  isDsa,
   ladderState,
   markRevised as revisedData,
   settleLadder,
   startLadder,
 } from './domain';
+import { isDsa } from '@/lib/categories';
 import { followPractice } from '@/features/roadmap/follow';
 import type { Prisma } from '@/generated/prisma/client';
 export async function ownedProblem(

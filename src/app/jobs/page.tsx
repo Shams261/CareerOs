@@ -4,8 +4,8 @@ import { owner } from '@/server/db';
 import { dayKey, hhmm, shortDate, weekdayDate } from '@/lib/time';
 import { funnelSnapshot, jobSnapshot } from '@/features/jobs/service';
 import { FUNNEL_STEPS } from '@/features/jobs/funnel';
-import { weekOf } from '@/features/review/domain';
-import { shiftDay } from '@/features/schedule/domain';
+import { weekOf } from '@/lib/day';
+import { shiftDay } from '@/lib/day';
 import {
   applicationMove,
   filterApplications,

@@ -1,6 +1,6 @@
 import type { Prisma } from '../src/generated/prisma/client';
-import { weekOf } from '../src/features/review/domain';
-import { shiftDay } from '../src/features/schedule/domain';
+import { weekOf } from '../src/lib/day';
+import { shiftDay } from '../src/lib/day';
 
 /** New seed owners only: last week's completed review, whose priorities are this week's focus. */
 export async function seedReview(

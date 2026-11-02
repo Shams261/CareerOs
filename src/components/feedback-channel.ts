@@ -1,4 +1,4 @@
-import type { ActionState } from '@/features/schedule/actions';
+import type { ActionState } from '@/lib/action-state';
 
 /**
  * A tiny in-page channel between an `ActionForm` and a `FeedbackOutlet` (WI-014).

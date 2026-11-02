@@ -12,7 +12,7 @@ import { PageShortcuts } from '@/components/shortcuts';
 import { UtilityMenu } from '@/features/today/utility-menu';
 import { remindersPreview } from '@/features/notifications/preview';
 import { dayKey, hhmm, shortDate, weekdayDate } from '@/lib/time';
-import { shiftDay } from '@/features/schedule/domain';
+import { shiftDay } from '@/lib/day';
 import { BlockRowShell } from '@/features/schedule/block-row';
 import {
   blockResolution,
@@ -31,10 +31,10 @@ import {
   lastReviewLine,
   lastReviewQuote,
   MAX_PRIORITIES,
-  plural,
   reviewSummaryLine,
   reviewWeekParam,
 } from '@/features/review/domain';
+import { plural } from '@/lib/copy';
 import {
   carryForward,
   nextWeekContext,
@@ -54,7 +54,7 @@ import { DraftWeekButton } from '@/features/agent/draft-button';
 import { WeekSummary } from '@/features/agent/summary-card';
 import { summaryOn } from '@/features/agent/summary';
 import { nextWeek } from '@/features/agent/draft';
-import { AGENT_NAME } from '@/features/agent/domain';
+import { AGENT_NAME } from '@/features/agent/constants';
 export const metadata = { title: 'Weekly review' };
 
 const label = (day: string, pattern: string) =>

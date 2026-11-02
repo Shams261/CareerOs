@@ -3,8 +3,8 @@ import { memo } from '@/server/memo';
 import { db } from '@/server/db';
 import { Prisma } from '@/generated/prisma/client';
 import { dayBounds, dayKey } from '@/lib/time';
-import { locked, type ScheduleUser } from '@/features/schedule/service';
-import { shiftDay, weekDays } from '@/features/schedule/domain';
+import { locked, type ScheduleUser } from '@/server/lock';
+import { shiftDay, weekDays } from '@/lib/day';
 import {
   bulkItemsInput,
   goalInput,

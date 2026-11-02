@@ -1,7 +1,7 @@
 'use client';
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import { AGENT_NAME } from './domain';
+import { AGENT_NAME } from '@/features/agent/constants';
 import { draftWeekAction } from './actions';
 
 /** Weekly review → Next week (WI-107): Rumi drafts the week as plan cards, one per day. */

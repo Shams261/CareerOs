@@ -7,8 +7,8 @@ import {
   dueState,
   learningSuggestions,
   weekStart,
-  isTechnical,
 } from '../src/features/learning/domain';
+import { isTechnical } from '../src/lib/categories';
 import { dayKey } from '../src/lib/time';
 import { randomUUID } from 'node:crypto';
 const empty = {

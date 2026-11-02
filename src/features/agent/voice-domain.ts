@@ -5,8 +5,7 @@
  * message only remembers that it came by voice and whether it was edited.
  * Covered by tests/voice-domain.test.ts.
  */
-import { z } from 'zod';
-import { renderText } from './domain';
+import { renderText } from './text';
 
 /** The languages the microphone listens in (BCP 47), the first the default. */
 export const VOICE_LANGS = [
@@ -21,10 +20,7 @@ export const readVoiceLang = (v: unknown): VoiceLang =>
 export const SILENCE_MS = 2000;
 
 /** What a message keeps about voice: that it came by voice, and whether it was edited. */
-export const voiceInput = z
-  .object({ via: z.literal('voice'), edited: z.boolean() })
-  .strict();
-export type VoiceMeta = z.infer<typeof voiceInput>;
+export type VoiceMeta = { via: 'voice'; edited: boolean };
 /** The metadata of a sent message: by voice when dictation filled the composer. */
 export function voiceMeta(
   dictated: string | null,
@@ -65,10 +61,3 @@ export function speakableLines(text: string) {
     .filter(Boolean)
     .slice(0, 30);
 }
-
-/** The settings form: consent, the language, and whether replies are read aloud. */
-export const voiceSettingsInput = z.object({
-  consent: z.boolean(),
-  lang: z.string().transform(readVoiceLang),
-  speakReplies: z.boolean(),
-});

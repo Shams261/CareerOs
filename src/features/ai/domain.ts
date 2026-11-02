@@ -35,16 +35,9 @@ export const LIMIT_CHOICES: readonly MonthlyLimit[] = [
 ];
 export const LIMIT_RANGE = { min: 100_000, max: 1_000_000_000 } as const;
 export const RATE = { hour: 20, day: 60 } as const;
-/** Per-feature daily caps (WI-100): a feature's own calls in the last 24 hours. */
-export const FEATURE_RATE: Partial<Record<string, { day: number }>> = {
-  AGENT_MEMORY: { day: 20 },
-};
 export const TIMEOUT_MS = 20_000;
 /** A provider check older than this is repeated before the next request. */
 export const CHECK_MAX_AGE_MS = 36 * 3600_000;
-
-/** The behavioural roadmap is built from the owner's handbook: never Study AI by default. */
-export const BEHAVIOURAL_ROADMAP = 'Behavioural and resume';
 
 export const LIMITS = {
   title: 120,

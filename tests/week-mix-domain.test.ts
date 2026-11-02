@@ -6,7 +6,7 @@ import {
   weekMix,
 } from '../src/features/roadmap/week';
 import type { FormatItem } from '../src/features/jobs/formats';
-import { BANNED_WORDS } from '../src/features/nudges/domain';
+import { BANNED_WORDS } from '../src/lib/copy';
 
 let n = 0;
 const item = (over: Partial<FormatItem>): FormatItem => ({

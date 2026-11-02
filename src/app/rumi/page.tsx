@@ -7,7 +7,7 @@ import { aiState } from '@/features/ai/service';
 import { agentSetting } from '@/features/agent/memory-service';
 import { readVoiceLang } from '@/features/agent/voice-domain';
 import { budgetLine, nearLimit } from '@/features/ai/domain';
-import { AGENT_NAME } from '@/features/agent/domain';
+import { AGENT_NAME } from '@/features/agent/constants';
 import { RumiMark } from '@/features/agent/mark';
 import { readMetadata, readTools } from '@/features/agent/plan-domain';
 import { conversation, conversations } from '@/features/agent/service';

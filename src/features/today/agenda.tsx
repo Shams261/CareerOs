@@ -17,7 +17,7 @@ import {
 } from '@/features/schedule/forms';
 import { BlockRowShell } from '@/features/schedule/block-row';
 import { rowMeta } from '@/features/schedule/row';
-import { categoryGroup } from '@/features/review/domain';
+import { categoryGroup } from '@/lib/categories';
 import { dayKey, minutes } from '@/lib/time';
 import type { ActualSession, TimeBlock } from '@/generated/prisma/client';
 import {

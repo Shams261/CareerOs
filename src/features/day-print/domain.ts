@@ -5,7 +5,7 @@
  * generated, counted as a score or compared. Pure; covered by tests/day-print.test.ts.
  */
 import { formatInTimeZone } from 'date-fns-tz';
-import { categoryGroup } from '@/features/review/domain';
+import { categoryGroup } from '@/lib/categories';
 import { formatDuration } from '@/features/schedule/row';
 import { minutes } from '@/lib/time';
 

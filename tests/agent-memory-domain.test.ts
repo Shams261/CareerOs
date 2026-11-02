@@ -15,7 +15,7 @@ import {
   stalest,
 } from '../src/features/agent/memory-domain';
 import { PERSONA, STYLE_LINES } from '../src/features/agent/domain';
-import { BANNED_WORDS } from '../src/features/nudges/domain';
+import { BANNED_WORDS } from '../src/lib/copy';
 
 const row = (
   text: string,

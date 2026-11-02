@@ -1,7 +1,5 @@
 import { describe, it, expect } from 'vitest';
 import {
-  weekDays,
-  shiftDay,
   interval,
   dayProgress,
   executionLabel,
@@ -9,6 +7,7 @@ import {
   routineOccurrence,
   routineOverlaps,
 } from '../src/features/schedule/domain';
+import { weekDays, shiftDay } from '../src/lib/day';
 import { blockSummary, minutes } from '../src/lib/time';
 import { blockReminderDue } from '../src/features/notifications/domain';
 const zone = 'America/Toronto';

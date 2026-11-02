@@ -7,7 +7,8 @@
 import { interviewTypes } from '@/features/jobs/domain';
 import { z } from 'zod';
 import { MODEL, PINNED_PROVIDER, PRICE } from '@/features/ai/domain';
-import { BANNED_WORDS, isStudyCategory } from '@/features/nudges/domain';
+import { BANNED_WORDS } from '@/lib/copy';
+import { isStudyCategory } from '@/lib/categories';
 import { PROPOSAL_BLOCKS, proposeArgs, suggestArgs } from './plan-domain';
 import { REQUESTS_PER_ANSWER, requestArgs } from './request-domain';
 import {
@@ -21,7 +22,6 @@ import {
 } from './write-domain';
 
 /** The name the owner sees; code identifiers stay generic (`agent`). */
-export const AGENT_NAME = 'Rumi';
 
 /** ADR-024: owner messages, not model calls, count against these. */
 export const AGENT_RATE = { hour: 30, day: 100 } as const;
@@ -31,12 +31,12 @@ export const MAX_ROUNDS = 6;
 export const HISTORY = 12;
 /** The output ceiling of one chat call. */
 export const CHAT_MAX_TOKENS = 1500;
-export const MESSAGE_MAX = 2000;
 export const REPLY_MAX = 12_000;
 export const TITLE_MAX = 60;
 /** "Rumi knows": the caps live in memory-domain.ts since WI-100; re-exported for the forms. */
 export { MEMORY } from './memory-domain';
 import { MEMORY as MEMORY_CAPS } from './memory-domain';
+import { AGENT_NAME, MESSAGE_MAX } from './constants';
 
 /** Rumi's style (WI-100, ADR-030): one line added to the persona, chosen in Settings. */
 export const RUMI_STYLES = ['firm', 'warm', 'brief'] as const;
@@ -521,82 +521,3 @@ export const memoryInput = z
   .trim()
   .min(1, 'Write what Rumi should keep in mind.')
   .max(MEMORY_CAPS.text, `Keep it under ${MEMORY_CAPS.text} characters.`);
-
-export type Span = { text: string; bold: boolean };
-export type TextBlock =
-  { type: 'p'; spans: Span[] } | { type: 'ul' | 'ol'; items: Span[][] };
-/** `**bold**` only; backticks and stray markers become plain text. */
-function spans(line: string): Span[] {
-  const out: Span[] = [];
-  const parts = line.replace(/`/g, '').split(/\*\*(.+?)\*\*/g);
-  parts.forEach((text, i) => {
-    const clean = text.replace(/\*\*/g, '');
-    if (clean) out.push({ text: clean, bold: i % 2 === 1 });
-  });
-  return out;
-}
-/**
- * The model's text as paragraphs and lists, nothing more. It never produces HTML: React
- * renders every span as text, so markup in a reply shows as characters, never as elements.
- */
-export function renderText(text: string): TextBlock[] {
-  const blocks: TextBlock[] = [];
-  let para: string[] = [];
-  const flush = () => {
-    if (para.length) blocks.push({ type: 'p', spans: spans(para.join(' ')) });
-    para = [];
-  };
-  for (const raw of text.replace(/\r/g, '').split('\n')) {
-    const line = raw.trim();
-    const bullet = /^[-*•]\s+(.*)$/.exec(line);
-    const numbered = /^\d+[.)]\s+(.*)$/.exec(line);
-    if (!line || /^```/.test(line)) {
-      flush();
-      continue;
-    }
-    if (bullet || numbered) {
-      flush();
-      const type = bullet ? 'ul' : 'ol';
-      const item = spans((bullet ?? numbered)![1]);
-      const last = blocks.at(-1);
-      if (last && last.type === type) last.items.push(item);
-      else blocks.push({ type, items: [item] });
-      continue;
-    }
-    // A heading or a table row reads as a plain line.
-    para.push(line.replace(/^#+\s*/, '').replace(/^\|(.*)\|$/, '$1'));
-  }
-  flush();
-  return blocks;
-}
-
-/** What each read tool is called under an answer (WI-055); cards are not reads. */
-export const READ_WORDS: Record<string, string> = {
-  get_today: 'today',
-  get_schedule: 'your schedule',
-  get_activity: 'recorded activity',
-  get_roadmaps: 'roadmaps',
-  get_practice: 'practice',
-  get_jobs: 'jobs',
-  get_patterns: 'your patterns',
-  get_prep_docs: 'prep docs',
-  find_problems: 'practice',
-  find_items: 'roadmaps',
-};
-
-/**
- * "Read: today, roadmaps" under an answer, from the tools it used, in the order first used.
- * Null when the answer read nothing, so a reply from the conversation alone shows no line.
- */
-export function readLine(tools: readonly string[]) {
-  const words = [...new Set(tools.map((t) => READ_WORDS[t]).filter(Boolean))];
-  return words.length ? `Read: ${words.join(', ')}` : null;
-}
-
-/** The progress line while an answer is on its way: the reads so far, or the first wait. */
-export function readingLine(tools: readonly string[]) {
-  const words = [...new Set(tools.map((t) => READ_WORDS[t]).filter(Boolean))];
-  return words.length
-    ? `${AGENT_NAME} is reading ${words.join(', ')}…`
-    : `${AGENT_NAME} is reading your records…`;
-}

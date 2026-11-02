@@ -22,12 +22,12 @@ import {
 } from '@/features/dsa/forms';
 import { AttemptForm } from '@/features/dsa/attempt-form';
 import {
-  isDsa,
   ladderLine,
   ladderState,
   problemNoteLine,
   solvedText,
 } from '@/features/dsa/domain';
+import { isDsa } from '@/lib/categories';
 import { RevisionLadder } from '@/features/dsa/ladder';
 import { resourceUrl } from '@/lib/validation';
 import { dayKey, shortDate } from '@/lib/time';

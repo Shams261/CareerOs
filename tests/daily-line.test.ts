@@ -7,7 +7,7 @@ import {
   dayPart,
   greeting,
 } from '../src/features/today/daily-line';
-import { BANNED_WORDS } from '../src/features/nudges/domain';
+import { BANNED_WORDS } from '../src/lib/copy';
 
 describe('The daily line (WI-073, ADR-028)', () => {
   it('names the part of the day by the local hour', () => {

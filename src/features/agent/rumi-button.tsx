@@ -4,7 +4,7 @@ import { usePathname } from 'next/navigation';
 import { X } from 'lucide-react';
 import { publishToast } from '@/components/toast';
 import { RumiMark } from './mark';
-import { AGENT_NAME } from './domain';
+import { AGENT_NAME } from '@/features/agent/constants';
 import {
   DRAG_SLOP,
   saveButtonPref,

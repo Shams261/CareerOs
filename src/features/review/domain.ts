@@ -1,15 +1,16 @@
 import { z } from 'zod';
+
 import { dayKey, localInstant, minutes } from '../../lib/time';
+
 import {
   dateInput,
   dayProgress,
   isFocusCategory,
   routineOccurrence,
-  shiftDay,
-  weekDays,
 } from '../schedule/domain';
-import { isTechnical } from '../learning/domain';
-import { isDsa } from '../dsa/domain';
+
+import { shiftDay, weekDays, weekOf } from '@/lib/day';
+
 import {
   followUpState,
   inProcessStages,
@@ -19,8 +20,10 @@ import {
   type Stage,
 } from '../jobs/domain';
 
-/** Owner-local Monday → Sunday weeks (never UTC boundaries). */
-export const weekOf = (day: string) => weekDays(day)[0];
+import { categoryGroup, categoryKey, categoryLabel } from '@/lib/categories';
+
+import { plural } from '@/lib/copy';
+
 export const currentWeek = (now: Date, zone: string) =>
   weekOf(dayKey(now, zone));
 export const isMonday = (day: string) =>
@@ -60,27 +63,6 @@ export const formatMinutes = (n: number) => {
     m = n % 60;
   return h ? (m ? `${h}h ${m}m` : `${h}h`) : `${m}m`;
 };
-const categoryKey = (c: string) =>
-  c
-    .trim()
-    .toUpperCase()
-    .replace(/[\s-]+/g, '_');
-const ACRONYMS = new Set(['DSA', 'API', 'AWS', 'SQL', 'OA']);
-const title = (key: string) => {
-  // Known acronyms stay upper-case (DSA); other keys read as words (JOB_SEARCH → Job search).
-  if (ACRONYMS.has(key)) return key;
-  const t = key.toLowerCase().replaceAll('_', ' ');
-  return t[0].toUpperCase() + t.slice(1);
-};
-/** Groups used for planned-vs-actual. Other categories keep their own label. */
-export function categoryGroup(category: string) {
-  const key = categoryKey(category);
-  if (isDsa(key)) return 'DSA';
-  if (isTechnical(key)) return 'Technical';
-  if (['JOB_SEARCH', 'INTERVIEW'].includes(key)) return 'Job search';
-  return title(key);
-}
-
 type BlockIn = {
   id: string;
   title: string;
@@ -150,7 +132,7 @@ export function scheduleWeek(
     }
   >();
   for (const x of live) {
-    const label = title(categoryKey(x.category));
+    const label = categoryLabel(categoryKey(x.category));
     const c = byCategory.get(label) ?? {
       label,
       planned: 0,
@@ -575,8 +557,6 @@ export function reviewWeekParam(week: string | undefined, fallback: string) {
     return fallback;
   return weekOf(week);
 }
-export const plural = (n: number, one: string, many = `${one}s`) =>
-  `${n} ${n === 1 ? one : many}`;
 type ReflectionText = {
   biggestWin: string | null;
   biggestBlocker: string | null;

@@ -2,8 +2,8 @@ import 'server-only';
 import { db } from '@/server/db';
 import { dayKey, localInstant } from '@/lib/time';
 import { isTestNamed } from '@/lib/test-data';
-import { shiftDay } from '@/features/schedule/domain';
-import type { ScheduleUser } from '@/features/schedule/service';
+import { shiftDay } from '@/lib/day';
+import type { ScheduleUser } from '@/server/lock';
 import { MAX_WEEKS, moments, monthFacts, seasonGrid } from './domain';
 
 const ROUND_WORDS: Record<string, string> = {

@@ -6,7 +6,7 @@ import { owner } from '@/server/db';
 import { forgetAll } from '@/server/memo';
 import { failure } from '@/server/action';
 import { syncSoon } from '@/features/calendar/background';
-import type { ActionState } from '@/features/schedule/actions';
+import type { ActionState } from '@/lib/action-state';
 import { dateInput } from '@/features/schedule/domain';
 import { FIRST_STEPS_COOKIE } from './first-steps-cookie';
 import { letGoDay } from './let-go';

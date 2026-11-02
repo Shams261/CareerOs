@@ -8,7 +8,8 @@ import {
   weekdayDate,
 } from '../../lib/time';
 import { resourceUrl, localTime, timezone } from '../../lib/validation';
-import { dateInput, shiftDay, weekDays } from '../schedule/domain';
+import { dateInput } from '../schedule/domain';
+import { shiftDay, weekDays } from '@/lib/day';
 
 export const stages = [
   'SAVED',
@@ -65,12 +66,6 @@ export const technicalRounds: readonly string[] = [
   'DEBUGGING',
   'PRACTICAL',
 ];
-export const interviewStatuses = [
-  'SCHEDULED',
-  'COMPLETED',
-  'CANCELLED',
-  'NO_SHOW',
-] as const;
 export const arrangements = ['UNKNOWN', 'REMOTE', 'HYBRID', 'ONSITE'] as const;
 export const owners = ['ME', 'COMPANY', 'NONE'] as const;
 export const label = (value: string) => {

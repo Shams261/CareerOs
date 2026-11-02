@@ -4,7 +4,7 @@
  * tests/schedule-row.test.ts and tests/today-domain.test.ts.
  */
 import { hhmm, minutes } from '@/lib/time';
-import { categoryGroup } from '@/features/review/domain';
+import { categoryGroup } from '@/lib/categories';
 
 export type SessionLike = { id: string; startedAt: Date; endedAt: Date | null };
 export type BlockLike = {

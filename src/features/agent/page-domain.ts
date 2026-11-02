@@ -4,7 +4,6 @@
  * one on screen. Also the questions Rumi suggests on each page. Covered by
  * tests/agent-page.test.ts.
  */
-import { z } from 'zod';
 
 export type Place =
   'today' | 'plan' | 'roadmap' | 'practice' | 'jobs' | 'review' | 'other';
@@ -13,14 +12,6 @@ export type PageRef =
   | { kind: 'application'; id: string }
   | { kind: 'roadmap'; id: string }
   | { kind: 'place'; place: Place };
-
-/** A path only: no query, no host, short. */
-export const pageInput = z
-  .string()
-  .max(200)
-  .regex(/^\/[A-Za-z0-9/_-]*$/)
-  .nullable()
-  .optional();
 
 const ID = /^[A-Za-z0-9_-]{8,40}$/;
 const PLACES: Record<string, Place> = {
@@ -116,7 +107,3 @@ export function promptsFor(ref: PageRef): readonly string[] {
     ];
   return BY_PLACE[ref.place];
 }
-
-/** True for a Sunday label (YYYY-MM-DD). */
-export const isSunday = (day: string) =>
-  new Date(`${day}T12:00:00Z`).getUTCDay() === 0;

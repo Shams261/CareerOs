@@ -10,7 +10,7 @@ import {
   MessagesSquare,
   Monitor,
 } from 'lucide-react';
-import { categoryKey } from '@/features/calendar/domain';
+import { categoryKey } from '@/lib/categories';
 
 const icons = {
   DSA: Code2,

@@ -1,7 +1,7 @@
 'use client';
 import { useCallback, useState, useTransition } from 'react';
 import Link from 'next/link';
-import { AGENT_NAME } from '@/features/agent/domain';
+import { AGENT_NAME } from '@/features/agent/constants';
 import {
   ListenLine,
   MicButton,

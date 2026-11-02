@@ -4,7 +4,8 @@
  */
 import { z } from 'zod';
 import { dayBounds, hhmm, localInstant, weekdayDate } from '@/lib/time';
-import { dateInput, shiftDay } from '@/features/schedule/domain';
+import { dateInput } from '@/features/schedule/domain';
+import { shiftDay } from '@/lib/day';
 import { blockResolution, type BlockLike } from '@/features/schedule/row';
 
 /** The daily reminder's default time in Settings; the day can be closed from then on. */
@@ -116,7 +117,6 @@ export const closeDayInput = z.object({
   versions: z.record(z.string(), z.string()),
   slots: z.record(z.string(), z.string()),
 });
-export type CloseDayInput = z.infer<typeof closeDayInput>;
 
 /** Reads `choice-<id>`, `version-<id>` and `slot-<id>` fields from the form. */
 export function readCloseForm(entries: Iterable<[string, unknown]>) {

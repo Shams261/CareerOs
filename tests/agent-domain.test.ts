@@ -8,7 +8,6 @@ import {
   historyWindow,
   MAX_ROUNDS,
   readToolCall,
-  renderText,
   systemPrompt,
   titleVisible,
   toolContent,
@@ -16,6 +15,7 @@ import {
   TOOL_RESULT_MAX,
   TOOLS,
 } from '../src/features/agent/domain';
+import { renderText } from '../src/features/agent/text';
 import {
   CHAT_PARAMETERS,
   ENDPOINT,
@@ -23,7 +23,7 @@ import {
   MODEL,
   SENT_PARAMETERS,
 } from '../src/features/ai/domain';
-import { BANNED_WORDS } from '../src/features/nudges/domain';
+import { BANNED_WORDS } from '../src/lib/copy';
 import {
   askCommand,
   PLACES,

@@ -5,7 +5,7 @@ import { ArrowRight, CalendarClock, Check, Circle, Plus } from 'lucide-react';
 import { FeedbackOutlet } from '@/components/feedback-outlet';
 import { db } from '@/server/db';
 import { formatInTimeZone } from 'date-fns-tz';
-import type { ScheduleUser } from '@/features/schedule/service';
+import type { ScheduleUser } from '@/server/lock';
 import { BlockForm, RoutineForm } from '@/features/schedule/forms';
 import { ROUTINE_TEMPLATES } from '@/features/schedule/templates';
 import { GoalForm } from '@/features/roadmap/forms';

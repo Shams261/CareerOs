@@ -6,7 +6,7 @@ import { forgetAll } from '@/server/memo';
 import { owner } from '@/server/db';
 import { issueMessages } from '@/lib/validation';
 import { syncSoon } from '@/features/calendar/background';
-import type { ActionState } from '@/features/schedule/actions';
+import type { ActionState } from '@/lib/action-state';
 import { closedMessage } from './domain';
 import { closeDay } from './service';
 

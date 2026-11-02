@@ -16,13 +16,11 @@ import {
   jobNoteAction,
   jobReminderAction,
   prepAction,
-  prepDoneAction,
   rescheduleAction,
   resultAction,
   roundAction,
   roundDetailsAction,
   scheduleInterviewAction,
-  stageAction,
 } from './actions';
 import {
   aiPolicies,
@@ -246,44 +244,6 @@ export function DetailsForm({ app }: { app: JobApplication }) {
         />
       </label>
       <Button className="secondary">Save details</Button>
-    </ActionForm>
-  );
-}
-
-export function StageForm({ app }: { app: JobApplication }) {
-  return (
-    <ActionForm
-      action={stageAction}
-      label="Change stage"
-      className="dsa-form"
-      resetOnSuccess
-    >
-      <input type="hidden" name="id" value={app.id} />
-      <input type="hidden" name="requestId" value={randomUUID()} />
-      <label>
-        Move to stage
-        <select name="stage" required defaultValue="">
-          <option value="" disabled>
-            Choose stage
-          </option>
-          {stages
-            .filter((s) => s !== app.stage)
-            .map((s) => (
-              <option key={s} value={s}>
-                {label(s)}
-              </option>
-            ))}
-        </select>
-      </label>
-      <label>
-        Note (optional)
-        <input
-          name="note"
-          maxLength={2000}
-          placeholder="Recruiter reached out"
-        />
-      </label>
-      <Button className="secondary">Change stage</Button>
     </ActionForm>
   );
 }
@@ -692,28 +652,6 @@ export function PrepForm({
       <Button className="secondary">
         {kind === 'GAP' ? 'Add weak area' : 'Add prep item'}
       </Button>
-    </ActionForm>
-  );
-}
-export function PrepToggle({
-  id,
-  completed,
-  title,
-}: {
-  id: string;
-  completed: boolean;
-  title: string;
-}) {
-  return (
-    <ActionForm action={prepDoneAction}>
-      <input type="hidden" name="id" value={id} />
-      <input type="hidden" name="completed" value={String(!completed)} />
-      <button
-        className="button secondary"
-        aria-label={`${completed ? 'Reopen' : 'Mark done'}: ${title}`}
-      >
-        {completed ? 'Reopen' : 'Mark done'}
-      </button>
     </ActionForm>
   );
 }

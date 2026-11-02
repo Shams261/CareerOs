@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { dayKey, localInstant } from '@/lib/time';
-import { shiftDay } from '@/features/schedule/domain';
+import { shiftDay } from '@/lib/day';
 export const dimensions = [
   'understanding',
   'recall',
@@ -125,14 +125,6 @@ export function reviewQueue<T extends ReviewTopic>(topics: T[], day: string) {
         a.id.localeCompare(b.id),
     );
 }
-// Block categories are free text: "System Design" and "system-design" match SYSTEM_DESIGN.
-export const isTechnical = (s: string) =>
-  ['TECHNICAL', 'SYSTEM_DESIGN'].includes(
-    s
-      .trim()
-      .toUpperCase()
-      .replace(/[\s-]+/g, '_'),
-  );
 export function learningSuggestions<
   T extends ReviewTopic & { subjectId: string; ordering: number },
 >(topics: T[], currentSubjectId: string | null, day: string) {

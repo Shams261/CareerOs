@@ -1,7 +1,7 @@
 import 'server-only';
 import { db } from '@/server/db';
 import { forgetAll } from '@/server/memo';
-import { locked, type ScheduleUser } from '@/features/schedule/service';
+import { locked, type ScheduleUser } from '@/server/lock';
 import type { Bundle } from './bundle';
 import { copyCurriculum } from './copy';
 

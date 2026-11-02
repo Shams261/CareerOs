@@ -1,6 +1,6 @@
 import 'server-only';
 import { dayKey } from '@/lib/time';
-import { locked, type ScheduleUser } from '@/features/schedule/service';
+import { locked, type ScheduleUser } from '@/server/lock';
 import { executeIn } from '@/features/execution/service';
 import { blockResolution } from '@/features/schedule/row';
 

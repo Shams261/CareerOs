@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { cookies } from 'next/headers';
 import { BellOff } from 'lucide-react';
 import { db } from '@/server/db';
-import type { ScheduleUser } from '@/features/schedule/service';
+import type { ScheduleUser } from '@/server/lock';
 import { NUDGES_CARD_COOKIE } from './domain';
 import { DismissNudgesCard } from './off-card-dismiss';
 

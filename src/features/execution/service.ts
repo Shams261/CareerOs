@@ -1,12 +1,8 @@
 import 'server-only';
 import { z } from 'zod';
 import type { Prisma } from '@/generated/prisma/client';
-import {
-  locked,
-  ownedBlock,
-  clearBlockReminders,
-  type ScheduleUser,
-} from '@/features/schedule/service';
+import { ownedBlock, clearBlockReminders } from '@/features/schedule/service';
+import { locked, type ScheduleUser } from '@/server/lock';
 import { interval, dateInput } from '@/features/schedule/domain';
 import { localTime } from '@/lib/validation';
 import { db } from '@/server/db';

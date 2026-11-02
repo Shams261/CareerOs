@@ -1,18 +1,8 @@
 import { z } from 'zod';
 import { localInstant, minutes } from '../../lib/time';
 import { localTime } from '../../lib/validation';
+import { shiftDay } from '../../lib/day';
 export const dateInput = z.iso.date();
-export const shiftDay = (day: string, count: number) => {
-  dateInput.parse(day);
-  const d = new Date(`${day}T12:00:00Z`);
-  d.setUTCDate(d.getUTCDate() + count);
-  return d.toISOString().slice(0, 10);
-};
-export function weekDays(day: string) {
-  const weekday = new Date(`${dateInput.parse(day)}T12:00:00Z`).getUTCDay();
-  const monday = shiftDay(day, -((weekday + 6) % 7));
-  return Array.from({ length: 7 }, (_, i) => shiftDay(monday, i));
-}
 export const blockInput = z.object({
   id: z.string().optional(),
   title: z.string().trim().min(1).max(160),
@@ -101,15 +91,6 @@ export function executionLabel(
   if (block.plannedEnd <= now) return 'Overdue — not recorded';
   if (block.plannedStart <= now) return 'Current';
   return 'Upcoming';
-}
-/** A quiet visual tone per execution label: colour never carries meaning alone. */
-export function executionTone(label: string) {
-  if (label === 'Completed') return 'green';
-  if (label === 'Skipped') return 'yellow';
-  if (label === 'Cancelled') return 'cancelled';
-  if (label === 'In progress' || label === 'Current') return 'info';
-  if (label.startsWith('Overdue')) return 'red';
-  return '';
 }
 /** Focus time excludes Work, Gym and Personal; every other (custom) category counts. */
 export const isFocusCategory = (category: string) =>

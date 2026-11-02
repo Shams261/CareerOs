@@ -2,7 +2,7 @@ import 'server-only';
 import { z } from 'zod';
 import { db } from '@/server/db';
 import { Prisma } from '@/generated/prisma/client';
-import { locked, type ScheduleUser } from '@/features/schedule/service';
+import { locked, type ScheduleUser } from '@/server/lock';
 import { execute } from '@/features/execution/service';
 import { addNote } from '@/features/notes/service';
 import { addPriority, removePriority } from '@/features/review/service';

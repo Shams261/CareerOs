@@ -1,17 +1,12 @@
 import { ActionForm } from '@/components/action-form';
 import { FeedbackOutlet } from '@/components/feedback-outlet';
-import type {
-  NotificationPreference,
-  WeeklyPriority,
-  WeeklyReview,
-} from '@/generated/prisma/client';
+import type { WeeklyPriority, WeeklyReview } from '@/generated/prisma/client';
 import {
   prepareNextWeekAction,
   completeReviewAction,
   priorityAction,
   priorityChangeAction,
   reviewAction,
-  weeklyReminderAction,
 } from './actions';
 import { MAX_PRIORITIES } from './domain';
 import { ArrowRight, Check, ChevronUp, ChevronDown } from 'lucide-react';
@@ -254,39 +249,6 @@ export function CompleteReviewForm({
           <Button>Complete review</Button>
         )}
       </div>
-    </ActionForm>
-  );
-}
-
-export function WeeklyReminderForm({
-  pref,
-}: {
-  pref: NotificationPreference | null;
-}) {
-  return (
-    <ActionForm
-      action={weeklyReminderAction}
-      label="Weekly review reminder"
-      className="dsa-form"
-    >
-      <label className="check">
-        <input
-          type="checkbox"
-          name="enabled"
-          defaultChecked={pref?.enabled ?? false}
-        />
-        Sunday reminder when the week is not reviewed yet
-      </label>
-      <label>
-        Reminder time
-        <input
-          type="time"
-          name="preferredTime"
-          required
-          defaultValue={pref?.preferredTime ?? '18:00'}
-        />
-      </label>
-      <Button className="secondary">Save reminder</Button>
     </ActionForm>
   );
 }

@@ -2,11 +2,8 @@ import 'server-only';
 import { memo } from '@/server/memo';
 import { z } from 'zod';
 import { db } from '@/server/db';
-import {
-  locked,
-  validateGoal,
-  type ScheduleUser,
-} from '@/features/schedule/service';
+import { validateGoal } from '@/features/schedule/service';
+import { locked, type ScheduleUser } from '@/server/lock';
 import { resourceUrl, localTime } from '@/lib/validation';
 import { dateInput } from '@/features/schedule/domain';
 import { dayKey } from '@/lib/time';
@@ -17,9 +14,9 @@ import {
   dimensions,
   readiness,
   statuses,
-  isTechnical,
   weekStart,
 } from './domain';
+import { isTechnical } from '@/lib/categories';
 export async function ownedSubject(
   tx: Prisma.TransactionClient,
   userId: string,

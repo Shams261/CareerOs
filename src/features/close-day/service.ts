@@ -2,11 +2,8 @@ import 'server-only';
 import { db } from '@/server/db';
 import type { Prisma } from '@/generated/prisma/client';
 import { dayBounds, dayKey, hhmm } from '@/lib/time';
-import {
-  locked,
-  recordReview,
-  type ScheduleUser,
-} from '@/features/schedule/service';
+import { recordReview } from '@/features/schedule/service';
+import { locked, type ScheduleUser } from '@/server/lock';
 import { saveBlockIn } from '@/features/schedule/editing';
 import { executeIn } from '@/features/execution/service';
 import { closeNudges } from '@/features/nudges/service';

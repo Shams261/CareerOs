@@ -14,16 +14,13 @@ import {
   applyRequestAction,
   dismissRequestAction,
 } from './actions';
-import { REQUEST_WORDS, type CardView } from './request-domain';
+import type { CardView } from './request-domain';
+import { REQUEST_WORDS } from '@/features/agent/text';
 import { useRouter } from 'next/navigation';
 import type { WriteAction } from './write-domain';
-import { AGENT_NAME } from './domain';
-import {
-  addable,
-  type Kept,
-  type Proposal,
-  type Suggestion,
-} from './plan-domain';
+import { AGENT_NAME } from '@/features/agent/constants';
+import type { Kept, Proposal, Suggestion } from './plan-domain';
+import { addable } from '@/features/agent/card-rules';
 
 const Ids = ({ messageId, cardId }: { messageId: string; cardId: string }) => (
   <>

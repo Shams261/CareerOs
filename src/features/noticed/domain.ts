@@ -5,9 +5,9 @@
  * tests/noticed-domain.test.ts.
  */
 import { dayKey, hhmm, shortDate, weekdayDate } from '@/lib/time';
-import { shiftDay } from '@/features/schedule/domain';
-import { categoryGroup } from '@/features/review/domain';
-import { BANNED_WORDS } from '@/features/nudges/domain';
+import { shiftDay } from '@/lib/day';
+import { categoryGroup } from '@/lib/categories';
+import { BANNED_WORDS } from '@/lib/copy';
 
 export const NOTICED_PER_DAY = 2;
 /** Days without a kind before it is noticed, and how far back the rules look. */
@@ -27,14 +27,6 @@ export type NoticedKind =
   // WI-106, the pattern coach.
   | 'stuck'
   | 'cold';
-export const NOTICED_KINDS: NoticedKind[] = [
-  'interview',
-  'idle',
-  'routine',
-  'heavy',
-  'stuck',
-  'cold',
-];
 type Action =
   | { label: string; href: string; panel?: string }
   | { label: string; ask: string };

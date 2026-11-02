@@ -13,7 +13,8 @@ import { blockSyncView } from '@/features/calendar/domain';
 import { db, owner } from '@/server/db';
 import { dayKey, hhmm } from '@/lib/time';
 import { generateThroughSunday } from '@/features/schedule/service';
-import { dateInput, weekDays, shiftDay } from '@/features/schedule/domain';
+import { dateInput } from '@/features/schedule/domain';
+import { weekDays, shiftDay } from '@/lib/day';
 import {
   BlockForm,
   RoutineForm,

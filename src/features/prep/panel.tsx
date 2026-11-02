@@ -2,7 +2,7 @@
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { dollars } from '@/features/ai/domain';
-import { AGENT_NAME } from '@/features/agent/domain';
+import { AGENT_NAME } from '@/features/agent/constants';
 import { typeText } from '@/features/jobs/formats';
 import { weekdayDate } from '@/lib/time';
 import {

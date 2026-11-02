@@ -1,6 +1,6 @@
 import type { Prisma } from '../src/generated/prisma/client';
 import { localInstant } from '../src/lib/time';
-import { shiftDay } from '../src/features/schedule/domain';
+import { shiftDay } from '../src/lib/day';
 
 /** Fictional pipeline examples for newly created seed owners only. URLs are example.com placeholders. */
 export async function seedJobs(

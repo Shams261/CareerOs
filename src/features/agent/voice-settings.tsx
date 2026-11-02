@@ -10,7 +10,7 @@ import { ActionForm } from '@/components/action-form';
 import { Button } from '@/components/ui/button';
 import { useDictation, useSpeaker } from '@/lib/speech';
 import { voiceSettingsAction } from './actions';
-import { AGENT_NAME } from './domain';
+import { AGENT_NAME } from '@/features/agent/constants';
 import { useCanDictate, useCanSpeak, type VoiceState } from './voice';
 import { dictationError, SILENCE_MS, VOICE_LANGS } from './voice-domain';
 

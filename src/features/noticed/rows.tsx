@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation';
 import { MessageCircle, X } from 'lucide-react';
 import { askRumi } from '@/features/agent/events';
 import { openPanelAfterNavigation } from '@/features/command/bar';
-import { AGENT_NAME } from '@/features/agent/domain';
+import { AGENT_NAME } from '@/features/agent/constants';
 import { answerNoticedAction } from './actions';
 import type { NoticedCard } from './domain';
 

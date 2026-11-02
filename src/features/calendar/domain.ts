@@ -1,7 +1,8 @@
 import { createHash, randomBytes } from 'node:crypto';
 import { formatInTimeZone } from 'date-fns-tz';
 import type { EventWrite, GoogleEvent } from './google';
-import { weekDays } from '../schedule/domain';
+import { weekDays } from '@/lib/day';
+import { categoryKey } from '@/lib/categories';
 
 /** Private extended property keys that prove CareerOS created an event (ADR-010). */
 export const PROP = {
@@ -34,12 +35,6 @@ export const fingerprint = (s: Snapshot) =>
     .digest('hex');
 /** Base marker forcing CareerOS to restore an event Google changed into a shape it cannot hold. */
 export const UNSUPPORTED_REMOTE = 'unsupported-remote';
-
-export const categoryKey = (c: string) =>
-  c
-    .trim()
-    .toUpperCase()
-    .replace(/[\s-]+/g, '_');
 
 type BlockLike = {
   id: string;

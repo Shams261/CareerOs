@@ -2,7 +2,7 @@ import 'server-only';
 import { db } from '@/server/db';
 import { memo } from '@/server/memo';
 import { isTestNamed } from '@/lib/test-data';
-import type { ScheduleUser } from '@/features/schedule/service';
+import type { ScheduleUser } from '@/server/lock';
 import { setupSteps } from './domain';
 
 /** The facts behind Make Silsila yours (WI-050): six small reads, memoized like snapshots. */
