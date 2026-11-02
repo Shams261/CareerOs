@@ -32,3 +32,18 @@ export async function register() {
     );
   });
 }
+
+/**
+ * Every server error Next catches (WI-138): one line by class, code and the digest the owner
+ * sees as "Reference …" on the error page, so a reported reference finds its log line in
+ * Render. Nothing else about the request is logged.
+ */
+export async function onRequestError(
+  error: unknown,
+  _request: unknown,
+  context: { routeType?: string; routePath?: string },
+) {
+  const { requestErrorLine } = await import('./lib/request-error');
+  const line = requestErrorLine(error, context);
+  if (line) console.error(line);
+}

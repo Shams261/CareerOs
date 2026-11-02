@@ -29,7 +29,7 @@ Supabase Free keeps no provider backups and offers no point-in-time recovery, so
 | ---------------------------------------------- | ------------------------------------------------------------------------------ |
 | Daily (automated, WI-121; weekly since WI-051) | The Backup workflow: dump, restore check, encrypted artifact kept 35 days      |
 | **Before every migration**                     | `pnpm db:backup`, then `pnpm db:restore:verify <file>`; keep the last 4 copies |
-| Monthly                                        | Time a full restore verification and record duration and data age              |
+| Monthly                                        | The recovery drill (below): time it and record the duration and data age       |
 
 ## Daily automated backup (WI-051, daily since WI-121)
 
@@ -56,7 +56,21 @@ The repository is public, so anyone signed in to GitHub can download an artifact
 2. Decrypt: `age --decrypt -i ~/.config/silsila/backup-key.txt -o careeros.dump careeros-<timestamp>.dump.age`.
 3. Verify it, as above (Docker PostgreSQL 17 and the libpq `PATH`): `PATH=/opt/homebrew/opt/libpq/bin:$PATH RESTORE_VERIFY_SERVER_URL=postgresql://careeros:careeros@127.0.0.1:5433/careeros pnpm db:restore:verify careeros.dump`.
 
-GitHub pauses scheduled workflows in a public repository after 60 days without activity. A push re-enables them, and so does the Run workflow button.
+GitHub pauses scheduled workflows in a public repository after 60 days without activity. A push re-enables them, and so does the Run workflow button. GitHub also starts scheduled runs late, often by hours, so check the run list rather than assuming 07:23.
+
+**The recovery drill (WI-138, the owner, monthly):** `scripts/restore-drill.sh` downloads the newest green Backup artifact, decrypts it with the owner's key and restores it into a scratch database that `db:restore:verify` checks and drops. It prints how long each part took. The plain dump is deleted on exit. Production is never touched.
+
+```sh
+PATH=/opt/homebrew/opt/libpq/bin:$PATH \
+RESTORE_VERIFY_SERVER_URL=postgresql://careeros:careeros@127.0.0.1:5433/careeros \
+bash scripts/restore-drill.sh
+```
+
+| Date        | Total | Data age | Notes                         |
+| ----------- | ----- | -------- | ----------------------------- |
+| not yet run | —     | —        | First drill is an owner step. |
+
+A real recovery also needs a new database and Render pointed at it (below); the drill does not time that part, so note it the first time it is done.
 
 ## Recovering from a bad state
 

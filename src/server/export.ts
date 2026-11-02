@@ -45,6 +45,7 @@ export async function exportOwnerData(userId: string, now = new Date()) {
     aiUsage,
     agentConversations,
     agentMemories,
+    agentSetting,
     prepDocs,
     noticedAnswers,
   ] = await Promise.all([
@@ -120,6 +121,8 @@ export async function exportOwnerData(userId: string, now = new Date()) {
       orderBy: { createdAt: 'asc' },
     }),
     db().agentMemory.findMany(own),
+    // WI-138: Rumi's settings (notes on or off, line language, voice consent and language).
+    db().agentSetting.findUnique({ where: { userId } }),
     // WI-042: prep docs with their cited sources.
     db().interviewPrepDoc.findMany({ ...own, orderBy: { createdAt: 'asc' } }),
     // WI-043: answers to "Rumi noticed" cards (kind, acted or dismissed).
@@ -164,6 +167,7 @@ export async function exportOwnerData(userId: string, now = new Date()) {
     rumi: {
       conversations: agentConversations,
       knows: agentMemories,
+      setting: agentSetting,
       noticed: noticedAnswers,
     },
     notifications,
