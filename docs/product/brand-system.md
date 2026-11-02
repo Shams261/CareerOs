@@ -12,7 +12,9 @@ Inter is used for product UI. Cormorant Garamond semibold appears only in the lo
 
 ## Token layer
 
-[design-tokens.css](../../src/app/design-tokens.css) is the runtime source of truth, with a matching [JSON handoff](../../src/assets/design-tokens.json). Keep both in sync. [globals.css](../../src/app/globals.css) consumes semantic variables; compatibility aliases keep existing components on the same token layer.
+[design-tokens.css](../../src/app/design-tokens.css) is the runtime source of truth, with a matching [JSON handoff](../../src/assets/design-tokens.json). Keep both in sync. [globals.css](../../src/app/globals.css) names them for Tailwind (WI-137), and the hand-written [app.css](../../src/app/app.css) reads the same variables; compatibility aliases keep existing components on the same token layer.
+
+In Tailwind classes the roles read: `bg-canvas`, `bg-surface`, `bg-surface-2`, `bg-subtle`, `text-ink`, `text-ink-2`, `text-meta`, `text-primary`, `bg-primary-soft`, `border-border`, `border-divider`, and the semantic `success`, `warning`, `danger`, `info` with `-soft` and `-text`. They follow dark mode without a `dark:` class. Radii are `rounded-sm` (8 px), `-md` (12), `-lg` (16), `-xl` (18) and `-pill`; shadows `shadow-sm` (cards) and `shadow-md` (floating); fonts `font-ui` and `font-display`; the one breakpoint is `phone:` (700 px and below). Tailwind's own palette is switched off, so a colour in a class is always one of these.
 
 | Role              | Light     | Dark      |
 | ----------------- | --------- | --------- |

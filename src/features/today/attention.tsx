@@ -166,7 +166,7 @@ export function AttentionSkeleton() {
   return (
     <div className="attention-head" aria-hidden="true">
       <h2>Needs attention</h2>
-      <span className="skeleton-line w-40" />
+      <span className="skeleton-line w-2/5" />
     </div>
   );
 }

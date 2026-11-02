@@ -3,7 +3,7 @@ import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 /**
- * No dead CSS (WI-124): every class a selector in `globals.css` names appears somewhere in the
+ * No dead CSS (WI-124): every class a selector in `app.css` (until WI-137 `globals.css`) names appears somewhere in the
  * code, or is built from a `prefix-${…}` template. A screen that is removed takes its styles with
  * it; this fails until it does.
  */
@@ -32,9 +32,9 @@ const prefixes = [
 const alive = (c: string) =>
   words.has(c) || prefixes.some((p) => c.startsWith(p));
 
-describe('globals.css (WI-124)', () => {
+describe('app.css (WI-124)', () => {
   it('names no class the code never uses', () => {
-    const css = readFileSync(join(ROOT, 'src/app/globals.css'), 'utf8')
+    const css = readFileSync(join(ROOT, 'src/app/app.css'), 'utf8')
       .replace(/\/\*[\s\S]*?\*\//g, '')
       .replace(/url\([^)]*\)/g, '');
     const selectors = [...css.matchAll(/([^{};]+)\{/g)]

@@ -12,7 +12,7 @@ Silsila is a private, single-owner execution system. It turns weekly routines in
 
 ## Stack
 
-Next.js 16 App Router, React 19, strict TypeScript, PostgreSQL 17 through Prisma 7 and its PostgreSQL adapter, Zod 4, date-fns and date-fns-tz, plain CSS on design tokens (`src/app/design-tokens.css`, `src/app/globals.css`) with Tailwind 4 in the build, pnpm, ESLint, Prettier, Vitest and Playwright with axe. Forms use Server Actions and native controls. The build uses Next's webpack builder (`next build --webpack`).
+Next.js 16 App Router, React 19, strict TypeScript, PostgreSQL 17 through Prisma 7 and its PostgreSQL adapter, Zod 4, date-fns and date-fns-tz, Tailwind 4 on Silsila's design tokens for new UI (`src/app/globals.css`, `src/app/design-tokens.css`) above the hand-written styles in `src/app/app.css`, pnpm, ESLint, Prettier, Vitest and Playwright with axe. Forms use Server Actions and native controls. The build uses Next's webpack builder (`next build --webpack`).
 
 - `src/app`: routes and API handlers.
 - `src/features/<feature>`: `domain.ts` (pure rules), `service.ts` (owner-scoped reads and locked writes), `actions.ts`, and the feature's components.
