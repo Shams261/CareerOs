@@ -1,7 +1,7 @@
 import { RumiPose } from '@/features/agent/pose';
 import Link from 'next/link';
 import { ArrowRight } from 'lucide-react';
-import { db, owner } from '@/server/db';
+import { owner } from '@/server/db';
 import { dsaSnapshot } from '@/features/dsa/service';
 import {
   curriculumOrder,
@@ -27,6 +27,7 @@ import { dayKey, localInstant } from '@/lib/time';
 import { resourceUrl } from '@/lib/validation';
 import { shiftDay } from '@/lib/day';
 import { formatInTimeZone } from 'date-fns-tz';
+import { practiceFacts } from '@/features/dsa/page-data';
 export const metadata = { title: 'Practice' };
 
 const tone = { RED: 'danger', YELLOW: 'warning', GREEN: 'success' } as const;
@@ -50,19 +51,7 @@ export default async function Dsa({
     '00:00',
     user.timezone,
   );
-  const [weekCount, lastAttempt] = await Promise.all([
-    db().dsaAttempt.count({
-      where: { userId: user.id, attemptedAt: { gte: weekStart, lte: now } },
-    }),
-    db().dsaAttempt.findFirst({
-      where: { userId: user.id },
-      orderBy: [{ attemptedAt: 'desc' }, { id: 'desc' }],
-      select: {
-        attemptedAt: true,
-        problem: { select: { id: true, title: true } },
-      },
-    }),
-  ]);
+  const { weekCount, lastAttempt } = await practiceFacts(user, weekStart, now);
   const queue = revisionQueue(problems, day),
     practiced = problems.filter((p) => p.attemptsCount > 0);
   // Next problem (WI-094): the working topic's first untried problem in the list's order,

@@ -1,9 +1,10 @@
 import { redirect } from 'next/navigation';
-import { db, owner } from '@/server/db';
+import { owner } from '@/server/db';
 import { dayKey, hhmm } from '@/lib/time';
 import { FocusView } from '@/features/execution/focus';
 import { categoryGroup } from '@/lib/categories';
 import { recordedBefore } from '@/features/execution/focus-domain';
+import { focusBlock, runningSession } from '@/features/execution/page-data';
 export const metadata = { title: 'Focus' };
 
 /**
@@ -18,33 +19,12 @@ export default async function FocusPage({
   const user = await owner(),
     now = new Date(),
     query = await searchParams;
-  const running = await db().actualSession.findFirst({
-    where: { userId: user.id, endedAt: null },
-    select: {
-      id: true,
-      taskId: true,
-      startedAt: true,
-      notes: true,
-      category: true,
-    },
-  });
+  const running = await runningSession(user);
   // A session is already running for something else: Focus shows that one (one at a time).
   if (running && query.block && query.block !== running.taskId)
     redirect('/focus');
   const blockId = running ? running.taskId : (query.block ?? null);
-  const block = blockId
-    ? await db().timeBlock.findFirst({
-        where: { id: blockId, dailyPlan: { userId: user.id } },
-        include: {
-          dailyPlan: { select: { date: true } },
-          // Time recorded before a pause: a resume continues from it (WI-068).
-          sessions: {
-            where: { endedAt: { not: null } },
-            select: { startedAt: true, endedAt: true },
-          },
-        },
-      })
-    : null;
+  const block = blockId ? await focusBlock(user, blockId) : null;
   if (!running && !block) redirect('/today');
   // "Start 20 min" from a study nudge (WI-028): a short target instead of the planned end.
   const minutes = Number(query.minutes);

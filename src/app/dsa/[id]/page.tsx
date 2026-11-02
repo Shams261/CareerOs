@@ -9,11 +9,10 @@ import {
   unhideProblemAction,
 } from '@/features/deletes/actions';
 import { notFound } from 'next/navigation';
-import { memo } from '@/server/memo';
 import { randomUUID } from 'node:crypto';
 import { formatInTimeZone } from 'date-fns-tz';
 import { ExternalLink, ArrowLeft, ArrowRight } from 'lucide-react';
-import { db, owner } from '@/server/db';
+import { owner } from '@/server/db';
 import { InterviewMentions } from '@/features/jobs/summary';
 import {
   ProblemForm,
@@ -39,6 +38,7 @@ import {
   type Reference,
   type Scenario,
 } from '@/features/roadmap/domain';
+import { problemName, problemPage } from '@/features/dsa/page-data';
 /** The tab names the problem; an id that is not the owner's answers 404 (WI-090). */
 export async function generateMetadata({
   params,
@@ -46,12 +46,7 @@ export async function generateMetadata({
   params: Promise<{ id: string }>;
 }) {
   const [user, { id }] = await Promise.all([owner(), params]);
-  const p = await memo(user.id, `problem-name:${id}`, () =>
-    db().dsaProblem.findFirst({
-      where: { id, userId: user.id },
-      select: { title: true },
-    }),
-  );
+  const p = await problemName(user, id);
   if (!p) notFound();
   return { title: `${p.title} · Practice` };
 }
@@ -69,51 +64,9 @@ export default async function Problem({
     { id } = await params,
     { from } = await searchParams,
     now = new Date();
-  const p = await db().dsaProblem.findFirst({
-    where: { id, userId: user.id },
-    include: {
-      topic: true,
-      resources: true,
-      attempts: { orderBy: [{ attemptedAt: 'desc' }, { id: 'desc' }] },
-    },
-  });
-  if (!p) notFound();
-  const [topics, origin, running, imported] = await Promise.all([
-    db().dsaTopic.findMany({ orderBy: [{ ordering: 'asc' }, { name: 'asc' }] }),
-    // The roadmap item this problem stands for: the one the owner came from, else the first.
-    db().roadmapItem.findFirst({
-      where: {
-        userId: user.id,
-        dsaProblemId: p.id,
-        ...(from ? { id: from } : {}),
-      },
-      orderBy: { createdAt: 'asc' },
-      select: {
-        id: true,
-        title: true,
-        section: true,
-        roadmapId: true,
-        scope: true,
-        checkpoint: true,
-        priority: true,
-        estimateMinutes: true,
-        references: true,
-        notes: true,
-        url: true,
-        roadmap: {
-          select: { title: true, promptTemplate: true, scenarios: true },
-        },
-      },
-    }),
-    db().actualSession.findFirst({
-      where: { userId: user.id, endedAt: null },
-      select: { startedAt: true, category: true },
-    }),
-    // From the imported curriculum: Hide, not Delete, since an import brings it back (WI-060).
-    db().roadmapItem.count({
-      where: { userId: user.id, dsaProblemId: p.id, slug: { not: null } },
-    }),
-  ]);
+  const page = await problemPage(user, id, from);
+  if (!page) notFound();
+  const { p, topics, origin, running, imported } = page;
   const date = (d: Date | null) =>
     d ? formatInTimeZone(d, user.timezone, 'MMM d, yyyy · HH:mm') : 'Not yet';
   const legacy = p.attemptsCount - p.attempts.length;

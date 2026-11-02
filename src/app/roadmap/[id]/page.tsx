@@ -2,7 +2,7 @@ import { ConfirmDelete } from '@/components/confirm-delete';
 import { deleteRoadmapAction } from '@/features/deletes/actions';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { owner, db } from '@/server/db';
+import { owner } from '@/server/db';
 import { PanelButton, SidePanel } from '@/components/side-panel';
 import { revisionContext } from '@/features/attention/domain';
 import { PageShortcuts } from '@/components/shortcuts';
@@ -17,7 +17,7 @@ import {
 import { ItemFilters } from '@/features/roadmap/filters';
 import { UtilityMenu } from '@/features/today/utility-menu';
 import { PendingRegion } from '@/components/pending-region';
-import { linkOptions, roadmapDetail } from '@/features/roadmap/service';
+import { roadmapDetail } from '@/features/roadmap/service';
 import {
   DEFAULT_SCENARIOS,
   revisionDay,
@@ -28,10 +28,10 @@ import {
 import { dayKey, shortDate } from '@/lib/time';
 import { sourcePlan } from '@/features/listen/domain';
 import { isTestNamed } from '@/lib/test-data';
-import { aiState } from '@/features/ai/service';
 import { budgetLine } from '@/features/ai/domain';
 import { formatInTimeZone } from 'date-fns-tz';
 import { ArrowLeft, ArrowRight } from 'lucide-react';
+import { weekPageReads } from '@/features/roadmap/page-data';
 /** The tab names the week and the roadmap (WI-089), so open weeks can be told apart. */
 export async function generateMetadata({
   params,
@@ -77,25 +77,7 @@ export default async function RoadmapDetail({
     roadmap = await roadmapDetail(user, id);
   if (!roadmap) notFound();
   const today = dayKey(new Date(), user.timezone);
-  const [links, goals, ai, cards] = await Promise.all([
-    linkOptions(user.id),
-    db().goal.findMany({
-      where: { userId: user.id },
-      select: { id: true, title: true },
-    }),
-    roadmap.studyAi ? aiState(user) : null,
-    db().revisionCard.findMany({
-      where: { userId: user.id, roadmapItem: { roadmapId: roadmap.id } },
-      orderBy: { createdAt: 'asc' },
-      select: {
-        id: true,
-        roadmapItemId: true,
-        question: true,
-        change: true,
-        points: true,
-      },
-    }),
-  ]);
+  const { links, goals, ai, cards } = await weekPageReads(user, roadmap);
   // Grill Me (WI-031): offered when the server has a key, the owner left it on, the provider
   // check holds, and this roadmap allows Study AI.
   const grill =

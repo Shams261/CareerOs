@@ -56,6 +56,14 @@ describe('module boundaries (WI-123)', () => {
     expect(offenders).toEqual([]);
   });
 
+  it('pages read through loaders, never the database directly (WI-129)', () => {
+    const direct = [...files.keys()]
+      .filter((f) => rel(f).startsWith('app/') && /\/page\.tsx$/.test(f))
+      .filter((f) => /\bdb\(\)/.test(files.get(f) ?? ''))
+      .map(rel);
+    expect(direct).toEqual([]);
+  });
+
   it('no client component bundles Zod beyond the known page forms', () => {
     // Page forms that still share their feature's schemas; shrink this list, never grow it.
     const known = new Set([
