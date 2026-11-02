@@ -110,7 +110,10 @@ export type HttpOptions = {
   fetch?: typeof fetch;
   sleep?: Sleep;
   maxAttempts?: number;
+  /** Per attempt: a hung socket must not hold the sync lease or the cron request (WI-121). */
+  timeoutMs?: number;
 };
+export const GOOGLE_TIMEOUT_MS = 10000;
 
 async function reasonOf(res: Response) {
   try {
@@ -127,12 +130,21 @@ async function reasonOf(res: Response) {
 export async function requestWithRetry(
   url: string,
   init: RequestInit,
-  { fetch: f = fetch, sleep = realSleep, maxAttempts = 4 }: HttpOptions = {},
+  {
+    fetch: f = fetch,
+    sleep = realSleep,
+    maxAttempts = 4,
+    timeoutMs = GOOGLE_TIMEOUT_MS,
+  }: HttpOptions = {},
 ) {
   for (let attempt = 1; ; attempt++) {
     let res: Response;
     try {
-      res = await f(url, init);
+      const timeout = AbortSignal.timeout(timeoutMs);
+      res = await f(url, {
+        ...init,
+        signal: init.signal ? AbortSignal.any([init.signal, timeout]) : timeout,
+      });
     } catch {
       if (attempt >= maxAttempts)
         throw new GoogleApiError('transient', 0, 'network');

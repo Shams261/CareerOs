@@ -1,0 +1,43 @@
+name: Scheduler
+# WI-121: a second, independent caller of the two scheduler endpoints, so reminders, push,
+# Rumi's lines and calendar sync keep running if cron-job.org stops. Both endpoints are safe to
+# call twice or to overlap (unique inbox rows, capped push attempts, the calendar lease), so
+# this runs beside cron-job.org, not instead of it. GitHub runs schedules on a best-effort basis,
+# so this is a backstop, not the main clock. Secrets (set by the owner, never in the repository):
+#   CRON_SECRET    the same value the app and cron-job.org use
+# Without it the run says so and stops without failing.
+on:
+  schedule:
+    - cron: '7,22,37,52 * * * *'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: scheduler
+  cancel-in-progress: false
+jobs:
+  call:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    env:
+      APP_URL: https://silsila.onrender.com
+      CRON_SECRET: ${{ secrets.CRON_SECRET }}
+    steps:
+      - name: Call the reminder and calendar endpoints
+        run: |
+          if [ -z "$CRON_SECRET" ]; then
+            echo "::notice::Set the CRON_SECRET secret to turn the backup scheduler on (docs/engineering/operations.md)."
+            exit 0
+          fi
+          failed=0
+          for path in /api/notifications/process /api/calendar/sync; do
+            # A free instance can take a minute to wake; the status code is all that is printed.
+            code=$(curl --silent --output /dev/null --write-out '%{http_code}' --max-time 90 \
+              -X POST -H "Authorization: Bearer $CRON_SECRET" "$APP_URL$path" || echo 000)
+            echo "$path $code"
+            [ "$code" = "200" ] || failed=1
+          done
+          if [ "$failed" = 1 ]; then
+            echo "::error::A scheduler endpoint did not answer 200. See Settings → System status and the Render log."
+            exit 1
+          fi

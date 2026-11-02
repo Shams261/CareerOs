@@ -26,7 +26,9 @@ A fresh local install follows the [README](../../README.md). An existing owner s
 | Reminders + push | `/api/notifications/process`                          | every minute   | < 1 s; bounded by 100 pushes | 500 and `JobRun.lastError` (error class only). Safe to retry or overlap: inbox rows are unique, push attempts are capped at 3. Study Nudges (WI-028) run in the same request. Once a day the same request also runs Grill Me's provider check (WI-031, `JobRun` `ai-provider-check`); its failure never fails the reminders. |
 | Calendar sync    | `/api/calendar/sync`                                  | every 5–15 min | seconds; per-owner lease     | Per-owner errors are recorded on the connection and retried with backoff; a busy lease is skipped, not queued.                                                                                                                                                                                                               |
 
-In production (ADR-014) the caller is [cron-job.org](https://cron-job.org): free, per-minute schedules, custom request headers, a 30 s execution limit (both jobs finish in seconds) and failure notifications. The per-minute call is also what keeps a Render free instance (or a Heroku Eco dyno) from spinning down, so a silent cron outage shows up as a sleeping app and a stale "last success" in Settings. Any other caller gets 401. Each run records `lastStartedAt`, `lastSucceededAt`/`lastFailedAt` and a count summary in `JobRun`; Settings → System status shows "last success". If a job has not succeeded for longer than three of its intervals, check the scheduler's own log first (401 means a wrong secret, connection errors mean the app or TLS), then the app log. Missed minutes are not replayed as alerts, but inbox reminders still appear once processing resumes.
+In production (ADR-014) the main caller is [cron-job.org](https://cron-job.org): free, per-minute schedules, custom request headers, a 30 s execution limit (both jobs finish in seconds) and failure notifications. The per-minute call is also what keeps a Render free instance (or a Heroku Eco dyno) from spinning down, so a silent cron outage shows up as a sleeping app and a stale "last success" in Settings. Any other caller gets 401. Each run records `lastStartedAt`, `lastSucceededAt`/`lastFailedAt` and a count summary in `JobRun`; Settings → System status shows "last success". If a job has not succeeded for longer than three of its intervals, check the scheduler's own log first (401 means a wrong secret, connection errors mean the app or TLS), then the app log. Missed minutes are not replayed as alerts, but inbox reminders still appear once processing resumes.
+
+**Second caller (WI-121).** `.github/workflows/scheduler.yml` calls both endpoints every 15 minutes from GitHub Actions with the same bearer secret, so reminders, push, Rumi's lines and calendar sync keep going if cron-job.org stops. It needs the repository secret `CRON_SECRET` (the same value as the app's); without it the run only says so. GitHub starts scheduled runs late at busy times, so it is a backstop, not the main clock. Both endpoints are safe to call twice, so the two callers never conflict.
 
 ## Uptime and job alerts (WI-051)
 
@@ -41,6 +43,8 @@ In production (ADR-014) the caller is [cron-job.org](https://cron-job.org): free
 Reminders must always have run. The other two count only once they have run at least once.
 
 The health check gives only `ok`, `stale` or `unknown`, never names or times, and the field never changes the status code, so the host does not restart a healthy app over a cron outage. When it reads `stale`, Settings → System status shows which job and when it last succeeded. Then check the scheduler first, as above. cron-job.org's own failure emails remain the first signal for the scheduler itself.
+
+**External monitor (owner step, WI-121).** GitHub runs the hourly check on a best-effort basis; in practice it ran every 3.5 to 8 hours (2026-10-27 to 2026-11-02). Add a free external monitor that checks every 5 minutes: UptimeRobot or Better Stack, an HTTP keyword monitor on `https://usesilsila.me/api/health` with the keyword `"jobs":"ok"`, alerting by email. Keep the workflow as a second check.
 
 ## Backups and restoration
 
@@ -134,4 +138,4 @@ Record the counts (cold and warm) in the work item's handoff.
 
 ## Evidence still needed
 
-Recorded since WI-008: the live host (Render and Supabase, ADR-014), health and job runs, a weekly encrypted backup with a restore check in CI (WI-051) and push on two devices. Still open: a timed restore into a fresh project (the recovery time), real-user latency from production, a monitor that checks more often than GitHub's best-effort schedule, and error tracking.
+Recorded since WI-008: the live host (Render and Supabase, ADR-014), health and job runs, a daily encrypted backup with a restore check in CI (WI-051, daily since WI-121) and push on two devices. Still open: a timed restore into a fresh project (the recovery time), real-user latency from production, an external monitor (below) and error tracking.

@@ -31,10 +31,19 @@ export async function POST(request: Request) {
     .safeParse(await request.json().catch(() => null));
   if (!parsed.success) return new Response(null, { status: 400 });
   const encoder = new TextEncoder();
+  // WI-121: when the reader goes away (a closed tab), the answer is still finished and stored;
+  // only the lines stop.
+  let gone = false;
   const stream = new ReadableStream({
     async start(controller) {
-      const line = (value: unknown) =>
-        controller.enqueue(encoder.encode(`${JSON.stringify(value)}\n`));
+      const line = (value: unknown) => {
+        if (gone) return;
+        try {
+          controller.enqueue(encoder.encode(`${JSON.stringify(value)}\n`));
+        } catch {
+          gone = true;
+        }
+      };
       const result = await askRumi(
         user,
         parsed.data.conversationId,
@@ -60,7 +69,10 @@ export async function POST(request: Request) {
           line({ kept: { messageId: result.reply.id, items } });
         }
       }
-      controller.close();
+      if (!gone) controller.close();
+    },
+    cancel() {
+      gone = true;
     },
   });
   return new Response(stream, {

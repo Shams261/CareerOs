@@ -26,6 +26,7 @@ async function main() {
   const prisma = new PrismaClient({
     adapter: createPgAdapter(url, {
       max: 2,
+      statementTimeoutMs: 0, // a one-off bulk import, not the app's pool
       ssl: parseDatabaseSsl(
         process.env.DATABASE_SSL,
         process.env.DATABASE_SSL_CA,

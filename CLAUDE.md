@@ -10,7 +10,7 @@ If CLAUDE.md conflicts with the implementation, schema, tests, migrations or an 
 
 ## Current state
 
-- Latest completed work item: **WI-120** (repo cleanup, 2026-11-02, docs and configuration only: the archive tag `docs-archive-2026-11-02` and `docs/HISTORY.md`, old handoffs, screenshots and finished plans off `main`, stale docs fixed, this file slimmed). Before it, WI-099 to WI-119 built Rumi 2 and 3, Rumi's character and the Rumi audit (all 2026-11-01).
+- Latest completed work item: **WI-121** (ops safety, 2026-11-02, no migration: daily encrypted backup, a second scheduler on GitHub Actions, a 15 s statement timeout, 10 s Google timeouts, `CF-Connecting-IP` for rate limits, `global-error`, a stream that survives a closed tab). Before it, WI-120 cleaned the repo (the archive tag `docs-archive-2026-11-02`, `docs/HISTORY.md`), and WI-099 to WI-119 built Rumi 2 and 3 (2026-11-01).
 - Live at https://usesilsila.me since 2026-10-20 (Render + Supabase, ADR-014). Latest migration: `20261106000000_owner_ai_limit` (WI-114).
 - Phase: two weeks of owner UAT of Rumi 2 and 3 with the plan's measures, then the owner's monthly AI limit and hosting choices. Proposed next work items are in `output/Silsila-Full-Audit.pdf` (not committed).
 - History: every work item has an entry in `CHANGELOG.md` (cut into versions); the last ten handoffs are in `docs/`, older ones under the tag (`docs/HISTORY.md`). What each feature does and where it lives: `docs/architecture/features.md`.
@@ -164,14 +164,14 @@ State as of 2026-10-20: **Silsila is live at https://usesilsila.me** on a Render
 
 ## Current next step
 
-**Two weeks of UAT** of Rumi 2 and 3 with the plan's measures (rated lines and the fallback share, writes kept versus undone, cards applied versus dismissed, messages by voice, drafts and mocks used); the owner sets the monthly AI limit as they like (none by default, never a hard-coded cap). Owner steps still open: rate ten Rumi lines before turning the afternoon line on, Settings → Voice → Check this device on the iPhone tab and Home Screen app, delete the orphan test events in the Silsila Google calendar, check push and Safari on a real iPhone. The full audit of 2026-11-02 proposes the next items (ops safety: daily backups, a second cron caller, a real monitor; one action runner; kernel modules and boundaries; CSS cleanup); each starts only when the owner says so. One work item at a time; a migration is applied to the personal database before its merge.
+**Two weeks of UAT** of Rumi 2 and 3 with the plan's measures (rated lines and the fallback share, writes kept versus undone, cards applied versus dismissed, messages by voice, drafts and mocks used); the owner sets the monthly AI limit as they like (none by default, never a hard-coded cap). Owner steps still open: rate ten Rumi lines before turning the afternoon line on, Settings → Voice → Check this device on the iPhone tab and Home Screen app, delete the orphan test events in the Silsila Google calendar, check push and Safari on a real iPhone. The full audit of 2026-11-02 proposed the next items: WI-120 repo cleanup and WI-121 ops safety are done; owner steps from WI-121 are the `CRON_SECRET` repository secret and an external monitor. Next proposed: one action runner, kernel modules and boundaries, CSS cleanup; each starts only when the owner says so. One work item at a time; a migration is applied to the personal database before its merge.
 
 ## Where to look for details
 
 - Schema: `prisma/schema.prisma`; migrations: `prisma/migrations/`
 - Architecture, features and decisions: `docs/architecture/overview.md`, `docs/architecture/features.md`, `docs/architecture/decisions.md`, `docs/architecture/rumi-2.md`
 - Handbook index: `docs/README.md`; history and the archive tag: `docs/HISTORY.md`; changelog: `CHANGELOG.md`
-- Handoffs: the last ten in `docs/` (latest `docs/WI-120-HANDOFF.md`); the Rumi 2 and 3 plan: `docs/product/rumi2-plan.md`
+- Handoffs: the last ten in `docs/` (latest `docs/WI-121-HANDOFF.md`); the Rumi 2 and 3 plan: `docs/product/rumi2-plan.md`
 - Security: `docs/engineering/security.md`, `SECURITY.md`; operations: `docs/engineering/operations.md`; backups: `docs/engineering/backup-restore.md`
 - Brand and design principles: `docs/product/brand-system.md`
 - Contributing rules: `CONTRIBUTING.md`

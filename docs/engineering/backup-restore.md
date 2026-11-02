@@ -23,17 +23,17 @@ pnpm db:restore:verify <file> --keep   # keep the scratch database for inspectio
 
 ## Schedule
 
-Supabase Free keeps no provider backups and offers no point-in-time recovery, so the Backup workflow is the only off-site copy: data written since its last run can be lost (up to a week while it runs weekly).
+Supabase Free keeps no provider backups and offers no point-in-time recovery, so the Backup workflow is the only off-site copy: data written since its last run can be lost (up to a day since WI-121 runs it daily; a week before).
 
-| When                       | What                                                                           |
-| -------------------------- | ------------------------------------------------------------------------------ |
-| Weekly (automated, WI-051) | The Backup workflow: dump, restore check, encrypted artifact kept 35 days      |
-| **Before every migration** | `pnpm db:backup`, then `pnpm db:restore:verify <file>`; keep the last 4 copies |
-| Monthly                    | Time a full restore verification and record duration and data age              |
+| When                                           | What                                                                           |
+| ---------------------------------------------- | ------------------------------------------------------------------------------ |
+| Daily (automated, WI-121; weekly since WI-051) | The Backup workflow: dump, restore check, encrypted artifact kept 35 days      |
+| **Before every migration**                     | `pnpm db:backup`, then `pnpm db:restore:verify <file>`; keep the last 4 copies |
+| Monthly                                        | Time a full restore verification and record duration and data age              |
 
-## Weekly automated backup (WI-051)
+## Daily automated backup (WI-051, daily since WI-121)
 
-`.github/workflows/backup.yml` runs every Sunday at 07:23 UTC, and on demand from Actions → Backup → Run workflow. It:
+`.github/workflows/backup.yml` runs every day at 07:23 UTC (GitHub may start a scheduled run late), and on demand from Actions → Backup → Run workflow. It:
 
 1. dumps production with `pnpm db:backup`;
 2. proves the dump with `pnpm db:restore:verify` against a scratch PostgreSQL 17 service, and fails unless it prints `Restore verified.`;
