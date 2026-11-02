@@ -157,7 +157,7 @@ export default async function Jobs({
               <span key={part}>{part}</span>
             ))}
           </p>
-          <p className="status-line practice-facts jobs-facts mb-6">
+          <p className="status-line practice-facts jobs-facts">
             <span>This week</span>
             {weekFacts.length ? (
               weekFacts.map((f) => <span key={f}>{f}</span>)

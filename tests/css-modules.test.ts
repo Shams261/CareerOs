@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest';
 
 /**
  * CSS Modules (WI-135, WI-136): a module renames its keyframes, so an animation that uses a
- * keyframes name from `globals.css` must say `global(name)`, or it silently stops running. Every
+ * keyframes name from `app.css` must say `global(name)`, or it silently stops running. Every
  * module's own classes are also used by the code beside it.
  */
 const ROOT = process.cwd();
@@ -34,7 +34,7 @@ describe('CSS Modules (WI-136)', () => {
     expect(modules.length).toBeGreaterThan(0);
   });
 
-  it('name keyframes from globals.css as global(…)', () => {
+  it('name keyframes from app.css as global(…)', () => {
     const wrong = modules.flatMap((file) => {
       const css = source(file);
       const own = new Set(

@@ -304,7 +304,7 @@ export function RoutineForm({
           routines or blocks
         </label>
       </FormMore>
-      <div className="actions mt-3">
+      <div className="actions">
         <Button>{routine ? 'Save routine' : 'Add routine'}</Button>
         {routine && (
           <Button className="destructive" name="remove" value="on">

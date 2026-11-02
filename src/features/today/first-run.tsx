@@ -16,7 +16,7 @@ import { dayPart } from './daily-line';
 import { DailyLine } from './daily-line-card';
 import { PanelButton, SidePanel } from './panels';
 import { hasLearningFocus } from './reads';
-import styles from './first-run.module.css';
+import { cn } from '@/lib/utils';
 
 /**
  * Today for an empty account (WI-065, ADR-027): one welcoming action, three optional steps
@@ -103,7 +103,7 @@ export async function FirstRunToday({
                 <h2 id="agenda-heading" className="agenda-heading">
                   Your day
                 </h2>
-                <p className={`muted ${styles['first-day-sub']}`}>
+                <p className="muted m-0 mt-0.5 text-[14px]">
                   A simple plan, only when you are ready
                 </p>
               </div>
@@ -116,15 +116,18 @@ export async function FirstRunToday({
               </PanelButton>
             </div>
             <FeedbackOutlet channel="blocks" className="mb-3" />
-            <div className={styles['first-day-empty']}>
-              <span className={styles['first-day-icon']} aria-hidden="true">
+            <div className="flex items-start gap-3.5 rounded-md border border-dashed border-border p-[18px]">
+              <span
+                className="inline-grid size-9 flex-none place-items-center rounded-[50%] bg-primary-soft text-primary"
+                aria-hidden="true"
+              >
                 <CalendarClock size={20} />
               </span>
               <div>
-                <p className={styles['first-day-title']}>
+                <p className="m-0 mb-0.5 font-semibold">
                   Nothing scheduled yet
                 </p>
-                <p className="muted">
+                <p className="muted m-0">
                   Add one focus block, or leave today open. Your next step shows
                   here when you are ready.
                 </p>
@@ -138,21 +141,31 @@ export async function FirstRunToday({
             className="card first-steps"
             aria-labelledby="first-steps-heading"
           >
-            <div className={styles['first-steps-head']}>
-              <h2 id="first-steps-heading">Your first 3 steps</h2>
+            <div className="mb-3 flex items-center justify-between gap-2">
+              <h2 id="first-steps-heading" className="m-0 text-[18px]">
+                Your first 3 steps
+              </h2>
               <span className="pill">{done} of 3</span>
             </div>
-            <ol className={`plain-list ${styles['first-steps-list']}`}>
+            <ol className="plain-list">
               {steps.map((s) => (
-                <li key={s.key} className={s.done ? 'is-done' : ''}>
+                <li
+                  key={s.key}
+                  className="grid grid-cols-[20px_minmax(0,1fr)_auto] items-center gap-2.5 border-t border-t-divider px-0 py-3"
+                >
                   <span
-                    className={styles['first-step-mark']}
+                    className={s.done ? 'text-primary' : 'text-meta'}
                     aria-hidden="true"
                   >
                     {s.done ? <Check size={16} /> : <Circle size={16} />}
                   </span>
-                  <span className={styles['first-step-text']}>
-                    <span className={styles['first-step-title']}>
+                  <span className="grid gap-0.5 text-[14px]">
+                    <span
+                      className={cn(
+                        'text-[15px] font-semibold',
+                        s.done && 'text-meta',
+                      )}
+                    >
                       <span className="sr-only">
                         {s.done ? 'Done: ' : 'To do: '}
                       </span>
@@ -183,10 +196,7 @@ export async function FirstRunToday({
               ))}
             </ol>
             <form action={hideFirstStepsAction}>
-              <button
-                type="submit"
-                className={`link-button ${styles['first-steps-skip']}`}
-              >
+              <button type="submit" className="link-button mt-2.5">
                 Skip for now
               </button>
             </form>

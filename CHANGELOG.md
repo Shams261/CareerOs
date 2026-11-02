@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- WI-137 (Tailwind for new UI, 2026-11-02, no migration): new screens are written in Tailwind with Silsila's own colours, radii and the phone breakpoint, and the hand-written styles now sit below Tailwind so its classes always take effect. Every page looks as before (checked element by element on every page, at desktop and phone widths, on a new account and with data); two spacing classes that had never taken effect were removed so nothing moved. The first-run cards on Today are the first part written in Tailwind.
 - WI-136 (more CSS Modules, 2026-11-02, no migration): Today's band, the first-run cards and Add a block's short form now style from their own CSS Modules. Everything looks as before, on a new account and on a day with a plan, at desktop and phone widths. The quotation's rise-in motion is kept, and a test now guards it.
 - WI-135 (the first CSS Module, 2026-11-02, no migration): the Roadmap overview's goal card and roadmap bands now style from `src/features/roadmap/overview.module.css` instead of the global stylesheet, and seven unused goal rules are gone. The overview looks exactly as before, with and without goals, at desktop and phone widths.
 - WI-134 (retention, 2026-11-02, no migration): once a day Silsila deletes system records it no longer needs: sign-in sessions 30 days after they expired or were signed out, reminders the owner has read 180 days after they were due (never a job follow-up, never an unread one) and AI usage rows after 400 days. The owner's own records are never touched; `/privacy` states the periods.
