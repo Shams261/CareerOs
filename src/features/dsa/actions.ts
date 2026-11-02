@@ -1,8 +1,5 @@
 'use server';
-import { forgetAll } from '@/server/memo';
-import { revalidatePath } from 'next/cache';
-import { z } from 'zod';
-import { issueMessages } from '@/lib/validation';
+import { runAction } from '@/server/action';
 import { owner } from '@/server/db';
 import type { ActionState } from '@/features/schedule/actions';
 import {
@@ -28,24 +25,12 @@ function ladderNote(l: LadderState, revisedNow: boolean) {
     ? `Revised ${l.step - 1} of 3; next on ${dayLabel(l.due)}.`
     : `Revision ${l.step} of 3 on ${dayLabel(l.due)}.`;
 }
-async function perform(work: () => Promise<string>): Promise<ActionState> {
-  try {
-    const message = await work();
-    forgetAll();
-    revalidatePath('/dsa', 'layout');
-    revalidatePath('/today');
-    return { message, ok: true };
-  } catch (error) {
-    return {
-      message:
-        error instanceof z.ZodError
-          ? issueMessages(error.issues)
-          : error instanceof Error && !('code' in error)
-            ? error.message
-            : 'Unable to save. Check for a duplicate topic name, then reload and try again.',
-    };
-  }
-}
+const perform = (work: () => Promise<string>) =>
+  runAction(work, {
+    area: 'dsa',
+    fallback:
+      'Unable to save. Check for a duplicate topic name, then reload and try again.',
+  });
 export async function topicAction(_state: ActionState, form: FormData) {
   return perform(async () => {
     await saveTopic(await owner(), {

@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { ownerWords } from '@/lib/action-error';
 import { isDeleted } from '@/features/deletes/domain';
 import { openTemplates } from '@/features/schedule/templates';
 import { Briefcase, ChevronLeft, ChevronRight } from 'lucide-react';
@@ -67,8 +68,7 @@ export default async function Calendar({
   // Only the week's plans wait for generation; the rest starts at once (WI-061).
   const generated = generateThroughSunday(user, today).then(
     () => '',
-    (error) =>
-      error instanceof Error ? error.message : 'Unable to plan this week.',
+    (error) => ownerWords(error) ?? 'Unable to plan this week.',
   );
   const [routines, plans, goals, connection, generationError] =
     await Promise.all([

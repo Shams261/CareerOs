@@ -1,8 +1,5 @@
 'use server';
-import { forgetAll } from '@/server/memo';
-import { revalidatePath } from 'next/cache';
-import { z } from 'zod';
-import { issueMessages } from '@/lib/validation';
+import { runAction } from '@/server/action';
 import { owner } from '@/server/db';
 import { syncSoon } from '@/features/calendar/background';
 import type { ActionState } from '@/features/schedule/actions';
@@ -24,46 +21,36 @@ import {
   updateDetails,
   updateRoundDetails,
 } from './service';
-async function perform(
-  work: () => Promise<unknown>,
-  message: string,
-): Promise<ActionState> {
-  try {
-    const result = await work();
-    forgetAll();
-    syncSoon(await owner());
-    revalidatePath('/jobs', 'layout');
-    revalidatePath('/calendar');
-    revalidatePath('/today');
-    revalidatePath('/learn', 'layout');
-    revalidatePath('/dsa', 'layout');
-    const extra =
-      result && typeof result === 'object'
-        ? (result as { undo?: ActionState['undo']; link?: ActionState['link'] })
-        : {};
-    return {
-      ok: true,
-      message,
-      ...(extra.undo ? { undo: extra.undo } : {}),
-      ...(extra.link ? { link: extra.link } : {}),
-    };
-  } catch (error) {
-    if (error instanceof PreviewRequired)
+const perform = (work: () => Promise<unknown>, message: string) =>
+  runAction(
+    async () => {
+      const result = await work();
+      const extra =
+        result && typeof result === 'object'
+          ? (result as {
+              undo?: ActionState['undo'];
+              link?: ActionState['link'];
+            })
+          : {};
       return {
-        message: 'Possible duplicate application.',
-        token: error.token,
-        preview: error.lines,
+        message,
+        ...(extra.undo ? { undo: extra.undo } : {}),
+        ...(extra.link ? { link: extra.link } : {}),
       };
-    return {
-      message:
-        error instanceof z.ZodError
-          ? issueMessages(error.issues)
-          : error instanceof Error && !('code' in error)
-            ? error.message
-            : 'Unable to save. Reload and try again.',
-    };
-  }
-}
+    },
+    {
+      area: 'jobs',
+      known: (error) =>
+        error instanceof PreviewRequired
+          ? {
+              message: 'Possible duplicate application.',
+              token: error.token,
+              preview: error.lines,
+            }
+          : undefined,
+      after: async () => syncSoon(await owner()),
+    },
+  );
 const fields = (f: FormData) => Object.fromEntries(f);
 export async function createApplicationAction(_s: ActionState, f: FormData) {
   return perform(async () => {

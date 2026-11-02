@@ -1,4 +1,5 @@
 'use server';
+import { failure } from '@/server/action';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { owner } from '@/server/db';
@@ -19,9 +20,11 @@ async function run(work: () => Promise<string>): Promise<Result> {
       message:
         error instanceof z.ZodError
           ? 'This browser returned an unsupported subscription.'
-          : error instanceof Error && !('code' in error)
-            ? error.message
-            : 'Unable to update notifications. Try again.',
+          : failure(
+              error,
+              'push',
+              'Unable to update notifications. Try again.',
+            ),
     };
   }
 }

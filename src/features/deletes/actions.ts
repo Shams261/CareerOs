@@ -1,4 +1,5 @@
 'use server';
+import { failure } from '@/server/action';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { z } from 'zod';
@@ -25,19 +26,16 @@ const refresh = (paths: string[]) => {
   for (const p of paths) revalidatePath(p, 'layout');
 };
 const failed = (error: unknown): ActionState => {
-  // Names and codes only, never record content (docs/engineering/security.md).
-  console.error(
-    '[deletes] failed',
-    error instanceof Error ? error.name : 'Error',
-    error && typeof error === 'object' && 'code' in error ? error.code : '',
-  );
+  // `failure` logs names, codes and a reference only (docs/engineering/security.md).
   return {
     message:
-      error instanceof Error &&
-      !(error instanceof z.ZodError) &&
-      !('code' in error)
-        ? error.message
-        : 'Could not delete it. Reload and try again.',
+      error instanceof z.ZodError
+        ? 'Could not delete it. Reload and try again.'
+        : failure(
+            error,
+            'deletes',
+            'Could not delete it. Reload and try again.',
+          ),
   };
 };
 

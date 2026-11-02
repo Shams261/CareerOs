@@ -2,11 +2,10 @@
 import { deleteBlock } from '@/features/deletes/service';
 import { blockUndo } from '@/features/deletes/domain';
 import { planLine } from '@/features/today/home';
-import { forgetAll } from '@/server/memo';
-import { revalidatePath } from 'next/cache';
+import { runAction } from '@/server/action';
+import type { ActionState } from '@/lib/action-state';
 import { redirect } from 'next/navigation';
 import { z } from 'zod';
-import { issueMessages } from '@/lib/validation';
 import { db, owner } from '@/server/db';
 import { minutes } from '@/lib/time';
 import { recordedText } from './row';
@@ -20,20 +19,7 @@ import {
   logSession,
   stopUnlinkedSession,
 } from '@/features/execution/service';
-export type ActionState = {
-  message: string;
-  ok?: boolean;
-  token?: string;
-  preview?: string[];
-  /** A one-click way back, shown beside the success message for a few seconds. */
-  undo?: { kind: string; payload: unknown; label?: string };
-  /** Where to go next, shown beside the success message ("Open application"). */
-  link?: { href: string; label: string };
-};
-function refresh() {
-  for (const route of ['/today', '/calendar', '/review', '/jobs', '/focus'])
-    revalidatePath(route);
-}
+export type { ActionState } from '@/lib/action-state';
 type Done =
   | string
   | {
@@ -41,39 +27,16 @@ type Done =
       undo?: ActionState['undo'];
       link?: ActionState['link'];
     };
-async function perform(work: () => Promise<Done>): Promise<ActionState> {
-  try {
-    const done = await work();
-    forgetAll();
-    refresh();
+const perform = (work: () => Promise<Done>) =>
+  runAction(work, {
+    area: 'schedule',
+    known: (error) =>
+      error instanceof PreviewRequired
+        ? { message: error.message, token: error.token, preview: error.lines }
+        : undefined,
     // Local change is committed; Google Calendar catches up after the response (ADR-010).
-    syncSoon(await owner());
-    return typeof done === 'string'
-      ? { message: done, ok: true }
-      : { message: done.message, undo: done.undo, link: done.link, ok: true };
-  } catch (error) {
-    if (error instanceof PreviewRequired)
-      return {
-        message: error.message,
-        token: error.token,
-        preview: error.lines,
-      };
-    if (error instanceof z.ZodError)
-      return {
-        message: issueMessages(error.issues),
-      };
-    console.error(
-      'Schedule operation failed',
-      error instanceof Error ? error.message : 'Unknown',
-    );
-    return {
-      message:
-        error instanceof Error && !('code' in error)
-          ? error.message
-          : 'Unable to save. Reload and try again.',
-    };
-  }
-}
+    after: async () => syncSoon(await owner()),
+  });
 export async function blockAction(_state: ActionState, form: FormData) {
   return perform(async () => {
     const saved = await saveBlock(

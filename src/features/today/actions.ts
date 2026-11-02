@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { owner } from '@/server/db';
 import { forgetAll } from '@/server/memo';
+import { failure } from '@/server/action';
 import { syncSoon } from '@/features/calendar/background';
 import type { ActionState } from '@/features/schedule/actions';
 import { dateInput } from '@/features/schedule/domain';
@@ -46,9 +47,9 @@ export async function letGoDayAction(
   } catch (error) {
     return {
       message:
-        error instanceof Error && !(error instanceof z.ZodError)
-          ? error.message
-          : 'Could not let them go. Try again.',
+        error instanceof z.ZodError
+          ? 'Could not let them go. Try again.'
+          : failure(error, 'today', 'Could not let them go. Try again.'),
     };
   }
 }
