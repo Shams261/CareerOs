@@ -27,8 +27,10 @@ export function VoiceSettings({ state }: { state: VoiceState }) {
           sends the audio to Google and Safari to Apple to turn it into text.
           That happens outside Silsila’s zero-retention AI rule. {AGENT_NAME}{' '}
           then gets the same text as if you had typed it, and nothing is sent
-          until you press Send. Silsila keeps no audio and no transcript, only
-          that a message came by voice.
+          until you press Send. In Talk, which you start with a tap, what was
+          heard is shown for two seconds and then sent unless you press Edit or
+          Stop, and the answer is read aloud. Silsila keeps no audio and no
+          transcript, only that a message came by voice.
         </p>
         <label className="check">
           <input

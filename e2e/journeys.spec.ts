@@ -405,6 +405,80 @@ test('the microphone shows only after consent and fills the composer', async ({
   await accessible(page);
 });
 
+test('Talk sends what was heard, reads the answer and listens again', async ({
+  page,
+}) => {
+  // WI-142. Recognition hears one question, then nothing; the voice "reads" at once.
+  await page.addInitScript(() => {
+    const w = window as unknown as Record<string, unknown>;
+    let turns = 0;
+    class FakeRecognition {
+      lang = 'en-IN';
+      continuous = false;
+      interimResults = true;
+      onresult: ((e: unknown) => void) | null = null;
+      onerror: ((e: unknown) => void) | null = null;
+      onend: (() => void) | null = null;
+      start() {
+        const first = turns++ === 0;
+        setTimeout(() => {
+          if (first)
+            this.onresult?.({
+              resultIndex: 0,
+              results: [
+                { isFinal: true, 0: { transcript: 'what is on today' } },
+              ],
+            });
+          this.onend?.();
+        }, 50);
+      }
+      stop() {
+        this.onend?.();
+      }
+      abort() {
+        this.onend?.();
+      }
+    }
+    w.SpeechRecognition = FakeRecognition;
+    w.webkitSpeechRecognition = FakeRecognition;
+    w.__spoken = [] as string[];
+    // The whole object, not its methods: WebKit's own cannot be overwritten in place.
+    Object.defineProperty(window, 'speechSynthesis', {
+      configurable: true,
+      value: {
+        speak: (u: { text: string; onend?: () => void }) => {
+          (w.__spoken as string[]).push(u.text);
+          setTimeout(() => u.onend?.(), 20);
+        },
+        cancel: () => undefined,
+        getVoices: () => [],
+        addEventListener: () => undefined,
+        removeEventListener: () => undefined,
+      },
+    });
+  });
+  // The microphone journey above gave consent in this workspace.
+  await page.goto('/rumi');
+  await page.getByRole('button', { name: 'Talk with Rumi' }).click();
+  const bar = page.getByRole('status').filter({ hasText: 'Talk' });
+  await expect(bar).toContainText('Sending what you said', { timeout: 5_000 });
+  await expect(bar.getByRole('button', { name: 'Edit' })).toBeVisible();
+  // Sent by itself after the pause, answered, read aloud, and then nothing more was heard.
+  await expect(
+    page.locator('.rumi-message[data-role="owner"]').last(),
+  ).toContainText('what is on today', { timeout: 10_000 });
+  await expect(
+    page.getByText('Nothing was heard, so Talk stopped.'),
+  ).toBeVisible({
+    timeout: 20_000,
+  });
+  const spoken = await page.evaluate(
+    () => (window as unknown as { __spoken: string[] }).__spoken,
+  );
+  expect(spoken.filter((t) => t.trim()).length).toBeGreaterThan(0);
+  await accessible(page);
+});
+
 test('the weekly review walks its three steps and closes the week', async ({
   page,
 }) => {

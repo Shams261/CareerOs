@@ -1,4 +1,5 @@
 'use client';
+import Link from 'next/link';
 import { pageRef, promptsFor } from './page-domain';
 import { RumiPose } from './pose';
 import { useEffect, useRef, useState, useTransition } from 'react';
@@ -19,13 +20,17 @@ import type { CardView } from './request-domain';
 import {
   MicButton,
   StopReading,
+  TalkBar,
+  TalkButton,
   useCanDictate,
+  useCanSpeak,
   useComposerVoice,
   useReplyVoice,
+  useTalk,
   useVoiceState,
   type VoiceState,
 } from './voice';
-import { voiceMeta, type VoiceMeta } from './voice-domain';
+import { TALK_RESUME_KEY, voiceMeta, type VoiceMeta } from './voice-domain';
 import type { WriteAction } from './write-domain';
 import { WRITE_WORDS, isWrite } from '@/features/agent/text';
 import type { Kept, Proposal, Suggestion } from './plan-domain';
@@ -194,12 +199,16 @@ export function RumiChat({
   const end = useRef<HTMLDivElement>(null);
   const voice = useVoiceState(voiceInitial);
   const canDictate = useCanDictate();
+  const canSpeak = useCanSpeak();
   const mic = useComposerVoice({
     lang: voice?.lang ?? 'en-IN',
     text,
     setText,
   });
   const reader = useReplyVoice(voice);
+  // Talk (WI-142) sends through the latest `send`, set after it is defined below.
+  const sendRef = useRef<(text: string) => void>(() => undefined);
+  const talk = useTalk({ composer: mic, reader, send: sendRef, text });
 
   const send = (raw: string) => {
     const question = raw.trim();
@@ -238,10 +247,22 @@ export function RumiChat({
       if (result.nearCap !== undefined) setNear(result.nearCap);
       if (!result.ok) {
         setError(result.message);
+        talk.failed();
         return;
       }
       setMessages((m) => [...m, { ...result.reply, role: 'ASSISTANT' }]);
-      reader.read(result.reply.content);
+      // Talk reads every reply and listens again (WI-142); otherwise the setting decides.
+      // A first answer on /rumi opens its conversation's page, which mounts this anew: the
+      // answer waits in the tab for it.
+      const moving = result.conversationId !== current && !drawer;
+      if (talk.on() && moving) {
+        try {
+          sessionStorage.setItem(TALK_RESUME_KEY, result.reply.content);
+        } catch {
+          talk.failed();
+        }
+      } else if (talk.on()) talk.replied(result.reply.content);
+      else reader.read(result.reply.content);
       if (result.conversationId !== current) {
         setCurrent(result.conversationId);
         if (!drawer)
@@ -252,6 +273,25 @@ export function RumiChat({
       router.refresh();
     });
   };
+
+  useEffect(() => {
+    sendRef.current = send;
+  });
+  // Talk carried over from /rumi to the conversation it started (WI-142).
+  const latestTalk = useRef(talk);
+  useEffect(() => {
+    latestTalk.current = talk;
+  });
+  useEffect(() => {
+    let reply: string | null = null;
+    try {
+      reply = sessionStorage.getItem(TALK_RESUME_KEY);
+      sessionStorage.removeItem(TALK_RESUME_KEY);
+    } catch {
+      reply = null;
+    }
+    if (reply) latestTalk.current.resume(reply);
+  }, []);
 
   // "Ask Rumi · …" from the command bar, Rumi noticed or Plan with Rumi: on arrival, or while
   // already here. The listener reads the latest render (WI-062): the drawer stays mounted across
@@ -490,8 +530,14 @@ export function RumiChat({
             }
           }}
         />
-        {voice?.consented && canDictate && (
+        {voice?.consented && canDictate && !talk.on() && (
           <MicButton listening={mic.listening} onClick={mic.toggle} />
+        )}
+        {voice?.consented && canDictate && canSpeak && (
+          <TalkButton
+            on={talk.phase !== 'off'}
+            onClick={talk.phase !== 'off' ? talk.stop : talk.start}
+          />
         )}
         <button
           type="submit"
@@ -502,17 +548,29 @@ export function RumiChat({
           <ArrowUp size={18} aria-hidden="true" />
         </button>
       </form>
-      {(mic.listening || mic.interim || mic.error || reader.speaking) && (
-        <p className="rumi-voice-line" aria-live="polite">
-          {mic.error ||
-            (mic.listening
-              ? mic.interim
-                ? `Hearing: ${mic.interim}`
-                : 'Listening… tap the microphone to stop, Escape to drop it.'
-              : '')}
-          {reader.speaking && <StopReading onClick={reader.stop} />}
+      <TalkBar talk={talk} heard={mic.interim} />
+      {/* Typing is not the only way (WI-142): where the browser can listen, say so once. */}
+      {voice && !voice.consented && canDictate && (
+        <p className="m-0 mt-2 text-[13px] text-meta">
+          Speak instead of typing:{' '}
+          <Link href="/settings#rumi" prefetch={false} className="link">
+            turn on Voice
+          </Link>
+          .
         </p>
       )}
+      {talk.phase === 'off' &&
+        (mic.listening || mic.interim || mic.error || reader.speaking) && (
+          <p className="rumi-voice-line" aria-live="polite">
+            {mic.error ||
+              (mic.listening
+                ? mic.interim
+                  ? `Hearing: ${mic.interim}`
+                  : 'Listening… tap the microphone to stop, Escape to drop it.'
+                : '')}
+            {reader.speaking && <StopReading onClick={reader.stop} />}
+          </p>
+        )}
       {/* The spend lives in Settings; here only when the month is near its cap (WI-060). */}
       {near && <p className="rumi-budget">{budget}</p>}
     </section>
