@@ -4,8 +4,8 @@
  * tests/drills-deck.test.ts.
  */
 
-export const DECK_SIZE = 10;
-export const OPTIONS = 4;
+const DECK_SIZE = 10;
+const OPTIONS = 4;
 
 /**
  * Pattern families from the DSA curriculum (`scripts/lib/dsa-curriculum.ts`): distractors
@@ -28,7 +28,7 @@ export const familyOf = (topic: string) =>
   FAMILIES.findIndex((f) => f.includes(topic));
 
 /** FNV-1a: a stable order for a given day, so a refresh shows the same deck. */
-export function hash(text: string) {
+function hash(text: string) {
   let h = 0x811c9dc5;
   for (let i = 0; i < text.length; i++) {
     h ^= text.charCodeAt(i);

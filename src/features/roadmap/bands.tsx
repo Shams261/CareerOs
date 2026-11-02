@@ -5,7 +5,7 @@ import { ChevronDown, ChevronRight, Route } from 'lucide-react';
 import { PanelButton } from '@/components/side-panel';
 import styles from '@/features/roadmap/overview.module.css';
 
-export type BandSection = {
+type BandSection = {
   name: string;
   total: number;
   done: number;

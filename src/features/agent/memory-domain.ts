@@ -21,18 +21,18 @@ export type MemorySource = 'OWNER' | 'RUMI';
 /** At most this many lines in all, this many kept by Rumi, each this long. */
 export const MEMORY = { items: 40, rumi: 25, text: 200 } as const;
 /** A situation lapses this many days after it was last sent; a goal a week after its date. */
-export const SITUATION_DAYS = 30;
-export const GOAL_GRACE_DAYS = 7;
+const SITUATION_DAYS = 30;
+const GOAL_GRACE_DAYS = 7;
 /** Settings says "not mentioned since …" on a habit or preference after this long. */
 export const STALE_DAYS = 60;
 /** Extraction calls a day, and the share of the month's cap after which they stop. */
 export const EXTRACT_RATE = { day: 20 } as const;
 export const EXTRACT_CAP_SHARE = 0.9;
 /** An owner message under this many characters is never worth a call. */
-export const EXTRACT_MIN_CHARS = 40;
+const EXTRACT_MIN_CHARS = 40;
 /** How much of each owner message the extraction sees. */
-export const EXTRACT_CLIP = 1000;
-export const EXTRACT_MAX_TOKENS = 160;
+const EXTRACT_CLIP = 1000;
+const EXTRACT_MAX_TOKENS = 160;
 
 export const KIND_LABELS: Record<MemoryKind, string> = {
   GOAL: 'Goal',

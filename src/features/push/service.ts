@@ -31,7 +31,7 @@ export const pushRequestOptions = (cfg: PushConfig) => ({
   urgency: 'normal' as const,
   timeout: 10000,
 });
-export const webPushSender: PushSender = async (t, payload, cfg) => {
+const webPushSender: PushSender = async (t, payload, cfg) => {
   try {
     const r = await webpush.sendNotification(
       { endpoint: t.endpoint, keys: { p256dh: t.p256dh, auth: t.auth } },

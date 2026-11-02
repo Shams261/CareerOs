@@ -86,7 +86,7 @@ import {
   readSeen,
 } from './plan-domain';
 
-export const UNAVAILABLE = `${AGENT_NAME} is unavailable right now.`;
+const UNAVAILABLE = `${AGENT_NAME} is unavailable right now.`;
 const WORDS: CallWords = {
   unavailable: UNAVAILABLE,
   budgetUsed: (day) =>

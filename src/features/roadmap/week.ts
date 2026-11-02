@@ -27,7 +27,7 @@ const MIX_WORDS: Partial<Record<Format, string>> = {
   PRACTICAL: 'Practical task',
   BEHAVIORAL: 'Behavioural stories',
 };
-export const mixLabel = (f: Format) => MIX_WORDS[f] ?? typeLabel[f];
+const mixLabel = (f: Format) => MIX_WORDS[f] ?? typeLabel[f];
 /** Interviews this close shape the week: their formats lead the mix. */
 export const INTERVIEW_HORIZON_DAYS = 14;
 

@@ -4,7 +4,7 @@ import { confidenceWord } from './words';
 import { useState } from 'react';
 import { ChevronDown, ExternalLink } from 'lucide-react';
 
-export type GroupRow = {
+type GroupRow = {
   id: string;
   title: string;
   more: boolean;

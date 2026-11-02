@@ -1,7 +1,7 @@
 import 'server-only';
 import { db } from './db';
 
-export const EXPORT_VERSION = 1;
+const EXPORT_VERSION = 1;
 /**
  * Owner data export (JSON). Contains CareerOS domain records only. Never included: encrypted
  * Google tokens, sync tokens, watch-channel secrets, push subscription keys, sessions, the

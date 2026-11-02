@@ -4,7 +4,7 @@
  * ranked and grouped. Covered by tests/command.test.ts.
  */
 
-export const GROUPS = [
+const GROUPS = [
   'Today',
   'Roadmap',
   'Practice',
@@ -13,7 +13,7 @@ export const GROUPS = [
   'Rumi',
   'Note',
 ] as const;
-export type Group = (typeof GROUPS)[number];
+type Group = (typeof GROUPS)[number];
 
 /**
  * What running a command does after the bar closes: open `href`, then (once that page shows
@@ -39,7 +39,7 @@ export type Command = {
   explicit?: boolean;
 };
 
-export const NOTE_MAX = 500;
+const NOTE_MAX = 500;
 const MAX_PER_GROUP = 5;
 
 /** Lower case, accents dropped, split on anything that is not a letter or digit. */

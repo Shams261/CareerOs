@@ -38,12 +38,12 @@ export type Scenario = { id: string; name: string; intro: string };
 /** A curated starting point shown read-only with an item. */
 export type Reference = { label: string; url: string; kind?: string };
 
-export const scenarioSchema = z.object({
+const scenarioSchema = z.object({
   id: z.string().min(1).max(40),
   name: z.string().min(1).max(80),
   intro: z.string().min(1).max(4000),
 });
-export const referenceSchema = z.object({
+const referenceSchema = z.object({
   label: z.string().min(1).max(200),
   url: z.string().min(1).max(2000),
   kind: z.string().max(80).optional(),
@@ -164,7 +164,7 @@ export const referenceLines = (refs: Reference[] | null | undefined) =>
     .map((r) => [r.label, r.url, r.kind].filter(Boolean).join(' | '))
     .join('\n');
 
-export const PRIORITY_LABEL = { 1: 'P0', 2: 'P1', 3: 'P2' } as const;
+const PRIORITY_LABEL = { 1: 'P0', 2: 'P1', 3: 'P2' } as const;
 
 export const roadmapInput = z.object({
   id: z.string().optional(),
@@ -185,9 +185,8 @@ export const roadmapInput = z.object({
     .transform((v) => (v?.trim() ? parseScenarioLines(v) : null)),
 });
 
-export const itemKinds = ['CONCEPT', 'QUESTION'] as const;
-export const itemStatuses = ['NOT_STARTED', 'IN_PROGRESS', 'DONE'] as const;
-export type ItemStatus = (typeof itemStatuses)[number];
+const itemKinds = ['CONCEPT', 'QUESTION'] as const;
+export type ItemStatus = 'NOT_STARTED' | 'IN_PROGRESS' | 'DONE';
 
 export const bulkItemsInput = z.object({
   roadmapId: z.string().min(1),
@@ -421,7 +420,7 @@ export function nextItem(items: SummaryItem[]) {
 }
 
 /** Days until the next revision after each pass: Done → 7, then 14, 30, and 60 from there on. */
-export const REVISION_DAYS = [7, 14, 30, 60] as const;
+const REVISION_DAYS = [7, 14, 30, 60] as const;
 /**
  * The next revision after a pass at `stage` (0 = just marked done). Dates are calendar labels
  * in the owner's zone; `today` is a YYYY-MM-DD day key.

@@ -71,7 +71,7 @@ type Drills = {
   /** The company's own section in the behavioural roadmap ("Company: Stripe"). */
   companySection?: boolean;
 };
-export const FORMAT_PRACTICE: Record<
+const FORMAT_PRACTICE: Record<
   Format,
   { guide: { roadmap: string; slug: string }; drills: Drills[] }
 > = {

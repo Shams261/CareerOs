@@ -143,7 +143,7 @@ const undoSchema = z.discriminatedUnion('kind', [
   }),
 ]);
 /** One change Rumi made in an answer, kept on the answer with its Undo. */
-export const actionSchema = z
+const actionSchema = z
   .object({
     id: z.string().min(1),
     tool: z.enum(WRITE_TOOLS),
@@ -155,7 +155,7 @@ export const actionSchema = z
   .strict();
 export type WriteAction = z.infer<typeof actionSchema>;
 /** The undo kind each write leaves; anything else in stored metadata is never run. */
-export const UNDO_FOR: Record<WriteTool, WriteAction['undo']['kind']> = {
+const UNDO_FOR: Record<WriteTool, WriteAction['undo']['kind']> = {
   add_note: 'remove-note',
   add_block: 'cancel-block',
   rest_today: 'clear-rest-day',

@@ -39,7 +39,7 @@ export function publishToast(
   set([...toasts.slice(-2), toast]);
   setTimeout(() => dismissToast(toast.id), VISIBLE_MS);
 }
-export function dismissToast(id: number) {
+function dismissToast(id: number) {
   if (toasts.some((t) => t.id === id)) set(toasts.filter((t) => t.id !== id));
 }
 

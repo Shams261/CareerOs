@@ -126,7 +126,7 @@ export async function executeIn(
   }
   await clearBlockReminders(tx, user.id, id);
 }
-export const manualSessionInput = z.object({
+const manualSessionInput = z.object({
   id: z.string().min(1),
   day: dateInput,
   endDay: dateInput,

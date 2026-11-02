@@ -23,7 +23,7 @@ export async function reminderAction(
     };
   }
 }
-export async function saveReminder(form: FormData) {
+async function saveReminder(form: FormData) {
   const user = await owner();
   const time = localTime.parse(form.get('preferredTime'));
   await db().notificationPreference.upsert({

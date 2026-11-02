@@ -4,7 +4,6 @@ import type { Prisma } from '@/generated/prisma/client';
 
 /** The owner as every service sees it: the id and the IANA zone that sets local days. */
 export type ScheduleUser = { id: string; timezone: string };
-export type Tx = Prisma.TransactionClient;
 
 /**
  * One transaction holding a row lock on the owner's `User` row (`FOR UPDATE`), so multi-row

@@ -2,8 +2,8 @@ import { z } from 'zod';
 import { dayKey } from '@/lib/time';
 import { shiftDay } from '@/lib/day';
 import { CONFIDENCE_WORD } from './words';
-export { CONFIDENCE_WORD, confidenceWord, type ConfidenceValue } from './words';
-export const confidence = z.enum(['RED', 'YELLOW', 'GREEN']);
+export { confidenceWord } from './words';
+const confidence = z.enum(['RED', 'YELLOW', 'GREEN']);
 export const attemptInput = z
   .object({
     problemId: z.string().min(1),
@@ -39,8 +39,8 @@ export const solvedText = {
  * the day it was solved, each revised or missed. The confidence is a label only.
  */
 export const LADDER_DAYS = [3, 7, 14] as const;
-export const LADDER_STEPS = LADDER_DAYS.length;
-export type Outcome = 'revised' | 'missed';
+const LADDER_STEPS = LADDER_DAYS.length;
+type Outcome = 'revised' | 'missed';
 export type LadderProblem = {
   attemptsCount: number;
   nextRevisionAt: Date | null;
@@ -48,7 +48,7 @@ export type LadderProblem = {
   revisionOutcomes: string[];
 };
 /** The day step `n` (1–3) of a ladder started on `startedOn` is due. */
-export const stepDue = (startedOn: string, n: number) =>
+const stepDue = (startedOn: string, n: number) =>
   shiftDay(startedOn, LADDER_DAYS[n - 1]);
 /** A ladder begun on `day`: step 1 in three days, nothing settled. */
 export function startLadder(day: string) {
@@ -173,7 +173,7 @@ export type QueueProblem = {
   nextRevisionAt: Date | null;
 };
 // @db.Date values are calendar labels represented by UTC midnight, not instants to zone-format.
-export const revisionDay = (value: Date) => value.toISOString().slice(0, 10);
+const revisionDay = (value: Date) => value.toISOString().slice(0, 10);
 export function learningState(p: QueueProblem, day: string) {
   if (!p.attemptsCount) return 'unattempted';
   if (!p.nextRevisionAt) return 'unscheduled';

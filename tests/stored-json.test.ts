@@ -30,7 +30,9 @@ describe('storedPrepDoc', () => {
   });
 
   it('reads a doc from before WI-105 with no asks or order', () => {
-    const { asks: _a, order: _o, ...old } = doc;
+    const old: Partial<typeof doc> = { ...doc };
+    delete old.asks;
+    delete old.order;
     expect(storedPrepDoc(old)).toMatchObject({ asks: [], order: [] });
     expect(storedPrepDoc(old).topics[0].name).toBe('Graphs');
   });

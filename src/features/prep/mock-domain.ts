@@ -17,9 +17,9 @@ export const DEBRIEF_QUESTIONS = [
 ] as const;
 export type DebriefField = (typeof DEBRIEF_QUESTIONS)[number]['field'];
 
-export const MOCK_QUESTIONS = 5;
+const MOCK_QUESTIONS = 5;
 export const MOCK_ANSWER_MAX = 4000;
-export const MOCK_FEEDBACK_MAX = 900;
+const MOCK_FEEDBACK_MAX = 900;
 
 const asQuestion = (text: string) => {
   const t = text.trim().replace(/\s+/g, ' ');

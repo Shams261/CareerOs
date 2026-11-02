@@ -4,8 +4,8 @@
  * research only, nothing personal. Every item names its sources; official pages are marked,
  * prep-site syntheses and Glassdoor reports are marked as such so the owner can judge them.
  */
-export type Ref = [label: string, url: string, kind?: string];
-export type ResearchItem = {
+type Ref = [label: string, url: string, kind?: string];
+type ResearchItem = {
   slug: string;
   title: string;
   kind?: 'CONCEPT' | 'QUESTION';

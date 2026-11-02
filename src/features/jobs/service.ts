@@ -3,7 +3,7 @@ import 'server-only';
  * The jobs module's public surface (WI-132): the code lives in owned, applications,
  * round-blocks, rounds, prep-items, reads and formats-service; importers keep this path.
  */
-export { DUPLICATE_TOKEN, ownedApplication, ownedRound } from './owned';
+export { DUPLICATE_TOKEN } from './owned';
 export {
   createApplication,
   createApplicationIn,

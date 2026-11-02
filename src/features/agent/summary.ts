@@ -30,7 +30,7 @@ import { runTool } from './tools';
 /** The summary is at most this long, two sentences. */
 export const SUMMARY_MAX = 300;
 /** Summaries an owner may ask for in a day (the lines share the feature). */
-export const SUMMARY_PER_DAY = 10;
+const SUMMARY_PER_DAY = 10;
 const WORDS: CallWords = {
   unavailable: `${AGENT_NAME} couldn’t sum up this week right now.`,
   budgetUsed: (day) =>

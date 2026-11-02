@@ -6,16 +6,13 @@
 import { dayKey, hhmm, minutes, weekdayDate } from '@/lib/time';
 import type { Attention } from '@/features/jobs/domain';
 import {
-  dueContext,
   interviewPrepRows,
   jobAttentionRows,
   practiceRevisionRows,
-  revisionContext,
   roadmapRevisionRows,
   foldRevisionRows,
   sortAttention,
   type AttentionItem,
-  type AttentionSource,
   revisionDeckRow,
 } from '@/features/attention/domain';
 import {
@@ -25,7 +22,6 @@ import {
   recordedMinutes,
   resolutionText,
   type BlockLike,
-  type Resolution,
   type SessionLike,
 } from '@/features/schedule/row';
 
@@ -37,7 +33,6 @@ export {
   formatDuration,
   resolutionText,
   type BlockLike,
-  type Resolution,
   type SessionLike,
 };
 export type RoundLike = {
@@ -115,7 +110,7 @@ export type LauncherState =
 const byStart = (a: BlockLike, b: BlockLike) =>
   +a.plannedStart - +b.plannedStart || a.id.localeCompare(b.id);
 /** Past blocks still waiting for a decision: not completed, skipped or cancelled. */
-export const unresolved = (blocks: BlockLike[], now: Date) =>
+const unresolved = (blocks: BlockLike[], now: Date) =>
   blocks
     .filter((b) => ELIGIBLE.includes(b.status) && b.plannedEnd <= now)
     .sort(byStart);
@@ -246,12 +241,7 @@ export function groupAgenda(
 /* ---------- Needs attention ---------- */
 
 // The row types and builders are shared with Jobs and the Roadmap since WI-022.
-export {
-  dueContext,
-  revisionContext,
-  type AttentionItem,
-  type AttentionSource,
-};
+export { type AttentionItem };
 
 export type AttentionInput = {
   now: Date;
@@ -414,7 +404,7 @@ export function attentionItems(input: AttentionInput): AttentionItem[] {
     });
   return sortAttention(items);
 }
-export const ATTENTION_PAGE = 20;
+const ATTENTION_PAGE = 20;
 export function attentionPage<T>(
   items: T[],
   page: number,

@@ -23,7 +23,7 @@ export const LINE_READS: Record<LinePart, [string, Record<string, unknown>][]> =
     ],
   };
 /** Each read is cut to this many characters before it is sent. */
-export const READ_MAX = 3000;
+const READ_MAX = 3000;
 /** A line is at most this long and reads as one or two sentences. */
 export const LINE_MAX = 220;
 /** Lines never run past this share of the month's cap; chat keeps the rest. */

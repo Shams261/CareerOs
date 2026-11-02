@@ -56,7 +56,7 @@ export function planWindow(today: string) {
   return { first: today, last: weekDays(today)[6] };
 }
 /** Days a plan card may cover (WI-116, ADR-031): today and the six days after it. */
-export const PLAN_AHEAD_DAYS = 7;
+const PLAN_AHEAD_DAYS = 7;
 export function planAhead(today: string) {
   return { first: today, last: shiftDay(today, PLAN_AHEAD_DAYS - 1) };
 }
@@ -181,7 +181,7 @@ const suggestionSchema = z.object({
 });
 /** What an answer carries besides its text; anything unreadable reads as nothing. */
 /** A line Rumi kept after this answer (WI-100), shown under it with Undo. */
-export const keptSchema = z
+const keptSchema = z
   .object({
     id: z.string().min(1),
     text: z.string().min(1).max(200),

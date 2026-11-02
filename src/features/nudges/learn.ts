@@ -9,13 +9,12 @@ import { hhmm, localInstant } from '@/lib/time';
 import { inQuietHours } from './domain';
 
 export type Part = 'morning' | 'midday' | 'evening';
-export const PARTS: Part[] = ['morning', 'midday', 'evening'];
 export const PART_TYPE: Record<Part, string> = {
   morning: 'STUDY_MORNING',
   midday: 'STUDY_MIDDAY',
   evening: 'STUDY_EVENING',
 };
-export const PART_WORD: Record<Part, string> = {
+const PART_WORD: Record<Part, string> = {
   morning: 'Morning',
   midday: 'Afternoon',
   evening: 'Evening',
@@ -24,14 +23,14 @@ export const PART_WORD: Record<Part, string> = {
 export const LEARN_EVERY_DAYS = 7;
 export const LEARN_LOOK_BACK = 28;
 /** At least this many lines with a start after them before a time moves. */
-export const LEARN_MIN_LINES = 4;
-export const LEARN_STEP = 15;
+const LEARN_MIN_LINES = 4;
+const LEARN_STEP = 15;
 /** A start counts for a line when it comes within this many minutes either side of it. */
-export const START_WITHIN = 180;
+const START_WITHIN = 180;
 /** "Too many" this many times in a row turns the part off. */
-export const TOO_MANY_IN_ROW = 3;
+const TOO_MANY_IN_ROW = 3;
 /** The windows each part's time stays inside. */
-export const PART_WINDOW: Record<Part, [string, string]> = {
+const PART_WINDOW: Record<Part, [string, string]> = {
   morning: ['06:00', '11:00'],
   midday: ['11:00', '16:00'],
   evening: ['17:00', '22:00'],
