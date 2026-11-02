@@ -16,7 +16,7 @@ import {
 import { isDsa } from '@/lib/categories';
 import { followPractice } from '@/features/roadmap/follow';
 import type { Prisma } from '@/generated/prisma/client';
-export async function ownedProblem(
+async function ownedProblem(
   tx: Prisma.TransactionClient,
   userId: string,
   id: string,

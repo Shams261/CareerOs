@@ -10,8 +10,8 @@ If CLAUDE.md conflicts with the implementation, schema, tests, migrations or an 
 
 ## Current state
 
-- Latest completed work item: **WI-139** (code hardening, 2026-11-02, no migration: stored prep docs and the curriculum bundle read through Zod (`storedPrepDoc`, `readBundle`) instead of casts; four more actions through `runAction`, the rest named in `tests/boundaries.test.ts`; feature pairs that import each other frozen at 13 there (`schedule→today` and `agent→undo` cut: `PLAN_LINES` in `schedule/plan-lines.ts`, `UtilityMenu` in `src/components/`, Rumi's undo action in `undo/actions.ts`); `roadmap/week-items.tsx` split into the list, `item-body.tsx` and `study-hint.tsx`; one `plural` and `hhmm`; no `!` in `agent/requests.ts`; `knip` and a coverage summary in CI as reports). Before it, WI-138 (ops and truth), WI-137 (Tailwind for new UI), WI-135 and WI-136 (four small CSS Modules), WI-120 to WI-134 (the audit's cleanup, 2026-11-02) and WI-099 to WI-119 Rumi 2 and 3 (2026-11-01).
-- Live at https://usesilsila.me since 2026-10-20 (Render + Supabase, ADR-014). Latest migration: `20261106000000_owner_ai_limit` (WI-114).
+- Latest completed work item: **WI-140** (an index and no unused exports, 2026-11-02, migration `20261107000000_time_block_plan_index`: `TimeBlock` gets `@@index([dailyPlanId, plannedStart])` back, which WI-002's migration (`20260923200000_daily_execution`) dropped with the old unique key; knip's 136 unused exports and 28 unused types removed (the `export` keyword, or the code when nothing used it), and `knip` now fails CI on a new one). Before it, WI-139 (code hardening), WI-138 (ops and truth), WI-137 (Tailwind for new UI), WI-135 and WI-136 (four small CSS Modules), WI-120 to WI-134 (the audit's cleanup, 2026-11-02) and WI-099 to WI-119 Rumi 2 and 3 (2026-11-01).
+- Live at https://usesilsila.me since 2026-10-20 (Render + Supabase, ADR-014). Latest migration: `20261107000000_time_block_plan_index` (WI-140).
 - Phase: two weeks of owner UAT of Rumi 2 and 3 with the plan's measures, then the owner's monthly AI limit and hosting choices. Proposed next work items are in `output/Silsila-Full-Audit.pdf` (not committed).
 - History: every work item has an entry in `CHANGELOG.md` (cut into versions); the last ten handoffs are in `docs/`, older ones under the tag (`docs/HISTORY.md`). What each feature does and where it lives: `docs/architecture/features.md`.
 
@@ -174,7 +174,7 @@ State as of 2026-10-20: **Silsila is live at https://usesilsila.me** on a Render
 - Schema: `prisma/schema.prisma`; migrations: `prisma/migrations/`
 - Architecture, features and decisions: `docs/architecture/overview.md`, `docs/architecture/features.md`, `docs/architecture/decisions.md`, `docs/architecture/rumi-2.md`
 - Handbook index: `docs/README.md`; history and the archive tag: `docs/HISTORY.md`; changelog: `CHANGELOG.md`
-- Handoffs: the last ten in `docs/` (latest `docs/WI-139-HANDOFF.md`); the Rumi 2 and 3 plan: `docs/product/rumi2-plan.md`
+- Handoffs: the last ten in `docs/` (latest `docs/WI-140-HANDOFF.md`); the Rumi 2 and 3 plan: `docs/product/rumi2-plan.md`
 - Security: `docs/engineering/security.md`, `SECURITY.md`; operations: `docs/engineering/operations.md`; backups: `docs/engineering/backup-restore.md`
 - Brand and design principles: `docs/product/brand-system.md`
 - Contributing rules: `CONTRIBUTING.md`

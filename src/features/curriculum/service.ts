@@ -9,7 +9,7 @@ import { copyCurriculum } from './copy';
  * The one published bundle (WI-064), or null before the owner publishes it. A stored payload
  * that no longer reads as a bundle counts as none (WI-139), logged by path only.
  */
-export async function publishedBundle() {
+async function publishedBundle() {
   const row = await db().curriculumBundle.findUnique({
     where: { id: 'default' },
   });

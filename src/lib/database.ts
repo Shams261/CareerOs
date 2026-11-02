@@ -2,12 +2,10 @@ import { PrismaPg } from '@prisma/adapter-pg';
 import { pgSslOption, type DatabaseSsl } from './database-ssl';
 
 export {
-  DATABASE_SSL_MODES,
   databaseSslFromEnv,
   parseDatabaseSsl,
   pgSslOption,
   type DatabaseSsl,
-  type DatabaseSslMode,
 } from './database-ssl';
 
 /**
@@ -17,7 +15,7 @@ export {
  * offset PostgreSQL returns. Both conversions are only exact when the session TimeZone is UTC, so the
  * zone is pinned per connection instead of trusting server, OS or provider defaults.
  */
-export const SESSION_TIME_ZONE = 'UTC';
+const SESSION_TIME_ZONE = 'UTC';
 
 /**
  * Adds `-c TimeZone=UTC` to the connection's startup `options`, keeping any existing options
@@ -59,7 +57,7 @@ export function prismaCliConnectionString(
  * hold one of the few pooled connections (WI-121). Migrations run through the Prisma CLI and
  * backups through pg_dump, neither of which uses this pool.
  */
-export const STATEMENT_TIMEOUT_MS = 15000;
+const STATEMENT_TIMEOUT_MS = 15000;
 
 /** One bounded pool per process; `max` keeps hosted PostgreSQL connection limits safe. */
 export const createPgAdapter = (

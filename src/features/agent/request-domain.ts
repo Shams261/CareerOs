@@ -16,7 +16,7 @@ const HHMM = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/);
 export const CONFIDENCE_WORDS = ['shaky', 'okay', 'solid'] as const;
 export const SOLVED_WORDS = ['yes', 'partial', 'no'] as const;
 /** The stages Rumi may name, as the Jobs page names them. */
-export const STAGE_ARGS = [
+const STAGE_ARGS = [
   'SAVED',
   'APPLIED',
   'RECRUITER_SCREEN',
@@ -87,7 +87,7 @@ export type RequestKind = keyof typeof requestArgs;
 // The card words live in text.ts (client-safe); every kind must have them.
 const _cardWords: Record<RequestKind, unknown> = REQUEST_WORDS;
 void _cardWords;
-export const REQUEST_KINDS = Object.keys(requestArgs) as RequestKind[];
+const REQUEST_KINDS = Object.keys(requestArgs) as RequestKind[];
 export const isRequest = (name: string): name is RequestKind =>
   (REQUEST_KINDS as string[]).includes(name);
 /** The arguments of each card that name a record; each must come from a read. */
@@ -129,7 +129,7 @@ export const attemptFits = (
 const undoSchema = z
   .object({ kind: z.string().min(1).max(40), payload: z.unknown() })
   .strict();
-export const requestSchema = z
+const requestSchema = z
   .object({
     id: z.uuid(),
     kind: z.enum(REQUEST_KINDS as [RequestKind, ...RequestKind[]]),

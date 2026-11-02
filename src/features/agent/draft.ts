@@ -36,9 +36,9 @@ import { getPatterns, studyKinds } from './tools';
 import type { Proposal } from './plan-domain';
 
 /** Up to eight blocks a day in the draft (the chat's plans keep six). */
-export const DRAFT_BLOCKS = 8;
+const DRAFT_BLOCKS = 8;
 /** Drafts an owner may ask for in a day. */
-export const DRAFTS_PER_DAY = 3;
+const DRAFTS_PER_DAY = 3;
 const DRAFT_MAX_TOKENS = 2500;
 const HHMM = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/);
 const draftArgs = z

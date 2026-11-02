@@ -2,7 +2,7 @@
 import { useSyncExternalStore } from 'react';
 
 /** Single-key shortcuts (N, S, J, K, D, C…) can be switched off per browser (WCAG 2.1.4). */
-export const SHORTCUTS_KEY = 'silsila-shortcuts';
+const SHORTCUTS_KEY = 'silsila-shortcuts';
 const listeners = new Set<() => void>();
 const read = () => {
   try {

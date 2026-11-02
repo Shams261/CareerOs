@@ -30,7 +30,7 @@ const platform = () =>
   (navigator as unknown as { userAgentData?: { platform?: string } })
     .userAgentData?.platform ?? navigator.platform;
 /** "⌘K" on Apple devices, "Ctrl K" elsewhere; "⌘K" in the server HTML. */
-export const useOpenKey = () =>
+const useOpenKey = () =>
   useSyncExternalStore(
     noop,
     () => openKeyLabel(platform()),

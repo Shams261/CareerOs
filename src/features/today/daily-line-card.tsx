@@ -6,7 +6,7 @@ import { clockLabel, dailyQuote, greeting, type DayPart } from './daily-line';
 import styles from './daily-line.module.css';
 
 /** The daily line can be switched off per browser (Settings → Appearance), like the shortcuts. */
-export const DAILY_LINE_KEY = 'silsila-daily-line';
+const DAILY_LINE_KEY = 'silsila-daily-line';
 const listeners = new Set<() => void>();
 const read = () => {
   try {
@@ -23,7 +23,7 @@ const subscribe = (fn: () => void) => {
     window.removeEventListener('storage', fn);
   };
 };
-export const useDailyLineEnabled = () =>
+const useDailyLineEnabled = () =>
   useSyncExternalStore(subscribe, read, () => true);
 
 export function DailyLineToggle({

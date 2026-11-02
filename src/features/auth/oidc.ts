@@ -7,7 +7,7 @@ import { requestWithRetry, type HttpOptions } from '../calendar/google';
  * so (per OpenID Connect Core 3.1.3.7) TLS authenticates the issuer and the claims below are
  * validated instead of the signature.
  */
-export const LOGIN_SCOPES = 'openid email';
+const LOGIN_SCOPES = 'openid email';
 export type AuthErrorCode =
   | 'state_mismatch'
   | 'state_expired'

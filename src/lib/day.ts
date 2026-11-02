@@ -5,7 +5,7 @@
 const DAY = /^\d{4}-\d{2}-\d{2}$/;
 
 /** A real calendar day written as `YYYY-MM-DD` ("2026-02-30" is not one). */
-export function isDay(value: string) {
+function isDay(value: string) {
   if (!DAY.test(value)) return false;
   const d = new Date(`${value}T12:00:00Z`);
   return !Number.isNaN(d.getTime()) && d.toISOString().slice(0, 10) === value;

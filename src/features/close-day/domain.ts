@@ -110,7 +110,7 @@ export function moveLabel(
 export const closeTarget = (today: string) => shiftDay(today, 1);
 
 /** The submitted close: the day, one line, and a choice per block still left. */
-export const closeDayInput = z.object({
+const closeDayInput = z.object({
   day: dateInput,
   note: z.string().trim().max(NOTE_MAX),
   choices: z.record(z.string(), z.enum(['tomorrow', 'letgo', 'done'])),

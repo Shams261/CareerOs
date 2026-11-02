@@ -59,7 +59,7 @@ export function reach(app: FunnelApp) {
   return furthest < 0 && app.appliedOn ? 0 : furthest;
 }
 
-export type FunnelRow = { monday: string; counts: number[] };
+type FunnelRow = { monday: string; counts: number[] };
 
 /**
  * Per week (Monday labels, newest first) for the last `weeks` weeks, and for all time: how

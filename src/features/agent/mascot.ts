@@ -5,7 +5,7 @@
  * ovals blinks through two eyelids placed over its eyes (`lids`, in percent of the image, in
  * the visor's own colour next to each eye). Covered by tests/agent-mascot.test.ts.
  */
-export type Motion = 'breathe' | 'sway' | 'bob' | 'float' | 'sleep';
+type Motion = 'breathe' | 'sway' | 'bob' | 'float' | 'sleep';
 export type Lid = { x: number; y: number; w: number; h: number; c: string };
 export type PoseInfo = {
   w: number;
@@ -167,7 +167,7 @@ export type Pose = keyof typeof POSES;
  * Bumped whenever a picture changes (WI-115): the files are cached for a year, so a new
  * version in the path is how a changed picture reaches the browser.
  */
-export const MASCOT_VERSION = 1;
+const MASCOT_VERSION = 1;
 /** Where a pose's file is served from. */
 export const poseSrc = (pose: Pose) =>
   `/mascot/${pose}.webp?v=${MASCOT_VERSION}`;

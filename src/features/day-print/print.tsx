@@ -5,7 +5,7 @@ import { HEIGHT, PRINT, WIDTH, type DayPrintModel } from './domain';
 import { SavePrint } from './save';
 
 /** The print itself: an SVG with fixed colours, so a saved copy looks like the card. */
-export function PrintSvg({ model, id }: { model: DayPrintModel; id: string }) {
+function PrintSvg({ model, id }: { model: DayPrintModel; id: string }) {
   return (
     <svg
       id={id}

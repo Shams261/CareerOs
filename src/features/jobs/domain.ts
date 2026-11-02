@@ -58,7 +58,7 @@ export const interviewTypes = [
 /** Whether an AI assistant may be used in a round (WI-047). */
 export const aiPolicies = ['UNKNOWN', 'ALLOWED', 'NOT_ALLOWED'] as const;
 /** Rounds that test engineering skill; the weekly job-search summary counts them. */
-export const technicalRounds: readonly string[] = [
+const technicalRounds: readonly string[] = [
   'CODING',
   'SYSTEM_DESIGN',
   'AI_ASSISTED',
@@ -96,7 +96,7 @@ const optionalDate = z.preprocess(
   (v) => (v === '' || v == null ? undefined : v),
   dateInput.optional(),
 );
-export const requestId = z.uuid();
+const requestId = z.uuid();
 
 export const quickAddInput = z.object({
   requestId,
@@ -409,7 +409,7 @@ export function interviewTime(
     ? local
     : `${local} (${hhmm(r.scheduledStart, r.timezone)} ${r.timezone})`;
 }
-export const lastActivityDays = (last: Date, now: Date, zone: string) =>
+const lastActivityDays = (last: Date, now: Date, zone: string) =>
   daysBetween(dayKey(last, zone), dayKey(now, zone));
 
 /** The schedule block a round creates is named "Company — Round" (Today shows the round). */

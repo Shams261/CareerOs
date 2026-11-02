@@ -55,15 +55,15 @@ export const DEFAULT_NUDGES: NudgeSetting = {
   middayPausedUntil: null,
 };
 /** At most this many block-start nudges in one day, so the coach never nags (WI-039). */
-export const BLOCK_NUDGES_PER_DAY = 1;
+const BLOCK_NUDGES_PER_DAY = 1;
 /** The offsets the Settings form offers after a block's start. */
 export const BLOCK_START_OFFSETS = [5, 10, 15, 20, 30] as const;
 /** The morning nudge is skipped (never sent late) once this window after its time has passed. */
-export const MORNING_WINDOW_MIN = 180;
+const MORNING_WINDOW_MIN = 180;
 /** At least this long between the morning and the evening nudge. */
-export const NUDGE_SPACING_MIN = 240;
+const NUDGE_SPACING_MIN = 240;
 /** The afternoon line is skipped once this window after its time has passed (WI-101). */
-export const MIDDAY_WINDOW_MIN = 120;
+const MIDDAY_WINDOW_MIN = 120;
 /** "Too many" on any line rests the afternoon line for this many days (WI-101). */
 export const MIDDAY_PAUSE_DAYS = 7;
 /** The languages Rumi's lines come in (WI-101; `AgentSetting.lineLanguage`). */
@@ -75,7 +75,7 @@ export type LineLanguage = (typeof LINE_LANGUAGES)[number][0];
 export const readLineLanguage = (value: unknown): LineLanguage =>
   value === 'hinglish' ? 'hinglish' : 'en';
 /** A page seen this recently means Silsila is open: the nudge goes in-app, not to the lock screen. */
-export const ACTIVE_WINDOW_MS = 5 * 60_000;
+const ACTIVE_WINDOW_MS = 5 * 60_000;
 
 export const WEEKDAYS = [
   ['Mon', 1],
@@ -372,9 +372,9 @@ const dayNumber = (day: string) =>
   Math.floor(Date.parse(`${day}T12:00:00Z`) / 86_400_000);
 export const morningLine = (day: string) =>
   MORNING_LINES[dayNumber(day) % MORNING_LINES.length];
-export const eveningLine = (day: string) =>
+const eveningLine = (day: string) =>
   EVENING_LINES[dayNumber(day) % EVENING_LINES.length];
-export const middayLine = (day: string) =>
+const middayLine = (day: string) =>
   MIDDAY_LINES[dayNumber(day) % MIDDAY_LINES.length];
 
 const time = z

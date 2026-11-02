@@ -119,7 +119,7 @@ function askStreaming(
 }
 
 /** The model's text as paragraphs, lists and bold, rendered as text only (`renderText`). */
-export function RumiText({ text }: { text: string }) {
+function RumiText({ text }: { text: string }) {
   return (
     <>
       {renderText(text).map((block, i) => {

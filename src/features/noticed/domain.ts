@@ -9,15 +9,15 @@ import { shiftDay } from '@/lib/day';
 import { categoryGroup } from '@/lib/categories';
 import { BANNED_WORDS } from '@/lib/copy';
 
-export const NOTICED_PER_DAY = 2;
+const NOTICED_PER_DAY = 2;
 /** Days without a kind before it is noticed, and how far back the rules look. */
-export const IDLE_DAYS = 5;
+const IDLE_DAYS = 5;
 export const LOOK_BACK = 28;
 export const INTERVIEW_DAYS = 3;
 /** Weeks a routine slot must be left in a row. */
-export const ROUTINE_WEEKS = 3;
+const ROUTINE_WEEKS = 3;
 /** Days a card stays away after Dismiss, and after its action. */
-export const SNOOZE = { dismissed: 7, acted: 3 } as const;
+const SNOOZE = { dismissed: 7, acted: 3 } as const;
 
 export type NoticedKind =
   | 'interview'
@@ -42,11 +42,11 @@ export type NoticedCard = {
   keepGoing?: boolean;
 };
 /** WI-106: days on one topic, or since a topic was practised, before the coach speaks. */
-export const STUCK_DAYS = 4;
+const STUCK_DAYS = 4;
 /** The window the stuck rule reads (days, today included). */
-export const STUCK_WINDOW = 7;
+const STUCK_WINDOW = 7;
 const RANK = { RED: 0, YELLOW: 1, GREEN: 2 } as const;
-export type Confidence = keyof typeof RANK;
+type Confidence = keyof typeof RANK;
 
 export type NoticedInput = {
   now: Date;

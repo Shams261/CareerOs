@@ -43,8 +43,8 @@ export const INVITE_TOPICS = [
   'behavioural and leadership',
   'past projects',
 ] as const;
-export const INVITE_ROUNDS = 6;
-export const INVITE_TOPIC_MAX = 4;
+const INVITE_ROUNDS = 6;
+const INVITE_TOPIC_MAX = 4;
 
 const DAY = /^\d{4}-\d{2}-\d{2}$/;
 const HHMM = /^([01]\d|2[0-3]):[0-5]\d$/;

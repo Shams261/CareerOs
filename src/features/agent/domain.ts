@@ -30,11 +30,10 @@ export const MAX_ROUNDS = 6;
 /** Stored messages sent with each request (the new one included). */
 export const HISTORY = 12;
 /** The output ceiling of one chat call. */
-export const CHAT_MAX_TOKENS = 1500;
+const CHAT_MAX_TOKENS = 1500;
 export const REPLY_MAX = 12_000;
-export const TITLE_MAX = 60;
+const TITLE_MAX = 60;
 /** "Rumi knows": the caps live in memory-domain.ts since WI-100; re-exported for the forms. */
-export { MEMORY } from './memory-domain';
 import { MEMORY as MEMORY_CAPS } from './memory-domain';
 import { AGENT_NAME, MESSAGE_MAX } from './constants';
 

@@ -11,13 +11,13 @@ const KINDS = [
   { value: 'OTHER', label: 'Other' },
 ] as const;
 /** Lengths a block is planned in (WI-068): half an hour to an hour and a half. */
-export const BLOCK_LENGTHS = [30, 45, 60, 90] as const;
+const BLOCK_LENGTHS = [30, 45, 60, 90] as const;
 
-export const toMinutes = (hhmm: string) => {
+const toMinutes = (hhmm: string) => {
   const [h, m] = hhmm.split(':').map(Number);
   return h * 60 + m;
 };
-export const toClock = (minutes: number) => {
+const toClock = (minutes: number) => {
   const m = Math.min(minutes, 23 * 60 + 59);
   return `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`;
 };

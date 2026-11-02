@@ -165,8 +165,7 @@ const kinds = {
     proposalId: z.string().min(1),
   }),
 } as const;
-export type UndoKind = keyof typeof kinds;
-export type Undo = { kind: UndoKind; payload: unknown; label?: string };
+type UndoKind = keyof typeof kinds;
 
 /**
  * One finished session re-created for the owner, with the attempts and activities recorded

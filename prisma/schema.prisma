@@ -263,6 +263,8 @@ model TimeBlock {
 
   @@unique([routineKey, occurrenceDate])
   @@index([category, plannedStart])
+  /// WI-140: a day's blocks by their plan and start time.
+  @@index([dailyPlanId, plannedStart])
 }
 
 model ActualSession {

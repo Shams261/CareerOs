@@ -35,7 +35,7 @@ const UTC_ALIASES = new Set([
   'ETC/GMT0',
 ]);
 /** Start/end pairs whose ordering must survive a repair. */
-export const INTEGRITY_PAIRS = [
+const INTEGRITY_PAIRS = [
   { table: 'ActualSession', start: 'startedAt', end: 'endedAt' },
   { table: 'TimeBlock', start: 'plannedStart', end: 'plannedEnd' },
   { table: 'InterviewRound', start: 'scheduledStart', end: 'scheduledEnd' },
@@ -81,9 +81,9 @@ async function columnsOfType(client: Client, type: string) {
     ]);
   return [...byTable].map(([table, columns]) => ({ table, columns }));
 }
-export const instantColumns = (c: Client) =>
+const instantColumns = (c: Client) =>
   columnsOfType(c, 'timestamp with time zone');
-export const dateColumns = (c: Client) => columnsOfType(c, 'date');
+const dateColumns = (c: Client) => columnsOfType(c, 'date');
 
 async function ledgerTableExists(client: Client) {
   return (
@@ -162,7 +162,6 @@ async function integrityViolations(client: Client, tables: TableColumns[]) {
   return result;
 }
 
-export type AuditReport = Awaited<ReturnType<typeof auditTimestamps>>;
 /** Read-only. Reports session zones, ledger state, affected-column counts and ID/timestamp samples. */
 export async function auditTimestamps(url: string, legacyZone?: string | null) {
   const raw = await connect(url, false);

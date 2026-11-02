@@ -11,9 +11,9 @@ import type { Sound } from '@/features/execution/focus-domain';
 import { audioContext } from './sound';
 
 /** About −18 dB: a bed under thinking, not a soundtrack. */
-export const AMBIENT_GAIN = 0.12;
+const AMBIENT_GAIN = 0.12;
 /** Each sound at its own level under the gain: brown noise carries more energy than rain. */
-export const LEVEL: Record<Sound, number> = { rain: 2.2, brown: 0.8 };
+const LEVEL: Record<Sound, number> = { rain: 2.2, brown: 0.8 };
 const FADE = 1.2;
 const SECONDS = 10;
 /** Samples blended across the loop point, so the buffer repeats without a click. */

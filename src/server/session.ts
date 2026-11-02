@@ -54,9 +54,9 @@ export async function createSession(
  * `forgetAll`) drop them, and expiry, revocation and the owner allowlist are checked on every
  * hit. Off under test, like the snapshots, so database tests stay exact.
  */
-export const SESSION_CACHE_MS = 60_000;
+const SESSION_CACHE_MS = 60_000;
 /** One owner signs in on a handful of devices; the cap only bounds memory. */
-export const SESSION_CACHE_MAX = 50;
+const SESSION_CACHE_MAX = 50;
 type Resolved = Awaited<ReturnType<typeof loadSession>>;
 // On globalThis: the middleware is a separate bundle in the same process, and a sign-out
 // must clear the copy it reads too.
@@ -65,7 +65,7 @@ const sessions = ((
     silsilaSessions?: Map<string, { value: Resolved; until: number }>;
   }
 ).silsilaSessions ??= new Map());
-export const forgetSessions = () => sessions.clear();
+const forgetSessions = () => sessions.clear();
 onForget(forgetSessions);
 const loadSession = (tokenHash: string) =>
   db().session.findUnique({ where: { tokenHash }, include: { user: true } });

@@ -11,7 +11,7 @@ import { readFileSync } from 'node:fs';
  * - `verify-full`: encrypted and verified, optionally against the CA bundle in `DATABASE_SSL_CA`.
  */
 export const DATABASE_SSL_MODES = ['off', 'no-verify', 'verify-full'] as const;
-export type DatabaseSslMode = (typeof DATABASE_SSL_MODES)[number];
+type DatabaseSslMode = (typeof DATABASE_SSL_MODES)[number];
 export type DatabaseSsl = { mode: DatabaseSslMode; caFile?: string };
 
 export function parseDatabaseSsl(

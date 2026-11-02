@@ -4,7 +4,7 @@
  */
 import { AGENT_NAME } from './constants';
 
-export type Span = { text: string; bold: boolean };
+type Span = { text: string; bold: boolean };
 export type TextBlock =
   { type: 'p'; spans: Span[] } | { type: 'ul' | 'ol'; items: Span[][] };
 /** `**bold**` only; backticks and stray markers become plain text. */

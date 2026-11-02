@@ -1,7 +1,7 @@
 import type { CalendarConfig } from '../../lib/env';
 
 /** The subset of Google Calendar v3 used by Silsila (ADR-010). */
-export type GoogleDateTime = {
+type GoogleDateTime = {
   dateTime?: string;
   date?: string;
   timeZone?: string;
@@ -89,7 +89,7 @@ export interface OAuthApi {
 /** Only the calendars this app creates, plus the account email for display. */
 export const CALENDAR_SCOPE =
   'https://www.googleapis.com/auth/calendar.app.created';
-export const OAUTH_SCOPES = ['openid', 'email', CALENDAR_SCOPE];
+const OAUTH_SCOPES = ['openid', 'email', CALENDAR_SCOPE];
 
 const TRANSIENT_403 = new Set(['rateLimitExceeded', 'userRateLimitExceeded']);
 export function classify(status: number, reason?: string): GoogleErrorKind {
@@ -104,8 +104,8 @@ export function classify(status: number, reason?: string): GoogleErrorKind {
   return 'invalid';
 }
 
-export type Sleep = (ms: number) => Promise<void>;
-export const realSleep: Sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+type Sleep = (ms: number) => Promise<void>;
+const realSleep: Sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 export type HttpOptions = {
   fetch?: typeof fetch;
   sleep?: Sleep;
@@ -113,7 +113,7 @@ export type HttpOptions = {
   /** Per attempt: a hung socket must not hold the sync lease or the cron request (WI-121). */
   timeoutMs?: number;
 };
-export const GOOGLE_TIMEOUT_MS = 10000;
+const GOOGLE_TIMEOUT_MS = 10000;
 
 async function reasonOf(res: Response) {
   try {

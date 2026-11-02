@@ -17,7 +17,7 @@ import {
   weekStart,
 } from './domain';
 import { isTechnical } from '@/lib/categories';
-export async function ownedSubject(
+async function ownedSubject(
   tx: Prisma.TransactionClient,
   userId: string,
   id: string,
@@ -26,7 +26,7 @@ export async function ownedSubject(
   if (!s) throw new Error('Subject not found in your workspace.');
   return s;
 }
-export async function ownedTopic(
+async function ownedTopic(
   tx: Prisma.TransactionClient,
   userId: string,
   id: string,

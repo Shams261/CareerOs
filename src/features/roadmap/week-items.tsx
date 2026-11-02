@@ -13,7 +13,7 @@ import {
 import { OPEN_ITEM_EVENT } from './events';
 import { ItemBody } from './item-body';
 
-export type RowLinks = {
+type RowLinks = {
   learningTopic: { id: string; title: string; subject: string } | null;
   dsaProblem: {
     id: string;

@@ -9,7 +9,7 @@ export type TraceKind =
   'two-pointers' | 'sliding-window' | 'binary-search' | 'monotonic-stack';
 export const MAX_INPUT = 12;
 
-export type Step = {
+type Step = {
   /** Named positions to mark on the cells ("L", "R", "i", "mid"). */
   marks: Record<string, number>;
   /** Cells inside the current window or range. */

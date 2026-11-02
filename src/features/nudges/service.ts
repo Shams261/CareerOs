@@ -68,7 +68,7 @@ export const nudgeSetting = (row: Row | null | undefined): NudgeSetting =>
 
 /** The three lines of a day (WI-101 adds the afternoon one). */
 export type LineType = 'STUDY_MORNING' | 'STUDY_MIDDAY' | 'STUDY_EVENING';
-export const LINE_TYPES: LineType[] = [
+const LINE_TYPES: LineType[] = [
   'STUDY_MORNING',
   'STUDY_MIDDAY',
   'STUDY_EVENING',
@@ -78,7 +78,7 @@ export const nudgeKey = (userId: string, type: LineType, day: string) =>
 const lineKeys = (userId: string, day: string) =>
   LINE_TYPES.map((t) => nudgeKey(userId, t, day));
 /** One block-start nudge per block and day (WI-039). */
-export const blockNudgeKey = (userId: string, blockId: string, day: string) =>
+const blockNudgeKey = (userId: string, blockId: string, day: string) =>
   reminderKey(userId, 'STUDY_BLOCK', blockId, day);
 /** Every block-start nudge of one owner-day, for counting and closing. */
 const blockNudgesOf = (userId: string, day: string) => ({

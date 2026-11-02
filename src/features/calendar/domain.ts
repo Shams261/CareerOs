@@ -11,7 +11,7 @@ export const PROP = {
   block: 'careerosTimeBlockId',
   version: 'careerosSchemaVersion',
 } as const;
-export const SCHEMA_VERSION = '1';
+const SCHEMA_VERSION = '1';
 /** Outbound window: recent history plus the planning horizon, never a lifetime backfill. */
 export const SYNC_WINDOW = { pastDays: 30, futureDays: 90 };
 /**

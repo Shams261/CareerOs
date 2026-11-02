@@ -22,7 +22,7 @@ const store = (shared.silsilaSnapshots ??= new Map());
  * against time passing (a due date turning overdue). Three minutes since WI-061: most visits
  * now read a warm snapshot, which measured 2–3× faster than a cold one.
  */
-export const SNAPSHOT_TTL_MS = 180_000;
+const SNAPSHOT_TTL_MS = 180_000;
 /** SNAPSHOT_CACHE=off disables it anywhere; =on enables it under test. */
 export const cacheEnabled = () =>
   process.env.SNAPSHOT_CACHE === 'on' ||

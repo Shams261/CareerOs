@@ -28,7 +28,6 @@ import {
   rumiStateOf,
 } from './line-domain';
 import type { LinePart } from '@/features/agent/text';
-export { rumiStateOf, type RumiState } from './line-domain';
 import { isActive, memoryLines } from './memory-domain';
 import { agentSetting, memoryRows } from './memory-service';
 import { runTool } from './tools';
@@ -40,7 +39,7 @@ const WORDS: CallWords = {
   log: '[agent] line',
 };
 /** The part of the day a row is, from its type. */
-export const partOf = (type: string): LinePart | null =>
+const partOf = (type: string): LinePart | null =>
   type === 'STUDY_MORNING'
     ? 'morning'
     : type === 'STUDY_MIDDAY'

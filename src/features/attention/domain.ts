@@ -8,7 +8,7 @@ import { confidenceWord, type ConfidenceValue } from '@/features/dsa/words';
 import type { Attention } from '@/features/jobs/domain';
 import { plural } from '@/lib/copy';
 
-export type AttentionSource =
+type AttentionSource =
   'interview-prep' | 'job' | 'practice' | 'roadmap' | 'notification' | 'weekly';
 export type AttentionItem = {
   id: string;
@@ -28,7 +28,7 @@ export type AttentionItem = {
   notificationIds: string[];
 };
 
-export const dateLabel = (d: Date) => d.toISOString().slice(0, 10);
+const dateLabel = (d: Date) => d.toISOString().slice(0, 10);
 const daysBetween = (from: string, to: string) =>
   Math.round(
     (+new Date(`${to}T12:00:00Z`) - +new Date(`${from}T12:00:00Z`)) / 86400000,
@@ -280,7 +280,7 @@ export function revisionDeckRow(
   };
 }
 /** More rows of one revision source than this fold into one row on Today (WI-058). */
-export const FOLD_REVISIONS = 2;
+const FOLD_REVISIONS = 2;
 /**
  * Today keeps revision rows short: more than `FOLD_REVISIONS` from one source become one row,
  * "6 roadmap items due for revision · Oldest overdue by 3 days", linked to the place that

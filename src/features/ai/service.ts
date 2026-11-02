@@ -114,7 +114,7 @@ async function getJson(url: string, fetcher: Fetcher) {
   return res.json();
 }
 /** Runs the ADR-022 check against OpenRouter's public lists (no key is sent). */
-export async function checkProvider(cfg: AiConfig, fetcher: Fetcher = fetch) {
+async function checkProvider(cfg: AiConfig, fetcher: Fetcher = fetch) {
   try {
     const [endpoints, zdr] = await Promise.all([
       getJson(`${cfg.baseUrl}/models/${MODEL}/endpoints`, fetcher),
@@ -219,7 +219,7 @@ export async function ready(
 }
 
 /** What OpenRouter answers: the parts Silsila reads. */
-export type ModelAnswer = {
+type ModelAnswer = {
   provider?: unknown;
   usage?: unknown;
   choices?: {

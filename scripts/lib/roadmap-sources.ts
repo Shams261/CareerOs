@@ -77,7 +77,7 @@ export function singleQuotedStrings(literal: string) {
 }
 
 /** A backtick string literal → its text (template literals in the trackers hold no `${}`). */
-export const templateText = (literal: string) =>
+const templateText = (literal: string) =>
   literal.startsWith('`') ? literal.slice(1, -1) : JSON.parse(literal);
 
 /** `[{id:'a',name:'b',intro:'c'}, …]` or `[['a','b','c'], …]` → scenarios. */
@@ -209,7 +209,7 @@ const SD_CHECKPOINT: Record<string, string> = {
     'Can say what the interview assesses and how the course is organised.',
 };
 
-export const SD_PROMPT_TEMPLATE = `SYSTEM DESIGN — HELLO INTERVIEW
+const SD_PROMPT_TEMPLATE = `SYSTEM DESIGN — HELLO INTERVIEW
 Course: https://www.hellointerview.com/learn/courses/system-design
 Section: {{section}}
 Selected lesson: {{topic}}
@@ -505,13 +505,13 @@ export function parsePatternBook(text: string): BookChapter[] {
 
 /* ---------------------------------------------------------------- behavioural handbook (pdftotext) */
 
-export type HandbookStory = {
+type HandbookStory = {
   code: string;
   competencies: string;
   title: string;
   body: string;
 };
-export type HandbookPart = { number: string; title: string; body: string };
+type HandbookPart = { number: string; title: string; body: string };
 export type Handbook = {
   stories: HandbookStory[];
   parts: HandbookPart[];
