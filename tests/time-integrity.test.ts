@@ -107,6 +107,11 @@ describe.skipIf(!url)('database time integrity (ADR-009)', () => {
       const app = prisma(db);
       const [tz] = await app.$queryRaw<{ TimeZone: string }[]>`SHOW TimeZone`;
       expect(tz.TimeZone).toBe('UTC');
+      // WI-121: the app's pool cancels a statement after 15 seconds.
+      const [limit] = await app.$queryRaw<
+        { statement_timeout: string }[]
+      >`SHOW statement_timeout`;
+      expect(limit.statement_timeout).toBe('15s');
       await app.$executeRaw`INSERT INTO probe VALUES (1, ${JAN}), (2, ${JUL})`;
       // Independent unpinned reader, in the server's own zone, sees exact instants.
       expect(

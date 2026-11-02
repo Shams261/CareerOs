@@ -17,7 +17,7 @@ import {
   contentSecurityPolicy,
   staticSecurityHeaders,
 } from '../src/server/security';
-import { rateLimit } from '../src/server/rate-limit';
+import { clientIp, rateLimit } from '../src/server/rate-limit';
 import {
   classifyPushStatus,
   notificationPath,
@@ -208,6 +208,20 @@ describe('security headers and rate limiting', () => {
     expect(rateLimit('k', 3, 60000, t + 1)).toBe(false);
     expect(rateLimit('other', 3, 60000, t + 1)).toBe(true);
     expect(rateLimit('k', 3, 60000, t + 60000)).toBe(true);
+  });
+  it('keys limits by the address Cloudflare sets, not a client-written forwarded list', () => {
+    expect(
+      clientIp(
+        new Headers({
+          'cf-connecting-ip': '203.0.113.7',
+          'x-forwarded-for': '198.51.100.1, 203.0.113.7',
+        }),
+      ),
+    ).toBe('203.0.113.7');
+    expect(
+      clientIp(new Headers({ 'x-forwarded-for': '198.51.100.1, 10.0.0.1' })),
+    ).toBe('198.51.100.1');
+    expect(clientIp(new Headers())).toBe('local');
   });
 });
 

@@ -21,7 +21,13 @@ export function rateLimit(
   w.count++;
   return w.count <= limit;
 }
+/**
+ * The client's address for the limits above. Production sits behind Cloudflare (Render's edge),
+ * which sets `cf-connecting-ip` itself and overwrites any value a client sends; the leftmost
+ * `x-forwarded-for` entry is client-controlled there, so it is only the fallback (WI-121).
+ */
 export const clientIp = (headers: Headers) =>
+  headers.get('cf-connecting-ip')?.trim() ||
   headers.get('x-forwarded-for')?.split(',')[0].trim() ||
   headers.get('x-real-ip') ||
   'local';

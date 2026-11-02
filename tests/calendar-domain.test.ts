@@ -269,6 +269,25 @@ describe('Google HTTP client', () => {
     expect(f).toHaveBeenCalledTimes(4);
     expect(sleep).toHaveBeenCalledWith(2000);
   });
+  it('gives each attempt a timeout, so a hung request is retried and then refused', async () => {
+    const hang = vi.fn(
+      (_url: string, init?: RequestInit) =>
+        new Promise<Response>((_resolve, reject) =>
+          init?.signal?.addEventListener('abort', () =>
+            reject(init.signal?.reason),
+          ),
+        ),
+    );
+    await expect(
+      requestWithRetry(
+        'https://x',
+        {},
+        { fetch: hang as typeof fetch, sleep, maxAttempts: 2, timeoutMs: 20 },
+      ),
+    ).rejects.toMatchObject({ kind: 'transient' });
+    expect(hang).toHaveBeenCalledTimes(2);
+    expect(hang.mock.calls[0][1]?.signal).toBeInstanceOf(AbortSignal);
+  });
   it('does not retry permanent errors and gives up after bounded attempts', async () => {
     const once = (status: number, body: unknown) =>
       vi.fn().mockResolvedValue(json(status, body));

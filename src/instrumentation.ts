@@ -20,6 +20,15 @@ export async function register() {
   await verifyDatabaseTime().catch((error: unknown) => {
     if (error instanceof Error && error.message.includes('must use UTC'))
       throw error;
-    console.warn('[careeros] Database time check skipped:', error);
+    // The error's name and code only: a connection error can carry host and user names.
+    const code =
+      error && typeof error === 'object' && 'code' in error
+        ? String((error as { code: unknown }).code)
+        : '';
+    console.warn(
+      '[careeros] Database time check skipped:',
+      error instanceof Error ? error.name : 'Error',
+      code,
+    );
   });
 }

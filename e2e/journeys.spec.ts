@@ -446,8 +446,11 @@ test('the weekly review walks its three steps and closes the week', async ({
   await page.getByRole('button', { name: 'Complete review' }).click();
   await expect(page.locator('.today-summary')).toContainText('Completed');
   await expect(page.locator('.close-week')).toContainText('Review completed');
-  // The review looks back: no link past this week.
-  await expect(page.getByRole('link', { name: 'Later week' })).toHaveCount(0);
+  // The review looks back: no link past this week. On a Monday it opens last week while that
+  // review is open (WI-013), so › leads to this week once, and no further.
+  const later = page.getByRole('link', { name: 'Later week' });
+  if (await later.count()) await later.click();
+  await expect(later).toHaveCount(0);
   await expect(page.getByRole('link', { name: 'Earlier week' })).toBeVisible();
   await page.goto('/review?step=details');
   await expect(

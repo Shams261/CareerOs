@@ -54,15 +54,23 @@ export function prismaCliConnectionString(
   return url.toString();
 }
 
+/**
+ * A statement that runs longer than this is cancelled by PostgreSQL, so a runaway query cannot
+ * hold one of the few pooled connections (WI-121). Migrations run through the Prisma CLI and
+ * backups through pg_dump, neither of which uses this pool.
+ */
+export const STATEMENT_TIMEOUT_MS = 15000;
+
 /** One bounded pool per process; `max` keeps hosted PostgreSQL connection limits safe. */
 export const createPgAdapter = (
   connectionString: string,
-  pool: { max?: number; ssl?: DatabaseSsl } = {},
+  pool: { max?: number; ssl?: DatabaseSsl; statementTimeoutMs?: number } = {},
 ) =>
   new PrismaPg({
     connectionString: utcConnectionString(connectionString),
     max: pool.max ?? 5,
     idleTimeoutMillis: 30000,
+    statement_timeout: pool.statementTimeoutMs ?? STATEMENT_TIMEOUT_MS,
     ssl: pgSslOption(pool.ssl ?? { mode: 'off' }),
   });
 
