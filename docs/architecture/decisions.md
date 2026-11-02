@@ -397,6 +397,21 @@ Attention is derived, not stored: overdue follow-up, result needed, interview be
 
 **Amendment (WI-114, 2026-11-01, the owner's decision):** the monthly limit is the owner's own setting, not a number in code. `AiSetting.monthlyLimitMicros` holds it (US$0.10 to US$1000, checked by the database); null, the default, means Silsila sets no limit and the OpenRouter key's own limit, which the owner sets at OpenRouter, is the only ceiling. Settings → AI and Grill Me offers No limit, US$5, US$10, US$20 or any amount. The limit only stops new calls for the rest of the month: no feature, prompt, answer or plan depends on the number. Background calls (Rumi's lines, memory notes) still stop at 90 % of a set limit so the owner's own questions keep the rest. The design keeps using as little as it can: one pinned small model, code-built reads, per-feature daily counts.
 
+**Amendment (WI-143, 2026-11-02): prompt caching.** Rumi's chat requests mark two cache breakpoints, as `cache_control` on content blocks:
+
+- the first system message, which caches the tools and the system prompt;
+- the owner's latest question, which caches the conversation so far.
+
+Every round of one answer (up to six calls) then reads the shared prefix back at a tenth of the input price. So does the next message within five minutes. The 5-minute default TTL applies, and Haiku 5.5 caches from 512 tokens.
+
+The clock moved from the system prompt to a bracket on the latest question, so the prompt is the same all day.
+
+Caching is message content, not a request parameter: `require_parameters`, the pinned endpoint, `zdr: true` and the provider check are unchanged. OpenRouter treats a provider's in-memory prompt cache as no retention and allows it under ZDR routing.
+
+The ledger keeps reading OpenRouter's reported `cost`, which already carries the discount. The `[agent] chat made` line now counts `cached` input tokens, so the saving can be measured.
+
+The other model calls (Grill Me, Listen, lines, memory, prep, summaries) are single calls and stay unmarked. Answers themselves are never cached: they are read from the owner's live records.
+
 ## ADR-023 — Listen: scripts written only from fetched, cross-checked sources
 
 **Status:** Accepted (2026-10-26). The owner chose the grounded script and asked for official and non-official sources, cross-checked so that quality and legitimacy hold. WI-037 builds on it.
@@ -649,6 +664,18 @@ The owner's decisions (2026-10-26) and the R5 spike (2026-10-27, `scripts/r5-spi
 - The first AI-written text the owner reads without asking is bounded by a fixed schedule, a fixed fallback and a code check; the first AI-made write is bounded by a class, a cap and an Undo.
 
 **Amendment (WI-142, 2026-11-02, the owner's choice): Talk.** Besides push-to-talk, the composer offers Talk, started by the owner's tap. Each turn listens until a two-second pause. It shows what was heard for two more seconds, with Edit and Send now, and then sends it with no press. The answer is read aloud whatever the "read replies" setting says, and it listens again. Stop, Edit, a failure or a turn with nothing heard ends it. The consent and its recipients are unchanged. Still no wake word, no open microphone between turns and no audio kept. A message keeps only that it came by voice.
+
+**Amendment (WI-143, 2026-11-02, the owner's choice): a conversation, not only a coach.** The owner asked that Rumi talk like any assistant. The chat prompt keeps the coach's steadiness for the owner's plans and progress, and adds a study partner:
+
+- concepts, interview questions, system design, code and decisions are answered fully, with examples, discussion and a question back;
+- the length matches the question;
+- the reply ceiling rises from 1,500 to 3,000 tokens;
+- "say where in Silsila" is kept only for changes Rumi cannot make;
+- a message sent by voice is marked "spoken", and the answer stays short and list-free unless detail is asked for.
+
+Talk ends a turn after 1.5 s of silence instead of 2 s. The reply is read by the best voice on the device: the exact language first, then a Premium, Enhanced, Natural or Neural one. It is never a network voice when a local one exists, so the words stay on the device.
+
+Persona, banned words, the never-read fields, the write classes and the model are unchanged. A longer history and a larger model stay for after UAT.
 
 ## ADR-031 — Rumi plans the next seven days; a card for next week prepares it
 

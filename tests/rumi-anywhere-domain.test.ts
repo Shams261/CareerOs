@@ -78,7 +78,6 @@ describe('WI-060 rules', () => {
     const base = {
       today: '2026-10-28',
       weekday: 'Wednesday',
-      time: '09:00',
       zone: 'America/Toronto',
       memory: [],
       planUntil: '2026-11-01',

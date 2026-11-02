@@ -288,6 +288,7 @@ export function costMicros(usage: unknown) {
     prompt_tokens?: unknown;
     completion_tokens?: unknown;
     cost?: unknown;
+    prompt_tokens_details?: { cached_tokens?: unknown } | null;
   };
   const input = Number.isFinite(u.prompt_tokens) ? Number(u.prompt_tokens) : 0;
   const output = Number.isFinite(u.completion_tokens)
@@ -296,7 +297,10 @@ export function costMicros(usage: unknown) {
   const fromTokens = Math.ceil(input * PRICE.input + output * PRICE.output);
   const reported =
     typeof u.cost === 'number' && u.cost >= 0 ? Math.ceil(u.cost * 1e6) : null;
-  return { input, output, micros: reported ?? fromTokens };
+  // WI-143: input tokens read from the prompt cache, billed at a tenth (in `cost` already).
+  const hit = u.prompt_tokens_details?.cached_tokens;
+  const cached = Number.isFinite(hit) ? Number(hit) : 0;
+  return { input, output, cached, micros: reported ?? fromTokens };
 }
 
 /** The owner's calendar month as instants, and the day the cap resets. */

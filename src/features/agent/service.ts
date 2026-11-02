@@ -29,6 +29,7 @@ import {
   conversationTitle,
   HISTORY,
   historyWindow,
+  withClock,
   MAX_ROUNDS,
   memoryInput,
   messageInput,
@@ -285,7 +286,6 @@ export async function sendMessage(
       content: systemPrompt({
         today: dayKey(now, user.timezone),
         weekday: formatInTimeZone(now, user.timezone, 'EEEE'),
-        time: hhmm(now, user.timezone),
         zone: user.timezone,
         memory,
         style,
@@ -301,7 +301,12 @@ export async function sendMessage(
           : null,
       }),
     },
-    ...historyWindow(history),
+    // The clock and "spoken" ride on the latest question (WI-143), so the prompt caches.
+    ...withClock(
+      historyWindow(history),
+      hhmm(now, user.timezone),
+      !!input.voice,
+    ),
   ];
   const started = Date.now();
   // Stored after the question even when the test clock (`now`) is ahead of the real one.
@@ -328,6 +333,7 @@ export async function sendMessage(
   const proposals: Proposal[] = [];
   const suggestions: Suggestion[] = [];
   let spent = 0;
+  let cached = 0;
   let reply: string | null = null;
   for (let round = 1; round <= MAX_ROUNDS && reply === null; round++) {
     const final = round === MAX_ROUNDS;
@@ -343,6 +349,7 @@ export async function sendMessage(
       onStream: input.onStream,
     });
     spent += cost.micros;
+    cached += cost.cached;
     const message = answer.choices?.[0]?.message;
     const calls = Array.isArray(message?.tool_calls)
       ? (message.tool_calls as ToolCall[])
@@ -449,7 +456,7 @@ export async function sendMessage(
     else break;
   }
   console.info(
-    `[agent] chat made ${JSON.stringify({ model: MODEL, provider: ENDPOINT, tools: used.length, micros: spent })}`,
+    `[agent] chat made ${JSON.stringify({ model: MODEL, provider: ENDPOINT, tools: used.length, micros: spent, cached })}`,
   );
   if (reply === null) {
     console.error('[agent] chat failed NoAnswer');

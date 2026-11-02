@@ -235,7 +235,12 @@ describe.skipIf(!url)('Rumi knows (WI-100, PostgreSQL)', () => {
     const r = fakeRouter(['Noted.'], { memories: [] });
     await sendMessage(user, { text: 'hi' }, later, r.fetcher);
     const chat = r.chatCalls()[0];
-    const system = (chat.messages as { content: string }[])[0].content;
+    // WI-143: the system prompt goes as a cached block.
+    const first = (
+      chat.messages as { content: string | { text: string }[] }[]
+    )[0].content;
+    const system =
+      typeof first === 'string' ? first : first.map((p) => p.text).join('');
     expect(system).toMatch(/one or two sentences/i);
     expect(system).toMatch(
       /- Situation \(until 2026-11-30\): Northwind review on Wednesday/,
