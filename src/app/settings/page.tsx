@@ -68,7 +68,7 @@ import { readVoiceLang, VOICE_LANGS } from '@/features/agent/voice-domain';
 
 const voiceLangName = (code: string) =>
   VOICE_LANGS.find(([c]) => c === code)?.[1] ?? 'English (India)';
-import { AGENT_NAME } from '@/features/agent/domain';
+import { AGENT_NAME } from '@/features/agent/constants';
 import { ThemeSwitch } from '@/features/settings/theme-switch';
 import { TextSizeSwitch } from '@/features/settings/text-size-switch';
 import { textSizeLabel } from '@/lib/theme';

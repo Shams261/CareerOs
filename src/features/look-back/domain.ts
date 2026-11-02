@@ -5,9 +5,9 @@
  * covered by tests/look-back.test.ts.
  */
 import { formatInTimeZone } from 'date-fns-tz';
-import { shiftDay } from '@/features/schedule/domain';
+import { shiftDay } from '@/lib/day';
 import { formatDuration } from '@/features/schedule/row';
-import { categoryGroup } from '@/features/review/domain';
+import { categoryGroup } from '@/lib/categories';
 import { layoutRings, colourOf } from '@/features/day-print/domain';
 import { dayKey, minutes } from '@/lib/time';
 

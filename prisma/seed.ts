@@ -7,7 +7,8 @@ import { createPgAdapter } from '../src/lib/database';
 import { markRevised, startLadder } from '../src/features/dsa/domain';
 import { dayKey, localInstant } from '../src/lib/time';
 import { resourceUrl } from '../src/lib/validation';
-import { routineOccurrence, shiftDay } from '../src/features/schedule/domain';
+import { routineOccurrence } from '../src/features/schedule/domain';
+import { shiftDay } from '../src/lib/day';
 const prisma = new PrismaClient({
   adapter: createPgAdapter(process.env.DATABASE_URL!),
 });

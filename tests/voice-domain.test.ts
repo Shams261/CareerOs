@@ -3,11 +3,13 @@ import {
   dictationError,
   readVoiceLang,
   speakableLines,
-  voiceInput,
   voiceMeta,
-  voiceSettingsInput,
   VOICE_LANGS,
 } from '../src/features/agent/voice-domain';
+import {
+  voiceInput,
+  voiceSettingsInput,
+} from '../src/features/agent/voice-schema';
 import { staticSecurityHeaders } from '../src/server/security';
 
 describe('voice (WI-104)', () => {

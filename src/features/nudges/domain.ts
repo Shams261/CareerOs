@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { categoryGroup } from '@/features/review/domain';
+
 import { dayKey, hhmm, localInstant } from '@/lib/time';
 
 /**
@@ -102,16 +102,6 @@ export function inQuietHours(local: string, start: string, end: string) {
     e = minutesOf(end);
   if (s === e) return false;
   return s < e ? m >= s && m < e : m >= s || m < e;
-}
-const key = (c: string) =>
-  c
-    .trim()
-    .toUpperCase()
-    .replace(/[\s-]+/g, '_');
-/** A block or session counts as study when its category (or its group) is chosen. */
-export function isStudyCategory(category: string, chosen: string[]) {
-  const wanted = new Set(chosen.map(key));
-  return wanted.has(key(category)) || wanted.has(key(categoryGroup(category)));
 }
 
 export type NudgeDay = {
@@ -386,19 +376,6 @@ export const eveningLine = (day: string) =>
   EVENING_LINES[dayNumber(day) % EVENING_LINES.length];
 export const middayLine = (day: string) =>
   MIDDAY_LINES[dayNumber(day) % MIDDAY_LINES.length];
-/** Words that never appear in nudge copy (tested). */
-export const BANNED_WORDS = [
-  'missed',
-  'failed',
-  "didn't",
-  'didn’t',
-  'streak',
-  "don't break",
-  'don’t break',
-  // Reminder copy says what is true now, not what was not done (WI-049).
-  "haven't",
-  'haven’t',
-];
 
 const time = z
   .string()
@@ -447,7 +424,6 @@ export const nudgeInput = z
       path: ['morningTime'],
     },
   );
-export type NudgeInput = z.infer<typeof nudgeInput>;
 
 /** "Mornings 08:00 · Block start +15 min · Check-in from 19:30 · Weekdays" for the Settings row. */
 export function nudgeContext(s: NudgeSetting | null) {

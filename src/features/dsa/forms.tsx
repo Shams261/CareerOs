@@ -4,7 +4,7 @@ import { FormMore } from '@/components/form-more';
 import { closePanel } from '@/components/side-panel';
 import { topicAction, problemAction, revisionAction } from './actions';
 import type { DsaTopic, DsaProblem } from '@/generated/prisma/client';
-import type { ActionState } from '@/features/schedule/actions';
+import type { ActionState } from '@/lib/action-state';
 import { Button } from '@/components/ui/button';
 /** `compact` is the first-run form: a name, saved as the current topic. */
 export function TopicForm({

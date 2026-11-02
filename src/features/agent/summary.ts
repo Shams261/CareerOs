@@ -10,8 +10,8 @@ import { formatInTimeZone } from 'date-fns-tz';
 import { db } from '@/server/db';
 import { aiConfig } from '@/lib/env';
 import { dayKey, shortDate } from '@/lib/time';
-import { shiftDay } from '@/features/schedule/domain';
-import type { ScheduleUser } from '@/features/schedule/service';
+import { shiftDay } from '@/lib/day';
+import type { ScheduleUser } from '@/server/lock';
 import {
   AiRefusal,
   ask,
@@ -19,8 +19,10 @@ import {
   type CallWords,
   type Fetcher,
 } from '@/features/ai/service';
-import { BANNED_WORDS, readLineLanguage } from '@/features/nudges/domain';
-import { AGENT_NAME, PERSONA, readStyle, STYLE_LINES } from './domain';
+import { readLineLanguage } from '@/features/nudges/domain';
+import { BANNED_WORDS } from '@/lib/copy';
+import { PERSONA, readStyle, STYLE_LINES } from './domain';
+import { AGENT_NAME } from '@/features/agent/constants';
 import { LINE_FORMAT, readLine, readText, SHAMING_WORDS } from './line-domain';
 import { agentSetting } from './memory-service';
 import { runTool } from './tools';

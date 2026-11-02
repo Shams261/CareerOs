@@ -1,13 +1,23 @@
 import { addDays, differenceInMinutes } from 'date-fns';
 import { formatInTimeZone, fromZonedTime } from 'date-fns-tz';
-import { z } from 'zod';
-import { localTime, timezone } from './validation';
+import { checkDay } from './day';
+/** "08:00" … "23:59". No Zod here: client code imports this module (WI-123). */
+export const isLocalTime = (value: string) =>
+  /^([01]\d|2[0-3]):[0-5]\d$/.test(value);
+export function isTimeZone(value: string) {
+  try {
+    new Intl.DateTimeFormat('en', { timeZone: value });
+    return true;
+  } catch {
+    return false;
+  }
+}
 export const dayKey = (date: Date, zone: string) =>
   formatInTimeZone(date, zone, 'yyyy-MM-dd');
 export function localInstant(day: string, time: string, zone: string) {
-  z.iso.date().parse(day);
-  localTime.parse(time);
-  timezone.parse(zone);
+  checkDay(day);
+  if (!isLocalTime(time)) throw new Error('Enter a time as HH:MM.');
+  if (!isTimeZone(zone)) throw new Error('Use a valid IANA timezone');
   const result = fromZonedTime(`${day}T${time}:00`, zone);
   if (formatInTimeZone(result, zone, 'yyyy-MM-dd HH:mm') !== `${day} ${time}`)
     throw new Error('This local time does not exist during the DST transition');

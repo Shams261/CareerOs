@@ -26,15 +26,12 @@ import {
   type VoiceState,
 } from './voice';
 import { voiceMeta, type VoiceMeta } from './voice-domain';
-import { WRITE_WORDS, isWrite, type WriteAction } from './write-domain';
+import type { WriteAction } from './write-domain';
+import { WRITE_WORDS, isWrite } from '@/features/agent/text';
 import type { Kept, Proposal, Suggestion } from './plan-domain';
-import {
-  AGENT_NAME,
-  MESSAGE_MAX,
-  readingLine,
-  readLine,
-  renderText,
-} from './domain';
+import { MESSAGE_MAX } from '@/features/agent/constants';
+import { readingLine, readLine, renderText } from '@/features/agent/text';
+import { AGENT_NAME } from '@/features/agent/constants';
 import { RumiMark } from './mark';
 
 type Message = {

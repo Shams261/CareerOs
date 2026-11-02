@@ -6,8 +6,8 @@ import 'server-only';
  */
 import { db } from '@/server/db';
 import { dayKey } from '@/lib/time';
-import type { ScheduleUser } from '@/features/schedule/service';
-import { isStudyCategory } from './domain';
+import type { ScheduleUser } from '@/server/lock';
+import { isStudyCategory } from '@/lib/categories';
 import { nudgeSetting } from './service';
 import {
   firstStartAfter,

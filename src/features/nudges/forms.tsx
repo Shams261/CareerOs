@@ -1,12 +1,12 @@
 import { ActionForm } from '@/components/action-form';
 import { Button } from '@/components/ui/button';
-import { categoryGroup } from '@/features/review/domain';
+import { categoryGroup } from '@/lib/categories';
 import {
   nudgePauseAction,
   nudgeSettingsAction,
   resumePartAction,
 } from './actions';
-import { AGENT_NAME } from '@/features/agent/domain';
+import { AGENT_NAME } from '@/features/agent/constants';
 import {
   BLOCK_START_OFFSETS,
   EVENING_LINES,

@@ -1,6 +1,6 @@
 import 'server-only';
 import { after } from 'next/server';
-import type { ScheduleUser } from '@/features/schedule/service';
+import type { ScheduleUser } from '@/server/lock';
 import { defaultDeps, getConnection, syncCalendar } from './service';
 
 /**

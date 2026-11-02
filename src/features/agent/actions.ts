@@ -7,8 +7,9 @@ import { forgetAll } from '@/server/memo';
 import { weekdayDate } from '@/lib/time';
 import { syncSoon } from '@/features/calendar/background';
 import { issueMessages } from '@/lib/validation';
-import type { ActionState } from '@/features/schedule/actions';
-import { AGENT_NAME, readStyle } from './domain';
+import type { ActionState } from '@/lib/action-state';
+import { readStyle } from './domain';
+import { AGENT_NAME } from '@/features/agent/constants';
 import { MEMORY_KINDS } from './memory-domain';
 import {
   agentSetting,
@@ -17,7 +18,8 @@ import {
   setRumiStyle,
   setVoiceSettings,
 } from './memory-service';
-import { readVoiceLang, voiceSettingsInput } from './voice-domain';
+import { readVoiceLang } from './voice-domain';
+import { voiceSettingsInput } from '@/features/agent/voice-schema';
 import { answerSuggestion, applyProposal, dismissProposal } from './plans';
 import { applyRequest, appliedWords, dismissRequest } from './requests';
 import { draftWeek } from './draft';
@@ -26,33 +28,9 @@ import { keepWeekSummary } from '@/features/review/service';
 import { AiRefusal, AiUnavailable } from '@/features/ai/service';
 import { restore } from '@/features/undo/service';
 import { undoWrite } from './writes';
-import { afterWrites } from './after-writes';
-import {
-  addMemory,
-  askRumi,
-  deleteConversation,
-  noteMemories,
-  removeMemory,
-  type AskResult,
-} from './service';
+import { addMemory, deleteConversation, removeMemory } from './service';
 
 export type { AskResult } from './service';
-
-/** Ask Rumi (WI-040): one owner message, one answer from the owner's own records. */
-export async function askAction(
-  conversationId: string | null,
-  text: string,
-): Promise<AskResult> {
-  const user = await owner();
-  const result = await askRumi(user, conversationId, text);
-  if (result.ok) {
-    afterWrites(user, result.reply.actions);
-    // The notes Rumi keeps after the answer (WI-100), with the answer for the action path.
-    result.reply.kept = await noteMemories(user, result);
-    revalidatePath('/rumi');
-  }
-  return result;
-}
 
 const perform = (work: () => Promise<string>) =>
   runAction(work, { area: 'agent' });

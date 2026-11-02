@@ -4,7 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { z } from 'zod';
 import { owner } from '@/server/db';
-import type { ActionState } from '@/features/schedule/actions';
+import type { ActionState } from '@/lib/action-state';
 import { syncSoon } from '@/features/calendar/background';
 import {
   addPriority,
@@ -13,7 +13,6 @@ import {
   removePriority,
   saveReview,
   completeReview,
-  saveWeeklyReminder,
   setPriorityDone,
 } from './service';
 
@@ -93,14 +92,5 @@ export async function prepareNextWeekAction(_s: ActionState, f: FormData) {
     return r.generated
       ? `Prepared ${r.generated} day${r.generated === 1 ? '' : 's'}: ${r.blocks} block${r.blocks === 1 ? '' : 's'} scheduled for next week.`
       : `Next week was already prepared (${r.blocks} blocks). Nothing changed.`;
-  });
-}
-export async function weeklyReminderAction(_s: ActionState, f: FormData) {
-  return perform(async () => {
-    await saveWeeklyReminder(await owner(), {
-      enabled: f.get('enabled') === 'on',
-      preferredTime: f.get('preferredTime'),
-    });
-    return 'Weekly review reminder saved.';
   });
 }

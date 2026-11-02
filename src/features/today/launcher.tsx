@@ -14,7 +14,7 @@ import {
 import { clock } from '@/features/execution/ring';
 import { stopUnlinkedAction } from '@/features/schedule/actions';
 import { ExecutionControls } from '@/features/schedule/forms';
-import { categoryGroup } from '@/features/review/domain';
+import { categoryGroup } from '@/lib/categories';
 import { letGoDayAction } from './actions';
 
 import type { TimeBlock } from '@/generated/prisma/client';

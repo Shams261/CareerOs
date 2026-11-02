@@ -25,7 +25,7 @@ import { PanelButton, SidePanel } from '@/components/side-panel';
 import { UtilityMenu } from '@/features/today/utility-menu';
 import { dayKey, localInstant } from '@/lib/time';
 import { resourceUrl } from '@/lib/validation';
-import { shiftDay } from '@/features/schedule/domain';
+import { shiftDay } from '@/lib/day';
 import { formatInTimeZone } from 'date-fns-tz';
 export const metadata = { title: 'Practice' };
 

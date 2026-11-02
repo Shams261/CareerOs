@@ -10,7 +10,7 @@ import { db } from '@/server/db';
 import { aiConfig } from '@/lib/env';
 import { dayKey, shortDate } from '@/lib/time';
 import { isTestNamed } from '@/lib/test-data';
-import type { ScheduleUser } from '@/features/schedule/service';
+import type { ScheduleUser } from '@/server/lock';
 import {
   AiRefusal,
   AiUnavailable,
@@ -21,7 +21,7 @@ import {
   type CallWords,
   type Fetcher,
 } from '@/features/ai/service';
-import { AGENT_NAME } from '@/features/agent/domain';
+import { AGENT_NAME } from '@/features/agent/constants';
 import {
   citedSources,
   collectSources,

@@ -5,7 +5,7 @@ import {
   setupSteps,
   type SetupFacts,
 } from '../src/features/setup/domain';
-import { BANNED_WORDS } from '../src/features/nudges/domain';
+import { BANNED_WORDS } from '../src/lib/copy';
 
 const empty: SetupFacts = {
   goalDate: false,

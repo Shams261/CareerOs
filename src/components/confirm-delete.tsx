@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import { ActionForm } from '@/components/action-form';
 import { Button } from '@/components/ui/button';
-import type { ActionState } from '@/features/schedule/actions';
+import type { ActionState } from '@/lib/action-state';
 
 /**
  * Delete with one confirmation (WI-060): the first press asks in place, naming what goes;

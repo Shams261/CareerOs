@@ -1,10 +1,7 @@
 import 'server-only';
 import type { Prisma } from '@/generated/prisma/client';
-import {
-  clearBlockReminders,
-  locked,
-  type ScheduleUser,
-} from '@/features/schedule/service';
+import { clearBlockReminders } from '@/features/schedule/service';
+import { locked, type ScheduleUser } from '@/server/lock';
 import { DELETED } from './domain';
 
 /**

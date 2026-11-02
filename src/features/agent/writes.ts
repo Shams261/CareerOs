@@ -11,14 +11,11 @@ import { db } from '@/server/db';
 import type { Prisma } from '@/generated/prisma/client';
 import { dayBounds, dayKey, weekdayDate } from '@/lib/time';
 import { noteInput } from '@/features/notes/service';
-import {
-  generateInTransaction,
-  locked,
-  type ScheduleUser,
-} from '@/features/schedule/service';
+import { generateInTransaction } from '@/features/schedule/service';
+import { locked, type ScheduleUser } from '@/server/lock';
 import { saveBlockIn } from '@/features/schedule/editing';
 import { setRestDayIn } from '@/features/nudges/service';
-import { AGENT_NAME } from './domain';
+import { AGENT_NAME } from '@/features/agent/constants';
 import { checkBlocks, kindFor, planWindow } from './plan-domain';
 import { knownKinds, takenOn } from './plans';
 import { studyKinds } from './tools';
@@ -29,8 +26,8 @@ import {
   writeRefusal,
   type BlockArgs,
   type WriteAction,
-  type WriteTool,
 } from './write-domain';
+import type { WriteTool } from '@/features/agent/text';
 
 type Tx = Prisma.TransactionClient;
 type Outcome = { result: unknown; action?: WriteAction };

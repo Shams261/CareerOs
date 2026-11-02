@@ -6,6 +6,7 @@
  */
 import { z } from 'zod';
 import { interviewTypes } from '@/features/jobs/domain';
+import { REQUEST_WORDS } from './text';
 
 /** At most this many cards in one answer. */
 export const REQUESTS_PER_ANSWER = 2;
@@ -83,6 +84,9 @@ export const requestArgs = {
     .strict(),
 } as const;
 export type RequestKind = keyof typeof requestArgs;
+// The card words live in text.ts (client-safe); every kind must have them.
+const _cardWords: Record<RequestKind, unknown> = REQUEST_WORDS;
+void _cardWords;
 export const REQUEST_KINDS = Object.keys(requestArgs) as RequestKind[];
 export const isRequest = (name: string): name is RequestKind =>
   (REQUEST_KINDS as string[]).includes(name);
@@ -109,41 +113,6 @@ export const REQUEST_UNDO: Record<RequestKind, string | null> = {
   add_application: 'remove-application',
   add_round: 'remove-round',
   set_goal: 'remove-goal',
-};
-/** The words on a card. */
-export const REQUEST_WORDS: Record<
-  RequestKind,
-  { eyebrow: string; apply: string; done: string }
-> = {
-  move_block: { eyebrow: 'Move', apply: 'Move block', done: 'Moved.' },
-  delete_block: { eyebrow: 'Delete', apply: 'Delete block', done: 'Deleted.' },
-  change_stage: {
-    eyebrow: 'Stage',
-    apply: 'Change stage',
-    done: 'Stage changed.',
-  },
-  log_attempt: {
-    eyebrow: 'Attempt',
-    apply: 'Record attempt',
-    done: 'Recorded. Attempts stay as recorded.',
-  },
-  write_review: {
-    eyebrow: 'Review',
-    apply: 'Save review',
-    done: 'Review saved.',
-  },
-  mark_item: { eyebrow: 'Roadmap', apply: 'Mark item', done: 'Marked.' },
-  add_application: {
-    eyebrow: 'Jobs',
-    apply: 'Add application',
-    done: 'Added to Jobs.',
-  },
-  add_round: {
-    eyebrow: 'Interview',
-    apply: 'Add interview',
-    done: 'Interview added.',
-  },
-  set_goal: { eyebrow: 'Goal', apply: 'Set goal', done: 'Goal set.' },
 };
 
 /** Shaky, Okay, Solid as the stored confidence; yes, partial, no as the stored outcome. */

@@ -2,7 +2,7 @@ import 'server-only';
 import { db } from '@/server/db';
 import { dayKey, hhmm } from '@/lib/time';
 import { isTestNamed } from '@/lib/test-data';
-import type { ScheduleUser } from '@/features/schedule/service';
+import type { ScheduleUser } from '@/server/lock';
 import { closeDayOpen } from '@/features/close-day/domain';
 import { stopTime } from '@/features/close-day/service';
 import { aiState } from '@/features/ai/service';

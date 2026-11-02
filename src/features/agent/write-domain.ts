@@ -5,6 +5,7 @@
  */
 import { z } from 'zod';
 import { REQUEST_ID_ARGS, type RequestKind } from './request-domain';
+import { WRITE_TOOLS, type WriteTool } from './text';
 
 /** At most this many writes in one answer, and in the owner's day across answers. */
 export const WRITES_PER_ANSWER = 2;
@@ -37,10 +38,6 @@ export const findArgs = z
   .strict();
 export type BlockArgs = z.infer<typeof blockArgs>;
 
-export const WRITE_TOOLS = ['add_note', 'add_block', 'rest_today'] as const;
-export type WriteTool = (typeof WRITE_TOOLS)[number];
-export const isWrite = (name: string): name is WriteTool =>
-  (WRITE_TOOLS as readonly string[]).includes(name);
 /**
  * The arguments of each write that name a record. None of the class A writes does; the class
  * B cards of WI-103 name blocks, applications and problems, and each must have been read.
@@ -176,10 +173,3 @@ export function readActions(raw: unknown): WriteAction[] {
     return r.success && undoMatches(r.data) ? [r.data] : [];
   });
 }
-
-/** The words while a write runs (the progress line), and on the row under the answer. */
-export const WRITE_WORDS: Record<WriteTool, string> = {
-  add_note: 'adding a note',
-  add_block: 'adding a block',
-  rest_today: 'marking a rest day',
-};

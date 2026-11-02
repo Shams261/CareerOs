@@ -1,7 +1,7 @@
 'use server';
 import { runAction } from '@/server/action';
 import { owner } from '@/server/db';
-import type { ActionState } from '@/features/schedule/actions';
+import type { ActionState } from '@/lib/action-state';
 import { addNote, noteOp } from './service';
 
 type Done = string | { message: string; undo?: ActionState['undo'] };

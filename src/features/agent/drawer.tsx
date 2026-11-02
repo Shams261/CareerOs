@@ -3,7 +3,7 @@ import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { usePathname } from 'next/navigation';
 import { X } from 'lucide-react';
 import { RumiChat } from './chat';
-import { AGENT_NAME } from './domain';
+import { AGENT_NAME } from '@/features/agent/constants';
 import { RumiMark } from './mark';
 import { RumiButton } from './rumi-button';
 import { BUTTON_EVENT, type ButtonPref } from './button-pref';

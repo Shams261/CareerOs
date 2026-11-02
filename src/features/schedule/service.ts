@@ -1,20 +1,9 @@
 import 'server-only';
 import { db } from '@/server/db';
 import type { Prisma } from '@/generated/prisma/client';
-import { routineOccurrence, dateInput, weekDays } from './domain';
-export type ScheduleUser = { id: string; timezone: string };
-export async function locked<T>(
-  userId: string,
-  work: (tx: Prisma.TransactionClient) => Promise<T>,
-) {
-  return db().$transaction(
-    async (tx) => {
-      await tx.$queryRaw`SELECT id FROM "User" WHERE id = ${userId} FOR UPDATE`;
-      return work(tx);
-    },
-    { timeout: 20000 },
-  );
-}
+import { routineOccurrence, dateInput } from './domain';
+import { weekDays } from '@/lib/day';
+import { locked, type ScheduleUser } from '@/server/lock';
 /**
  * Marks a day reviewed and writes its check-in, inside the owner lock. Only the given fields
  * change on an existing check-in, so Close the Day (WI-029) keeps a rating written earlier.

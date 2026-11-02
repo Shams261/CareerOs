@@ -1,5 +1,6 @@
 import { z } from 'zod';
-import { dateInput, shiftDay } from '@/features/schedule/domain';
+import { dateInput } from '@/features/schedule/domain';
+import { shiftDay } from '@/lib/day';
 export { practiceStatus } from './follow';
 
 const text = (max: number) =>
@@ -31,7 +32,6 @@ export const goalInput = z.object({
     .default('ACTIVE'),
   priority: z.coerce.number().int().min(1).max(3).default(2),
 });
-export type GoalInput = z.infer<typeof goalInput>;
 
 /** A prompt scenario: the owner picks one when copying a study prompt. */
 export type Scenario = { id: string; name: string; intro: string };

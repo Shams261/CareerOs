@@ -1,6 +1,6 @@
 'use client';
 import { useState, useTransition } from 'react';
-import type { ActionState } from '@/features/schedule/actions';
+import type { ActionState } from '@/lib/action-state';
 
 /** The style chips (WI-100): a radio row that saves on choice, like the theme switch. */
 export function StyleSwitch({

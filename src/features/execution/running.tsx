@@ -11,7 +11,7 @@ import { focusWindow, pausedLeft, recordedBefore } from './focus-domain';
 import { clock } from './ring';
 import { PipHost, type PipSession } from './pip';
 import { TitleClock } from './title-clock';
-import { categoryGroup } from '@/features/review/domain';
+import { categoryGroup } from '@/lib/categories';
 import { Button } from '@/components/ui/button';
 
 const DAY_MS = 24 * 60 * 60 * 1000;

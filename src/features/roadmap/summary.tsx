@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import type { ScheduleUser } from '@/features/schedule/service';
+import type { ScheduleUser } from '@/server/lock';
 import { formatInTimeZone } from 'date-fns-tz';
 import { chainDays } from './service';
 

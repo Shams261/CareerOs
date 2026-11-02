@@ -1,10 +1,10 @@
 import { revalidatePath } from 'next/cache';
-import { pageInput } from '@/features/agent/page-domain';
+import { pageInput } from '@/features/agent/page-schema';
 import { z } from 'zod';
 import { owner } from '@/server/db';
 import { askRumi, noteMemories } from '@/features/agent/service';
 import { afterWrites } from '@/features/agent/after-writes';
-import { voiceInput } from '@/features/agent/voice-domain';
+import { voiceInput } from '@/features/agent/voice-schema';
 export const runtime = 'nodejs';
 
 /**

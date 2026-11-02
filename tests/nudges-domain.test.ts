@@ -1,13 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import {
-  BANNED_WORDS,
   DEFAULT_NUDGES,
   EVENING_LINES,
   MORNING_LINES,
   eveningDue,
   inAppOnly,
   inQuietHours,
-  isStudyCategory,
   middayDue,
   morningDue,
   morningLine,
@@ -18,6 +16,8 @@ import {
   type NudgeDay,
   type NudgeSetting,
 } from '../src/features/nudges/domain';
+import { BANNED_WORDS } from '../src/lib/copy';
+import { isStudyCategory } from '../src/lib/categories';
 import { localInstant } from '../src/lib/time';
 
 const zone = 'America/Toronto';

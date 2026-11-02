@@ -5,7 +5,7 @@ import { SidePanel } from '@/components/side-panel';
 import { SettingRow } from '@/features/settings/rows';
 import { Calendar, Unplug } from 'lucide-react';
 import { DisconnectForm } from './disconnect-form';
-import type { ScheduleUser } from '@/features/schedule/service';
+import type { ScheduleUser } from '@/server/lock';
 import { calendarConfig } from '@/lib/env';
 import { db } from '@/server/db';
 import {
@@ -21,12 +21,12 @@ import {
 } from './service';
 import {
   blockSyncView,
-  categoryKey,
   snapshotLabel,
   SYNC_WINDOW,
   type Snapshot,
 } from './domain';
-import { categoryGroup } from '@/features/review/domain';
+import { categoryKey } from '@/lib/categories';
+import { categoryGroup } from '@/lib/categories';
 import { ArrowRight } from 'lucide-react';
 
 const statusText = {

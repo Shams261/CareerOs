@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react';
 import { Check } from 'lucide-react';
 import { ActionForm } from '@/components/action-form';
-import type { ActionState } from '@/features/schedule/actions';
+import type { ActionState } from '@/lib/action-state';
 import { attemptAction } from './actions';
 import { Button } from '@/components/ui/button';
 

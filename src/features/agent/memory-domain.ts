@@ -6,7 +6,7 @@
  * tests/agent-memory-domain.test.ts.
  */
 import { z } from 'zod';
-import { shiftDay } from '@/features/schedule/domain';
+import { shiftDay } from '@/lib/day';
 import type { OutputFormat } from '@/features/ai/domain';
 import type { Message } from '@/features/ai/domain';
 

@@ -5,7 +5,7 @@ import {
   reach,
   type FunnelApp,
 } from '../src/features/jobs/funnel';
-import { weekOf } from '../src/features/review/domain';
+import { weekOf } from '../src/lib/day';
 
 const app = (over: Partial<FunnelApp>): FunnelApp => ({
   stage: 'APPLIED',

@@ -6,8 +6,8 @@
  */
 import { z } from 'zod';
 import { hhmm, localInstant } from '@/lib/time';
-import { shiftDay, weekDays } from '@/features/schedule/domain';
-import { categoryGroup } from '@/features/review/domain';
+import { shiftDay, weekDays } from '@/lib/day';
+import { categoryGroup } from '@/lib/categories';
 import { readActions, type WriteAction } from './write-domain';
 import { cardViews, type CardView } from './request-domain';
 
@@ -235,11 +235,6 @@ export function readTools(raw: unknown): string[] {
     (t): t is string => typeof t === 'string' && t.length <= 40,
   );
 }
-
-/** Blocks a proposal would add: those without a conflict. */
-/** The blocks Add to plan writes: none that conflict, and none the owner removed (WI-058). */
-export const addable = (p: Proposal, skip: readonly number[] = []) =>
-  p.blocks.filter((b, i) => !b.conflict && !skip.includes(i));
 
 export type PatternInput = {
   sessions: { category: string; startedAt: Date; endedAt: Date | null }[];

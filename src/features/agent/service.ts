@@ -1,13 +1,14 @@
 import 'server-only';
 import type { StreamEvent } from '@/features/ai/stream';
-import { pageInput, pageRef } from './page-domain';
+import { pageRef } from './page-domain';
+import { pageInput } from './page-schema';
 import { readPage } from './page-context';
 import { formatInTimeZone } from 'date-fns-tz';
 import { db } from '@/server/db';
 import type { Prisma } from '@/generated/prisma/client';
 import { aiConfig } from '@/lib/env';
 import { dayKey, hhmm, shortDate } from '@/lib/time';
-import { locked, type ScheduleUser } from '@/features/schedule/service';
+import { locked, type ScheduleUser } from '@/server/lock';
 import {
   AiRefusal,
   AiUnavailable,
@@ -22,7 +23,6 @@ import { budgetLine, ENDPOINT, MODEL, nearLimit } from '@/features/ai/domain';
 import { issueMessages } from '@/lib/validation';
 import { z } from 'zod';
 import {
-  AGENT_NAME,
   AGENT_RATE,
   chatBody,
   chatReservation,
@@ -39,6 +39,7 @@ import {
   type ChatMessage,
   type ToolCall,
 } from './domain';
+import { AGENT_NAME } from '@/features/agent/constants';
 import { runTool } from './tools';
 import {
   extractMemories,
@@ -56,7 +57,8 @@ import {
 import { linesToday } from './lines';
 import { runWrite } from './writes';
 import { prepareRequest } from './requests';
-import { voiceInput, type VoiceMeta } from './voice-domain';
+import type { VoiceMeta } from './voice-domain';
+import { voiceInput } from '@/features/agent/voice-schema';
 import {
   isRequest,
   REQUESTS_PER_ANSWER,
@@ -65,11 +67,11 @@ import {
 } from './request-domain';
 import {
   collectIds,
-  isWrite,
   SEEN_MAX,
   unseenId,
   type WriteAction,
 } from './write-domain';
+import { isWrite } from '@/features/agent/text';
 import { newSuggestion, proposeBlocks } from './plans';
 import {
   planAhead,
@@ -166,9 +168,6 @@ export async function removeMemory(user: ScheduleUser, id: string) {
     return row;
   });
 }
-
-/** Whether Ask Rumi can run on this server (the AI key is set). */
-export const agentConfigured = () => !!aiConfig();
 
 /**
  * One owner message (WI-040, ADR-024). The message is counted and stored first, under the

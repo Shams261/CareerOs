@@ -4,7 +4,7 @@ import {
   DAILY_REVIEW_TEXT,
   overdueText,
 } from '../src/features/notifications/domain';
-import { BANNED_WORDS } from '../src/features/nudges/domain';
+import { BANNED_WORDS } from '../src/lib/copy';
 
 describe('UI fixes (WI-049)', () => {
   it('says the Jobs rail repeats the list only for a short list it fully covers', () => {

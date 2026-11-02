@@ -2,7 +2,7 @@
 import { runAction } from '@/server/action';
 import { owner } from '@/server/db';
 import { syncSoon } from '@/features/calendar/background';
-import type { ActionState } from '@/features/schedule/actions';
+import type { ActionState } from '@/lib/action-state';
 import { PreviewRequired } from '@/features/schedule/editing';
 import {
   addJobNote,

@@ -3,7 +3,6 @@ import {
   LINE_FORMAT,
   LINE_MAX,
   LINE_READS,
-  lineHeading,
   lineMessages,
   lineOk,
   readLine,
@@ -11,13 +10,14 @@ import {
   rumiStateOf,
   SHAMING_WORDS,
 } from '../src/features/agent/line-domain';
+import { lineHeading } from '../src/features/agent/text';
 import { PERSONA, TOOLS } from '../src/features/agent/domain';
 import {
-  BANNED_WORDS,
   MIDDAY_LINES,
   middayBody,
   recapBody,
 } from '../src/features/nudges/domain';
+import { BANNED_WORDS } from '../src/lib/copy';
 import { LOCK_SCREEN_TEXT } from '../src/features/push/domain';
 import { localInstant } from '../src/lib/time';
 

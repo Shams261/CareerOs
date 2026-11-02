@@ -7,7 +7,7 @@ import { dayKey, shortDate } from '@/lib/time';
 import { Disclosure } from '@/components/disclosure';
 import { ActionForm } from '@/components/action-form';
 import { Button } from '@/components/ui/button';
-import { AGENT_NAME } from '@/features/agent/domain';
+import { AGENT_NAME } from '@/features/agent/constants';
 import { AskRumiButton } from '@/features/agent/ask-button';
 import { prepDoc } from '@/features/prep/service';
 import { deletePrepDocAction } from '@/features/prep/actions';

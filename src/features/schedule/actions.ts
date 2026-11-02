@@ -12,7 +12,8 @@ import { recordedText } from './row';
 import { syncSoon } from '@/features/calendar/background';
 import { saveBlock, saveRoutine, PreviewRequired } from './editing';
 import { dateInput } from './domain';
-import { locked, recordReview } from './service';
+import { recordReview } from './service';
+import { locked } from '@/server/lock';
 import { completedMessage } from '@/features/execution/service';
 import {
   execute,

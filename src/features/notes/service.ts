@@ -1,7 +1,7 @@
 import 'server-only';
 import { z } from 'zod';
 import { db } from '@/server/db';
-import type { ScheduleUser } from '@/features/schedule/service';
+import type { ScheduleUser } from '@/server/lock';
 
 export const noteInput = z.object({
   body: z.string().trim().min(1, 'Write something first.').max(500),

@@ -6,12 +6,8 @@ import { Prisma } from '@/generated/prisma/client';
 import type { CalendarConnection, TimeBlock } from '@/generated/prisma/client';
 import { calendarConfig, type CalendarConfig } from '@/lib/env';
 import { dayKey } from '@/lib/time';
-import {
-  clearBlockReminders,
-  generatePlan,
-  locked,
-  type ScheduleUser,
-} from '@/features/schedule/service';
+import { clearBlockReminders, generatePlan } from '@/features/schedule/service';
+import { locked, type ScheduleUser } from '@/server/lock';
 import {
   decryptSecret,
   encryptSecret,

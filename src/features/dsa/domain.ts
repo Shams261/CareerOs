@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { dayKey } from '@/lib/time';
-import { shiftDay } from '@/features/schedule/domain';
+import { shiftDay } from '@/lib/day';
 import { CONFIDENCE_WORD } from './words';
 export { CONFIDENCE_WORD, confidenceWord, type ConfidenceValue } from './words';
 export const confidence = z.enum(['RED', 'YELLOW', 'GREEN']);
@@ -196,8 +196,6 @@ export function revisionQueue<T extends QueueProblem>(
         a.id.localeCompare(b.id),
     );
 }
-export const isDsa = (category: string) =>
-  category.trim().toUpperCase() === 'DSA';
 export function todayDsaSummary<T extends QueueProblem>(
   problems: T[],
   now: Date,

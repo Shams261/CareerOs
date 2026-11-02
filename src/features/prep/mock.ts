@@ -10,7 +10,7 @@ import type { Prisma } from '@/generated/prisma/client';
 import { db } from '@/server/db';
 import { aiConfig } from '@/lib/env';
 import { shortDate } from '@/lib/time';
-import { locked, type ScheduleUser } from '@/features/schedule/service';
+import { locked, type ScheduleUser } from '@/server/lock';
 import { recordRoundResult } from '@/features/jobs/service';
 import {
   AiRefusal,
@@ -22,7 +22,8 @@ import {
   type Fetcher,
 } from '@/features/ai/service';
 import { MODEL, PINNED_PROVIDER, PRICE } from '@/features/ai/domain';
-import { AGENT_NAME, AGENT_RATE, PERSONA } from '@/features/agent/domain';
+import { AGENT_RATE, PERSONA } from '@/features/agent/domain';
+import { AGENT_NAME } from '@/features/agent/constants';
 import type { PrepDoc } from './domain';
 import {
   cleanFeedback,

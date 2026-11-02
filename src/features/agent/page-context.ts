@@ -9,7 +9,7 @@ import { db } from '@/server/db';
 import { isTestNamed } from '@/lib/test-data';
 import { dayKey, shortDate, hhmm } from '@/lib/time';
 import { confidenceWord } from '@/features/dsa/words';
-import type { ScheduleUser } from '@/features/schedule/service';
+import type { ScheduleUser } from '@/server/lock';
 import type { PageRef, Place } from './page-domain';
 
 const PLACE_NAME: Record<Place, string> = {

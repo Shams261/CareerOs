@@ -3,8 +3,8 @@ import { formatInTimeZone } from 'date-fns-tz';
 import { db } from '@/server/db';
 import { aiConfig } from '@/lib/env';
 import { dayKey, hhmm } from '@/lib/time';
-import { shiftDay } from '@/features/schedule/domain';
-import type { ScheduleUser } from '@/features/schedule/service';
+import { shiftDay } from '@/lib/day';
+import type { ScheduleUser } from '@/server/lock';
 import {
   AiRefusal,
   AiUnavailable,
@@ -15,7 +15,8 @@ import {
   type Fetcher,
 } from '@/features/ai/service';
 import { underShare } from '@/features/ai/domain';
-import { AGENT_NAME, PERSONA, readStyle, type ToolName } from './domain';
+import { PERSONA, readStyle, type ToolName } from './domain';
+import { AGENT_NAME } from '@/features/agent/constants';
 import {
   LINE_CAP_SHARE,
   LINE_FORMAT,
@@ -25,8 +26,8 @@ import {
   readLine,
   readText,
   rumiStateOf,
-  type LinePart,
 } from './line-domain';
+import type { LinePart } from '@/features/agent/text';
 export { rumiStateOf, type RumiState } from './line-domain';
 import { isActive, memoryLines } from './memory-domain';
 import { agentSetting, memoryRows } from './memory-service';

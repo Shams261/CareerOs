@@ -13,8 +13,8 @@ import type { Prisma } from '@/generated/prisma/client';
 import { db } from '@/server/db';
 import { aiConfig } from '@/lib/env';
 import { dayBounds, dayKey, hhmm, shortDate } from '@/lib/time';
-import { shiftDay, weekDays } from '@/features/schedule/domain';
-import type { ScheduleUser } from '@/features/schedule/service';
+import { shiftDay, weekDays } from '@/lib/day';
+import type { ScheduleUser } from '@/server/lock';
 import {
   AiRefusal,
   AiUnavailable,
@@ -27,7 +27,8 @@ import {
 import { MODEL, PINNED_PROVIDER, PRICE } from '@/features/ai/domain';
 import { WEEKLY_MIX } from '@/features/roadmap/week';
 import { typeText } from '@/features/jobs/formats';
-import { AGENT_NAME, PERSONA, readStyle, STYLE_LINES } from './domain';
+import { PERSONA, readStyle, STYLE_LINES } from './domain';
+import { AGENT_NAME } from '@/features/agent/constants';
 import { isActive, memoryLines } from './memory-domain';
 import { memoryRows } from './memory-service';
 import { proposeBlocks, takenOn } from './plans';

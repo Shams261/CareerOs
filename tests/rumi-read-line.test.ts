@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { readingLine, readLine } from '../src/features/agent/domain';
+import { readingLine, readLine } from '../src/features/agent/text';
 import { readTools } from '../src/features/agent/plan-domain';
 
 describe('what Rumi read (WI-055)', () => {

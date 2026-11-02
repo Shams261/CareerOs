@@ -3,12 +3,9 @@ import { memo } from '@/server/memo';
 import { db } from '@/server/db';
 import { dayKey } from '@/lib/time';
 import { localTime } from '@/lib/validation';
-import { shiftDay } from '@/features/schedule/domain';
-import {
-  generatePlan,
-  locked,
-  type ScheduleUser,
-} from '@/features/schedule/service';
+import { shiftDay } from '@/lib/day';
+import { generatePlan } from '@/features/schedule/service';
+import { locked, type ScheduleUser } from '@/server/lock';
 import {
   eligible as learningEligible,
   learningSuggestions,

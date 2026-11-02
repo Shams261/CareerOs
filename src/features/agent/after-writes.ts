@@ -2,7 +2,7 @@ import 'server-only';
 import { revalidatePath } from 'next/cache';
 import { forgetAll } from '@/server/memo';
 import { syncSoon } from '@/features/calendar/background';
-import type { ScheduleUser } from '@/features/schedule/service';
+import type { ScheduleUser } from '@/server/lock';
 import type { WriteAction } from './write-domain';
 
 /**

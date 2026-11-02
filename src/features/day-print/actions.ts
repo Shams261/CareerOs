@@ -3,7 +3,7 @@ import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { db, owner } from '@/server/db';
 import { forgetAll } from '@/server/memo';
-import type { ActionState } from '@/features/schedule/actions';
+import type { ActionState } from '@/lib/action-state';
 
 /** Keep or remove day prints (WI-033); the answer is the hypothesis's result. */
 export async function dayPrintAction(

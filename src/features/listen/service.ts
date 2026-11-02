@@ -2,7 +2,7 @@ import 'server-only';
 import { db } from '@/server/db';
 import { aiConfig } from '@/lib/env';
 import { isTestNamed } from '@/lib/test-data';
-import type { ScheduleUser } from '@/features/schedule/service';
+import type { ScheduleUser } from '@/server/lock';
 import { DEFAULT_TICKS, studyInput } from '@/features/ai/domain';
 import {
   AiRefusal,

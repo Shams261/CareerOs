@@ -2,7 +2,7 @@ import 'server-only';
 import { db } from '@/server/db';
 import { aiConfig } from '@/lib/env';
 import { dayKey } from '@/lib/time';
-import { locked, type ScheduleUser } from '@/features/schedule/service';
+import { locked, type ScheduleUser } from '@/server/lock';
 import {
   AiRefusal,
   AiUnavailable,
@@ -13,7 +13,8 @@ import {
   type Fetcher,
 } from '@/features/ai/service';
 import { underShare } from '@/features/ai/domain';
-import { AGENT_NAME, PERSONA, readStyle, type RumiStyle } from './domain';
+import { PERSONA, readStyle, type RumiStyle } from './domain';
+import { AGENT_NAME } from '@/features/agent/constants';
 import {
   EXTRACT_CAP_SHARE,
   EXTRACT_RATE,

@@ -4,7 +4,7 @@ import { ArrowUpRight, ChevronLeft, ChevronRight, Plus } from 'lucide-react';
 import { formatInTimeZone } from 'date-fns-tz';
 import { DateJump } from '@/components/date-jump';
 import { FeedbackOutlet } from '@/components/feedback-outlet';
-import { shiftDay } from '@/features/schedule/domain';
+import { shiftDay } from '@/lib/day';
 import { PanelButton, PressButton } from './panels';
 import { LiveMinutes } from './live-summary';
 import { UtilityMenu } from './utility-menu';

@@ -6,7 +6,7 @@ import { z } from 'zod';
 import { owner } from '@/server/db';
 import { forgetAll } from '@/server/memo';
 import { syncSoon } from '@/features/calendar/background';
-import type { ActionState } from '@/features/schedule/actions';
+import type { ActionState } from '@/lib/action-state';
 import { blockUndo } from './domain';
 import {
   deleteApplication,
@@ -15,7 +15,6 @@ import {
   deletePrepItem,
   deleteRoadmap,
   deleteRound,
-  deleteSession,
   removeProblem,
   unhideProblem,
 } from './service';
@@ -180,34 +179,4 @@ export async function deleteRoadmapAction(
     return failed(error);
   }
   redirect('/roadmap');
-}
-
-export async function deleteSessionAction(
-  _s: ActionState,
-  f: FormData,
-): Promise<ActionState> {
-  try {
-    const user = await owner();
-    const s = await deleteSession(user, id(f));
-    refresh(['/today', '/calendar', '/review']);
-    return {
-      ok: true,
-      message: 'Session deleted.',
-      undo: {
-        kind: 'restore-session',
-        payload: {
-          taskId: s.taskId,
-          goalId: s.goalId,
-          category: s.category,
-          startedAt: s.startedAt.toISOString(),
-          endedAt: s.endedAt!.toISOString(),
-          notes: s.notes,
-          attemptIds: s.attemptIds,
-          activityIds: s.activityIds,
-        },
-      },
-    };
-  } catch (error) {
-    return failed(error);
-  }
 }

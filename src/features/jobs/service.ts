@@ -2,12 +2,12 @@ import 'server-only';
 import { memo } from '@/server/memo';
 import { z } from 'zod';
 import { db } from '@/server/db';
-import { locked, type ScheduleUser } from '@/features/schedule/service';
+import { locked, type ScheduleUser } from '@/server/lock';
 import { PreviewRequired } from '@/features/schedule/editing';
 import { dayBounds, dayKey } from '@/lib/time';
 import { localTime } from '@/lib/validation';
 import { isTestNamed } from '@/lib/test-data';
-import { weekOf } from '@/features/review/domain';
+import { weekOf } from '@/lib/day';
 import { jobsFunnel } from './funnel';
 import type { Prisma } from '@/generated/prisma/client';
 import {

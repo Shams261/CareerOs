@@ -3,7 +3,7 @@ import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { db, owner } from '@/server/db';
 import { forgetAll } from '@/server/memo';
-import type { ActionState } from '@/features/schedule/actions';
+import type { ActionState } from '@/lib/action-state';
 
 /** What Silsila calls the owner (WI-074): the greeting's name, kept on the owner row. */
 export async function nameAction(

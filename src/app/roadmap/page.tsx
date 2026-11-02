@@ -21,7 +21,7 @@ import {
 } from '@/features/roadmap/service';
 import { planQuestion } from '@/features/roadmap/week';
 import { AskRumiButton } from '@/features/agent/ask-button';
-import { AGENT_NAME } from '@/features/agent/domain';
+import { AGENT_NAME } from '@/features/agent/constants';
 import { aiConfig } from '@/lib/env';
 import {
   continueTarget,

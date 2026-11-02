@@ -3,7 +3,7 @@ import { failure } from '@/server/action';
 import { revalidatePath } from 'next/cache';
 import { owner } from '@/server/db';
 import { forgetAll } from '@/server/memo';
-import type { ActionState } from '@/features/schedule/actions';
+import type { ActionState } from '@/lib/action-state';
 import { restoreCurriculum } from './service';
 
 const count = (n: number, word: string) =>

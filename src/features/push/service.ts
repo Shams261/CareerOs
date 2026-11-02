@@ -3,7 +3,7 @@ import { PENDING_MAX_MS, rumiStateOf } from '@/features/agent/line-domain';
 import webpush from 'web-push';
 import { db } from '@/server/db';
 import { pushConfig, type PushConfig } from '@/lib/env';
-import type { ScheduleUser } from '@/features/schedule/service';
+import type { ScheduleUser } from '@/server/lock';
 import {
   classifyPushStatus,
   MAX_PUSH_ATTEMPTS,
@@ -83,12 +83,6 @@ export async function removeSubscription(
 }
 export const activeDevices = (userId: string) =>
   db().pushSubscription.count({ where: { userId, revokedAt: null } });
-export async function isDeviceActive(userId: string, endpoint: string) {
-  return !!(await db().pushSubscription.findFirst({
-    where: { userId, endpoint, revokedAt: null },
-  }));
-}
-
 async function sendTo(
   sub: { id: string } & PushTarget & { failureCount: number },
   payload: string,

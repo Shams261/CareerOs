@@ -13,15 +13,15 @@ import { isTestNamed } from '@/lib/test-data';
 import {
   generateInTransaction,
   generateThroughSunday,
-  locked,
-  type ScheduleUser,
 } from '@/features/schedule/service';
+import { locked, type ScheduleUser } from '@/server/lock';
 import { saveBlockIn } from '@/features/schedule/editing';
-import { routineOccurrence, weekDays } from '@/features/schedule/domain';
-import { AGENT_NAME, titleVisible } from './domain';
+import { routineOccurrence } from '@/features/schedule/domain';
+import { weekDays } from '@/lib/day';
+import { titleVisible } from './domain';
+import { AGENT_NAME } from '@/features/agent/constants';
 import { keepLineIn } from './memory-service';
 import {
-  addable,
   checkBlocks,
   planAhead,
   preparesWeek,
@@ -31,6 +31,7 @@ import {
   type Proposal,
   type Suggestion,
 } from './plan-domain';
+import { addable } from '@/features/agent/card-rules';
 import { studyKinds } from './tools';
 
 type Tx = Prisma.TransactionClient;

@@ -52,7 +52,7 @@ import { randomUUID } from 'node:crypto';
 import { ActionForm } from '@/components/action-form';
 import { aiConfig } from '@/lib/env';
 import { isTestNamed } from '@/lib/test-data';
-import { AGENT_NAME } from '@/features/agent/domain';
+import { AGENT_NAME } from '@/features/agent/constants';
 import { prepDocs } from '@/features/prep/service';
 import { estimateMicros, searchQueries } from '@/features/prep/domain';
 import { PreparePanel } from '@/features/prep/panel';

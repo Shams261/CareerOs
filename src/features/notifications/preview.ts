@@ -1,9 +1,9 @@
 import 'server-only';
 import { formatInTimeZone } from 'date-fns-tz';
 import { db } from '@/server/db';
-import type { ScheduleUser } from '@/features/schedule/service';
+import type { ScheduleUser } from '@/server/lock';
 import { dayBounds } from '@/lib/time';
-import { shiftDay } from '@/features/schedule/domain';
+import { shiftDay } from '@/lib/day';
 
 const dayName = (day: string) =>
   formatInTimeZone(new Date(`${day}T12:00:00Z`), 'UTC', 'EEE');

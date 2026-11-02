@@ -12,20 +12,20 @@ import {
   withoutIds,
   WRITE_FREE_ROUNDS,
   WRITE_ID_ARGS,
-  WRITE_TOOLS,
   WRITES_PER_ANSWER,
   WRITES_PER_DAY,
   writeRefusal,
   type WriteAction,
 } from '../src/features/agent/write-domain';
+import { WRITE_TOOLS } from '../src/features/agent/text';
 import { readMetadata } from '../src/features/agent/plan-domain';
 import {
   MAX_ROUNDS,
-  READ_WORDS,
   TOOL_ARGS,
   TOOLS,
   readToolCall,
 } from '../src/features/agent/domain';
+import { READ_WORDS } from '../src/features/agent/text';
 import { readText } from '../src/features/agent/line-domain';
 
 const call = (name: string, args: unknown) => ({

@@ -54,12 +54,3 @@ export async function readNotificationAction(
   revalidatePath('/today');
   return { ok: true, message: 'Marked read.' };
 }
-export async function readNotification(form: FormData) {
-  const id = z.string().min(1).parse(form.get('id'));
-  const user = await owner();
-  await db().notificationLog.updateMany({
-    where: { id, userId: user.id, readAt: null },
-    data: { readAt: new Date() },
-  });
-  revalidatePath('/today');
-}

@@ -1,5 +1,5 @@
 import { cookies } from 'next/headers';
-import type { ScheduleUser } from '@/features/schedule/service';
+import type { ScheduleUser } from '@/server/lock';
 import { SetupCard } from './card';
 import { SETUP_COOKIE, setupComplete, setupLine } from './domain';
 import { setupState } from './service';

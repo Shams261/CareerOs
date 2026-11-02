@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { isLocalTime, isTimeZone } from './time';
 
 /** "confidenceAfter" → "Confidence after", "contacts.0.email" → "Contacts email". */
 export const fieldLabel = (path: PropertyKey[]) =>
@@ -33,12 +34,7 @@ export const resourceUrl = z.url().refine((v) => {
   const u = new URL(v);
   return ['https:', 'http:'].includes(u.protocol) && !u.username && !u.password;
 }, 'Use an HTTP or HTTPS URL without credentials');
-export const localTime = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/);
-export const timezone = z.string().refine((v) => {
-  try {
-    new Intl.DateTimeFormat('en', { timeZone: v });
-    return true;
-  } catch {
-    return false;
-  }
-}, 'Use a valid IANA timezone');
+export const localTime = z.string().refine(isLocalTime);
+export const timezone = z
+  .string()
+  .refine(isTimeZone, 'Use a valid IANA timezone');

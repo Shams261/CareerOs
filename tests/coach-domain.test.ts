@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest';
 import {
-  BANNED_WORDS,
   blockBody,
   blockStartDue,
   DEFAULT_NUDGES,
@@ -10,6 +9,7 @@ import {
   nudgeInput,
   type NudgeDay,
 } from '../src/features/nudges/domain';
+import { BANNED_WORDS } from '../src/lib/copy';
 import { localInstant } from '../src/lib/time';
 
 const zone = 'America/Toronto';

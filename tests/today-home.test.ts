@@ -8,7 +8,7 @@ import {
   planLine,
   weekProgress,
 } from '../src/features/today/home';
-import { BANNED_WORDS } from '../src/features/nudges/domain';
+import { BANNED_WORDS } from '../src/lib/copy';
 
 describe("Today's home (WI-065)", () => {
   it('cheers the day on from its facts, the same quiet line all day', () => {

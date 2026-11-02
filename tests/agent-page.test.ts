@@ -14,12 +14,9 @@ import { createPgAdapter } from '../src/lib/database';
 vi.mock('server-only', () => ({}));
 const { client } = vi.hoisted(() => ({ client: { value: null as unknown } }));
 vi.mock('@/server/db', () => ({ db: () => client.value }));
-import {
-  isSunday,
-  pageInput,
-  pageRef,
-  promptsFor,
-} from '../src/features/agent/page-domain';
+import { pageRef, promptsFor } from '../src/features/agent/page-domain';
+import { pageInput } from '../src/features/agent/page-schema';
+import { isSunday } from '../src/lib/day';
 import { readPage } from '../src/features/agent/page-context';
 import { sendMessage } from '../src/features/agent/service';
 import { readSeen } from '../src/features/agent/plan-domain';
