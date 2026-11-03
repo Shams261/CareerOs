@@ -180,5 +180,10 @@ describe.skipIf(!url)('undo restores what a one-click action removed', () => {
     await expect(restore(user, 'nonsense', {})).rejects.toThrow(
       'Nothing to undo',
     );
+    // WI-145: an object's own built-ins are not undo kinds either.
+    for (const kind of ['toString', 'constructor', '__proto__'])
+      await expect(restore(user, kind, {}), kind).rejects.toThrow(
+        'Nothing to undo',
+      );
   });
 });

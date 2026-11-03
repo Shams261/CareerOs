@@ -1,0 +1,22 @@
+sequenceDiagram
+  autonumber
+  participant C as Scheduler (every minute)
+  participant R as /api/notifications/process
+  participant N as processNotifications
+  participant L as writeRumiLines
+  participant P as deliverPending
+  participant DB as PostgreSQL
+  participant M as OpenRouter
+  participant W as Push services
+  C->>R: POST (Bearer CRON_SECRET)
+  R->>N: per owner, under the owner lock
+  N->>DB: due reminders and study nudges → NotificationLog (unique dedupeKey)
+  R->>L: outside every lock: one pending Rumi line
+  L->>DB: reads by code (today, activity, jobs)
+  L->>M: one short line (pinned provider, ZDR)
+  M-->>L: line → checked (length, banned words, numbers must exist) or template kept
+  R->>P: deliver up to 100 pushes
+  P->>W: encrypted payload, generic lock-screen text
+  W-->>P: 201 / 404-410 gone / 429-5xx retry (max 3 attempts)
+  R->>R: daily jobs, each on its own: provider check, memory prune, nudge times, retention
+  R->>DB: JobRun notifications (counts only)

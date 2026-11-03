@@ -34,6 +34,9 @@ const RATE = {
   '/api/auth/callback': 30,
   '/login': 60,
   '/api/calendar/webhook': 300,
+  // WI-145: public and a few database reads per call; generous, so Render's own check and an
+  // uptime monitor never come near it, but a flood stops before it reaches the database.
+  '/api/health': 120,
 } as Record<string, number>;
 
 const formTargets = () => {

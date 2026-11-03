@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-import { dayKey, localInstant, minutes } from '../../lib/time';
+import { dayKey, minutes, repeatedInstant } from '../../lib/time';
 
 import {
   dateInput,
@@ -45,11 +45,11 @@ export function weekBounds(monday: string, zone: string) {
     monday,
     sunday: shiftDay(monday, 6),
     days: weekDays(monday),
-    start: localInstant(monday, '00:00', zone),
-    end: localInstant(shiftDay(monday, 7), '00:00', zone),
+    start: repeatedInstant(monday, '00:00', zone),
+    end: repeatedInstant(shiftDay(monday, 7), '00:00', zone),
     /** Local midnight of each day plus the week's end: eight instants. */
     edges: Array.from({ length: 8 }, (_, i) =>
-      localInstant(shiftDay(monday, i), '00:00', zone),
+      repeatedInstant(shiftDay(monday, i), '00:00', zone),
     ),
   };
 }
@@ -449,7 +449,9 @@ export function weeklyReminderDue(
 ) {
   if (completed || !isReviewDay(now, zone)) return null;
   const today = dayKey(now, zone);
-  return now >= localInstant(today, preferredTime, zone) ? weekOf(today) : null;
+  return now >= repeatedInstant(today, preferredTime, zone)
+    ? weekOf(today)
+    : null;
 }
 
 const text = (max: number) =>

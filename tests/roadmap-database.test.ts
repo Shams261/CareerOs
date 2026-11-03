@@ -187,6 +187,14 @@ describe.skipIf(!url)('roadmap and goals persistence', () => {
     });
     expect(row.lastRevisedAt).toEqual(later);
     expect(await revisionDue(user, later)).toEqual([]);
+    // WI-145: a second press the same day, or a double submit, moves the ladder no further.
+    await Promise.all([
+      applyItemOp(user, { id: invert.id, op: 'revised' }, later),
+      applyItemOp(user, { id: invert.id, op: 'revised' }, later),
+    ]);
+    expect(
+      await prisma.roadmapItem.findUniqueOrThrow({ where: { id: invert.id } }),
+    ).toMatchObject({ revisionStage: 2, nextRevisionAt: day('2026-11-11') });
     // The owner can type a date or clear it from the item form.
     await saveItem(user, {
       id: invert.id,

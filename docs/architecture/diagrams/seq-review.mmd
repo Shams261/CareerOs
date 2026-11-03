@@ -1,0 +1,16 @@
+sequenceDiagram
+  autonumber
+  actor O as Owner
+  participant V as /review
+  participant S as review service
+  participant DB as PostgreSQL
+  O->>V: open Weekly review
+  V->>S: reviewPage(week) through its loader
+  S-->>O: Step 1 · The week: planned versus done per day and category
+  O->>S: Step 2 · Reflect: what went well, blockers (saveReview, a draft)
+  O->>S: Step 3 · Plan: next week's priorities (addPriority, movePriority)
+  O->>S: Prepare next week
+  S->>DB: lock owner · generate next week's days from routines (idempotent)
+  O->>S: Close the week (completeReview)
+  S->>DB: WeeklyReview completed · open revisions and follow-ups listed as Still open
+  S-->>O: message + Undo · calendar sync pushes next week's blocks

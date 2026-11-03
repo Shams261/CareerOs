@@ -33,7 +33,8 @@ const cfg = {
   subject: 'mailto:owner@example.com',
 };
 const sub = (n: number) => ({
-  endpoint: `https://push.example.com/send/${randomUUID()}-${n}`,
+  // A real push service's host: subscriptions are limited to the browsers' (WI-145).
+  endpoint: `https://fcm.googleapis.com/fcm/send/${randomUUID()}-${n}`,
   keys: { p256dh: 'B'.repeat(87), auth: 'a'.repeat(22) },
 });
 

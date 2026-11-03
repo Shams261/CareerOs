@@ -1,0 +1,19 @@
+sequenceDiagram
+  autonumber
+  actor O as Owner
+  participant T as Today / Plan page
+  participant S as schedule service
+  participant E as execution service
+  participant DB as PostgreSQL
+  O->>T: open Today
+  T->>S: generateThroughSunday(today)
+  S->>DB: count generated days (usually all done: one read)
+  alt days missing
+    S->>DB: lock owner row · per day upsert TimeBlock per routine<br/>unique(routineKey, occurrenceDate)
+  end
+  T-->>O: agenda, launcher, rings
+  O->>E: Start session (Server Action)
+  E->>DB: lock owner · insert ActualSession(endedAt null)<br/>partial unique: one running per owner
+  O->>E: Pause / Resume / Complete in Focus
+  E->>DB: end session · block status COMPLETED (planned and actual stay separate rows)
+  E-->>O: runAction: message + Undo · snapshots dropped · pages revalidated

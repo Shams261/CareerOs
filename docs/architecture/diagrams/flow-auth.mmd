@@ -1,0 +1,8 @@
+flowchart TB
+  A["Any private page"] -->|no session| B["/login?next=…"]
+  B --> C["Continue with Google"]
+  C --> D{"Verified email is OWNER_EMAIL<br/>and no other owner exists?"}
+  D -->|yes| E["Session row + 30-day cookie"] --> F["Back to next (same-origin only)"]
+  D -->|no| G["/login with a plain error"]
+  F --> H["Settings → Sessions: sign out other devices"]
+  F --> I["Sign out: session revoked, cookie cleared"]

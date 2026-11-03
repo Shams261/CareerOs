@@ -1,4 +1,5 @@
 'use server';
+import { unstable_rethrow } from 'next/navigation';
 import { runAction } from '@/server/action';
 import { z } from 'zod';
 import { db, owner } from '@/server/db';
@@ -43,6 +44,8 @@ export async function grillAction(
     const state = await aiState(user);
     return { ok: true, ladder, budget: budgetLine(state.spent, state.limit) };
   } catch (error) {
+    // Signed out mid-request: the sign-in redirect goes through (WI-145).
+    unstable_rethrow(error);
     const state = await aiState(user).catch(() => null);
     const budget = state ? budgetLine(state.spent, state.limit) : undefined;
     if (error instanceof AiRefusal || error instanceof AiUnavailable)

@@ -28,7 +28,15 @@ export async function POST(request: Request) {
         where: { id: userId },
         select: { id: true, timezone: true },
       });
-      if (deps && user) await syncCalendar(user, deps).catch(() => {});
+      // An expected failure is recorded on the connection; anything thrown is logged by
+      // class (WI-145), since nothing waits on this run.
+      if (deps && user)
+        await syncCalendar(user, deps).catch((error) =>
+          console.error(
+            '[calendar] webhook sync failed',
+            error instanceof Error ? error.name : 'Error',
+          ),
+        );
     });
   }
   return new Response(null, { status: result.status });

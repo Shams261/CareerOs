@@ -1,5 +1,9 @@
 import { addDays, differenceInMinutes } from 'date-fns';
-import { formatInTimeZone, fromZonedTime } from 'date-fns-tz';
+import {
+  formatInTimeZone,
+  fromZonedTime,
+  getTimezoneOffset,
+} from 'date-fns-tz';
 import { checkDay } from './day';
 /** "08:00" … "23:59". No Zod here: client code imports this module (WI-123). */
 export const isLocalTime = (value: string) =>
@@ -14,19 +18,42 @@ export function isTimeZone(value: string) {
 }
 export const dayKey = (date: Date, zone: string) =>
   formatInTimeZone(date, zone, 'yyyy-MM-dd');
+/** Whether a local wall time exists on that day (it does not inside a spring-forward gap). */
+export function wallTimeExists(day: string, time: string, zone: string) {
+  const result = fromZonedTime(`${day}T${time}:00`, zone);
+  return (
+    formatInTimeZone(result, zone, 'yyyy-MM-dd HH:mm') === `${day} ${time}`
+  );
+}
 export function localInstant(day: string, time: string, zone: string) {
   checkDay(day);
   if (!isLocalTime(time)) throw new Error('Enter a time as HH:MM.');
   if (!isTimeZone(zone)) throw new Error('Use a valid IANA timezone');
-  const result = fromZonedTime(`${day}T${time}:00`, zone);
-  if (formatInTimeZone(result, zone, 'yyyy-MM-dd HH:mm') !== `${day} ${time}`)
+  if (!wallTimeExists(day, time, zone))
     throw new Error('This local time does not exist during the DST transition');
-  return result;
+  return fromZonedTime(`${day}T${time}:00`, zone);
+}
+/**
+ * The moment a repeated local time is reached (a reminder's time, a day's midnight): inside a
+ * spring-forward gap that is when the clock jumps past it (02:30 → 03:30 in Toronto), instead
+ * of an error that stopped the whole reminder run (WI-145). A threshold only: plans never use
+ * it, since ADR-003 never shifts a time into a plan (`routineOccurrence` skips such a day).
+ */
+export function repeatedInstant(day: string, time: string, zone: string) {
+  checkDay(day);
+  if (!isLocalTime(time)) throw new Error('Enter a time as HH:MM.');
+  if (!isTimeZone(zone)) throw new Error('Use a valid IANA timezone');
+  const result = fromZonedTime(`${day}T${time}:00`, zone);
+  if (wallTimeExists(day, time, zone)) return result;
+  const gap =
+    getTimezoneOffset(zone, new Date(+result + 12 * 3600000)) -
+    getTimezoneOffset(zone, new Date(+result - 12 * 3600000));
+  return new Date(+result + Math.max(0, gap));
 }
 export function dayBounds(day: string, zone: string) {
   return {
-    start: localInstant(day, '00:00', zone),
-    end: localInstant(
+    start: repeatedInstant(day, '00:00', zone),
+    end: repeatedInstant(
       addDays(new Date(`${day}T12:00:00Z`), 1)
         .toISOString()
         .slice(0, 10),

@@ -268,6 +268,12 @@ export async function applyItemOpIn(
   if (op === 'revised') {
     if (item.status !== 'DONE')
       throw new Error('Mark the item done before recording a revision.');
+    // One revision a day (WI-145): a second press, or a double submit, moves nothing further.
+    if (
+      item.lastRevisedAt &&
+      dayKey(item.lastRevisedAt, user.timezone) === today
+    )
+      return { op, item };
     await tx.roadmapItem.update({
       where: { id: item.id },
       data: {

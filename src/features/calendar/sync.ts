@@ -193,8 +193,12 @@ async function syncCalendarInner(
     };
     const today = dayKey(now, user.timezone);
     for (const day of syncGenerationDays(today))
-      await generatePlan(user, day).catch(() => {
-        // A routine hitting a DST gap already reports on Today; sync continues.
+      await generatePlan(user, day).catch((error) => {
+        // The sync goes on with the days it has; the failure is logged by class (WI-145).
+        console.error(
+          '[calendar] plan failed',
+          error instanceof Error ? error.name : 'Error',
+        );
       });
     let token: string;
     if (full) token = await fullSync(ctx);

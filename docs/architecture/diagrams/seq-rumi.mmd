@@ -1,0 +1,32 @@
+sequenceDiagram
+  autonumber
+  actor O as Owner
+  participant D as Rumi drawer (client)
+  participant R as POST /api/rumi/ask
+  participant A as agent service
+  participant AI as ai engine (ledger)
+  participant M as OpenRouter
+  participant DB as PostgreSQL
+  O->>D: question (typed or Talk)
+  D->>R: JSON {conversationId, text, voice, page}
+  R->>R: same-origin check, owner(), Zod, 4,000 chars max
+  R->>A: askRumi (stream lines as they happen)
+  A->>DB: history window, memory lines, page record as data
+  loop at most MAX_ROUNDS
+    A->>AI: reserve cost under the owner lock (monthly limit if the owner set one)
+    AI->>M: chat + tools (pinned provider, zdr, cached system prompt)
+    M-->>AI: text or tool calls
+    AI->>DB: settle AiUsage (tokens, micros)
+    alt read tool
+      A->>DB: owner-scoped read · ids remembered
+      A-->>D: {"read":"get_today"}
+    else small write (note, block, rest day)
+      A->>DB: lock owner · write through the feature service · action + Undo
+      A-->>D: {"write":"add_note"}
+    else bigger change
+      A->>A: card stored on the answer · the owner presses Apply later
+    end
+  end
+  A->>DB: store the answer with actions, cards, seen ids
+  A-->>D: {"done": answer} then {"kept": memories}
+  Note over A,DB: A model failure after a write still stores the answer with its Undo (WI-145)

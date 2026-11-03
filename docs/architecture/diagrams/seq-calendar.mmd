@@ -1,0 +1,19 @@
+sequenceDiagram
+  autonumber
+  participant C as Scheduler (Bearer)
+  participant R as /api/calendar/sync
+  participant S as calendar sync
+  participant DB as PostgreSQL
+  participant G as Google Calendar
+  C->>R: POST every 5–15 min
+  R->>S: syncCalendar(owner) per connection
+  S->>DB: take the lease on CalendarConnection (busy → skip)
+  S->>S: decrypt refresh token (AES-256-GCM), refresh access token (10 s timeout)
+  S->>DB: generate today → Sunday (+ next week if prepared)
+  S->>G: push pending blocks: insert / patch (etag) / delete Deleted blocks
+  S->>G: pull changes with syncToken (410 → full sync)
+  G-->>S: events with Silsila private properties only
+  S->>DB: apply time edits to that dated TimeBlock only · record conflicts
+  S->>DB: release lease, store syncToken, summary counts
+  R->>DB: JobRun calendar-sync: success, or failure when every connection failed
+  Note over G,R: Webhook /api/calendar/webhook: channel id + token hash verified, then the same sync runs after the response

@@ -1,0 +1,11 @@
+flowchart TB
+  J["Jobs: funnel, needs action, waiting"] --> AD["Add application (duplicate warning)"]
+  J --> AP["/jobs/[id]: application"]
+  AP --> ST["Change stage (history kept)"]
+  AP --> RD["Add round → optional block on the plan"]
+  RD --> RS["Record result → block settled; stage optional"]
+  AP --> FU["Next action and follow-up date → reminders"]
+  AP --> PD["Prep doc (/jobs/[id]/prep/[docId]): sources, questions"]
+  PD --> MK["Mock (/…/mock): answer, feedback"]
+  AP --> IV["Paste an invite → rounds and formats to add"]
+  AP --> DB["Debrief after a round"]

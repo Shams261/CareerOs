@@ -6,6 +6,7 @@ import {
   localInstant,
   shortDate,
   weekdayDate,
+  repeatedInstant,
 } from '../../lib/time';
 import { resourceUrl, localTime, timezone } from '../../lib/validation';
 import { dateInput } from '../schedule/domain';
@@ -315,7 +316,7 @@ export function attention(app: AppLike, now: Date, zone: string) {
     reasons.push({ kind: 'FOLLOW_UP_OVERDUE', days: follow.days });
   for (const round of resultNeeded(app.rounds, now))
     reasons.push({ kind: 'RESULT_NEEDED', round });
-  const horizon = localInstant(shiftDay(today, 2), '00:00', zone);
+  const horizon = repeatedInstant(shiftDay(today, 2), '00:00', zone);
   for (const round of app.rounds.filter(
     (r) =>
       r.status === 'SCHEDULED' &&
@@ -560,7 +561,7 @@ export function followUpReminderDue(
   if (follow.state === 'overdue') return follow.date;
   if (
     follow.state === 'today' &&
-    now >= localInstant(today, preferredTime, zone)
+    now >= repeatedInstant(today, preferredTime, zone)
   )
     return follow.date;
   return null;
@@ -586,7 +587,7 @@ export type WeeklyInput = {
 export function weeklyJobSummary(input: WeeklyInput, now: Date, zone: string) {
   const today = dayKey(now, zone),
     monday = weekDays(today)[0],
-    start = localInstant(monday, '00:00', zone);
+    start = repeatedInstant(monday, '00:00', zone);
   const inWeek = (d: Date | null) => !!d && d >= start && d <= now;
   const dateInWeek = (d: Date | null) =>
     !!d && calendarDate(d) >= monday && calendarDate(d) <= today;

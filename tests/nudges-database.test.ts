@@ -112,7 +112,7 @@ describe.skipIf(!url)('study nudges (PostgreSQL)', () => {
     expect(rows[1].metadata).toEqual({ blockId: b.id });
     expect(rows.every((r) => !r.inAppOnly)).toBe(true);
     await saveSubscription(user, {
-      endpoint: `https://push.example.com/send/${randomUUID()}`,
+      endpoint: `https://fcm.googleapis.com/fcm/send/${randomUUID()}`,
       keys: { p256dh: 'B'.repeat(87), auth: 'a'.repeat(22) },
     });
     const bodies: string[] = [];
@@ -133,7 +133,7 @@ describe.skipIf(!url)('study nudges (PostgreSQL)', () => {
     const [row] = await nudges();
     expect(row.inAppOnly).toBe(true);
     await saveSubscription(user, {
-      endpoint: `https://push.example.com/send/${randomUUID()}`,
+      endpoint: `https://fcm.googleapis.com/fcm/send/${randomUUID()}`,
       keys: { p256dh: 'B'.repeat(87), auth: 'a'.repeat(22) },
     });
     await deliverPending(at('08:06'), async () => 201, cfg);

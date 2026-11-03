@@ -1,7 +1,7 @@
 'use client';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { STATUS_FILTERS } from './domain';
+import { STATUS_FILTERS } from './words';
 import { usePendingRegion } from '@/components/pending-region';
 
 /** Search and one status filter; both apply as you type or choose, through the URL. */

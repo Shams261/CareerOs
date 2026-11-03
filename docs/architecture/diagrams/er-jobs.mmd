@@ -1,0 +1,59 @@
+erDiagram
+  JobApplication {
+    string id PK
+    string company
+    string role
+    string source
+    enum stage
+  }
+  JobActivity {
+    string id PK
+    string applicationId FK
+    enum type
+    timestamptz occurredAt
+    string interviewRoundId FK
+    string requestId
+  }
+  InterviewRound {
+    string id PK
+    string applicationId FK
+    string title
+    enum type
+    timestamptz scheduledStart
+    string timezone
+    enum status
+  }
+  InterviewPrepItem {
+    string id PK
+    string roundId FK
+    enum kind
+    string title
+    timestamptz completedAt
+    string learningTopicId FK
+    string dsaProblemId FK
+  }
+  InterviewPrepDoc {
+    string id PK
+    string applicationId FK
+    string company
+    string role
+    json content
+    int costMicros
+  }
+  LearningTopic {
+    string id PK
+  }
+  DsaProblem {
+    string id PK
+  }
+  DsaTopic {
+    string id PK
+  }
+  JobApplication ||--o{ JobActivity : "applicationId"
+  InterviewRound |o--o{ JobActivity : "interviewRoundId"
+  JobApplication ||--o{ InterviewRound : "applicationId"
+  InterviewRound ||--o{ InterviewPrepItem : "roundId"
+  LearningTopic |o--o{ InterviewPrepItem : "learningTopicId"
+  DsaProblem |o--o{ InterviewPrepItem : "dsaProblemId"
+  DsaTopic |o--o{ InterviewPrepItem : "dsaTopicId"
+  JobApplication ||--o{ InterviewPrepDoc : "applicationId"

@@ -269,7 +269,8 @@ export function NudgeCard({ nudge, block, day }: NudgeCardProps) {
       >
         <input type="hidden" name="id" value={nudge.id} />
         <span className="muted">Useful?</span>
-        <button className="link-button" name="value" value="HELPFUL">
+        {/* WI-145: at least 24 px wide, WCAG 2.2's smallest target. */}
+        <button className="link-button min-w-6" name="value" value="HELPFUL">
           Yes
         </button>
         <button className="link-button" name="value" value="NOT_TODAY">

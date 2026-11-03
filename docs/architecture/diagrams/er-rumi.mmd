@@ -1,0 +1,54 @@
+erDiagram
+  User {
+    string id PK
+    string email UK
+    string timezone
+  }
+  AgentConversation {
+    string id PK
+    string userId FK
+    string title
+  }
+  AgentMessage {
+    string id PK
+    string conversationId FK
+    string userId FK
+    enum role
+    string content
+  }
+  AgentMemory {
+    string id PK
+    string userId FK
+    string text
+    enum kind
+    enum source
+    date expiresAt
+    string messageId FK
+  }
+  AgentSetting {
+    string userId PK
+  }
+  AiSetting {
+    string userId PK
+  }
+  AiUsage {
+    string id PK
+    string userId FK
+    enum feature
+    int costMicros
+  }
+  NoticedAnswer {
+    string id PK
+    string userId FK
+    string key
+    string kind
+  }
+  User ||--o{ AgentConversation : "userId"
+  AgentConversation ||--o{ AgentMessage : "conversationId"
+  User ||--o{ AgentMessage : "userId"
+  User ||--o{ AgentMemory : "userId"
+  AgentMessage |o--o{ AgentMemory : "messageId"
+  User ||--o{ AgentSetting : "userId"
+  User ||--o{ AiSetting : "userId"
+  User ||--o{ AiUsage : "userId"
+  User ||--o{ NoticedAnswer : "userId"

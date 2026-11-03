@@ -49,14 +49,17 @@ export function decryptSecret(envelope: string, key: Buffer) {
   const [version, iv, tag, ciphertext] = envelope.split(':');
   if (version !== VERSION || !iv || !tag || !ciphertext)
     throw new TokenDecryptionError();
+  const ivBytes = Buffer.from(iv, 'base64url');
+  const tagBytes = Buffer.from(tag, 'base64url');
+  // WI-145: a GCM tag shorter than 16 bytes is easier to forge; only the shape we write passes.
+  if (ivBytes.length !== 12 || tagBytes.length !== 16)
+    throw new TokenDecryptionError();
   try {
-    const decipher = createDecipheriv(
-      'aes-256-gcm',
-      key,
-      Buffer.from(iv, 'base64url'),
-    );
+    const decipher = createDecipheriv('aes-256-gcm', key, ivBytes, {
+      authTagLength: 16,
+    });
     decipher.setAAD(Buffer.from(VERSION));
-    decipher.setAuthTag(Buffer.from(tag, 'base64url'));
+    decipher.setAuthTag(tagBytes);
     return Buffer.concat([
       decipher.update(Buffer.from(ciphertext, 'base64url')),
       decipher.final(),

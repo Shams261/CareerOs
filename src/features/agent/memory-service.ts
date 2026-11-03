@@ -286,10 +286,22 @@ export async function forgetRumiMemories(user: ScheduleUser) {
 
 /** The daily sweep (beside the provider check): lines past their day go, for every owner. */
 export async function pruneMemories(now = new Date()) {
-  const today = now.toISOString().slice(0, 10);
-  const gone = await db().agentMemory.deleteMany({
-    where: { expiresAt: { lt: new Date(today) } },
+  // WI-145: each owner's own day, so a line kept until a date lasts through that whole local
+  // day rather than going in the owner's evening, when UTC has already turned over.
+  const owners = await db().user.findMany({
+    where: { agentMemories: { some: { expiresAt: { not: null } } } },
+    select: { id: true, timezone: true },
   });
-  if (gone.count) console.info(`[agent] memory pruned ${gone.count}`);
-  return gone.count;
+  let count = 0;
+  for (const o of owners) {
+    const gone = await db().agentMemory.deleteMany({
+      where: {
+        userId: o.id,
+        expiresAt: { lt: new Date(dayKey(now, o.timezone)) },
+      },
+    });
+    count += gone.count;
+  }
+  if (count) console.info(`[agent] memory pruned ${count}`);
+  return count;
 }

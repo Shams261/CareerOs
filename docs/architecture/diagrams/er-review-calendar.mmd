@@ -1,0 +1,42 @@
+erDiagram
+  WeeklyReview {
+    string id PK
+    date weekStart
+    timestamptz completedAt
+  }
+  WeeklyPriority {
+    string id PK
+    string reviewId FK
+    string title
+    string goalId FK
+    timestamptz completedAt
+  }
+  QuickNote {
+    string id PK
+  }
+  CalendarConnection {
+    string id PK
+    string userId UK
+    enum status
+  }
+  CalendarWatchChannel {
+    string id PK
+    string connectionId FK
+    string channelId UK
+    string tokenHash
+  }
+  CalendarSyncConflict {
+    string id PK
+    string timeBlockId FK
+    enum status
+  }
+  Goal {
+    string id PK
+  }
+  TimeBlock {
+    string id PK
+  }
+  WeeklyReview ||--o{ WeeklyPriority : "reviewId"
+  Goal |o--o{ WeeklyPriority : "goalId"
+  CalendarConnection ||--o{ CalendarWatchChannel : "connectionId"
+  TimeBlock ||--o{ CalendarSyncConflict : "timeBlockId"

@@ -1,0 +1,15 @@
+sequenceDiagram
+  autonumber
+  actor O as Owner
+  participant P as /dsa/[id]
+  participant A as dsa actions
+  participant S as dsa service
+  participant DB as PostgreSQL
+  O->>P: open a problem
+  P->>S: dsaSnapshot (memo 3 min) → settleRevisions: lapsed step → missed<br/>(guarded on the step it read)
+  O->>A: Record attempt (confidence Shaky/Okay/Solid, solved, minutes)
+  A->>S: recordAttempt(requestId)
+  S->>DB: lock owner · append DsaAttempt (idempotent on requestId)
+  S->>DB: update problem confidence and revision ladder (3 → 7 → 14 days)
+  S-->>A: done · roadmap items linked to the problem follow Practice
+  A-->>O: message + Undo

@@ -1,0 +1,11 @@
+flowchart TB
+  T["Today: greeting, date, clock, one quotation"] --> F["Facts: yesterday's and the week's counts"]
+  F --> L{"Launcher state"}
+  L -->|block running| R["Focus: pause, resume, complete"]
+  L -->|block next| S["Start session"] --> R
+  L -->|earlier blocks undecided| U["Update earlier blocks: Done / Skip / Move"]
+  L -->|day over| C["Close the day: each block Done, Tomorrow or Let go; one line"]
+  L -->|quiet yesterday| G["Let go of yesterday's blocks (Undo)"]
+  T --> N["Needs attention: interviews, follow-ups, revisions, reminders, Rumi noticed"]
+  T --> W["Rumi's line card: Start, Move, Let go, Ask Rumi, Reply"]
+  T --> A["Add a block for this day"]

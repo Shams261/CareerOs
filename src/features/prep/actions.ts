@@ -1,7 +1,7 @@
 'use server';
 import { failure } from '@/server/action';
 import { revalidatePath } from 'next/cache';
-import { redirect } from 'next/navigation';
+import { redirect, unstable_rethrow } from 'next/navigation';
 import { z } from 'zod';
 import { owner } from '@/server/db';
 import { forgetAll } from '@/server/memo';
@@ -24,10 +24,7 @@ import { aiPolicies, interviewTypes } from '@/features/jobs/domain';
 
 const roundIn = z.object({
   type: z.enum(interviewTypes),
-  date: z
-    .string()
-    .regex(/^\d{4}-\d{2}-\d{2}$/)
-    .nullable(),
+  date: z.iso.date().nullable(),
   start: z
     .string()
     .regex(/^([01]\d|2[0-3]):[0-5]\d$/)
@@ -197,6 +194,8 @@ export async function prepAction(
     revalidatePath(`/jobs/${doc.applicationId}`);
     return { ok: true, href: `/jobs/${doc.applicationId}/prep/${doc.id}` };
   } catch (error) {
+    // Signed out mid-request: the sign-in redirect goes through (WI-145).
+    unstable_rethrow(error);
     if (error instanceof AiRefusal || error instanceof AiUnavailable)
       return { ok: false, message: error.message };
     console.error(

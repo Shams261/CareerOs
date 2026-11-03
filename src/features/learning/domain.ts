@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { dayKey, localInstant } from '@/lib/time';
+import { dayKey, repeatedInstant } from '@/lib/time';
 import { shiftDay } from '@/lib/day';
 export const dimensions = [
   'understanding',
@@ -144,5 +144,5 @@ export function learningSuggestions<
 export function weekStart(now: Date, zone: string) {
   const day = dayKey(now, zone),
     weekday = new Date(day).getUTCDay();
-  return localInstant(shiftDay(day, -((weekday + 6) % 7)), '00:00', zone);
+  return repeatedInstant(shiftDay(day, -((weekday + 6) % 7)), '00:00', zone);
 }

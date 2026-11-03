@@ -1,19 +1,12 @@
 'use server';
 
 import { cookies } from 'next/headers';
+import { browserCookie } from '@/lib/cookie';
 import { revalidatePath } from 'next/cache';
 import { owner } from '@/server/db';
 import { TEXT_SIZE_COOKIE, TEXT_SIZES, THEME_COOKIE } from '@/lib/theme';
 
-const cookie = {
-  httpOnly: true,
-  sameSite: 'lax' as const,
-  secure:
-    process.env.NODE_ENV === 'production' &&
-    process.env.APP_BASE_URL?.startsWith('https://') === true,
-  path: '/',
-  maxAge: 60 * 60 * 24 * 365,
-};
+const cookie = browserCookie(365);
 
 export async function saveTheme(form: FormData) {
   await owner();

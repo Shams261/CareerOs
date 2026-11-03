@@ -1,0 +1,38 @@
+flowchart TB
+  owner(["Owner (browser)"])
+  subgraph edge["Trust boundary 1: public internet → proxy.ts"]
+    P1(("1 · Gate<br/>session cookie → owner id,<br/>CSP nonce, rate limit, cron bearer"))
+  end
+  subgraph app["Trust boundary 2: server code, owner-scoped"]
+    P2(("2 · Plan and record<br/>routines → days → blocks → sessions"))
+    P3(("3 · Practice and roadmap<br/>attempts, ladder, items"))
+    P4(("4 · Jobs<br/>applications, rounds, prep"))
+    P5(("5 · Review and close<br/>check-ins, weekly review"))
+    P6(("6 · Rumi<br/>tools read, small writes, cards"))
+    P7(("7 · Deliver<br/>inbox, nudges, push"))
+    P8(("8 · Calendar sync<br/>lease, push, pull, conflicts"))
+  end
+  DS1[("Plans, blocks, sessions")]
+  DS2[("Problems, attempts, roadmap")]
+  DS3[("Applications, rounds, activities")]
+  DS4[("Reviews, check-ins, notes")]
+  DS5[("Rumi messages, memory, AI usage")]
+  DS6[("Notification log, push subscriptions")]
+  DS7[("Calendar connection (token AES-256-GCM)")]
+  OR(["OpenRouter"])
+  GC(["Google Calendar"])
+  PS(["Push services"])
+  owner --> P1
+  P1 --> P2 & P3 & P4 & P5 & P6
+  P2 <--> DS1
+  P3 <--> DS2
+  P4 <--> DS3
+  P5 <--> DS4
+  P6 <--> DS5
+  P6 -. "reads through the same services" .-> DS1 & DS2 & DS3
+  P6 <--> OR
+  P7 <--> DS6
+  P7 --> PS
+  P8 <--> DS1
+  P8 <--> DS7
+  P8 <--> GC

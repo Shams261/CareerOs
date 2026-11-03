@@ -1,0 +1,18 @@
+flowchart TB
+  owner(["Owner"])
+  subgraph tb1["Trust boundary: Silsila server (Render)"]
+    P0(("0 · Silsila<br/>plan, record, review"))
+  end
+  D[("Supabase PostgreSQL")]
+  G(["Google OIDC + Calendar"])
+  O(["OpenRouter (ZDR)"])
+  PS(["Push services"])
+  C(["Schedulers"])
+  owner -- "plans, records, notes, reflections, job details, questions" --> P0
+  P0 -- "pages, answers, undo" --> owner
+  P0 <-- "all owner data, encrypted calendar refresh token" --> D
+  P0 <-- "ID token / dated blocks as events" --> G
+  P0 -- "question + reads (never notes, reflections, compensation, contacts)" --> O
+  O -- "answer, tool calls" --> P0
+  P0 -- "encrypted generic notification" --> PS
+  C -- "Bearer secret: run reminders, sync" --> P0

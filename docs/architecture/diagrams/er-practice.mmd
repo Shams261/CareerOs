@@ -1,0 +1,50 @@
+erDiagram
+  DsaTopic {
+    string id PK
+    string name UK
+    enum status
+  }
+  DsaProblem {
+    int revisionStage
+    string id PK
+    string title
+    string topicId FK
+    enum confidence
+    date nextRevisionAt
+  }
+  DsaAttempt {
+    string id PK
+    string problemId FK
+    string requestId
+    timestamptz attemptedAt
+    enum confidenceAfter
+    string actualSessionId FK
+  }
+  Resource {
+    string id PK
+    string title
+    enum type
+    string problemId FK
+    string learningTopicId FK
+    string goalId FK
+    string jobApplicationId FK
+  }
+  ActualSession {
+    string id PK
+  }
+  LearningTopic {
+    string id PK
+  }
+  Goal {
+    string id PK
+  }
+  JobApplication {
+    string id PK
+  }
+  DsaTopic ||--o{ DsaProblem : "topicId"
+  DsaProblem ||--o{ DsaAttempt : "problemId"
+  ActualSession |o--o{ DsaAttempt : "actualSessionId"
+  DsaProblem |o--o{ Resource : "problemId"
+  LearningTopic |o--o{ Resource : "learningTopicId"
+  Goal |o--o{ Resource : "goalId"
+  JobApplication |o--o{ Resource : "jobApplicationId"

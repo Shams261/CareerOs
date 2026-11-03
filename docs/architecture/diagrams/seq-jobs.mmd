@@ -1,0 +1,21 @@
+sequenceDiagram
+  autonumber
+  actor O as Owner
+  participant J as /jobs/[id]
+  participant S as jobs services
+  participant DB as PostgreSQL
+  O->>J: Add interview round (date, time, zone, "on my plan" ticked)
+  J->>S: scheduleRound
+  S->>DB: lock owner · insert InterviewRound · JobActivity (append-only)
+  opt on my plan
+    J->>S: addInterviewToSchedule
+    S->>DB: one TimeBlock for the round on that day (unique interviewRoundId)
+  end
+  O->>J: Record result (Completed / Cancelled / No-show, optional stage)
+  J->>S: recordRoundResult(requestId)
+  S->>DB: round status · JobActivity INTERVIEW_RESULT
+  S->>DB: settle the linked block (refused while a session runs on it)
+  opt stage chosen
+    S->>DB: stage + JobActivity stage history (same transaction)
+  end
+  S-->>O: message + Undo · calendar syncs soon

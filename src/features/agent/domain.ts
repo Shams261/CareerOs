@@ -81,7 +81,7 @@ export type ChatMessage =
   | { role: 'assistant'; content: string | null; tool_calls?: ToolCall[] }
   | { role: 'tool'; tool_call_id: string; content: string };
 
-const DAY = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
+const DAY = z.iso.date();
 const noArgs = z.object({}).strict();
 /** Each tool's arguments; anything else the model sends is refused, never guessed at. */
 export const TOOL_ARGS = {

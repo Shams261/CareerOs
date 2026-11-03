@@ -33,7 +33,8 @@
     "google:fake": "tsx tests/support/fake-google-server.ts",
     "openrouter:fake": "tsx tests/support/fake-openrouter-server.ts",
     "test:e2e": "tsx scripts/e2e-db.ts && playwright test",
-    "test:e2e:safari": "E2E_BROWSER=webkit pnpm test:e2e"
+    "test:e2e:safari": "E2E_BROWSER=webkit pnpm test:e2e",
+    "test:e2e:firefox": "E2E_BROWSER=firefox pnpm test:e2e"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.10.1",

@@ -1,0 +1,66 @@
+erDiagram
+  Roadmap {
+    string id PK
+    string title
+    string goalId FK
+  }
+  RoadmapItem {
+    string id PK
+    string roadmapId FK
+    string section
+    enum kind
+    string title
+    string slug
+    enum status
+  }
+  RevisionCard {
+    string id PK
+    string roadmapItemId FK
+  }
+  LearningSubject {
+    string id PK
+    string name
+    enum status
+    string goalId FK
+  }
+  LearningTopic {
+    string subjectId FK
+    string id PK
+    string title
+    enum status
+    string goalId FK
+    string parentId FK
+  }
+  LearningActivity {
+    string id PK
+    string topicId FK
+    string requestId
+    string actualSessionId FK
+  }
+  CurriculumBundle {
+    string id PK
+  }
+  Goal {
+    string id PK
+  }
+  DsaProblem {
+    string id PK
+  }
+  DsaTopic {
+    string id PK
+  }
+  ActualSession {
+    string id PK
+  }
+  Goal |o--o{ Roadmap : "goalId"
+  Roadmap ||--o{ RoadmapItem : "roadmapId"
+  LearningTopic |o--o{ RoadmapItem : "learningTopicId"
+  DsaProblem |o--o{ RoadmapItem : "dsaProblemId"
+  DsaTopic |o--o{ RoadmapItem : "dsaTopicId"
+  RoadmapItem ||--o{ RevisionCard : "roadmapItemId"
+  Goal |o--o{ LearningSubject : "goalId"
+  LearningSubject ||--o{ LearningTopic : "subjectId"
+  Goal |o--o{ LearningTopic : "goalId"
+  LearningTopic |o--o{ LearningTopic : "parentId"
+  LearningTopic ||--o{ LearningActivity : "topicId"
+  ActualSession |o--o{ LearningActivity : "actualSessionId"

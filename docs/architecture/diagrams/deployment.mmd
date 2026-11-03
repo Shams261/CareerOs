@@ -1,0 +1,22 @@
+flowchart TB
+  user(["Owner's browsers<br/>Chrome, Safari, Home Screen app"])
+  dns["usesilsila.me<br/>HTTPS, HSTS"]
+  subgraph renderbox["Render (Ohio) · free web service"]
+    container["Docker image from this repo<br/>next start · Node 24<br/>health check /api/health"]
+  end
+  subgraph supa["Supabase (Canada Central) · free"]
+    pg[("PostgreSQL 17<br/>session pooler, TLS no-verify")]
+  end
+  gh["GitHub Actions<br/>Quality (CI) → Render deploys main<br/>daily encrypted backup · weekly WebKit<br/>scheduler every 15 min · uptime hourly"]
+  cronorg["cron-job.org<br/>reminders every minute<br/>calendar sync every 5–15 min"]
+  better["Better Stack<br/>keyword monitor on /api/health"]
+  google["Google OIDC + Calendar"]
+  orouter["OpenRouter → Vertex (ZDR)"]
+  user --> dns --> container
+  container --> pg
+  container --> google
+  container --> orouter
+  cronorg --> container
+  gh --> container
+  gh -. "pg_dump → age-encrypted artifact" .-> pg
+  better --> container

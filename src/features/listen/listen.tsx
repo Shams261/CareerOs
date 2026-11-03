@@ -30,14 +30,15 @@ const RATES = [
   ['1.15', 'Faster'],
 ] as const;
 
-const fetchedLabel = (iso: string) =>
-  new Date(iso).toLocaleString(undefined, {
-    day: 'numeric',
-    month: 'short',
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: false,
-  });
+/** "Nov 2, 18:30" on every device (WI-145): the app's month-day and 24-hour clock. */
+const FETCHED = new Intl.DateTimeFormat('en', {
+  day: 'numeric',
+  month: 'short',
+  hour: '2-digit',
+  minute: '2-digit',
+  hourCycle: 'h23',
+});
+const fetchedLabel = (iso: string) => FETCHED.format(new Date(iso));
 
 /**
  * Listen (WI-037). First what will be sent and which sources will be fetched; then the

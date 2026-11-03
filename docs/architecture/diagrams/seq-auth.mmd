@@ -1,0 +1,19 @@
+sequenceDiagram
+  autonumber
+  actor O as Owner
+  participant L as /login (signInAction)
+  participant G as Google OIDC
+  participant CB as /api/auth/callback
+  participant DB as PostgreSQL
+  O->>L: Continue with Google
+  L->>L: rate limit 20/min per IP · make state, nonce, PKCE verifier
+  L->>O: Set encrypted login cookie (AES-256-GCM, path /api/auth, 10 min), redirect
+  O->>G: authorize (openid email, S256 challenge)
+  G->>CB: code + state
+  CB->>CB: decrypt cookie, check state and expiry
+  CB->>G: exchange code + verifier
+  G-->>CB: ID token
+  CB->>CB: verify signature, nonce, audience, verified email == OWNER_EMAIL
+  CB->>DB: refuse if another owner exists · upsert User · insert Session(token SHA-256)
+  CB->>O: httpOnly SameSite=Lax Secure cookie (30 days), redirect to next
+  Note over O,DB: Every later request: proxy.ts resolves the cookie hash to a live Session (cached 60 s)

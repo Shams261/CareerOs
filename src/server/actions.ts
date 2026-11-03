@@ -2,9 +2,8 @@
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { db, owner } from './db';
-import { forgetAll } from './memo';
 import { localTime } from '@/lib/validation';
-import { failure } from './action';
+import { failure, runAction } from './action';
 import type { ActionState } from '@/lib/action-state';
 /** Form-state wrapper so Settings can show "Preference saved." like every other form. */
 export async function reminderAction(
@@ -44,13 +43,17 @@ export async function readNotificationAction(
   _state: ActionState,
   form: FormData,
 ): Promise<ActionState> {
-  const ids = z.array(z.string().min(1)).min(1).parse(form.getAll('id'));
-  const user = await owner();
-  await db().notificationLog.updateMany({
-    where: { id: { in: ids }, userId: user.id, readAt: null },
-    data: { readAt: new Date() },
-  });
-  forgetAll();
-  revalidatePath('/today');
-  return { ok: true, message: 'Marked read.' };
+  // WI-145: through the shared runner, so a failure reads as a message, never an error page.
+  return runAction(
+    async () => {
+      const ids = z.array(z.string().min(1)).min(1).parse(form.getAll('id'));
+      const user = await owner();
+      await db().notificationLog.updateMany({
+        where: { id: { in: ids }, userId: user.id, readAt: null },
+        data: { readAt: new Date() },
+      });
+      return 'Marked read.';
+    },
+    { area: 'notifications' },
+  );
 }

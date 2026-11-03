@@ -1,0 +1,20 @@
+flowchart TB
+  owner(["Owner<br/>(one person, phone and desktop)"])
+  silsila["Silsila<br/>Next.js app at usesilsila.me<br/>plans, records, practice, jobs, reviews, Rumi"]
+  google_id["Google Identity<br/>OIDC sign-in"]
+  gcal["Google Calendar API<br/>one app-created calendar"]
+  openrouter["OpenRouter<br/>Haiku 5.5 on Vertex, zero data retention"]
+  push["Browser push services<br/>FCM, Mozilla, Apple, WNS"]
+  cron["Schedulers<br/>cron-job.org + GitHub Actions"]
+  monitor["Better Stack monitor<br/>+ GitHub uptime workflow"]
+  speech["Browser speech<br/>(recognition: Google or Apple)"]
+  owner -- "HTTPS pages, forms, Rumi stream" --> silsila
+  owner -- "voice (opt-in)" --> speech
+  silsila -- "PKCE code exchange, ID token" --> google_id
+  silsila -- "events of the dedicated calendar" --> gcal
+  gcal -- "push webhook (signal only)" --> silsila
+  silsila -- "chat, tools, lines (never notes, reflections, compensation, contacts)" --> openrouter
+  silsila -- "encrypted Web Push, generic text" --> push
+  push --> owner
+  cron -- "Bearer CRON_SECRET" --> silsila
+  monitor -- "GET /api/health" --> silsila

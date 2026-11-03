@@ -217,6 +217,22 @@ describe('token encryption', () => {
       expect(String(e)).not.toContain('refresh');
     }
   });
+  it('refuses a shortened tag or IV, even a true prefix of the real tag (WI-145)', () => {
+    const [v, iv, tag, ct] = encryptSecret('refresh-token', key).split(':');
+    // Without a pinned tag length, GCM would accept the first 4 bytes of the real tag.
+    for (const short of [4, 8, 12]) {
+      const cut = Buffer.from(tag, 'base64url')
+        .subarray(0, short)
+        .toString('base64url');
+      expect(() => decryptSecret([v, iv, cut, ct].join(':'), key)).toThrow(
+        TokenDecryptionError,
+      );
+    }
+    const longIv = Buffer.alloc(16, 1).toString('base64url');
+    expect(() => decryptSecret([v, longIv, tag, ct].join(':'), key)).toThrow(
+      TokenDecryptionError,
+    );
+  });
   it('validates key format at configuration time', () => {
     expect(() => parseEncryptionKey(undefined)).toThrow('not set');
     expect(() => parseEncryptionKey('short')).toThrow('32 random bytes');
