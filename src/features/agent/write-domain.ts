@@ -25,7 +25,7 @@ export const noteArgs = z
   .strict();
 export const blockArgs = z
   .object({
-    day: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+    day: z.iso.date(),
     title: z.string().trim().min(1).max(80),
     kind: z.string().trim().min(1).max(40),
     start: HHMM,
@@ -137,9 +137,7 @@ const undoSchema = z.discriminatedUnion('kind', [
   }),
   z.object({
     kind: z.literal('clear-rest-day'),
-    payload: z
-      .object({ day: z.string().regex(/^\d{4}-\d{2}-\d{2}$/) })
-      .strict(),
+    payload: z.object({ day: z.iso.date() }).strict(),
   }),
 ]);
 /** One change Rumi made in an answer, kept on the answer with its Undo. */
@@ -173,3 +171,10 @@ export function readActions(raw: unknown): WriteAction[] {
     return r.success && undoMatches(r.data) ? [r.data] : [];
   });
 }
+
+/**
+ * The answer kept when the model stops after a change was made (WI-145): the change already
+ * happened, so the answer still records it and carries its Undo, in plain words.
+ */
+export const cutShortReply = (actions: WriteAction[]) =>
+  `Done so far: ${actions.map((a) => a.label).join('; ')}. The rest of the answer did not come through, so ask again for it. Undo is on the card below.`;

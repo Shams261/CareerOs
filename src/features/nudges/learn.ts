@@ -5,7 +5,7 @@
  * three "Too many" in a row, the part is turned off and Settings says so with Resume.
  * Covered by tests/nudges-learn.test.ts.
  */
-import { hhmm, localInstant } from '@/lib/time';
+import { hhmm, repeatedInstant } from '@/lib/time';
 import { inQuietHours } from './domain';
 
 export type Part = 'morning' | 'midday' | 'evening';
@@ -119,11 +119,11 @@ export function firstStartAfter(
   day: string,
 ) {
   const from = Math.max(
-    +localInstant(day, '00:00', zone),
+    +repeatedInstant(day, '00:00', zone),
     +at - START_WITHIN * 60_000,
   );
   const end = Math.min(
-    +localInstant(day, '23:59', zone),
+    +repeatedInstant(day, '23:59', zone),
     +at + START_WITHIN * 60_000,
   );
   return (

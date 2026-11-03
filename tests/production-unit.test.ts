@@ -277,6 +277,24 @@ describe('push payloads and service worker', () => {
         keys: { p256dh: 'a'.repeat(87), auth: 'b'.repeat(22) },
       }).success,
     ).toBe(false);
+    // WI-145: only the browsers' push services; the server posts there, so nothing else.
+    for (const [endpoint, ok] of [
+      ['https://fcm.googleapis.com/fcm/send/abc', true],
+      ['https://updates.push.services.mozilla.com/wpush/v2/abc', true],
+      ['https://web.push.apple.com/QGx', true],
+      ['https://wns2-par02p.notify.windows.com/w/?token=x', true],
+      ['https://push.example.com/x', false],
+      ['https://127.0.0.1/x', false],
+      ['https://fcm.googleapis.com.evil.example/x', false],
+      ['https://evilpush.apple.com.example/x', false],
+    ] as const)
+      expect(
+        subscriptionInput.safeParse({
+          endpoint,
+          keys: { p256dh: 'a'.repeat(87), auth: 'b'.repeat(22) },
+        }).success,
+        endpoint,
+      ).toBe(ok);
   });
   it('shows pushes and opens only same-origin paths on click', async () => {
     const listeners: Record<string, (e: unknown) => void> = {};

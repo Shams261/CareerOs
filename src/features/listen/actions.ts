@@ -1,4 +1,5 @@
 'use server';
+import { unstable_rethrow } from 'next/navigation';
 import { z } from 'zod';
 import { owner } from '@/server/db';
 import { budgetLine } from '@/features/ai/domain';
@@ -17,6 +18,8 @@ export async function listenAction(itemId: string): Promise<ListenResult> {
     const state = await aiState(user);
     return { ok: true, script, budget: budgetLine(state.spent, state.limit) };
   } catch (error) {
+    // Signed out mid-request: the sign-in redirect goes through (WI-145).
+    unstable_rethrow(error);
     const state = await aiState(user).catch(() => null);
     const budget = state ? budgetLine(state.spent, state.limit) : undefined;
     if (error instanceof AiRefusal || error instanceof AiUnavailable)

@@ -1,0 +1,48 @@
+erDiagram
+  User {
+    string id PK
+    string email UK
+    string timezone
+  }
+  Session {
+    string id PK
+    string userId FK
+    string tokenHash UK
+    timestamptz expiresAt
+  }
+  PushSubscription {
+    string id PK
+    string userId FK
+    string endpoint UK
+  }
+  NotificationPreference {
+    string id PK
+    string userId FK
+    enum type
+    string timezone
+  }
+  NotificationLog {
+    string id PK
+    string userId FK
+    enum type
+    string title
+    timestamptz scheduledFor
+    timestamptz readAt
+    string dedupeKey UK
+  }
+  StudyNudgeSetting {
+    string id PK
+    string userId UK
+  }
+  JobRun {
+    string name PK
+    timestamptz lastSucceededAt
+  }
+  MaintenanceRecord {
+    string id PK
+  }
+  User ||--o{ Session : "userId"
+  User ||--o{ PushSubscription : "userId"
+  User ||--o{ NotificationPreference : "userId"
+  User ||--o{ NotificationLog : "userId"
+  User ||--o{ StudyNudgeSetting : "userId"

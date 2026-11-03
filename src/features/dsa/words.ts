@@ -10,3 +10,15 @@ export const CONFIDENCE_WORD = {
 } as const;
 export type ConfidenceValue = keyof typeof CONFIDENCE_WORD;
 export const confidenceWord = (c: ConfidenceValue) => CONFIDENCE_WORD[c];
+
+/** The library's one filter: confidence or revision state. */
+export const STATUS_FILTERS = {
+  '': 'Any status',
+  unattempted: 'Unattempted',
+  RED: CONFIDENCE_WORD.RED,
+  YELLOW: CONFIDENCE_WORD.YELLOW,
+  GREEN: CONFIDENCE_WORD.GREEN,
+  due: 'Due today',
+  missed: 'Missed a revision',
+} as const;
+export type StatusFilter = keyof typeof STATUS_FILTERS;

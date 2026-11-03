@@ -1,0 +1,49 @@
+erDiagram
+  Goal {
+    string id PK
+    string title
+    enum status
+  }
+  RoutineBlock {
+    string id PK
+    int weekdays
+    string startLocal
+    string endLocal
+    string title
+    string goalId FK
+  }
+  DailyPlan {
+    string id PK
+    date date
+  }
+  TimeBlock {
+    string id PK
+    string dailyPlanId FK
+    string goalId FK
+    string title
+    timestamptz plannedStart
+    timestamptz plannedEnd
+    enum status
+  }
+  ActualSession {
+    string id PK
+    string taskId FK
+    string goalId FK
+    timestamptz startedAt
+    timestamptz endedAt
+  }
+  DailyCheckIn {
+    string id PK
+    string dailyPlanId UK
+    timestamptz completedAt
+  }
+  InterviewRound {
+    string id PK
+  }
+  Goal |o--o{ RoutineBlock : "goalId"
+  DailyPlan ||--o{ TimeBlock : "dailyPlanId"
+  Goal |o--o{ TimeBlock : "goalId"
+  InterviewRound |o--o{ TimeBlock : "interviewRoundId"
+  TimeBlock |o--o{ ActualSession : "taskId"
+  Goal |o--o{ ActualSession : "goalId"
+  DailyPlan ||--o{ DailyCheckIn : "dailyPlanId"

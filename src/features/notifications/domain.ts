@@ -1,4 +1,4 @@
-import { dayKey, localInstant } from '../../lib/time';
+import { dayKey, repeatedInstant } from '../../lib/time';
 export function reviewReminderDue(input: {
   now: Date;
   timezone: string;
@@ -10,7 +10,7 @@ export function reviewReminderDue(input: {
     input.enabled &&
     !input.reviewedAt &&
     input.now >=
-      localInstant(
+      repeatedInstant(
         dayKey(input.now, input.timezone),
         input.preferredTime,
         input.timezone,

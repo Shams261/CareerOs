@@ -7,7 +7,7 @@ import { formatInTimeZone } from 'date-fns-tz';
 import { db } from '@/server/db';
 import type { Prisma } from '@/generated/prisma/client';
 import { aiConfig } from '@/lib/env';
-import { dayKey, hhmm, shortDate } from '@/lib/time';
+import { dayBounds, dayKey, hhmm, shortDate } from '@/lib/time';
 import { locked, type ScheduleUser } from '@/server/lock';
 import {
   AiRefusal,
@@ -68,6 +68,7 @@ import {
 } from './request-domain';
 import {
   collectIds,
+  cutShortReply,
   SEEN_MAX,
   unseenId,
   type WriteAction,
@@ -268,7 +269,7 @@ export async function sendMessage(
   // The lines Rumi wrote today (WI-101) travel as data while Rumi writes them.
   const written = nudges?.rumiLines ? await linesToday(user, today) : [];
   // The lines sent today are stamped once a day (WI-100), so expiry and eviction follow use.
-  const dayStart = new Date(`${today}T00:00:00Z`);
+  const dayStart = dayBounds(today, user.timezone).start;
   const active = rows.filter((r) => isActive(r, today));
   if (active.some((r) => !r.lastUsedAt || r.lastUsedAt < dayStart))
     await db().agentMemory.updateMany({
@@ -335,126 +336,137 @@ export async function sendMessage(
   let spent = 0;
   let cached = 0;
   let reply: string | null = null;
-  for (let round = 1; round <= MAX_ROUNDS && reply === null; round++) {
-    const final = round === MAX_ROUNDS;
-    const { usageId, answer, cost, durationMs } = await callModel({
-      user,
-      cfg,
-      feature: 'AGENT_CHAT',
-      body: chatBody(messages, final),
-      reserve: chatReservation(messages),
-      now,
-      fetcher,
-      words: WORDS,
-      onStream: input.onStream,
-    });
-    spent += cost.micros;
-    cached += cost.cached;
-    const message = answer.choices?.[0]?.message;
-    const calls = Array.isArray(message?.tool_calls)
-      ? (message.tool_calls as ToolCall[])
-      : [];
-    const content =
-      typeof message?.content === 'string' ? message.content.trim() : '';
-    const ok = calls.length > 0 ? !final : !!content;
-    await settle(usageId, {
-      outcome: ok ? 'OK' : 'FAILED',
-      costMicros: cost.micros,
-      inputTokens: cost.input,
-      outputTokens: cost.output,
-      durationMs,
-    });
-    if (calls.length && !final) {
-      messages.push({
-        role: 'assistant',
-        content: content || null,
-        tool_calls: calls,
+  // WI-145: a change made in an early round stays recorded with its Undo even when a later
+  // round throws (the limit, the network, a refusal); without one the error goes up as before.
+  try {
+    for (let round = 1; round <= MAX_ROUNDS && reply === null; round++) {
+      const final = round === MAX_ROUNDS;
+      const { usageId, answer, cost, durationMs } = await callModel({
+        user,
+        cfg,
+        feature: 'AGENT_CHAT',
+        body: chatBody(messages, final),
+        reserve: chatReservation(messages),
+        now,
+        fetcher,
+        words: WORDS,
+        onStream: input.onStream,
       });
-      for (const call of calls.slice(0, 6)) {
-        const read = readToolCall(call);
-        let result: unknown;
-        if (!read.ok) result = { error: read.error };
-        else {
-          used.push(read.name);
-          input.onRead?.(read.name);
-          if (read.name === 'propose_blocks') {
-            if (proposals.length >= PROPOSALS_PER_ANSWER)
-              result = { error: 'One answer holds at most two plans.' };
-            else {
-              const made = await proposeBlocks(
-                user,
-                read.args as ProposeArgs,
-                now,
-              );
-              if (made.proposal) proposals.push(made.proposal);
-              result = made.result;
-            }
-          } else if (read.name === 'suggest_memory') {
-            const args = read.args as { text: string; reason: string };
-            if (suggestions.length >= SUGGESTIONS_PER_ANSWER)
-              result = { error: 'One suggestion per answer.' };
-            else {
-              suggestions.push(newSuggestion(args.text, args.reason));
-              result = {
-                shown: true,
-                note: 'Shown to the owner as a card; they keep or dismiss it.',
-              };
-            }
-          } else if (isRequest(read.name)) {
-            const missing = unseenId(read.name, read.args, seen);
-            if (missing)
-              result = {
-                shown: false,
-                error: `Read it first: ${missing} must come from a read in this conversation.`,
-              };
-            else if (requests.length >= REQUESTS_PER_ANSWER)
-              result = {
-                shown: false,
-                error: `At most ${REQUESTS_PER_ANSWER} cards in one answer.`,
-              };
-            else {
-              const made = await prepareRequest(
-                user,
-                read.name,
-                read.args,
-                now,
-              );
-              if (made.card) requests.push(made.card);
-              result = made.result;
-            }
-          } else if (isWrite(read.name)) {
-            const missing = unseenId(read.name, read.args, seen);
-            if (missing)
-              result = {
-                done: false,
-                error: `Read it first: ${missing} must come from a read in this conversation.`,
-              };
-            else {
-              input.onWrite?.(read.name);
-              const made = await runWrite(user, read.name, read.args, now, {
-                round,
-                maxRounds: MAX_ROUNDS,
-                inAnswer: actions.length,
-              });
-              if (made.action) actions.push(made.action);
-              result = made.result;
-            }
-          } else {
-            result = await runTool(user, read.name, read.args, now);
-            collectIds(result, seen);
-          }
-        }
+      spent += cost.micros;
+      cached += cost.cached;
+      const message = answer.choices?.[0]?.message;
+      const calls = Array.isArray(message?.tool_calls)
+        ? (message.tool_calls as ToolCall[])
+        : [];
+      const content =
+        typeof message?.content === 'string' ? message.content.trim() : '';
+      const ok = calls.length > 0 ? !final : !!content;
+      await settle(usageId, {
+        outcome: ok ? 'OK' : 'FAILED',
+        costMicros: cost.micros,
+        inputTokens: cost.input,
+        outputTokens: cost.output,
+        durationMs,
+      });
+      if (calls.length && !final) {
         messages.push({
-          role: 'tool',
-          tool_call_id: call.id,
-          content: toolContent(result),
+          role: 'assistant',
+          content: content || null,
+          tool_calls: calls,
         });
+        for (const call of calls.slice(0, 6)) {
+          const read = readToolCall(call);
+          let result: unknown;
+          if (!read.ok) result = { error: read.error };
+          else {
+            used.push(read.name);
+            input.onRead?.(read.name);
+            if (read.name === 'propose_blocks') {
+              if (proposals.length >= PROPOSALS_PER_ANSWER)
+                result = { error: 'One answer holds at most two plans.' };
+              else {
+                const made = await proposeBlocks(
+                  user,
+                  read.args as ProposeArgs,
+                  now,
+                );
+                if (made.proposal) proposals.push(made.proposal);
+                result = made.result;
+              }
+            } else if (read.name === 'suggest_memory') {
+              const args = read.args as { text: string; reason: string };
+              if (suggestions.length >= SUGGESTIONS_PER_ANSWER)
+                result = { error: 'One suggestion per answer.' };
+              else {
+                suggestions.push(newSuggestion(args.text, args.reason));
+                result = {
+                  shown: true,
+                  note: 'Shown to the owner as a card; they keep or dismiss it.',
+                };
+              }
+            } else if (isRequest(read.name)) {
+              const missing = unseenId(read.name, read.args, seen);
+              if (missing)
+                result = {
+                  shown: false,
+                  error: `Read it first: ${missing} must come from a read in this conversation.`,
+                };
+              else if (requests.length >= REQUESTS_PER_ANSWER)
+                result = {
+                  shown: false,
+                  error: `At most ${REQUESTS_PER_ANSWER} cards in one answer.`,
+                };
+              else {
+                const made = await prepareRequest(
+                  user,
+                  read.name,
+                  read.args,
+                  now,
+                );
+                if (made.card) requests.push(made.card);
+                result = made.result;
+              }
+            } else if (isWrite(read.name)) {
+              const missing = unseenId(read.name, read.args, seen);
+              if (missing)
+                result = {
+                  done: false,
+                  error: `Read it first: ${missing} must come from a read in this conversation.`,
+                };
+              else {
+                input.onWrite?.(read.name);
+                const made = await runWrite(user, read.name, read.args, now, {
+                  round,
+                  maxRounds: MAX_ROUNDS,
+                  inAnswer: actions.length,
+                });
+                if (made.action) actions.push(made.action);
+                result = made.result;
+              }
+            } else {
+              result = await runTool(user, read.name, read.args, now);
+              collectIds(result, seen);
+            }
+          }
+          messages.push({
+            role: 'tool',
+            tool_call_id: call.id,
+            content: toolContent(result),
+          });
+        }
+        continue;
       }
-      continue;
+      if (content) reply = content.slice(0, REPLY_MAX);
+      else break;
     }
-    if (content) reply = content.slice(0, REPLY_MAX);
-    else break;
+  } catch (error) {
+    if (!actions.length) throw error;
+    console.error(
+      '[agent] chat cut short',
+      error instanceof Error ? error.name : 'Error',
+    );
   }
+  if (reply === null && actions.length) reply = cutShortReply(actions);
   console.info(
     `[agent] chat made ${JSON.stringify({ model: MODEL, provider: ENDPOINT, tools: used.length, micros: spent, cached })}`,
   );

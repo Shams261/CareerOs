@@ -1,5 +1,6 @@
 'use server';
 import { cookies } from 'next/headers';
+import { browserCookie } from '@/lib/cookie';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { owner } from '@/server/db';
@@ -14,15 +15,7 @@ import { letGoDay } from './let-go';
 /** "Skip for now" on the empty account's three steps (WI-065): hidden for 30 days. */
 export async function hideFirstStepsAction() {
   await owner();
-  (await cookies()).set(FIRST_STEPS_COOKIE, '1', {
-    httpOnly: true,
-    sameSite: 'lax',
-    secure:
-      process.env.NODE_ENV === 'production' &&
-      process.env.APP_BASE_URL?.startsWith('https://') === true,
-    path: '/',
-    maxAge: 60 * 60 * 24 * 30,
-  });
+  (await cookies()).set(FIRST_STEPS_COOKIE, '1', browserCookie(30));
   revalidatePath('/today');
 }
 

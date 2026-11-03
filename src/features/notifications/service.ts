@@ -1,6 +1,6 @@
 import 'server-only';
 import { db } from '@/server/db';
-import { dayKey, hhmm, localInstant } from '@/lib/time';
+import { dayKey, hhmm, repeatedInstant } from '@/lib/time';
 import {
   DAILY_REVIEW_TEXT,
   overdueText,
@@ -72,7 +72,7 @@ export async function processNotifications(now = new Date()) {
             'day',
             day,
             DAILY_REVIEW_TEXT,
-            localInstant(day, pref.preferredTime, pref.timezone),
+            repeatedInstant(day, pref.preferredTime, pref.timezone),
             !!(await tx.notificationLog.findUnique({
               where: { dedupeKey: nudgeKey(user.id, 'STUDY_EVENING', day) },
               select: { id: true },
@@ -81,7 +81,7 @@ export async function processNotifications(now = new Date()) {
         if (
           pref.type === 'MISSED_CHECK_IN' &&
           !plan?.checkIn &&
-          now >= localInstant(day, pref.preferredTime, pref.timezone)
+          now >= repeatedInstant(day, pref.preferredTime, pref.timezone)
         )
           await queue(
             'check-in',
@@ -245,7 +245,7 @@ export async function processNotifications(now = new Date()) {
           const due = items + topics;
           if (
             due &&
-            now >= localInstant(reviewDay, pref.preferredTime, user.timezone)
+            now >= repeatedInstant(reviewDay, pref.preferredTime, user.timezone)
           )
             await queue(
               'day',
@@ -269,7 +269,8 @@ export async function processNotifications(now = new Date()) {
           });
           if (
             due &&
-            now >= localInstant(revisionDay, pref.preferredTime, user.timezone)
+            now >=
+              repeatedInstant(revisionDay, pref.preferredTime, user.timezone)
           )
             await queue(
               'day',

@@ -293,7 +293,9 @@ export function Launcher({
         </p>
         <h2>{title}</h2>
         <p className="launcher-meta">{context}</p>
-        <p className="launcher-next">{next}</p>
+        {/* A div, not a p: the next line may hold a form (Let go of yesterday's blocks), and a
+            form inside a p is invalid HTML that broke Today's hydration (WI-145). */}
+        <div className="launcher-next">{next}</div>
       </div>
       <div className="launcher-side">
         {pose && <RumiPose pose={pose} size={84} className="launcher-pose" />}

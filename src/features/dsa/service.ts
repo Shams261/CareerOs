@@ -275,7 +275,13 @@ export async function settleRevisionsIn(
   });
   for (const p of lapsed) {
     const data = settleLadder(p, today);
-    if (data) await tx.dsaProblem.update({ where: { id: p.id }, data });
+    // Only the step it read (WI-145): this runs outside the owner lock on a read, so an
+    // attempt recorded meanwhile, which moved the step, is never overwritten.
+    if (data)
+      await tx.dsaProblem.updateMany({
+        where: { id: p.id, userId, nextRevisionAt: p.nextRevisionAt },
+        data,
+      });
   }
   return lapsed.length;
 }

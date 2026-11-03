@@ -95,4 +95,23 @@ describe('proxy access control', () => {
     );
     expect(ok.headers.get('cache-control')).toBe('private, no-store');
   });
+  it('limits the public health check per address, never another one (WI-145)', async () => {
+    Object.assign(process.env, {
+      CRON_SECRET: 's'.repeat(40),
+      OWNER_EMAIL: 'o@example.com',
+      DATABASE_URL: url ?? 'postgresql://x@localhost/x',
+    });
+    const { proxy } = await import('../src/proxy');
+    const { NextRequest } = await import('next/server');
+    const req = (ip: string) =>
+      new NextRequest('https://careeros.example.com/api/health', {
+        headers: { 'x-forwarded-for': ip },
+      });
+    for (let i = 0; i < 120; i++)
+      expect((await proxy(req('203.0.113.9'))).status).toBe(200);
+    const refused = await proxy(req('203.0.113.9'));
+    expect(refused.status).toBe(429);
+    expect(refused.headers.get('retry-after')).toBe('60');
+    expect((await proxy(req('203.0.113.10'))).status).toBe(200);
+  });
 });

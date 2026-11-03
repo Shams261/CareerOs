@@ -339,6 +339,9 @@ test('a move card is applied and undone', async ({ page }) => {
   await page.getByRole('button', { name: 'Send' }).click();
   const card = page.getByRole('group', { name: 'Move card' });
   await expect(card).toBeVisible({ timeout: 20_000 });
+  // The chat names its conversation in the URL after the answer; wait for it, so a later
+  // page.goto is never cut short by that replace (a WebKit flake seen in WI-145).
+  await page.waitForURL(/\/rumi\?c=/);
   await expect(card).toContainText('From Today · 00:40–01:00');
   await accessible(page);
   await card.getByRole('button', { name: 'Move block' }).click();
@@ -834,4 +837,71 @@ test('⌘K opens a place and adds a note', async ({ page }) => {
   await expect(
     page.getByRole('dialog', { name: /Notes to self/ }),
   ).toContainText('Call the recruiter back');
+});
+
+test('every page loads without a page error, a console error or a CSP violation', async ({
+  page,
+}) => {
+  // WI-145: Today failed hydration (a form inside a <p>) with no journey noticing, and Firefox
+  // reported Zod's eval probe as a CSP violation on the pages with client forms. This walks
+  // every page, the ones no journey opens included, and fails on any of the three.
+  const problems: string[] = [];
+  page.on('pageerror', (e) =>
+    problems.push(`pageerror ${page.url()}: ${e.message}`),
+  );
+  page.on('console', (m) => {
+    if (m.type() === 'error')
+      problems.push(`console ${page.url()}: ${m.text()}`);
+  });
+  await page.addInitScript(() =>
+    document.addEventListener('securitypolicyviolation', (e) =>
+      console.error(`CSP ${e.violatedDirective} ${e.blockedURI}`),
+    ),
+  );
+  const firstLink = async (list: string, pattern: RegExp) => {
+    await page.goto(list);
+    const hrefs = await page
+      .locator('a[href]')
+      .evaluateAll((as) => as.map((a) => a.getAttribute('href') ?? ''));
+    return hrefs.find((h) => pattern.test(h));
+  };
+  const details = [
+    await firstLink('/dsa', /^\/dsa\/(?!drill)[a-z0-9]{20,}$/),
+    await firstLink('/jobs', /^\/jobs\/[a-z0-9]{20,}$/),
+    await firstLink('/roadmap', /^\/roadmap\/(?!deck)[a-z0-9]{20,}/),
+  ];
+  expect(details.every(Boolean)).toBe(true);
+  for (const path of [
+    '/today',
+    '/calendar',
+    '/roadmap',
+    '/roadmap/deck',
+    '/dsa',
+    '/dsa/drill',
+    '/jobs',
+    '/review',
+    '/review/look-back',
+    '/rumi',
+    '/settings',
+    '/learn',
+    '/privacy',
+    ...(details as string[]),
+  ]) {
+    await page.goto(path);
+    await expect(page).toHaveTitle(/\S/);
+    // The case that broke: yesterday is quiet after the close-day journey (one block, none
+    // recorded), so Today's launcher holds the "Let go" form whenever no block is ahead.
+    if (path === '/today')
+      test.info().annotations.push({
+        type: 'let-go form on Today',
+        description: String(
+          await page
+            .getByRole('button', { name: "Let go of yesterday's blocks" })
+            .count(),
+        ),
+      });
+    // Hydration runs after the load; give React its moment to report.
+    await page.waitForLoadState('networkidle');
+  }
+  expect(problems).toEqual([]);
 });

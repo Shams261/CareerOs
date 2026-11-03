@@ -4,7 +4,7 @@
  * the budget arithmetic. Covered by tests/ai-domain.test.ts.
  */
 import { z } from 'zod';
-import { localInstant } from '@/lib/time';
+import { repeatedInstant } from '@/lib/time';
 
 /** ADR-022: one model on one zero-data-retention endpoint, no fallback. */
 export const MODEL = 'anthropic/claude-haiku-5.5';
@@ -310,8 +310,8 @@ export function monthWindow(day: string, zone: string) {
   const next =
     m === 12 ? `${y + 1}-01-01` : `${y}-${String(m + 1).padStart(2, '0')}-01`;
   return {
-    start: localInstant(first, '00:00', zone),
-    end: localInstant(next, '00:00', zone),
+    start: repeatedInstant(first, '00:00', zone),
+    end: repeatedInstant(next, '00:00', zone),
     resetDay: next,
   };
 }

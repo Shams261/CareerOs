@@ -88,7 +88,8 @@ const kinds = {
     text: z.string().min(1).max(200),
     kind: z.enum(['GOAL', 'HABIT', 'PREFERENCE', 'SITUATION']),
     source: z.enum(['OWNER', 'RUMI']),
-    expiresAt: z.string().nullable().optional(),
+    // A DATE label, checked (WI-145): an impossible day never reaches the database.
+    expiresAt: z.iso.date().nullable().optional(),
   }),
   'reopen-note': z.object({ id: z.string().min(1) }),
   'restore-priority': z.object({
@@ -138,20 +139,20 @@ const kinds = {
     revisionStage: z.number().int().min(0),
   }),
   /** A rest day just marked (WI-028): undo makes it an ordinary day again. */
-  'clear-rest-day': z.object({ day: z.string().regex(/^\d{4}-\d{2}-\d{2}$/) }),
+  'clear-rest-day': z.object({ day: z.iso.date() }),
   /** A kept card just removed (WI-031): undo keeps it again. */
   'restore-card': cardInput,
   // Rumi's cards (WI-103): a moved block goes back to its slot, a day's review is unsaved,
   // and a card's Undo runs the undo stored on the owner's own answer.
   'restore-block-slot': z.object({
     id: z.string().min(1),
-    day: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+    day: z.iso.date(),
     start: z.string().regex(/^\d{2}:\d{2}$/),
     end: z.string().regex(/^\d{2}:\d{2}$/),
     version: z.string().min(1),
   }),
   'unreview-day': z.object({
-    day: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+    day: z.iso.date(),
     checkInId: z.string().min(1),
   }),
   'undo-request': z.object({
@@ -216,7 +217,8 @@ export async function restore(
   kind: string,
   payload: unknown,
 ): Promise<string> {
-  if (!(kind in kinds)) throw new Error('Nothing to undo.');
+  // Own keys only (WI-145): `toString` or `constructor` is not an undo kind.
+  if (!Object.hasOwn(kinds, kind)) throw new Error('Nothing to undo.');
   const k = kind as UndoKind;
   switch (k) {
     case 'block-reset': {

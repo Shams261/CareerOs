@@ -258,6 +258,19 @@ describe.skipIf(!url)('Rumi knows (WI-100, PostgreSQL)', () => {
       where: { userId: user.id, kind: 'SITUATION' },
       data: { expiresAt: new Date('2026-10-01') },
     });
+    // WI-145: a line kept until today lasts the owner's whole evening, past UTC midnight.
+    await prisma.agentMemory.updateMany({
+      where: { userId: user.id, kind: 'SITUATION' },
+      data: { expiresAt: new Date('2026-10-31') },
+    });
+    await pruneMemories(localInstant('2026-10-31', '22:30', zone));
+    expect((await memories(user)).some((x) => x.kind === 'SITUATION')).toBe(
+      true,
+    );
+    await prisma.agentMemory.updateMany({
+      where: { userId: user.id, kind: 'SITUATION' },
+      data: { expiresAt: new Date('2026-10-01') },
+    });
     expect(await pruneMemories(now)).toBeGreaterThan(0);
     expect((await memories(user)).some((x) => x.kind === 'SITUATION')).toBe(
       false,
@@ -274,6 +287,15 @@ describe.skipIf(!url)('Rumi knows (WI-100, PostgreSQL)', () => {
     ).rejects.toThrow();
     const row = await removeMemory(user, mine.id);
     expect(row.text).toBe('Rest day is Saturday');
+    // WI-145: a tampered day is refused before it reaches the database.
+    await expect(
+      restore(user, 'restore-memory', {
+        text: row.text,
+        kind: row.kind,
+        source: row.source,
+        expiresAt: '2026-02-30',
+      }),
+    ).rejects.toThrow();
     await restore(user, 'restore-memory', {
       text: row.text,
       kind: row.kind,

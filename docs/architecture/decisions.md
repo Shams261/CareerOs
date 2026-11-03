@@ -32,6 +32,8 @@ All records below describe accepted implementation decisions as of WI-002. Add a
 
 **Consequences:** 23/25-hour days work, but selecting the second repeated hour needs future UI. Show the timezone at entry points and preserve existing instants if profile preferences later change.
 
+**Amendment (2026-11-02, WI-145): repeated times on the spring-forward day.** The rule stands: a time that does not exist is never shifted into a plan. Before this amendment, generation and the reminder run converted repeated times with the refusing `localInstant`, so one routine or reminder time inside the gap (02:00–03:00 in Toronto, next on 2027-03-14) threw and stopped that week's generation and every reminder of that run. Now `routineOccurrence` leaves such a routine out of that one day (`wallTimeExists`), and thresholds (when a reminder or nudge is due, a day's midnight bounds, a close-day stop time) use `repeatedInstant`, which counts a time in the gap as reached when the clock jumps past it. A time typed for one day still goes through `localInstant` and is refused with a message.
+
 ## ADR-004 — Transaction locks and durable inbox scheduling
 
 **Context:** Multiple tabs and cron requests can race.

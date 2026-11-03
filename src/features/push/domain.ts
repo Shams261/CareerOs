@@ -109,11 +109,32 @@ export const MAX_SUBSCRIPTION_FAILURES = 5;
 
 const b64url = (min: number, max: number) =>
   z.string().regex(new RegExp(`^[A-Za-z0-9_-]{${min},${max}}={0,2}$`));
+/**
+ * The browsers' push services (WI-145): Chrome, Edge's Chromium and Android (FCM), Firefox
+ * (Mozilla), Safari and the Home Screen app (Apple), and Windows' own. The server posts to the
+ * endpoint, so any other host is refused rather than becoming a place the server can be sent.
+ */
+const PUSH_HOSTS = [
+  /^fcm\.googleapis\.com$/,
+  /^android\.googleapis\.com$/,
+  /^updates\.push\.services\.mozilla\.com$/,
+  /^([a-z0-9-]+\.)*push\.apple\.com$/,
+  /^([a-z0-9-]+\.)*notify\.windows\.com$/,
+];
+const pushHostAllowed = (endpoint: string) => {
+  if (!URL.canParse(endpoint)) return false;
+  const host = new URL(endpoint).hostname;
+  return PUSH_HOSTS.some((h) => h.test(host));
+};
 /** Browser PushSubscription.toJSON() shape. Push services always use HTTPS endpoints. */
 export const subscriptionInput = z.object({
   endpoint: z
     .url()
     .refine((v) => v.startsWith('https://'), 'Push endpoints use HTTPS')
+    .refine(
+      pushHostAllowed,
+      "This browser's push service is not one Silsila knows",
+    )
     .pipe(z.string().max(2000)),
   keys: z.object({ p256dh: b64url(80, 100), auth: b64url(16, 30) }),
   label: z.string().trim().max(120).optional(),

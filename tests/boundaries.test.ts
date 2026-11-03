@@ -68,7 +68,6 @@ describe('module boundaries (WI-123)', () => {
     // Page forms that still share their feature's schemas; shrink this list, never grow it.
     const known = new Set([
       'features/ai/grill.tsx',
-      'features/dsa/library-filters.tsx',
       'features/jobs/stage-row.tsx',
       'features/listen/listen.tsx',
       'features/prep/panel.tsx',
@@ -171,5 +170,53 @@ describe('module boundaries (WI-123)', () => {
       .map(rel)
       .sort();
     expect(without).toEqual(Object.keys(WITHOUT).sort());
+  });
+
+  it('every exported action answers its own errors, apart from the ones listed (WI-145)', () => {
+    // Per function, not per file: an action that catches must hand the error to the runner,
+    // `failure` or `unstable_rethrow` (directly or through a helper in its file), so the sign-in
+    // redirect goes through and nothing unexpected reaches the screen by its words. One that
+    // never catches lets Next's error page answer, which only these may.
+    const UNCAUGHT: Record<string, string> = {
+      'features/auth/actions.ts signInAction': 'a redirect to Google',
+      'features/auth/actions.ts signOutAction': 'a redirect to the login',
+      'features/calendar/actions.ts connectCalendarAction':
+        'a redirect to Google',
+      'features/agent/actions.ts voiceStateAction':
+        'a read for the composer; its caller falls back to no microphone',
+      'features/nudges/actions.ts dismissNudgesCardAction':
+        'a cookie for this browser',
+      'features/today/actions.ts hideFirstStepsAction':
+        'a cookie for this browser',
+      'features/setup/actions.ts hideSetupAction': 'a cookie for this browser',
+      'features/theme-actions.ts saveTheme': 'a cookie for this browser',
+      'features/theme-actions.ts saveTextSize': 'a cookie for this browser',
+    };
+    const handled = /\b(runAction|failure|unstable_rethrow)\(/;
+    const loose: string[] = [];
+    for (const f of [...files.keys()].filter((f) =>
+      directive(f, 'use server'),
+    )) {
+      const source = files.get(f) ?? '';
+      const parts = source.split(
+        /\n(?=export |const |function |async function )/,
+      );
+      // Helpers in the file that pass the error on: `failed(error)` counts as handled.
+      const helpers = parts
+        .filter((p) => !p.startsWith('export ') && handled.test(p))
+        .map((p) => /^(?:const|function|async function) (\w+)/.exec(p)?.[1])
+        .filter((n): n is string => !!n);
+      const ok = new RegExp(
+        `\\b(runAction|failure|unstable_rethrow${helpers.map((h) => `|${h}`).join('')})\\(`,
+      );
+      for (const part of parts.filter((p) => p.startsWith('export '))) {
+        const name = /^export (?:async )?(?:function|const) (\w+)/.exec(
+          part,
+        )?.[1];
+        if (!name || /^export const (runtime|dynamic)\b/.test(part)) continue;
+        if (!ok.test(part)) loose.push(`${rel(f)} ${name}`);
+      }
+    }
+    expect(loose.sort()).toEqual(Object.keys(UNCAUGHT).sort());
   });
 });

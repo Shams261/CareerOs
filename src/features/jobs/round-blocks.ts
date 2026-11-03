@@ -3,6 +3,7 @@ import { ownedRound, type Tx } from './owned';
 import { roundEnd, scheduleBlockTitle } from './domain';
 import { locked, type ScheduleUser } from '@/server/lock';
 import { dayKey } from '@/lib/time';
+import { RUNNING_ON_INTERVIEW } from '@/features/deletes/domain';
 
 /** An interview's block on the schedule follows its round: renamed, settled, moved or added back (WI-132). */
 /**
@@ -40,8 +41,11 @@ export async function settleScheduleBlock(
 ) {
   const block = await tx.timeBlock.findFirst({
     where: { interviewRoundId: roundId, dailyPlan: { userId: user.id } },
+    include: { sessions: { where: { endedAt: null }, select: { id: true } } },
   });
   if (!block || !['PLANNED', 'IN_PROGRESS'].includes(block.status)) return;
+  // WI-145: a running session stays on a live block; the owner stops it first, as on a delete.
+  if (block.sessions.length) throw new Error(RUNNING_ON_INTERVIEW);
   await tx.timeBlock.update({
     where: { id: block.id },
     data:

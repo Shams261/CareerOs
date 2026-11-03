@@ -1,7 +1,6 @@
 import { z } from 'zod';
 import { dayKey } from '@/lib/time';
 import { shiftDay } from '@/lib/day';
-import { CONFIDENCE_WORD } from './words';
 export { confidenceWord } from './words';
 const confidence = z.enum(['RED', 'YELLOW', 'GREEN']);
 export const attemptInput = z
@@ -209,17 +208,9 @@ export function todayDsaSummary<T extends QueueProblem>(
   };
 }
 
-/** The library's one filter: confidence or revision state. */
-export const STATUS_FILTERS = {
-  '': 'Any status',
-  unattempted: 'Unattempted',
-  RED: CONFIDENCE_WORD.RED,
-  YELLOW: CONFIDENCE_WORD.YELLOW,
-  GREEN: CONFIDENCE_WORD.GREEN,
-  due: 'Due today',
-  missed: 'Missed a revision',
-} as const;
-export type StatusFilter = keyof typeof STATUS_FILTERS;
+// The library's filter words live with the other words (WI-145), so its client form
+// carries no Zod.
+export { STATUS_FILTERS, type StatusFilter } from './words';
 
 const LEVEL_RANK: Record<string, number> = { EASY: 0, MEDIUM: 1, HARD: 2 };
 /**

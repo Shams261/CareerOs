@@ -2,6 +2,7 @@
 import { runAction } from '@/server/action';
 import { revalidatePath } from 'next/cache';
 import { cookies } from 'next/headers';
+import { browserCookie } from '@/lib/cookie';
 import { z } from 'zod';
 import { db, owner } from '@/server/db';
 import { dayKey, hhmm } from '@/lib/time';
@@ -197,14 +198,6 @@ export async function moveToTomorrowAction(_s: ActionState, form: FormData) {
 /** Dismiss on Today's "Study nudges are off" card: hidden for 30 days (WI-060). */
 export async function dismissNudgesCardAction() {
   await owner();
-  (await cookies()).set(NUDGES_CARD_COOKIE, '1', {
-    httpOnly: true,
-    sameSite: 'lax',
-    secure:
-      process.env.NODE_ENV === 'production' &&
-      process.env.APP_BASE_URL?.startsWith('https://') === true,
-    path: '/',
-    maxAge: 60 * 60 * 24 * 30,
-  });
+  (await cookies()).set(NUDGES_CARD_COOKIE, '1', browserCookie(30));
   revalidatePath('/today');
 }

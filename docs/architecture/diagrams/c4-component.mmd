@@ -1,0 +1,25 @@
+flowchart TB
+  subgraph composite["Composite screens"]
+    today[today] --- review[review] --- agent["agent (Rumi)"] --- command[command] --- noticed[noticed] --- settings[settings]
+  end
+  subgraph core["Core domains"]
+    schedule[schedule] --- execution[execution] --- closeday[close-day]
+    dsa["dsa (Practice)"] --- drills[drills] --- roadmap[roadmap] --- curriculum[curriculum] --- goals[goals]
+    jobs[jobs] --- prep[prep]
+    learning["learning (URL only)"]
+  end
+  subgraph delivery["Delivery and integrations"]
+    notifications[notifications] --- nudges[nudges] --- push[push]
+    calendar["calendar (Google)"] --- ai["ai (engine, limit)"] --- listen[listen]
+  end
+  subgraph cross["Cross-cutting"]
+    undo[undo] --- deletes[deletes] --- notes[notes] --- auth[auth] --- setup[setup]
+  end
+  kernel["Kernel: src/lib + server/lock + server/action"]
+  composite --> core
+  composite --> delivery
+  core --> kernel
+  delivery --> kernel
+  cross --> kernel
+  agent --> ai
+  core --> calendar

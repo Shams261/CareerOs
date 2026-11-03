@@ -1,0 +1,8 @@
+flowchart TB
+  P["Plan (/calendar): the week as one list"] --> NW["‹ › weeks around it"]
+  P --> RT["Routines panel: add, edit (preview of future days), disable"]
+  RT -->|edit| PV{"Apply to planned days?"}
+  PV -->|preview accepted| AP["Future occurrences change; past and edited stay"]
+  P --> B["A block: edit for this day only, move, delete (Undo)"]
+  P --> PN["Prepare next week (generates next week's days)"]
+  P --> GC["Google Calendar: Sync now, connection state"]

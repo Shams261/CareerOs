@@ -5,6 +5,7 @@ import {
   localInstant,
   blockSummary,
   minutes,
+  repeatedInstant,
 } from '../src/lib/time';
 import { resourceUrl } from '../src/lib/validation';
 import { routineOccurrence } from '../src/features/schedule/domain';
@@ -34,6 +35,62 @@ describe('timezone-safe time', () => {
     expect(() => localInstant('2026-03-08', '02:30', zone)).toThrow());
   it('rejects malformed calendar dates', () =>
     expect(() => localInstant('2026-02-30', '09:00', zone)).toThrow());
+});
+describe('a repeated time on the spring-forward day (WI-145)', () => {
+  it('reaches a threshold in the gap when the clock jumps, and leaves every other time alone', () => {
+    // 2026-03-08, Toronto: 02:00 EST jumps to 03:00 EDT.
+    expect(repeatedInstant('2026-03-08', '02:30', zone).toISOString()).toBe(
+      '2026-03-08T07:30:00.000Z',
+    );
+    expect(repeatedInstant('2026-03-08', '02:00', zone).toISOString()).toBe(
+      '2026-03-08T07:00:00.000Z',
+    );
+    for (const [day, time] of [
+      ['2026-03-08', '01:59'],
+      ['2026-03-08', '03:00'],
+      ['2026-11-01', '01:30'],
+      ['2026-07-10', '07:30'],
+    ])
+      expect(repeatedInstant(day, time, zone)).toEqual(
+        localInstant(day, time, zone),
+      );
+    expect(() => repeatedInstant('2026-02-30', '09:00', zone)).toThrow();
+  });
+  it('leaves a routine in the gap out of that one day, never shifted (ADR-003)', () => {
+    const at = (startLocal: string, endLocal: string, day = '2026-03-08') =>
+      routineOccurrence(
+        { weekday: 0, startLocal, endLocal, enabled: true },
+        day,
+        zone,
+      );
+    expect(at('02:30', '04:00')).toBeNull();
+    expect(at('01:30', '02:30')).toBeNull();
+    expect(at('01:00', '01:45')).toEqual({
+      plannedStart: new Date('2026-03-08T06:00:00Z'),
+      plannedEnd: new Date('2026-03-08T06:45:00Z'),
+    });
+    expect(at('03:00', '04:00')).toEqual({
+      plannedStart: new Date('2026-03-08T07:00:00Z'),
+      plannedEnd: new Date('2026-03-08T08:00:00Z'),
+    });
+    // The next Sunday the same routine is planned as usual.
+    expect(at('02:30', '04:00', '2026-03-15')).toEqual({
+      plannedStart: new Date('2026-03-15T06:30:00Z'),
+      plannedEnd: new Date('2026-03-15T08:00:00Z'),
+    });
+  });
+  it('checks a reminder set inside the gap without throwing', () => {
+    const due = (now: string) =>
+      reviewReminderDue({
+        now: new Date(now),
+        timezone: zone,
+        preferredTime: '02:30',
+        enabled: true,
+        reviewedAt: null,
+      });
+    expect(due('2026-03-08T06:59:00Z')).toBe(false);
+    expect(due('2026-03-08T07:30:00Z')).toBe(true);
+  });
 });
 it('chooses the earlier Toronto occurrence during fall-back', () => {
   expect(localInstant('2026-11-01', '01:30', zone).toISOString()).toBe(

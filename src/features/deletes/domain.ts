@@ -4,6 +4,10 @@
  */
 export const DELETED = 'Deleted';
 
+/** An interview's block is never cancelled or settled under a running session (WI-145). */
+export const RUNNING_ON_INTERVIEW =
+  'Pause the running session on this interview’s block first.';
+
 /** A block the owner deleted: kept only so the sync can remove its event, and for Undo. */
 export const isDeleted = (b: { status: string; skipReason?: string | null }) =>
   b.status === 'CANCELLED' && b.skipReason === DELETED;

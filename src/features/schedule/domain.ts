@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { localInstant, minutes } from '../../lib/time';
+import { localInstant, minutes, wallTimeExists } from '../../lib/time';
 import { localTime } from '../../lib/validation';
 import { shiftDay } from '../../lib/day';
 export const dateInput = z.iso.date();
@@ -66,13 +66,17 @@ export function routineOccurrence(
     )
   )
     return null;
-  return interval(
-    day,
-    routine.startLocal,
-    routine.endLocal <= routine.startLocal ? shiftDay(day, 1) : day,
-    routine.endLocal,
-    zone,
-  );
+  const endDay =
+    routine.endLocal <= routine.startLocal ? shiftDay(day, 1) : day;
+  // ADR-003 never shifts a time that does not exist into a plan. On the spring-forward day a
+  // routine whose start or end falls in the gap is left out for that day (WI-145), instead
+  // of an error that stopped the whole week's generation.
+  if (
+    !wallTimeExists(day, routine.startLocal, zone) ||
+    !wallTimeExists(endDay, routine.endLocal, zone)
+  )
+    return null;
+  return interval(day, routine.startLocal, endDay, routine.endLocal, zone);
 }
 export function overlaps(
   a: { start: Date; end: Date },

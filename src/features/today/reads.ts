@@ -2,16 +2,28 @@ import 'server-only';
 import { db } from '@/server/db';
 import type { ScheduleUser } from '@/server/lock';
 
-/** Unread reminders that are due, for Needs attention; study nudges have their own card (WI-028). */
+/**
+ * Unread reminders that are due, for Needs attention; study nudges and Rumi's lines have their
+ * own card (WI-028; the afternoon line since WI-145). The newest 50: an inbox nobody opened for
+ * months stays one bounded read (WI-145).
+ */
 export const attentionReminders = (user: ScheduleUser, now: Date) =>
   db().notificationLog.findMany({
     where: {
       userId: user.id,
       readAt: null,
       scheduledFor: { lte: now },
-      type: { notIn: ['STUDY_MORNING', 'STUDY_EVENING', 'STUDY_BLOCK'] },
+      type: {
+        notIn: [
+          'STUDY_MORNING',
+          'STUDY_MIDDAY',
+          'STUDY_EVENING',
+          'STUDY_BLOCK',
+        ],
+      },
     },
     orderBy: { scheduledFor: 'desc' },
+    take: 50,
     select: {
       id: true,
       type: true,

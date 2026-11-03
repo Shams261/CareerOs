@@ -1,0 +1,7 @@
+flowchart TB
+  L["Practice (/dsa): library, one status filter, due revisions"] --> P["/dsa/[id]: problem"]
+  P --> A["Record attempt: Shaky / Okay / Solid, solved, minutes"]
+  A --> LD["Revision ladder 3 → 7 → 14 days; a passed step reads Missed"]
+  L --> D["/dsa/drill: pattern quiz"]
+  L --> N["Add a problem (link optional)"]
+  P --> H["Hide an imported problem / delete an owned one (Undo)"]

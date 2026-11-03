@@ -25,6 +25,7 @@ import {
   updateRoundDetails,
 } from '../src/features/jobs/service';
 import { PreviewRequired } from '../src/features/schedule/editing';
+import { deleteApplication } from '../src/features/deletes/service';
 import { processNotifications } from '../src/features/notifications/service';
 
 const url = process.env.TEST_DATABASE_URL;
@@ -426,6 +427,49 @@ describe.skipIf(!url)('job pipeline PostgreSQL integrity', () => {
       await prisma.timeBlock.findUniqueOrThrow({ where: { id: b2.id } }),
     ).toMatchObject({ status: 'COMPLETED', completedAt: now });
   });
+  it('leaves an interview block alone while its session runs, refusing the result and the delete (WI-145)', async () => {
+    const a = await add({ stage: 'TECHNICAL', company: 'Running Co' });
+    const r = await interview(a.id, { title: 'Live coding' });
+    const block = await addInterviewToSchedule(user, r.id);
+    const running = await prisma.actualSession.create({
+      data: {
+        userId: user.id,
+        taskId: block.id,
+        category: 'INTERVIEW',
+        startedAt: now,
+      },
+    });
+    await expect(
+      recordRoundResult(
+        user,
+        { requestId: randomUUID(), id: r.id, status: 'CANCELLED' },
+        now,
+      ),
+    ).rejects.toThrow(/Pause the running session/);
+    // Nothing of the result was kept: the round, its history and the block are as they were.
+    expect(
+      await prisma.interviewRound.findUniqueOrThrow({ where: { id: r.id } }),
+    ).toMatchObject({ status: 'SCHEDULED' });
+    expect(
+      await prisma.timeBlock.findUniqueOrThrow({ where: { id: block.id } }),
+    ).toMatchObject({ status: 'PLANNED' });
+    await expect(deleteApplication(user, a.id)).rejects.toThrow(
+      /Pause the running session/,
+    );
+    expect(await prisma.jobApplication.count({ where: { id: a.id } })).toBe(1);
+    // Once it stops, both go through.
+    await prisma.actualSession.update({
+      where: { id: running.id },
+      data: { endedAt: new Date(+now + 60000) },
+    });
+    await recordRoundResult(
+      user,
+      { requestId: randomUUID(), id: r.id, status: 'CANCELLED' },
+      now,
+    );
+    expect(await deleteApplication(user, a.id)).toBe('Running Co');
+  });
+
   it('links prep items by reference only and toggles idempotently', async () => {
     const a = await add({ stage: 'TECHNICAL' });
     const r = await interview(a.id);

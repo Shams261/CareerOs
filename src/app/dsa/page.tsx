@@ -23,7 +23,7 @@ import { makeCurrentAction } from '@/features/dsa/actions';
 import { Disclosure } from '@/components/disclosure';
 import { PanelButton, SidePanel } from '@/components/side-panel';
 import { UtilityMenu } from '@/components/utility-menu';
-import { dayKey, localInstant } from '@/lib/time';
+import { dayKey, repeatedInstant } from '@/lib/time';
 import { resourceUrl } from '@/lib/validation';
 import { shiftDay } from '@/lib/day';
 import { formatInTimeZone } from 'date-fns-tz';
@@ -46,7 +46,7 @@ export default async function Dsa({
     day = dayKey(now, user.timezone);
   const { problems, topics, currentTopic } = await dsaSnapshot(user);
   const weekday = new Date(`${day}T12:00:00Z`).getUTCDay();
-  const weekStart = localInstant(
+  const weekStart = repeatedInstant(
     shiftDay(day, -((weekday + 6) % 7)),
     '00:00',
     user.timezone,
@@ -70,7 +70,7 @@ export default async function Dsa({
     : null;
   const q = (query.q ?? '').trim();
   const status: StatusFilter =
-    query.status && query.status in STATUS_FILTERS
+    query.status && Object.hasOwn(STATUS_FILTERS, query.status)
       ? (query.status as StatusFilter)
       : '';
   const filtering = !!(q || status);

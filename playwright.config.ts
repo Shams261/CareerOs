@@ -31,11 +31,14 @@ export default defineConfig({
       dependencies: ['sign-in'],
       testMatch: /\.spec\.ts/,
       use: {
-        // E2E_BROWSER=webkit runs the same journeys in Safari's engine (WI-057).
+        // E2E_BROWSER=webkit runs the same journeys in Safari's engine (WI-057), firefox in
+        // Firefox's (WI-145).
         ...devices[
           process.env.E2E_BROWSER === 'webkit'
             ? 'Desktop Safari'
-            : 'Desktop Chrome'
+            : process.env.E2E_BROWSER === 'firefox'
+              ? 'Desktop Firefox'
+              : 'Desktop Chrome'
         ],
         viewport: { width: 1440, height: 900 },
         storageState: 'e2e/.auth/owner.json',

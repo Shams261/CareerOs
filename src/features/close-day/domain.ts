@@ -3,7 +3,7 @@
  * "Tomorrow" puts each of them. Pure; covered by tests/close-day-domain.test.ts.
  */
 import { z } from 'zod';
-import { dayBounds, hhmm, localInstant, weekdayDate } from '@/lib/time';
+import { dayBounds, hhmm, weekdayDate, repeatedInstant } from '@/lib/time';
 import { dateInput } from '@/features/schedule/domain';
 import { shiftDay } from '@/lib/day';
 import { blockResolution, type BlockLike } from '@/features/schedule/row';
@@ -34,7 +34,7 @@ export function closeDayOpen({
   reviewed: boolean;
 }) {
   if (reviewed || day > today) return false;
-  return day < today || +now >= +localInstant(today, stopTime, zone);
+  return day < today || +now >= +repeatedInstant(today, stopTime, zone);
 }
 
 /**
@@ -79,7 +79,7 @@ export function tomorrowSlot(
   taken: Interval[],
 ): (Interval & { same: boolean }) | null {
   const length = +block.plannedEnd - +block.plannedStart;
-  const first = localInstant(target, hhmm(block.plannedStart, zone), zone);
+  const first = repeatedInstant(target, hhmm(block.plannedStart, zone), zone);
   const dayEnd = dayBounds(target, zone).end;
   const free = (slot: Interval) => !taken.some((t) => overlaps(slot, t));
   const same = { start: first, end: new Date(+first + length) };

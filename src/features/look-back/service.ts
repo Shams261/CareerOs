@@ -1,6 +1,6 @@
 import 'server-only';
 import { db } from '@/server/db';
-import { dayKey, localInstant } from '@/lib/time';
+import { dayKey, repeatedInstant } from '@/lib/time';
 import { isTestNamed } from '@/lib/test-data';
 import { shiftDay } from '@/lib/day';
 import type { ScheduleUser } from '@/server/lock';
@@ -43,8 +43,8 @@ export async function lookBack(user: ScheduleUser, now = new Date()) {
     shiftDay(today, -((weekday + 6) % 7)),
     -7 * (MAX_WEEKS - 1),
   );
-  const from = localInstant(windowStart, '00:00', zone);
-  const monthStart = localInstant(`${today.slice(0, 8)}01`, '00:00', zone);
+  const from = repeatedInstant(windowStart, '00:00', zone);
+  const monthStart = repeatedInstant(`${today.slice(0, 8)}01`, '00:00', zone);
   const recent = { gte: from };
   const [
     sessions,

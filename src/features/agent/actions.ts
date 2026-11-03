@@ -1,4 +1,5 @@
 'use server';
+import { unstable_rethrow } from 'next/navigation';
 import { failure, runAction } from '@/server/action';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
@@ -127,8 +128,13 @@ export async function voiceStateAction() {
 
 /** The style chip, saved on choice like the theme (WI-100). */
 export async function rumiStyleAction(f: FormData) {
-  await setRumiStyle(await owner(), readStyle(f.get('style')));
-  revalidatePath('/settings');
+  // WI-145: a failed save is logged with a reference, never an unhandled error page.
+  try {
+    await setRumiStyle(await owner(), readStyle(f.get('style')));
+    revalidatePath('/settings');
+  } catch (error) {
+    failure(error, 'agent');
+  }
 }
 
 /** "Draft next week with Rumi" (WI-107): plan cards per day in a new conversation. */
@@ -140,6 +146,8 @@ export async function draftWeekAction(): Promise<
     revalidatePath('/rumi');
     return { ok: true, href: `/rumi?c=${id}` };
   } catch (error) {
+    // Signed out mid-request: the sign-in redirect goes through (WI-145).
+    unstable_rethrow(error);
     if (error instanceof AiRefusal || error instanceof AiUnavailable)
       return { ok: false, message: error.message };
     console.error(
@@ -158,17 +166,17 @@ export async function weekSummaryAction(
   monday: string,
 ): Promise<{ ok: true; text: string } | { ok: false; message: string }> {
   try {
-    const text = await weekSummary(
-      await owner(),
-      z
-        .string()
-        .regex(/^\d{4}-\d{2}-\d{2}$/)
-        .parse(monday),
-    );
+    const text = await weekSummary(await owner(), z.iso.date().parse(monday));
     return { ok: true, text };
   } catch (error) {
+    // Signed out mid-request: the sign-in redirect goes through (WI-145).
+    unstable_rethrow(error);
     if (error instanceof AiRefusal || error instanceof AiUnavailable)
       return { ok: false, message: error.message };
+    console.error(
+      '[agent] summary failed',
+      error instanceof Error ? error.name : 'Error',
+    );
     return {
       ok: false,
       message: `${AGENT_NAME} couldn’t sum up this week right now.`,
@@ -183,10 +191,7 @@ export async function keepSummaryAction(
   try {
     await keepWeekSummary(
       await owner(),
-      z
-        .string()
-        .regex(/^\d{4}-\d{2}-\d{2}$/)
-        .parse(monday),
+      z.iso.date().parse(monday),
       z.string().max(1000).parse(text),
     );
     // The review reads through a snapshot; the kept words must show at once.

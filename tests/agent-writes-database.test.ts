@@ -44,10 +44,16 @@ const endpointList = {
     ],
   },
 };
-type Answer = { content?: string; tools?: { name: string; args: unknown }[] };
+type Answer = {
+  content?: string;
+  tools?: { name: string; args: unknown }[];
+  /** The model's host goes away from this answer on (WI-145). */
+  down?: boolean;
+};
 /** A fake OpenRouter for chat: answers in order; each tool result is recorded. */
 function fakeRouter(answers: Answer[]) {
   const results: string[] = [];
+  let down = false;
   const fetcher = (async (input: RequestInfo | URL, init?: RequestInit) => {
     const u = String(input);
     if (u.endsWith('/endpoints/zdr')) return Response.json(zdrList);
@@ -56,6 +62,10 @@ function fakeRouter(answers: Answer[]) {
     for (const m of body.messages)
       if (m.role === 'tool' && !results.includes(m.content))
         results.push(m.content);
+    if (down || answers[0]?.down) {
+      down = true;
+      throw new TypeError('fetch failed');
+    }
     const a = answers.shift() ?? { content: 'Done.' };
     return Response.json({
       provider: 'Google',
@@ -164,6 +174,39 @@ describe.skipIf(!url)('Rumi’s small writes (WI-102, PostgreSQL)', () => {
     await expect(
       undoWrite(user, message.id, actions[0].id, (k, p) => restore(user, k, p)),
     ).rejects.toThrow(/already undone/);
+  });
+
+  it('keeps a change and its Undo when the model stops after it (WI-145)', async () => {
+    const r = fakeRouter([
+      { tools: [{ name: 'add_note', args: { body: 'Call Priya on Friday' } }] },
+      { down: true },
+    ]);
+    const sent = await sendMessage(
+      user,
+      { text: 'note: call Priya Friday' },
+      now,
+      r.fetcher,
+    );
+    const { actions } = readMetadata(sent.message.metadata);
+    expect(actions.map((a) => [a.tool, a.status])).toEqual([
+      ['add_note', 'done'],
+    ]);
+    expect(sent.message.content).toMatch(/^Done so far: Note added\./);
+    await undoWrite(user, sent.message.id, actions[0].id, (k, p) =>
+      restore(user, k, p),
+    );
+    expect(await prisma.quickNote.count({ where: { userId: user.id } })).toBe(
+      0,
+    );
+    // With nothing changed, the stop is still the error it was.
+    await expect(
+      sendMessage(
+        user,
+        { text: 'what is on today?' },
+        now,
+        fakeRouter([{ down: true }]).fetcher,
+      ),
+    ).rejects.toThrow();
   });
 
   it('adds one block in free time, refusing a clash, a passed time, a day past Sunday and a fourth hour', async () => {

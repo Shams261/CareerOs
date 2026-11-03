@@ -16,7 +16,13 @@ export const runtime = 'nodejs';
 export async function POST(request: Request) {
   const origin = request.headers.get('origin');
   const host = request.headers.get('host');
-  if (!origin || !host || new URL(origin).host !== host)
+  // WI-145: a malformed Origin is refused like a foreign one, never a thrown 500.
+  if (
+    !origin ||
+    !host ||
+    !URL.canParse(origin) ||
+    new URL(origin).host !== host
+  )
     return new Response(null, { status: 403 });
   const user = await owner();
   const parsed = z

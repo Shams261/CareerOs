@@ -2,7 +2,7 @@ import 'server-only';
 import type { Prisma } from '@/generated/prisma/client';
 import { clearBlockReminders } from '@/features/schedule/service';
 import { locked, type ScheduleUser } from '@/server/lock';
-import { DELETED } from './domain';
+import { DELETED, RUNNING_ON_INTERVIEW } from './domain';
 
 /**
  * Deletes on every record (WI-060). Each runs under the owner lock and touches only the
@@ -32,8 +32,14 @@ async function dropBlocks(
 ) {
   const blocks = await tx.timeBlock.findMany({
     where: { ...where, dailyPlan: { userId }, status: { not: 'CANCELLED' } },
-    select: { id: true },
+    select: {
+      id: true,
+      sessions: { where: { endedAt: null }, select: { id: true } },
+    },
   });
+  // WI-145: never cancel a block under a running session; the whole delete waits for it.
+  if (blocks.some((b) => b.sessions.length))
+    throw new Error(RUNNING_ON_INTERVIEW);
   for (const b of blocks) {
     await tx.timeBlock.update({
       where: { id: b.id },

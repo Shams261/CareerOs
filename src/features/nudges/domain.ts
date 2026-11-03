@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-import { dayKey, hhmm, localInstant } from '@/lib/time';
+import { dayKey, hhmm, repeatedInstant } from '@/lib/time';
 
 /**
  * Study Nudges (WI-028, Version 2 plan §7) and the coach of WI-039 (Rumi plan): pure rules.
@@ -140,7 +140,7 @@ export function morningDue(
 ) {
   const day = dayKey(now, zone);
   if (!s.morningEnabled || !active(s, day) || d.morningAt) return false;
-  const start = localInstant(day, s.morningTime, zone);
+  const start = repeatedInstant(day, s.morningTime, zone);
   if (now < start || +now >= +start + MORNING_WINDOW_MIN * 60_000) return false;
   if (inQuietHours(hhmm(now, zone), s.quietStart, s.quietEnd)) return false;
   if (s.onlyStudyDays && !d.studyBlocks.length) return false;
@@ -161,7 +161,7 @@ export function eveningDue(
 ) {
   const day = dayKey(now, zone);
   if (!s.eveningEnabled || !active(s, day) || d.eveningAt) return null;
-  if (now < localInstant(day, s.eveningTime, zone)) return null;
+  if (now < repeatedInstant(day, s.eveningTime, zone)) return null;
   if (inQuietHours(hhmm(now, zone), s.quietStart, s.quietEnd)) return null;
   if (d.morningAt && +now < +d.morningAt + NUDGE_SPACING_MIN * 60_000)
     return null;
@@ -191,7 +191,7 @@ export function middayDue(
   if (!s.rumiLines || !s.middayEnabled || !active(s, day) || d.middayAt)
     return null;
   if (s.middayPausedUntil && s.middayPausedUntil >= day) return null;
-  const start = localInstant(day, s.middayTime, zone);
+  const start = repeatedInstant(day, s.middayTime, zone);
   if (now < start || +now >= +start + MIDDAY_WINDOW_MIN * 60_000) return null;
   if (inQuietHours(hhmm(now, zone), s.quietStart, s.quietEnd)) return null;
   if (d.morningAt && +now < +d.morningAt + NUDGE_SPACING_MIN * 60_000)
@@ -221,7 +221,7 @@ export function recapDue(
   const day = dayKey(now, zone);
   if (!s.rumiLines || !s.eveningEnabled || !active(s, day) || d.eveningAt)
     return null;
-  if (now < localInstant(day, s.eveningTime, zone)) return null;
+  if (now < repeatedInstant(day, s.eveningTime, zone)) return null;
   if (inQuietHours(hhmm(now, zone), s.quietStart, s.quietEnd)) return null;
   if (d.morningAt && +now < +d.morningAt + NUDGE_SPACING_MIN * 60_000)
     return null;

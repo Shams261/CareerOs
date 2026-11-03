@@ -26,6 +26,7 @@ pnpm test:ci
 pnpm build
 pnpm test:e2e            # UI work; CI runs it on every push, branches included
 pnpm test:e2e:safari     # UI work, WebKit; CI runs it weekly (WebKit workflow)
+pnpm test:e2e:firefox    # UI work, Firefox (WI-145); local only
 pnpm docs:check
 git diff --check
 ```

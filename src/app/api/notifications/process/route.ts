@@ -8,6 +8,17 @@ import { writeRumiLines } from '@/features/agent/lines';
 import { learnNudgeTimes } from '@/features/nudges/learn-service';
 export const runtime = 'nodejs';
 
+const DAILY: [string, () => Promise<unknown>][] = [
+  // Grill Me's provider check (ADR-022), at most once a day.
+  ['study', () => dailyProviderCheck()],
+  // Lines past their day go (WI-100).
+  ['agent', () => pruneMemories()],
+  // Once a week per owner, the line times follow when study starts (WI-109).
+  ['nudges', () => learnNudgeTimes()],
+  // System records past their retention go (WI-134).
+  ['retention', () => dailyRetention()],
+];
+
 /** Scheduler entry point (Bearer CRON_SECRET via proxy): eligibility → NotificationLog → push. */
 export async function POST() {
   try {
@@ -26,20 +37,17 @@ export async function POST() {
       },
       { clearsSnapshots: false },
     );
-    // Grill Me's provider check (ADR-022) runs at most once a day and never affects reminders.
-    try {
-      await dailyProviderCheck();
-      // Lines past their day go with the daily check (WI-100).
-      await pruneMemories();
-      // Once a week per owner, the line times follow when study starts (WI-109).
-      await learnNudgeTimes();
-      // Once a day, system records past their retention go (WI-134).
-      await dailyRetention();
-    } catch (error) {
-      console.error(
-        '[study] provider check failed',
-        error instanceof Error ? error.name : 'Error',
-      );
+    // The daily work rides on this request and never affects reminders. Each runs on its own
+    // (WI-145), so one that throws no longer stops the ones after it.
+    for (const [name, work] of DAILY) {
+      try {
+        await work();
+      } catch (error) {
+        console.error(
+          `[${name}] daily run failed`,
+          error instanceof Error ? error.name : 'Error',
+        );
+      }
     }
     return Response.json(result);
   } catch (error) {

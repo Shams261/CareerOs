@@ -1,0 +1,21 @@
+flowchart TB
+  browser["Browser / Home Screen app<br/>React 19 client islands, service worker sw.js"]
+  subgraph render["Render web service (Docker, Ohio, free tier)"]
+    proxy["proxy.ts<br/>session gate, CSP nonce, rate limits, cron bearer"]
+    rsc["App Router pages<br/>Server Components + page-data loaders"]
+    actions["Server Actions<br/>runAction / failure, owner()"]
+    api["Route handlers<br/>/api/rumi/ask (NDJSON), cron, webhook, export, health"]
+    features["Feature modules<br/>domain.ts (pure) + service.ts (writes)"]
+    kernel["Kernel<br/>lib/ (time, day, copy, categories) · server/lock.ts · server/action.ts · memo"]
+  end
+  db[("Supabase PostgreSQL 17<br/>Canada Central, session pooler<br/>43 models, TimeZone=UTC")]
+  ext["Google OIDC · Google Calendar · OpenRouter · push services"]
+  browser --> proxy --> rsc
+  proxy --> actions
+  proxy --> api
+  rsc --> features
+  actions --> features
+  api --> features
+  features --> kernel
+  features -- "Prisma 7 + pg adapter" --> db
+  features --> ext

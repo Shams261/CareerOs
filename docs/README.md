@@ -9,11 +9,14 @@ Silsila (formerly CareerOS) is a single-owner personal execution system, live at
 3. [Features](architecture/features.md): what each part does and where it lives.
 4. [Decision records](architecture/decisions.md): ADR-001 to ADR-031, append-only.
 5. [Rumi 2 architecture](architecture/rumi-2.md) and the [Rumi 2 and 3 plan](product/rumi2-plan.md).
+6. [Architecture for interviews](architecture/SILSILA-ARCHITECTURE.md) ([PDF](architecture/SILSILA-ARCHITECTURE.pdf), [diagram sources](architecture/diagrams/)): C4, modules, ER, data flows, user flows, sequences, deployment, security, trade-offs.
+7. [Current-state audit](audits/SILSILA-COMPLETE-CURRENT-STATE-AUDIT.md) of 2026-11-02 and its [traceability](audits/SILSILA-AUDIT-TRACEABILITY.md) to the previous one.
 
 ## Product
 
 - [Brand system](product/brand-system.md): identity, tokens, copy rules, design principles, pending artwork.
 - [Onboarding](product/onboarding.md): the owner's first steps.
+- [Release criteria](product/RELEASE-CRITERIA.md) and the [roadmap](product/ROADMAP.md).
 
 ## Operating
 
