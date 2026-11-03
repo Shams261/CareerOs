@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+Nothing yet. Two weeks of use come first; the next version is planned in `docs/product/V2-PROPOSAL.md` (4.0.0).
+
+## 3.1.0 — The audit, its cleanup, Talk and study with Rumi (WI-120 to WI-146, 2026-11-02 to 2026-11-03)
+
+The version the owner closed on 2026-11-03 before two weeks of use. Migration: `20261107000000_time_block_plan_index` (WI-140).
+
+- WI-146 (the ⋯ menu on a phone, 2026-11-03, no migration): on a phone, an open roadmap item's ⋯ menu opened off the left edge of the screen and showed as an empty, cut-off box. Every ⋯ menu now opens towards the side with room, so Edit, Back to not started and Remove are always on screen.
 - WI-145 (the complete current-state audit, 2026-11-02, no migration): Today no longer trips over itself as it loads (a form sat inside a paragraph), and Firefox shows no security warning on the pages with forms. If Rumi makes a change and then cannot finish its answer, the answer still shows the change with its Undo. An interview's result or an application's delete waits until a running session on its block is paused. A routine set inside the hour the clocks skip in spring is left out of that one day, and a reminder set inside it comes when the clock jumps, instead of stopping that week's plan and the reminders. Rumi's afternoon line no longer shows twice on Today; a double press of Revised moves an item's revision once; Rumi's notes expire by your day, not UTC's. Smaller fixes: a failing calendar sync now shows as stale on the health check, the health check is rate-limited, stored tokens accept only a full-length tag, push accepts only the browsers' push services, two small buttons are 24 px, dates like 30 February are refused. Firefox joins Chromium and Safari's engine in the browser tests, and one test opens every page. New documents: the current-state audit, its traceability, the architecture document and PDF, release criteria and a roadmap; the README is rewritten.
 - WI-144 (study with Rumi, 2026-11-02, no migration): on a roadmap item, Grill me and Listen became one Ask Rumi card: Grill me on this and Read it to me open in Rumi's panel as a card, and Explain it asks Rumi about the item. Copy the study prompt stays. Escape now closes Rumi's panel without also closing the open item behind it.
 - WI-143 (Rumi as a conversation, 2026-11-02, no migration): ask Rumi anything you are learning (a concept, an interview question, a design) and it answers fully, like a study partner, while it still reads your records for your plans. Spoken questions get short spoken answers, Talk waits less after you stop speaking, and replies use the best voice on your device. Repeated parts of each request are now cached, so a conversation costs less and answers sooner.

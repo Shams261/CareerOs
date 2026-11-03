@@ -6948,6 +6948,11 @@ html[data-panel-open] .rumi-fab-wrap {
   border-radius: 12px;
   box-shadow: var(--shadow-md);
 }
+.more-menu-items[data-align='start'] {
+  /* A button near the screen's left edge (a phone row, WI-146): the list opens rightward. */
+  right: auto;
+  left: 0;
+}
 .more-menu-items[hidden] {
   display: none;
 }

@@ -213,9 +213,7 @@ Navigation is unchanged (Today, Plan, Roadmap, Practice, Jobs, Weekly review, Se
 
 - No horizontal overflow and no off-screen element on any of the 25 routes at 320–430 px in any browser.
 - The phone navigation, dialogs, the Rumi drawer and the roadmap were all checked.
-- **UI-4, the Roadmap markers on mobile: not reproduced.** The overview bands, the week rows and the item status markers were checked at 320 and 390 px in Chromium and WebKit, with a roadmap of 8 sections × 6 items in mixed states (not started, in progress, done, revision due) in an earlier pass of this audit. The markers sit consistently inside their rows (status icons at the same x position, 20 px), with no clipping, overflow or overlap with text. The outline dots and connecting line of the old roadmap (WI-084) were replaced by status icons in WI-088.
-  - No code change was made, and no regression test was written for a defect that could not be shown.
-  - The owner's phone is Android. Chrome on Android uses the same engine as the Chromium phone emulation that did not show it, so a screenshot from the phone (the roadmap, its state and the Chrome version) is needed to reproduce it.
+- **UI-4, the Roadmap "dots" on mobile: misidentified here, found and fixed in WI-146.** This audit took "dots" to mean the item status markers, checked them at 320 and 390 px (they sit correctly) and reported "not reproduced". The owner's screenshots from Chrome on Android (2026-11-03) showed the real problem: the open item's **⋯ menu**. On a phone its button wraps to the start of its row, and the shared `MoreMenu` aligned its list to the button's right edge, so the list opened off the screen to the left and appeared as an empty, cut-off box. The sweep could not see it because the list is hidden until pressed. WI-146 makes the menu measure itself on opening and align to the button's left edge when it would leave the screen; a phone-width journey step now opens the menu and checks it stays in view.
 
 ## 14. Accessibility findings
 
@@ -306,7 +304,7 @@ ARCH-1, ARCH-2, CQ-3, CQ-6, CQ-7, CQ-8, CQ-9, CQ-10, CQ-14, CQ-17, BE-4, BE-10, 
 
 - Real Google sign-in and Calendar sync on the owner's account; only the fake Google ran.
 - Real Web Push delivery to devices; no notification was sent.
-- The owner's Android phone: Chrome and the installed app, push, voice recognition, and the Roadmap markers. There is no iPhone to test; iOS Safari rests on WebKit emulation.
+- The owner's Android phone: Chrome and the installed app, push, voice recognition (the Roadmap ⋯ menu was found and fixed in WI-146). There is no iPhone to test; iOS Safari rests on WebKit emulation.
 - The Render, Supabase, cron-job.org and Better Stack dashboards; their settings come from the runbooks.
 - A full recovery into a new Supabase project with Render repointed (the owner's drill timed the restore itself: 3 s on 2026-11-02).
 - Signed-in production performance; memory use.

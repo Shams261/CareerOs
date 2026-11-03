@@ -148,6 +148,22 @@ test('a roadmap item is added and marked done', async ({ page }) => {
   await expect(page).toHaveTitle(/^Building blocks · System design/);
   await accessible(page);
   await fitsPhone(page, page.url().replace(/^https?:\/\/[^/]+/, ''));
+
+  // WI-146: on a phone the open item's ⋯ wraps to the start of its row; its list used to open
+  // leftward from there, off the screen. It must open fully inside the viewport.
+  const size = page.viewportSize()!;
+  await page.setViewportSize({ width: 375, height: 812 });
+  await page.reload();
+  const open = page.locator('.week-item.is-open');
+  await open.getByRole('button', { name: /^More for / }).click();
+  const menu = open.locator('.more-menu-items');
+  await expect(menu).toBeVisible();
+  const box = (await menu.boundingBox())!;
+  expect(box.x).toBeGreaterThanOrEqual(0);
+  expect(box.x + box.width).toBeLessThanOrEqual(375);
+  await expect(menu.getByRole('button', { name: 'Edit' })).toBeInViewport();
+  await page.keyboard.press('Escape');
+  await page.setViewportSize(size);
 });
 
 test('a problem is added without a link and an attempt is recorded', async ({
