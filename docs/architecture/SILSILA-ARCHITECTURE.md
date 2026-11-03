@@ -1187,7 +1187,7 @@ The Render and Supabase dashboards, cron-job.org and Better Stack are configured
 - **Partial failure.** A Rumi answer that fails after a change still stores the change with its Undo (WI-145). Each daily job beside the reminders runs on its own (WI-145). Push failures never remove inbox rows. A follow-up after a committed action (a calendar sync) never turns the action into a failure.
 - **Timeouts.** The pool cancels a statement after 15 seconds; each Google request attempt times out after 10 seconds; the model call has its own timeout.
 - **Detection.** `/api/health` reports `jobs: ok | stale` from `JobRun` freshness; a calendar run where every connection failed now counts as a failure, so it turns stale (WI-145). Server errors are logged with the reference the error page shows.
-- **Recovery.** Daily encrypted backups with a restore check; the owner's monthly drill (`scripts/restore-drill.sh`), not yet timed; up to a day of writes can be lost (Supabase Free keeps no provider backups).
+- **Recovery.** Daily encrypted backups with a restore check; the owner's monthly drill (`scripts/restore-drill.sh`), first run on 2026-11-02: 3 s to a verified restore; up to a day of writes can be lost (Supabase Free keeps no provider backups).
 
 ## 11. Performance
 
@@ -1260,7 +1260,7 @@ It is a modular monolith: one container and one database. Every request goes thr
 
 ### Known limitations to state honestly
 
-Single owner; free-tier latency and limits; in-memory rate limits; browser-dependent voice; real-device iPhone checks are manual; the logo artwork is provisional.
+Single owner; free-tier latency and limits; in-memory rate limits; browser-dependent voice; real-device checks (the owner's Android phone) are manual; the logo artwork is provisional.
 
 ## Appendix: inventory (2026-11-02)
 
