@@ -140,7 +140,7 @@ Google OIDC with PKCE, state and nonce, allowlisted to one verified email; serve
 - Free hosting tiers: the first request after idle can be slow, and the database is small.
 - Voice uses the browser's recognition (Google in Chrome, Apple in Safari), outside the zero-retention AI path, behind an explicit consent.
 - The official logo artwork is pending; a documented provisional mark is used.
-- Real-device checks of iPhone push and the Home Screen app are the owner's.
+- Real-device checks (push, voice, the installed app) are the owner's, on an Android phone; iOS Safari is covered by WebKit emulation only.
 
 ## Roadmap
 

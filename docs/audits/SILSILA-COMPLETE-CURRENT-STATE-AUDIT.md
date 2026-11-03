@@ -184,9 +184,9 @@ No Critical, High or Medium vulnerability was found. The controls:
 | 5   | Maintainability             | Feature modules, kernel, boundaries test, knip, strict types                   | 0 type errors, 0 lint, 0 unused exports                                                                                                                | 13 feature pairs; a 9,400-line `app.css`                            | Move pages to Tailwind when touched | Pass    |
 | 6   | Usability                   | One primary action per page, Undo, plain words                                 | UX review; journeys                                                                                                                                    | Owner UAT pending                                                   | Two weeks of UAT                    | Partial |
 | 7   | Accessibility               | Semantic HTML, labels, focus, reduced motion                                   | axe (WCAG 2.2 AA) clean in 3 browsers, light and dark; touch targets fixed                                                                             | No screen-reader run                                                | One VoiceOver pass                  | Partial |
-| 8   | Compatibility               | Chromium, Firefox, WebKit                                                      | 22/22 journeys in each; sweep in each                                                                                                                  | No real device                                                      | Owner iPhone check                  | Partial |
+| 8   | Compatibility               | Chromium, Firefox, WebKit                                                      | 22/22 journeys in each; sweep in each                                                                                                                  | No real device                                                      | Owner's Android check               | Partial |
 | 9   | Data integrity              | Constraints, transactions, append-only history, UTC sessions                   | Schema, migration and DST tests                                                                                                                        | Three missing indexes (performance, not integrity)                  | BE-12                               | Pass    |
-| 10  | Recoverability              | Daily encrypted backup with a restore check                                    | Workflow file; runbook                                                                                                                                 | RPO one day; RTO not measured                                       | Time the drill                      | Partial |
+| 10  | Recoverability              | Daily encrypted backup with a restore check                                    | Workflow file; runbook; the owner's drill on 2026-11-02 restored and verified the newest backup in 3 s                                                 | RPO one day; a new database and repointing Render not timed         | Repeat the drill monthly            | Partial |
 | 11  | Observability               | Health with job freshness, logged references, Server-Timing auth               | Code; runbook                                                                                                                                          | No error tracking                                                   | Scrubbed error capture              | Partial |
 | 12  | Privacy                     | Field exclusions, ZDR, generic push, retention                                 | Tests with planted markers                                                                                                                             | SEC-5                                                               | Owner check                         | Pass    |
 | 13  | Operational simplicity      | One container, two cron endpoints, no queues                                   | Repository                                                                                                                                             | —                                                                   | —                                   | Pass    |
@@ -215,7 +215,7 @@ Navigation is unchanged (Today, Plan, Roadmap, Practice, Jobs, Weekly review, Se
 - The phone navigation, dialogs, the Rumi drawer and the roadmap were all checked.
 - **UI-4, the Roadmap markers on mobile: not reproduced.** The overview bands, the week rows and the item status markers were checked at 320 and 390 px in Chromium and WebKit, with a roadmap of 8 sections × 6 items in mixed states (not started, in progress, done, revision due) in an earlier pass of this audit. The markers sit consistently inside their rows (status icons at the same x position, 20 px), with no clipping, overflow or overlap with text. The outline dots and connecting line of the old roadmap (WI-084) were replaced by status icons in WI-088.
   - No code change was made, and no regression test was written for a defect that could not be shown.
-  - If the owner still sees it on a device, a screenshot with the device, browser and roadmap would let it be reproduced. The problem may be specific to iOS Safari, which emulation does not cover.
+  - The owner's phone is Android. Chrome on Android uses the same engine as the Chromium phone emulation that did not show it, so a screenshot from the phone (the roadmap, its state and the Chrome version) is needed to reproduce it.
 
 ## 14. Accessibility findings
 
@@ -306,9 +306,9 @@ ARCH-1, ARCH-2, CQ-3, CQ-6, CQ-7, CQ-8, CQ-9, CQ-10, CQ-14, CQ-17, BE-4, BE-10, 
 
 - Real Google sign-in and Calendar sync on the owner's account; only the fake Google ran.
 - Real Web Push delivery to devices; no notification was sent.
-- iPhone Safari and the Home Screen app, voice recognition on devices, and the Roadmap markers on a real phone.
+- The owner's Android phone: Chrome and the installed app, push, voice recognition, and the Roadmap markers. There is no iPhone to test; iOS Safari rests on WebKit emulation.
 - The Render, Supabase, cron-job.org and Better Stack dashboards; their settings come from the runbooks.
-- Restore time; the drill was not run.
+- A full recovery into a new Supabase project with Render repointed (the owner's drill timed the restore itself: 3 s on 2026-11-02).
 - Signed-in production performance; memory use.
 - A screen-reader walkthrough.
 - The OpenRouter provider in production (the daily check runs there; this audit used the fake).
@@ -328,4 +328,4 @@ ARCH-1, ARCH-2, CQ-3, CQ-6, CQ-7, CQ-8, CQ-9, CQ-10, CQ-14, CQ-17, BE-4, BE-10, 
 
 - No P0 or P1 defect exists. All P2 defects are fixed with regression tests.
 - The code passes typecheck, lint, knip, 887 unit and database tests, and the build. The journeys pass in Chromium, Firefox and WebKit, and the sweep is clean at eight widths in all three browsers.
-- What remains before a "3.1.0" is not code. It is the owner's checks: the privacy contact, the iPhone, a timed restore. Then two weeks of use read through the measures before any new feature.
+- What remains before a "3.1.0" is not code. It is the owner's checks: the privacy contact and the Android phone (the restore drill passed on 2026-11-02 in 3 s). Then two weeks of use read through the measures before any new feature.

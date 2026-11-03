@@ -27,7 +27,7 @@ Each line says whether it is verified, by what, or still pending. "Verified" mea
 | Rumi keeps a change and its Undo when the model fails afterwards                                                                                                                           | Verified                          | `tests/agent-writes-database.test.ts` (WI-145)                                          |
 | DST: a repeated time on the spring-forward day never stops a week or the reminders                                                                                                         | Verified                          | `tests/domain.test.ts` (WI-145)                                                         |
 | Real Google Calendar sync on the owner's account                                                                                                                                           | Pending (owner)                   | only the fake Google is exercised in tests                                              |
-| Real push on an iPhone (tab and Home Screen app)                                                                                                                                           | Pending (owner)                   | —                                                                                       |
+| Real push on the owner's Android phone (Chrome and the installed app)                                                                                                                      | Pending (owner)                   | —                                                                                       |
 
 ### Security
 
@@ -44,12 +44,12 @@ Each line says whether it is verified, by what, or still pending. "Verified" mea
 
 ### Browsers and devices
 
-| Criterion                                            | Status               | Evidence                                       |
-| ---------------------------------------------------- | -------------------- | ---------------------------------------------- |
-| Chromium (desktop)                                   | Verified             | e2e on every push; sweep at 8 widths           |
-| WebKit (Safari's engine)                             | Verified (emulation) | e2e weekly in CI and locally; sweep            |
-| Firefox                                              | Verified (emulation) | `pnpm test:e2e:firefox` (new in WI-145); sweep |
-| A real iPhone (Safari, Home Screen app, push, voice) | Pending (owner)      | emulation is not a device                      |
+| Criterion                                                      | Status               | Evidence                                                                                       |
+| -------------------------------------------------------------- | -------------------- | ---------------------------------------------------------------------------------------------- |
+| Chromium (desktop)                                             | Verified             | e2e on every push; sweep at 8 widths                                                           |
+| WebKit (Safari's engine)                                       | Verified (emulation) | e2e weekly in CI and locally; sweep                                                            |
+| Firefox                                                        | Verified (emulation) | `pnpm test:e2e:firefox` (new in WI-145); sweep                                                 |
+| The owner's Android phone (Chrome, installed app, push, voice) | Pending (owner)      | emulation is not a device; there is no iPhone to check, so Safari rests on the WebKit journeys |
 
 ### Mobile and layout
 
@@ -85,14 +85,14 @@ Each line says whether it is verified, by what, or still pending. "Verified" mea
 
 ### Deployment, backups and integrations
 
-| Criterion                                                | Status                                               | Evidence                                         |
-| -------------------------------------------------------- | ---------------------------------------------------- | ------------------------------------------------ |
-| Render deploys only green `main`                         | Documented                                           | operations runbook; dashboard not inspected      |
-| Daily encrypted backup with a restore check              | Documented; workflow present                         | `.github/workflows/backup.yml` (daily 07:23 UTC) |
-| A timed restore (RTO)                                    | Pending (owner)                                      | the monthly drill, `scripts/restore-drill.sh`    |
-| External uptime monitor                                  | Documented (owner set up Better Stack on 2026-11-02) | operations runbook                               |
-| Scheduled jobs fresh                                     | Verified at audit time                               | production health `jobs: ok`                     |
-| AI provider check (zero data retention, pinned endpoint) | Verified in tests; production runs it daily          | `tests/ai-*`                                     |
+| Criterion                                                | Status                                               | Evidence                                                                                                                                                    |
+| -------------------------------------------------------- | ---------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Render deploys only green `main`                         | Documented                                           | operations runbook; dashboard not inspected                                                                                                                 |
+| Daily encrypted backup with a restore check              | Documented; workflow present                         | `.github/workflows/backup.yml` (daily 07:23 UTC)                                                                                                            |
+| A timed restore (RTO)                                    | Verified 2026-11-02                                  | the owner's first drill: 3 s from download to a verified restore (`docs/engineering/backup-restore.md`); a new database and repointing Render are not timed |
+| External uptime monitor                                  | Documented (owner set up Better Stack on 2026-11-02) | operations runbook                                                                                                                                          |
+| Scheduled jobs fresh                                     | Verified at audit time                               | production health `jobs: ok`                                                                                                                                |
+| AI provider check (zero data retention, pinned endpoint) | Verified in tests; production runs it daily          | `tests/ai-*`                                                                                                                                                |
 
 ## Remaining production risks
 
@@ -100,7 +100,7 @@ Each line says whether it is verified, by what, or still pending. "Verified" mea
 2. **Recovery point of a day.** Supabase Free keeps no provider backups; the daily dump is the only copy.
 3. **TLS without certificate verification** to the database (`DATABASE_SSL=no-verify`).
 4. **In-process rate limits and cache**: correct for one instance only.
-5. **Manual device checks** (iPhone push, voice in the Home Screen app) are not automated.
+5. **Manual device checks** (push and voice on the owner's Android phone) are not automated; no real iPhone is available, so iOS Safari is covered by WebKit emulation only.
 
 ## How to release
 

@@ -66,9 +66,9 @@ RESTORE_VERIFY_SERVER_URL=postgresql://careeros:careeros@127.0.0.1:5433/careeros
 bash scripts/restore-drill.sh
 ```
 
-| Date        | Total | Data age | Notes                         |
-| ----------- | ----- | -------- | ----------------------------- |
-| not yet run | —     | —        | First drill is an owner step. |
+| Date       | Total                                                   | Data age                                                                                                                                                                                  | Notes                                                                                                                                                                    |
+| ---------- | ------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 2026-11-02 | 3 s (download 2 s, decrypt 0 s, restore and verify 1 s) | Backup run 41523516166 of 2026-11-02 20:54 UTC (the manual backup before WI-140's migration, so its latest migration is `20261106000000_owner_ai_limit`); newest block created 2026-10-29 | First drill, by the owner (WI-145). The database is small (1 owner, 12 days, 20 blocks), so this is a floor; a new Supabase project and repointing Render are not timed. |
 
 A real recovery also needs a new database and Render pointed at it (below); the drill does not time that part, so note it the first time it is done.
 
