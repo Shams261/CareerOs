@@ -4,13 +4,11 @@ What a release of Silsila must meet, and where the current one stands. Written f
 
 ## Current release
 
-- **Released version: 3.0.0** (CHANGELOG, "Rumi 2 and 3, Rumi's character and the Rumi audit", WI-099 to WI-119, 2026-10-31 to 2026-11-01). Earlier: 2.0.0, 1.0.0 (live since 2026-10-20) and 0.1.0.
-- **Deployed: `main` at `70243da`** (WI-144, 2026-11-02). Render deploys `main` after CI passes, so the CHANGELOG's Unreleased items WI-120 to WI-144 are already live; they are not yet cut into a version.
-- **Pending merge:** WI-145 (this audit's fixes), on the branch `audit/wi-145-current-state`.
+- **Released version: 3.1.0** (CHANGELOG, "The audit, its cleanup, Talk and study with Rumi", WI-120 to WI-146, closed by the owner on 2026-11-03). Earlier: 3.0.0, 2.0.0, 1.0.0 (live since 2026-10-20) and 0.1.0.
+- **Deployed:** `main`, which Render deploys after CI passes. Nothing is unreleased.
+- **Next:** two weeks of owner use, then the next version as proposed in [V2-PROPOSAL.md](V2-PROPOSAL.md) (4.0.0 by CHANGELOG numbering).
 - Version numbers live only in the CHANGELOG; the repository has no version tags (its tags are `baseline/wi-002`, `wi-003-verified`, `wi-004-verified` and `docs-archive-2026-11-02`).
 - Production on 2026-11-02, read only: `/api/health` answered `{"status":"ok","database":"ok","sessionTimeZone":"UTC","schema":"current","jobs":"ok"}`.
-
-The next version (proposed **3.1.0**) would cut WI-120 to WI-145: no schema change apart from WI-140's index migration, no new feature apart from Talk and study with Rumi (WI-142 to WI-144).
 
 ## Criteria
 
@@ -53,11 +51,11 @@ Each line says whether it is verified, by what, or still pending. "Verified" mea
 
 ### Mobile and layout
 
-| Criterion                                                                | Status                                                                          | Evidence                         |
-| ------------------------------------------------------------------------ | ------------------------------------------------------------------------------- | -------------------------------- |
-| No horizontal overflow at 320, 360, 375, 390, 430, 768, 1024 and 1440 px | Verified (emulation)                                                            | sweep across 25 routes per width |
-| Touch targets at least 24 px (WCAG 2.2 AA) on phones                     | Verified, with listed exceptions (inline links, the skip link, a hidden submit) | sweep's small-target probe       |
-| Roadmap markers on phones                                                | Not reproduced                                                                  | see the audit, UI-4              |
+| Criterion                                                                | Status                                                                          | Evidence                                                                                  |
+| ------------------------------------------------------------------------ | ------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
+| No horizontal overflow at 320, 360, 375, 390, 430, 768, 1024 and 1440 px | Verified (emulation)                                                            | sweep across 25 routes per width                                                          |
+| Touch targets at least 24 px (WCAG 2.2 AA) on phones                     | Verified, with listed exceptions (inline links, the skip link, a hidden submit) | sweep's small-target probe                                                                |
+| Row menus (⋯) on phones stay on screen                                   | Verified (WI-146)                                                               | a phone-width journey opens a roadmap item's ⋯ and checks its list is inside the viewport |
 
 ### Accessibility
 

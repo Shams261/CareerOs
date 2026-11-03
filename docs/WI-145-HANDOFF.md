@@ -40,12 +40,12 @@ Each P2 fix and most P3s have a regression test that fails on the old code. The 
 
 ## Not reproduced
 
-The Roadmap markers on mobile: checked at 320 and 390 px in Chromium and WebKit on overview bands, week rows and items in every state. The markers sit inside their rows, with no clipping or overlap. The owner's phone is Android, whose Chrome uses the same engine as the Chromium emulation that did not show it; a screenshot from the phone (with the roadmap and its state) is needed to reproduce it.
+The Roadmap "dots" on mobile were misidentified here as the status markers; the owner's screenshots showed the item's ⋯ menu opening off screen. Fixed in [WI-146](WI-146-HANDOFF.md).
 
 ## Owner steps
 
 1. Confirm the public contact on `/privacy` (it shows a Gmail address; set `PRIVACY_CONTACT_EMAIL` on Render if it should differ).
-2. On the owner's Android phone (Chrome, and the app installed from Chrome's menu → Add to Home screen / Install app): push, voice, and the Roadmap markers. The owner has no iPhone; Safari is covered by the WebKit journeys only.
+2. On the owner's Android phone (Chrome, and the app installed from Chrome's menu → Add to Home screen / Install app): push and voice (the Roadmap ⋯ menu is fixed in WI-146). The owner has no iPhone; Safari is covered by the WebKit journeys only.
 3. Done on 2026-11-02: the restore drill restored and verified the newest backup in 3 s (recorded in `docs/engineering/backup-restore.md`).
 4. Review Dependabot's open PRs (not checked here).
 5. After the merge, `/api/health` is rate-limited at 120 a minute per address. Render's check and Better Stack are far below that.
